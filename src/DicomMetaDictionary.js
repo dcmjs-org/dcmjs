@@ -252,8 +252,9 @@ class DicomMetaDictionary {
   }
 
   static dateTime() {
+    // "2017-07-07T16:09:18.079Z" -> "20170707160918.079"
     let now = new Date();
-    return now.toISOString().replace(/:/g,'').slice(11,17);
+    return now.toISOString().replace(/[:\-TZ]/g,'');
   }
 
   static _generateNameMap() {
