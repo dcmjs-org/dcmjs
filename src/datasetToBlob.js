@@ -1,4 +1,4 @@
-datasetToBlob = function (dataset) {
+function datasetToBlob (dataset) {
   const meta = {
     FileMetaInformationVersion: dataset._meta.FileMetaInformationVersion.Value[0],
     MediaStorageSOPClassUID: dataset.SOPClassUID,

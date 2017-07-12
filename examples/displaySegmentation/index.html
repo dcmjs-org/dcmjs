@@ -79,15 +79,13 @@
 -->
 <script src="../../build/dcmjs.js"></script>
 
-<script src="../js/getConverterSpec.js"></script>
-
 <script src="../js/initWebWorkers.js"></script>
 <script src="../js/jqueryFileDrop.js"></script>
 
 <script>
   let element;
   $(document).ready(function() {
-    const dc0 = new DICOMZero();
+    const dc0 = new DCMJS.DICOMZero();
     element = document.getElementById('dicomImage');
 
     cornerstone.enable(element);

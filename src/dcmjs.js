@@ -1,4 +1,3 @@
-import { DICOMZero } from './DICOMZero.js';
 export { DICOMZero } from './DICOMZero.js';
 
 export { ReadBufferStream } from './BufferStream.js';
