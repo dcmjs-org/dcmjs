@@ -808,3 +808,5 @@ class OtherByteString extends BinaryRepresentation {
         return super.writeBytes(stream, value, written);
     } */
 }
+
+export { ValueRepresentation };

@@ -105,3 +105,5 @@ class Tag {
       return written;
     }
 }
+
+export { Tag };

@@ -334,3 +334,8 @@ class StructuredReport extends DerivedDataset {
     ]);
   }
 }
+export { DerivedDataset };
+export { DerivedPixels };
+export { DerivedImage };
+export { Segmentation };
+export { StructuredReport };

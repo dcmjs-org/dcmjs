@@ -192,3 +192,6 @@ class DicomMessage {
         return tagInfo;
     }
 }
+
+export { DicomDict };
+export { DicomMessage };

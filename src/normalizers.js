@@ -414,3 +414,13 @@ class DSRNormalizer extends Normalizer {
     this.dataset = this.datasets[0]; // only one dataset per series and for now we assume it is normalized
   }
 }
+
+export { Normalizer };
+export { ImageNormalizer };
+export { MRImageNormalizer };
+export { EnhancedMRImageNormalizer };
+export { EnhancedUSVolumeNormalizer };
+export { CTImageNormalizer };
+export { PETImageNormalizer };
+export { SEGImageNormalizer };
+export { DSRNormalizer };

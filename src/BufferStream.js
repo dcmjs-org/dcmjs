@@ -297,3 +297,6 @@ class WriteBufferStream extends BufferStream {
         this.size = 0;
     }
 }
+
+export { ReadBufferStream };
+export { WriteBufferStream };

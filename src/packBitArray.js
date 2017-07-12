@@ -46,3 +46,5 @@ packBitArray = function(pixelData) {
 
   return bitPixelData;
 };
+
+export { packBitArray };

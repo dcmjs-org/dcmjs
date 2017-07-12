@@ -76,3 +76,5 @@ class DICOMZero {
     this.readers.push(reader);
   }
 }
+
+export { DICOMZero };
