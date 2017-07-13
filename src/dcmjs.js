@@ -1,37 +1,70 @@
-export { DICOMZero } from './DICOMZero.js';
-
-export { ReadBufferStream } from './BufferStream.js';
-export { WriteBufferStream } from './BufferStream.js';
-
-export { DicomDict } from './DicomMessage.js';
-export { DicomMessage } from './DicomMessage.js';
-
-export { DicomMetaDictionary } from './DicomMetaDictionary.js';
-
-export { Tag } from './Tag.js';
-
-export { ValueRepresentation } from './ValueRepresentation.js';
-
+import { DICOMZero } from './DICOMZero.js';
+import { packBitArray } from './packBitArray.js';
+import { ReadBufferStream } from './BufferStream.js';
+import { WriteBufferStream } from './BufferStream.js';
+import { DicomDict } from './DicomMessage.js';
+import { DicomMessage } from './DicomMessage.js';
+import { DicomMetaDictionary } from './DicomMetaDictionary.js';
+import { Tag } from './Tag.js';
+import { ValueRepresentation } from './ValueRepresentation.js';
 //export { anonymizer } from './anonymizer.js';
+import { Colors } from './colors.js';
+import { datasetToBlob } from './datasetToBlob.js';
 
-export { Colors } from './colors.js';
+let data = {
+  DICOMZero,
+  packBitArray,
+  ReadBufferStream,
+  WriteBufferStream,
+  DicomDict,
+  DicomMessage,
+  DicomMetaDictionary,
+  Tag,
+  ValueRepresentation,
+  Colors,
+  datasetToBlob
+};
 
-export { datasetToBlob } from './datasetToBlob.js';
+export { data };
 
-export { DerivedDataset } from './derivations.js';
-export { DerivedPixels } from './derivations.js';
-export { DerivedImage } from './derivations.js';
-export { Segmentation } from './derivations.js';
-export { StructuredReport } from './derivations.js';
 
-export { Normalizer } from './normalizers.js';
-export { ImageNormalizer } from './normalizers.js';
-export { MRImageNormalizer } from './normalizers.js';
-export { EnhancedMRImageNormalizer } from './normalizers.js';
-export { EnhancedUSVolumeNormalizer } from './normalizers.js';
-export { CTImageNormalizer } from './normalizers.js';
-export { PETImageNormalizer } from './normalizers.js';
-export { SEGImageNormalizer } from './normalizers.js';
-export { DSRNormalizer } from './normalizers.js';
+import { DerivedDataset } from './derivations.js';
+import { DerivedPixels } from './derivations.js';
+import { DerivedImage } from './derivations.js';
+import { Segmentation } from './derivations.js';
+import { StructuredReport } from './derivations.js';
 
-export { packBitArray } from './packBitArray.js';
+let derivations = {
+  DerivedDataset,
+  DerivedPixels,
+  DerivedImage,
+  Segmentation,
+  StructuredReport
+};
+
+export { derivations };
+
+
+import { Normalizer } from './normalizers.js';
+import { ImageNormalizer } from './normalizers.js';
+import { MRImageNormalizer } from './normalizers.js';
+import { EnhancedMRImageNormalizer } from './normalizers.js';
+import { EnhancedUSVolumeNormalizer } from './normalizers.js';
+import { CTImageNormalizer } from './normalizers.js';
+import { PETImageNormalizer } from './normalizers.js';
+import { SEGImageNormalizer } from './normalizers.js';
+import { DSRNormalizer } from './normalizers.js';
+
+let normalizers = {
+  Normalizer,
+  ImageNormalizer,
+  MRImageNormalizer,
+  EnhancedMRImageNormalizer,
+  EnhancedUSVolumeNormalizer,
+  CTImageNormalizer,
+  PETImageNormalizer,
+  SEGImageNormalizer,
+  DSRNormalizer
+};
+
+export { normalizers };

@@ -1,3 +1,5 @@
+import { DicomMessage } from './DicomMessage.js';
+import { Tag } from './Tag.js';
 
 function paddingLeft(paddingValue, string) {
    return String(paddingValue + string).slice(-paddingValue.length);
@@ -757,7 +759,7 @@ class UniqueIdentifier extends StringRepresentation {
     }
 
     readBytes(stream, length) {
-        return this.readNullPaddedString(stream, length);
+        return this.readNullPaddedString(stream, length).replace(/[^0-9.]/g,'');
     }
 }
 
@@ -809,4 +811,6 @@ class OtherByteString extends BinaryRepresentation {
     } */
 }
 
+export { paddingLeft };
+export { tagFromNumbers };
 export { ValueRepresentation };

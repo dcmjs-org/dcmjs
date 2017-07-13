@@ -1,3 +1,5 @@
+import { paddingLeft } from './ValueRepresentation.js';
+
 var IMPLICIT_LITTLE_ENDIAN = "1.2.840.10008.1.2";
 var EXPLICIT_LITTLE_ENDIAN = "1.2.840.10008.1.2.1";
 var EXPLICIT_BIG_ENDIAN = "1.2.840.10008.1.2.2";
