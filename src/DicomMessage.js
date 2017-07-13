@@ -1,6 +1,7 @@
 import { ReadBufferStream } from './BufferStream.js';
 import { tagFromNumbers } from './ValueRepresentation.js';
 import { ValueRepresentation } from './ValueRepresentation.js';
+import { DicomMetaDictionary } from './DicomMetaDictionary.js';
 
 var IMPLICIT_LITTLE_ENDIAN = "1.2.840.10008.1.2";
 var EXPLICIT_LITTLE_ENDIAN = "1.2.840.10008.1.2.1";

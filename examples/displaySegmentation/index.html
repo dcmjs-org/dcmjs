@@ -107,6 +107,7 @@
 
             var functionalGroup = multiframe.PerFrameFunctionalGroupsSequence[i];
             var imagePositionArray = functionalGroup.PlanePositionSequence.ImagePositionPatient;
+            //imagePositionArray = imagePositionArray.split('\\').map(Number);
 
             addMetaData('imagePlane', imageId, {
               imagePositionPatient: {

@@ -52,7 +52,7 @@ class ValueRepresentation {
         if (!length)
           return this.defaultValue;
         if (this.maxLength != length)
-          console.log("Invalid length for fixed length tag, vr " + this.type + ", length " + this.maxLength + " != " + length);
+          console.error("Invalid length for fixed length tag, vr " + this.type + ", length " + this.maxLength + " != " + length);
       }
       return this.readBytes(stream, length, syntax);
     }
@@ -400,7 +400,9 @@ class DecimalString extends StringRepresentation {
 
     readBytes(stream, length) {
       //return this.readNullPaddedString(stream, length).trim();
-      return stream.readString(length).replace(/[^0-9.\\\-e]/gi, "");
+      let ds = stream.readString(length);
+      ds = ds.replace(/[^0-9.\\\-+e]/gi, "");
+      return ds;
     }
 }
 
