@@ -16,21 +16,21 @@ function tagFromNumbers(group, element) {
 }
 
 function readTag(stream) {
-  var group = stream.readUint16(), 
+  var group = stream.readUint16(),
       element = stream.readUint16();
 
   var tag = tagFromNumbers(group, element);
   return tag;
 }
 
-var binaryVRs = ["FL", "FD", "SL", "SS", "UL", "US", "AT"], 
-    explicitVRList = ["OB", "OW", "OF", "SQ", "UC", "UR", "UT", "UN"],
+var binaryVRs = ["FL", "FD", "SL", "SS", "UL", "US", "AT"],
+    explicitVRs = ["OB", "OW", "OF", "SQ", "UC", "UR", "UT", "UN"],
     singleVRs = ["SQ", "OF", "OW", "OB", "UN"];
 
 class ValueRepresentation {
     constructor(type, value) {
       this.type = type;
-      this.multi = false;  
+      this.multi = false;
     }
 
     isBinary() {
@@ -42,8 +42,8 @@ class ValueRepresentation {
     }
 
     isExplicit() {
-        return explicitVRList.indexOf(this.type) != -1;
-    }    
+        return explicitVRs.indexOf(this.type) != -1;
+    }
 
     read(stream, length, syntax) {
       if (this.fixed && this.maxLength) {
@@ -66,14 +66,14 @@ class ValueRepresentation {
       if (stream.readUint8() != 0) {
         stream.increment(-1);
         str += stream.readString(1);
-      }    
+      }
       return str;
     }
 
     writeFilledString(stream, value, length) {
         if (length < this.maxLength && length >= 0) {
             var written = 0;
-            if (length > 0) 
+            if (length > 0)
                 written += stream.writeString(value);
             var zeroLength = this.maxLength - length;
             written += stream.writeHex(this.fillWith.repeat(zeroLength));
@@ -82,7 +82,7 @@ class ValueRepresentation {
             return stream.writeString(value);
         } else {
             throw "Length mismatch";
-        }         
+        }
     }
 
     write(stream, type) {
@@ -102,7 +102,7 @@ class ValueRepresentation {
                             //byteCount++;
                         }
                         var singularArgs = [v].concat(valueArgs.slice(1));
-                        
+
                         var byteCount = func.apply(stream, singularArgs);
                         written.push(byteCount);
                     });
@@ -150,7 +150,7 @@ class ValueRepresentation {
         written++;
       }
       return written;
-    }    
+    }
 
     static createByTypeString(type) {
         var vr = null;
@@ -203,7 +203,7 @@ class StringRepresentation extends ValueRepresentation {
         var written = super.write(stream, "String", value);
 
         return super.writeBytes(stream, value, written);
-    }     
+    }
 }
 
 class BinaryRepresentation extends ValueRepresentation {
@@ -215,7 +215,7 @@ class BinaryRepresentation extends ValueRepresentation {
         var i;
         var binaryStream;
         if (isEncapsulated) {
-            var fragmentSize = 1024 * 20, 
+            var fragmentSize = 1024 * 20,
                 frames = value.length, startOffset = [];
 
             binaryStream = new WriteBufferStream(1024 * 1024 * 20, stream.isLittleEndian);
@@ -252,7 +252,7 @@ class BinaryRepresentation extends ValueRepresentation {
             if (written & 1) {
                 stream.writeHex(this.padByte);
                 written++;
-            }  
+            }
 
             return 0xffffffff;
         } else {
@@ -303,7 +303,7 @@ class BinaryRepresentation extends ValueRepresentation {
                 }
                 if (fragmentStream !== null) {
                     frames.push(fragmentStream.buffer);
-                }                
+                }
 
                 stream.readUint32();
             } else {
@@ -334,7 +334,7 @@ class ApplicationEntity extends StringRepresentation {
 
     readBytes(stream, length) {
         return stream.readString(length).trim();
-    }       
+    }
 }
 
 class CodeString extends StringRepresentation {
@@ -345,7 +345,7 @@ class CodeString extends StringRepresentation {
     }
 
     readBytes(stream, length) {
-        //return this.readNullPaddedString(stream, length).trim(); 
+        //return this.readNullPaddedString(stream, length).trim();
         return stream.readString(length).trim();
     }
 }
@@ -357,7 +357,7 @@ class AgeString extends StringRepresentation {
         this.padByte = "20";
         this.fixed = true;
         this.defaultValue = "";
-    } 
+    }
 }
 
 class AttributeTag extends ValueRepresentation {
@@ -386,7 +386,7 @@ class DateValue extends StringRepresentation {
       this.padByte = "20";
       //this.fixed = true;
       this.defaultValue = "";
-    }   
+    }
 }
 
 class DecimalString extends StringRepresentation {
@@ -407,7 +407,7 @@ class DateTime extends StringRepresentation {
         super("DT");
         this.maxLength = 26;
         this.padByte = "20";
-    }  
+    }
 }
 
 class FloatingPointSingle extends ValueRepresentation {
@@ -439,7 +439,7 @@ class FloatingPointDouble extends ValueRepresentation {
 
     readBytes(stream, length) {
         return stream.readDouble();
-    }  
+    }
 
     writeBytes(stream, value) {
         return super.writeBytes(stream, value, super.write(stream, "Double", value));
@@ -469,7 +469,7 @@ class LongString extends StringRepresentation {
     readBytes(stream, length) {
         //return this.readNullPaddedString(stream, length).trim();
         return stream.readString(length).trim();
-    }  
+    }
 }
 
 class LongText extends StringRepresentation {
@@ -482,7 +482,7 @@ class LongText extends StringRepresentation {
     readBytes(stream, length) {
         //return rtrim(this.readNullPaddedString(stream, length));
         return rtrim(stream.readString(length));
-    }   
+    }
 }
 
 class PersonName extends StringRepresentation {
@@ -504,7 +504,7 @@ class PersonName extends StringRepresentation {
     readBytes(stream, length) {
         //return rtrim(this.readNullPaddedString(stream, length));
         return rtrim(stream.readString(length));
-    }   
+    }
 }
 
 class ShortString extends StringRepresentation {
@@ -517,7 +517,7 @@ class ShortString extends StringRepresentation {
     readBytes(stream, length) {
         //return this.readNullPaddedString(stream, length).trim();
         return stream.readString(length).trim();
-    }    
+    }
 }
 
 class SignedLong extends ValueRepresentation {
@@ -535,7 +535,7 @@ class SignedLong extends ValueRepresentation {
 
     writeBytes(stream, value) {
         return super.writeBytes(stream, value, super.write(stream, 'Int32', value));
-    }    
+    }
 }
 
 class SequenceOfItems extends ValueRepresentation {
@@ -634,12 +634,12 @@ class SequenceOfItems extends ValueRepresentation {
         }
         super.write(stream, "Uint16", 0xfffe);
         super.write(stream, "Uint16", 0xe0dd);
-        super.write(stream, "Uint32", 0x00000000);   
+        super.write(stream, "Uint32", 0x00000000);
         written += 8;
 
         var totalLength = stream.offset - startOffset;
         return super.writeBytes(stream, value, [written]);
-    }    
+    }
 }
 
 class SignedShort extends ValueRepresentation {
@@ -658,7 +658,7 @@ class SignedShort extends ValueRepresentation {
 
     writeBytes(stream, value) {
         return super.writeBytes(stream, value, super.write(stream, "Int16", value));
-    }    
+    }
 }
 
 class ShortText extends StringRepresentation {
@@ -672,7 +672,7 @@ class ShortText extends StringRepresentation {
 
         //return rtrim(this.readNullPaddedString(stream, length));
         return rtrim(stream.readString(length));
-    }  
+    }
 }
 
 class TimeValue extends StringRepresentation {
@@ -684,7 +684,7 @@ class TimeValue extends StringRepresentation {
 
     readBytes(stream, length) {
         return rtrim(stream.readString(length));
-    }   
+    }
 }
 
 class UnlimitedCharacters extends StringRepresentation {
@@ -697,7 +697,7 @@ class UnlimitedCharacters extends StringRepresentation {
 
     readBytes(stream, length) {
         return rtrim(stream.readString(length));
-    }   
+    }
 }
 
 class UnlimitedText extends StringRepresentation {
@@ -710,7 +710,7 @@ class UnlimitedText extends StringRepresentation {
     readBytes(stream, length) {
         //return this.readNullPaddedString(stream, length);
         return rtrim(stream.readString(length));
-    }   
+    }
 }
 
 class UnsignedShort extends ValueRepresentation {
@@ -728,7 +728,7 @@ class UnsignedShort extends ValueRepresentation {
 
     writeBytes(stream, value) {
         return super.writeBytes(stream, value, super.write(stream, "Uint16", value));
-    }    
+    }
 }
 
 class UnsignedLong extends ValueRepresentation {
@@ -742,11 +742,11 @@ class UnsignedLong extends ValueRepresentation {
 
     readBytes(stream, length) {
         return stream.readUint32();
-    }  
+    }
 
     writeBytes(stream, value) {
         return super.writeBytes(stream, value, super.write(stream, "Uint32", value));
-    }    
+    }
 }
 
 class UniqueIdentifier extends StringRepresentation {
@@ -758,7 +758,7 @@ class UniqueIdentifier extends StringRepresentation {
 
     readBytes(stream, length) {
         return this.readNullPaddedString(stream, length);
-    }     
+    }
 }
 
 class UniversalResource extends StringRepresentation {
@@ -770,7 +770,7 @@ class UniversalResource extends StringRepresentation {
 
     readBytes(stream, length) {
         return stream.readString(length);
-    }   
+    }
 }
 
 class UnknownValue extends StringRepresentation {
@@ -783,7 +783,7 @@ class UnknownValue extends StringRepresentation {
 
     readBytes(stream, length) {
         return stream.readString(length);
-    }  
+    }
 }
 
 class OtherWordString extends BinaryRepresentation {

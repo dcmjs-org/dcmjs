@@ -3,8 +3,7 @@ var IMPLICIT_LITTLE_ENDIAN = "1.2.840.10008.1.2";
 var EXPLICIT_LITTLE_ENDIAN = "1.2.840.10008.1.2.1";
 var EXPLICIT_BIG_ENDIAN = "1.2.840.10008.1.2.2";
 
-var explicitVRList = ["OB", "OW", "OF", "SQ", "UC", "UR", "UT", "UN"], 
-    binaryVRs = ["FL", "FD", "SL", "SS", "UL", "US", "AT"],
+var binaryVRs = ["FL", "FD", "SL", "SS", "UL", "US", "AT"],
     singleVRs = ["SQ", "OF", "OW", "OB", "UN"],
     encapsulatedSyntaxes = [
       "1.2.840.10008.1.2.4.50", "1.2.840.10008.1.2.4.51", "1.2.840.10008.1.2.4.57", "1.2.840.10008.1.2.4.70",
@@ -37,9 +36,9 @@ class DicomDict {
       var metaStream = new WriteBufferStream(1024);
       if (!this.meta['00020010']) {
           this.meta['00020010'] = {vr: 'UI', Value: [EXPLICIT_LITTLE_ENDIAN]};
-      } 
+      }
       DicomMessage.write(this.meta, metaStream, metaSyntax);
-      DicomMessage.writeTagObject(fileStream, "00020000", "UL", metaStream.size, metaSyntax);   
+      DicomMessage.writeTagObject(fileStream, "00020000", "UL", metaStream.size, metaSyntax);
       fileStream.concat(metaStream);
 
       var useSyntax = this.meta['00020010'].Value[0];
@@ -53,7 +52,7 @@ class DicomMessage {
         var dict = {};
         while (!bufferStream.end()) {
           var readInfo = DicomMessage.readTag(bufferStream, syntax);
-          
+
           dict[readInfo.tag.toCleanString()] = {
             vr: readInfo.vr.type, Value: readInfo.values
           };
@@ -76,10 +75,10 @@ class DicomMessage {
     static readFile(buffer) {
       var stream = new ReadBufferStream(buffer), useSyntax = EXPLICIT_LITTLE_ENDIAN;
       stream.reset();
-      stream.increment(128);  
+      stream.increment(128);
       if (stream.readString(4) != 'DICM') {
-        throw new Error('Invalid a dicom file');  
-      }      
+        throw new Error('Invalid a dicom file');
+      }
       var el = DicomMessage.readTag(stream, useSyntax),
           metaLength = el.values[0];
 
@@ -91,17 +90,17 @@ class DicomMessage {
       var mainSyntax = metaHeader["00020010"].Value[0];
       mainSyntax = DicomMessage._normalizeSyntax(mainSyntax);
       var objects = DicomMessage.read(stream, mainSyntax);
-      
+
       var dicomDict = new DicomDict(metaHeader);
       dicomDict.dict = objects;
 
       return dicomDict;
-    } 
+    }
 
     static writeTagObject(stream, tagString, vr, values, syntax) {
       var tag = Tag.fromString(tagString);
 
-      tag.write(stream, vr, values, syntax);      
+      tag.write(stream, vr, values, syntax);
     }
 
     static write(jsonObjects, useStream, syntax) {
@@ -124,7 +123,7 @@ class DicomMessage {
 
       var oldEndian = stream.isLittleEndian;
       stream.setEndian(isLittleEndian);
-      var group = stream.readUint16(), 
+      var group = stream.readUint16(),
           element = stream.readUint16(),
           tag = tagFromNumbers(group, element);
 
@@ -145,9 +144,9 @@ class DicomMessage {
           } else if (vrType == 'xs') {
             vrType = 'US';
           } else {
-            vrType = 'UN';  
+            vrType = 'UN';
           }
-     
+
           vr = ValueRepresentation.createByTypeString(vrType);
         }
       } else {
@@ -185,10 +184,10 @@ class DicomMessage {
     }
 
     static lookupTag(tag) {
-        var tagInfo = DicomMetaDictionary.dictionary[tag.toString()];  
+        var tagInfo = DicomMetaDictionary.dictionary[tag.toString()];
         if (!tagInfo) {
           throw new Error('Failed to lookup tag ' + tag.toString());
-        } 
+        }
         return tagInfo;
     }
 }

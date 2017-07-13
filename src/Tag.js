@@ -8,7 +8,7 @@ class Tag {
     }
 
     toString() {
-      return "(" + paddingLeft("0000", this.group().toString(16).toUpperCase()) + "," + 
+      return "(" + paddingLeft("0000", this.group().toString(16).toUpperCase()) + "," +
              paddingLeft("0000", this.element().toString(16).toUpperCase()) + ")";
     }
 
@@ -34,20 +34,20 @@ class Tag {
     }
 
     static fromString(str) {
-        var group = parseInt(str.substring(0,4), 16), 
+        var group = parseInt(str.substring(0,4), 16),
             element = parseInt(str.substring(4), 16);
         return Tag.fromNumbers(group, element);
     }
 
     static fromPString(str) {
-        var group = parseInt(str.substring(1,5), 16), 
+        var group = parseInt(str.substring(1,5), 16),
             element = parseInt(str.substring(6,10), 16);
-        return Tag.fromNumbers(group, element); 
+        return Tag.fromNumbers(group, element);
     }
 
     static fromNumbers(group, element) {
       return new Tag(((group << 16) | element) >>> 0);
-    }    
+    }
 
     static readTag(stream) {
       var group = stream.readUint16(), element = stream.readUint16();
@@ -59,7 +59,7 @@ class Tag {
           useSyntax = DicomMessage._normalizeSyntax(syntax);
 
       var implicit = useSyntax == IMPLICIT_LITTLE_ENDIAN ? true : false,
-          isLittleEndian = (useSyntax == IMPLICIT_LITTLE_ENDIAN || useSyntax == EXPLICIT_LITTLE_ENDIAN) ? true : false,     
+          isLittleEndian = (useSyntax == IMPLICIT_LITTLE_ENDIAN || useSyntax == EXPLICIT_LITTLE_ENDIAN) ? true : false,
           isEncapsulated = DicomMessage.isEncapsulated(syntax);
 
       var oldEndian = stream.isLittleEndian;
@@ -95,7 +95,7 @@ class Tag {
           stream.writeString(vr.type);
           stream.writeUint16(valueLength);
           written += 4;
-        } 
+        }
       }
 
       stream.concat(tagStream);
