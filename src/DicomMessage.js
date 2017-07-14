@@ -1,6 +1,8 @@
 import { ReadBufferStream } from './BufferStream.js';
+import { WriteBufferStream } from './BufferStream.js';
 import { tagFromNumbers } from './ValueRepresentation.js';
 import { ValueRepresentation } from './ValueRepresentation.js';
+import { Tag } from './Tag.js';
 import { DicomMetaDictionary } from './DicomMetaDictionary.js';
 
 var IMPLICIT_LITTLE_ENDIAN = "1.2.840.10008.1.2";
@@ -135,11 +137,10 @@ class DicomMessage {
 
       if (implicit) {
         length = stream.readUint32();
-        try {
-          var edata = DicomMessage.lookupTag(tag);
-          vrType = edata.vr;
-          vr = ValueRepresentation.createByTypeString(vrType);
-        } catch(e) {
+        var elementData = DicomMessage.lookupTag(tag);
+        if (elementData) {
+          vrType = elementData.vr;
+        } else {
           //unknown tag
           if (length == 0xffffffff) {
             vrType = 'SQ';
@@ -150,9 +151,8 @@ class DicomMessage {
           } else {
             vrType = 'UN';
           }
-
-          vr = ValueRepresentation.createByTypeString(vrType);
         }
+        vr = ValueRepresentation.createByTypeString(vrType);
       } else {
         vrType = stream.readString(2);
         vr = ValueRepresentation.createByTypeString(vrType);
@@ -188,11 +188,7 @@ class DicomMessage {
     }
 
     static lookupTag(tag) {
-        var tagInfo = DicomMetaDictionary.dictionary[tag.toString()];
-        if (!tagInfo) {
-          throw new Error('Failed to lookup tag ' + tag.toString());
-        }
-        return tagInfo;
+        return (DicomMetaDictionary.dictionary[tag.toString()]);
     }
 }
 

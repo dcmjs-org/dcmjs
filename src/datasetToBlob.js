@@ -1,3 +1,6 @@
+import { DicomMetaDictionary } from './DicomMetaDictionary.js';
+import { DicomDict } from './DicomMessage.js';
+
 function datasetToBlob (dataset) {
   const meta = {
     FileMetaInformationVersion: dataset._meta.FileMetaInformationVersion.Value[0],

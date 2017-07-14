@@ -1,3 +1,5 @@
+import { ValueRepresentation } from './ValueRepresentation.js';
+
 class DicomMetaDictionary {
   static punctuateTag(rawTag) {
     if (rawTag.indexOf(',') !== -1) {

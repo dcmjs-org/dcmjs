@@ -1,4 +1,6 @@
 import { DicomMessage } from './DicomMessage.js';
+import { ReadBufferStream } from './BufferStream.js';
+import { WriteBufferStream } from './BufferStream.js';
 import { Tag } from './Tag.js';
 
 function paddingLeft(paddingValue, string) {
@@ -172,6 +174,7 @@ class ValueRepresentation {
         else if (type == "OD") vr = new OtherDoubleString();
         else if (type == "OF") vr = new OtherFloatString();
         else if (type == "OW") vr = new OtherWordString();
+        else if (type == "ox") vr = new UnknownValue();
         else if (type == "PN") vr = new PersonName();
         else if (type == "SH") vr = new ShortString();
         else if (type == "SL") vr = new SignedLong();

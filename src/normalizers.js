@@ -131,12 +131,12 @@ class ImageNormalizer extends Normalizer {
     let referencePosition = referenceDataset.ImagePositionPatient;
     let rowVector = referenceDataset.ImageOrientationPatient.slice(0,3);
     let columnVector = referenceDataset.ImageOrientationPatient.slice(3,6);
-    let scanAxis = vec3CrossProduct(rowVector,columnVector);
+    let scanAxis = ImageNormalizer.vec3CrossProduct(rowVector,columnVector);
     let distanceDatasetPairs = [];
     this.datasets.forEach(function(dataset) {
       let position = dataset.ImagePositionPatient.slice();
-      let positionVector = vec3Subtract(position, referencePosition);
-      let distance = vec3Dot(positionVector, scanAxis);
+      let positionVector = ImageNormalizer.vec3Subtract(position, referencePosition);
+      let distance = ImageNormalizer.vec3Dot(positionVector, scanAxis);
       distanceDatasetPairs.push([distance, dataset]);
     });
     distanceDatasetPairs.sort(function(a,b) {

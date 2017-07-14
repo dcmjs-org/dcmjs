@@ -4,134 +4,6 @@
 	(factory((global.DCMJS = {})));
 }(this, (function (exports) { 'use strict';
 
-class DICOMZero {
-  constructor() {
-    this.reset();
-  }
-
-  reset() {
-    this.mappingLog = [];
-    this.dataTransfer = undefined;
-    this.unnaturalDatasets = [];
-    this.datasets = [];
-    this.readers = [];
-    this.arrayBuffers = [];
-    this.files = [];
-    this.fileIndex = 0;
-  }
-
-  getReadDICOMFunction(doneCallback, statusCallback) {
-    statusCallback = statusCallback || console.log;
-    return progressEvent => {
-      let reader = progressEvent.target;
-      let arrayBuffer = reader.result;
-      this.arrayBuffers.push(arrayBuffer);
-
-      let dicomData;
-      try {
-        dicomData = DicomMessage.readFile(arrayBuffer);
-        this.unnaturalDatasets.push(dicomData.dict);
-        let dataset = DicomMetaDictionary.naturalizeDataset(dicomData.dict);
-        dataset._meta = DicomMetaDictionary.namifyDataset(dicomData.meta);
-        this.datasets.push(dataset);
-      } catch (error) {
-        statusCallback("skipping non-dicom file");
-      }
-
-      let readerIndex = this.readers.indexOf(reader);
-      if (readerIndex < 0) {
-        reject("Logic error: Unexpected reader!");
-      } else {
-        this.readers.splice(readerIndex, 1); // remove the reader
-      }
-
-      if (this.fileIndex === this.dataTransfer.files.length) {
-        statusCallback(`Normalizing...`);
-        try {
-          this.multiframe = Normalizer.normalizeToDataset(this.datasets);
-        } catch (e) {
-          console.error('Could not convert to multiframe');
-          console.error(e);
-        }
-        statusCallback(`Creating segmentation...`);
-        try {
-          this.seg = new Segmentation([this.multiframe]);
-          statusCallback(`Created ${this.multiframe.NumberOfFrames} frame multiframe object and segmentation.`);
-        } catch (e) {
-          console.error('Could not create segmentation');
-          console.error(e);
-        }
-        doneCallback();
-      } else {
-        statusCallback(`Reading... (${this.fileIndex+1}).`);
-        this.readOneFile(doneCallback, statusCallback);
-      }
-    };
-  }
-
-  // Used for file selection button or drop of file list
-  readOneFile(doneCallback, statusCallback) {
-    let file = this.dataTransfer.files[this.fileIndex];
-    this.fileIndex++;
-
-    let reader = new FileReader();
-    reader.onload = this.getReadDICOMFunction(doneCallback, statusCallback);
-    reader.readAsArrayBuffer(file);
-
-    this.files.push(file);
-    this.readers.push(reader);
-  }
-}
-
-/* eslint no-bitwise: 0 */
-function getBytesForBinaryFrame (numPixels) {
-  // Check whether the 1-bit pixels exactly fit into bytes
-  const remainder = numPixels % 8;
-
-  // Number of bytes that work on an exact fit
-  let bytesRequired = Math.floor(numPixels / 8);
-
-  // Add one byte if we have a remainder
-  if (remainder > 0) {
-    bytesRequired++;
-  }
-
-  return bytesRequired;
-}
-
-function packBitArray (pixelData) {
-  const numPixels = pixelData.length;
-  console.log('numPixels: ' + numPixels);
-
-  const length = getBytesForBinaryFrame(numPixels);
-  //console.log('getBytesForBinaryFrame: ' + length);
-
-  const bitPixelData = new Uint8Array(length);
-
-  let bytePos = 0;
-
-  for (let i = 0; i < numPixels; i++) {
-    // Compute byte position
-    bytePos = Math.floor(i / 8);
-
-    const pixValue = (pixelData[i] !== 0);
-
-    //console.log('i: ' + i);
-    //console.log('pixValue: ' + pixValue);
-    //console.log('bytePos: ' + bytePos);
-
-    const bitPixelValue = pixValue << (i % 8);
-    //console.log('current bitPixelData: ' + bitPixelData[bytePos]);
-    //console.log('this bitPixelValue: ' + bitPixelValue);
-
-    bitPixelData[bytePos] |= bitPixelValue;
-
-    //console.log('new bitPixelValue: ' + bitPixelData[bytePos]);
-  }
-
-  return bitPixelData;
-}
-
 //http://jonisalonen.com/2012/from-utf-16-to-utf-8-in-javascript/
 function toUTF8Array(str) {
     var utf8 = [];
@@ -400,7 +272,7 @@ class BufferStream {
 
         var newBuf = this.buffer.slice(this.offset, this.offset + length);
         this.increment(length);
-        return new ReadBufferStream$1(newBuf);
+        return new ReadBufferStream(newBuf);
     }
 
     reset() {
@@ -417,14 +289,14 @@ class BufferStream {
     }
 }
 
-class ReadBufferStream$1 extends BufferStream {
+class ReadBufferStream extends BufferStream {
     constructor(buffer, littleEndian) {
         super(buffer, littleEndian);
         this.size = this.buffer.byteLength;
     }
 }
 
-class WriteBufferStream$1 extends BufferStream {
+class WriteBufferStream extends BufferStream {
     constructor(buffer, littleEndian) {
         super(buffer, littleEndian);
         this.size = 0;
@@ -433,7 +305,7 @@ class WriteBufferStream$1 extends BufferStream {
 
 var IMPLICIT_LITTLE_ENDIAN$1 = "1.2.840.10008.1.2";
 var EXPLICIT_LITTLE_ENDIAN$1 = "1.2.840.10008.1.2.1";
-class Tag$1 {
+class Tag {
     constructor(value) {
       this.value = value;
     }
@@ -467,22 +339,22 @@ class Tag$1 {
     static fromString(str) {
         var group = parseInt(str.substring(0,4), 16),
             element = parseInt(str.substring(4), 16);
-        return Tag$1.fromNumbers(group, element);
+        return Tag.fromNumbers(group, element);
     }
 
     static fromPString(str) {
         var group = parseInt(str.substring(1,5), 16),
             element = parseInt(str.substring(6,10), 16);
-        return Tag$1.fromNumbers(group, element);
+        return Tag.fromNumbers(group, element);
     }
 
     static fromNumbers(group, element) {
-      return new Tag$1(((group << 16) | element) >>> 0);
+      return new Tag(((group << 16) | element) >>> 0);
     }
 
     static readTag(stream) {
       var group = stream.readUint16(), element = stream.readUint16();
-      return Tag$1.fromNumbers(group, element);
+      return Tag.fromNumbers(group, element);
     }
 
     write(stream, vrType, values, syntax) {
@@ -546,7 +418,7 @@ function rtrim(str) {
 }
 
 function tagFromNumbers(group, element) {
-  return new Tag$1(((group << 16) | element) >>> 0);
+  return new Tag(((group << 16) | element) >>> 0);
 }
 
 function readTag(stream) {
@@ -561,7 +433,7 @@ var binaryVRs$1 = ["FL", "FD", "SL", "SS", "UL", "US", "AT"];
 var explicitVRs = ["OB", "OW", "OF", "SQ", "UC", "UR", "UT", "UN"];
 var singleVRs$1 = ["SQ", "OF", "OW", "OB", "UN"];
 
-class ValueRepresentation$1 {
+class ValueRepresentation {
     constructor(type, value) {
       this.type = type;
       this.multi = false;
@@ -704,6 +576,7 @@ class ValueRepresentation$1 {
         else if (type == "OD") vr = new OtherDoubleString();
         else if (type == "OF") vr = new OtherFloatString();
         else if (type == "OW") vr = new OtherWordString();
+        else if (type == "ox") vr = new UnknownValue();
         else if (type == "PN") vr = new PersonName();
         else if (type == "SH") vr = new ShortString();
         else if (type == "SL") vr = new SignedLong();
@@ -724,7 +597,7 @@ class ValueRepresentation$1 {
     }
 }
 
-class StringRepresentation extends ValueRepresentation$1 {
+class StringRepresentation extends ValueRepresentation {
     constructor(type) {
         super(type);
     }
@@ -740,7 +613,7 @@ class StringRepresentation extends ValueRepresentation$1 {
     }
 }
 
-class BinaryRepresentation extends ValueRepresentation$1 {
+class BinaryRepresentation extends ValueRepresentation {
     constructor(type) {
         super(type);
     }
@@ -799,7 +672,7 @@ class BinaryRepresentation extends ValueRepresentation$1 {
 
     readBytes(stream, length) {
         if (length == 0xffffffff) {
-            var itemTagValue = Tag$1.readTag(stream), frames = [];
+            var itemTagValue = Tag.readTag(stream), frames = [];
             if (itemTagValue.is(0xfffee000)) {
                 var itemLength = stream.readUint32(), numOfFrames = 1, offsets = [];
                 if (itemLength > 0x0) {
@@ -812,7 +685,7 @@ class BinaryRepresentation extends ValueRepresentation$1 {
                 } else {
                     offsets = [0];
                 }
-                var nextTag = Tag$1.readTag(stream), fragmentStream = null, start = 4,
+                var nextTag = Tag.readTag(stream), fragmentStream = null, start = 4,
                     frameOffset = offsets.shift();
 
                 while (nextTag.is(0xfffee000)) {
@@ -832,7 +705,7 @@ class BinaryRepresentation extends ValueRepresentation$1 {
                         fragmentStream.concat(thisStream);
                     }
 
-                    nextTag = Tag$1.readTag(stream);
+                    nextTag = Tag.readTag(stream);
                     start += 4 + frameItemLength;
                 }
                 if (fragmentStream !== null) {
@@ -894,7 +767,7 @@ class AgeString extends StringRepresentation {
     }
 }
 
-class AttributeTag extends ValueRepresentation$1 {
+class AttributeTag extends ValueRepresentation {
     constructor() {
         super("AT");
         this.maxLength = 4;
@@ -946,7 +819,7 @@ class DateTime extends StringRepresentation {
     }
 }
 
-class FloatingPointSingle extends ValueRepresentation$1 {
+class FloatingPointSingle extends ValueRepresentation {
     constructor() {
         super("FL");
         this.maxLength = 4;
@@ -964,7 +837,7 @@ class FloatingPointSingle extends ValueRepresentation$1 {
     }
 }
 
-class FloatingPointDouble extends ValueRepresentation$1 {
+class FloatingPointDouble extends ValueRepresentation {
     constructor() {
         super("FD");
         this.maxLength = 8;
@@ -1056,7 +929,7 @@ class ShortString extends StringRepresentation {
     }
 }
 
-class SignedLong extends ValueRepresentation$1 {
+class SignedLong extends ValueRepresentation {
     constructor() {
         super("SL");
         this.maxLength = 4;
@@ -1074,7 +947,7 @@ class SignedLong extends ValueRepresentation$1 {
     }
 }
 
-class SequenceOfItems extends ValueRepresentation$1 {
+class SequenceOfItems extends ValueRepresentation {
     constructor() {
         super("SQ");
         this.maxLength = null;
@@ -1139,7 +1012,7 @@ class SequenceOfItems extends ValueRepresentation$1 {
                         if (undef)
                             stream.increment(8);
 
-                        var items = DicomMessage$1.read(itemStream, syntax);
+                        var items = DicomMessage.read(itemStream, syntax);
                         elements.push(items);
                     }
                     if (!undefLength && (read == sqlength)) {
@@ -1160,7 +1033,7 @@ class SequenceOfItems extends ValueRepresentation$1 {
                 super.write(stream, "Uint16", 0xe000);
                 super.write(stream, "Uint32", 0xffffffff);
 
-                written += DicomMessage$1.write(item, stream, syntax);
+                written += DicomMessage.write(item, stream, syntax);
 
                 super.write(stream, "Uint16", 0xfffe);
                 super.write(stream, "Uint16", 0xe00d);
@@ -1178,7 +1051,7 @@ class SequenceOfItems extends ValueRepresentation$1 {
     }
 }
 
-class SignedShort extends ValueRepresentation$1 {
+class SignedShort extends ValueRepresentation {
     constructor() {
         super("SS");
         this.maxLength = 2;
@@ -1249,7 +1122,7 @@ class UnlimitedText extends StringRepresentation {
     }
 }
 
-class UnsignedShort extends ValueRepresentation$1 {
+class UnsignedShort extends ValueRepresentation {
     constructor() {
         super("US");
         this.maxLength = 2;
@@ -1267,7 +1140,7 @@ class UnsignedShort extends ValueRepresentation$1 {
     }
 }
 
-class UnsignedLong extends ValueRepresentation$1 {
+class UnsignedLong extends ValueRepresentation {
     constructor() {
         super("UL");
         this.maxLength = 4;
@@ -1345,7 +1218,7 @@ class OtherByteString extends BinaryRepresentation {
     } */
 }
 
-class DicomMetaDictionary$1 {
+class DicomMetaDictionary {
   static punctuateTag(rawTag) {
     if (rawTag.indexOf(',') !== -1) {
       return (rawTag);
@@ -1373,7 +1246,7 @@ class DicomMetaDictionary$1 {
       if (data.vr == "SQ") {
         var cleanedValues = [];
         for (let index in data.Value) {
-          cleanedValues.push(DicomMetaDictionary$1.cleanDataset(data.Value[index]));
+          cleanedValues.push(DicomMetaDictionary.cleanDataset(data.Value[index]));
         }
         data.Value = cleanedValues;
       } else {
@@ -1400,12 +1273,12 @@ class DicomMetaDictionary$1 {
       if (data.vr == "SQ") {
         var namedValues = [];
         for (var index in data.Value) {
-          namedValues.push(DicomMetaDictionary$1.namifyDataset(data.Value[index]));
+          namedValues.push(DicomMetaDictionary.namifyDataset(data.Value[index]));
         }
         data.Value = namedValues;
       }
-      var punctuatedTag = DicomMetaDictionary$1.punctuateTag(tag);
-      var entry = DicomMetaDictionary$1.dictionary[punctuatedTag];
+      var punctuatedTag = DicomMetaDictionary.punctuateTag(tag);
+      var entry = DicomMetaDictionary.dictionary[punctuatedTag];
       var name = tag;
       if (entry) {
         name = entry.name;
@@ -1430,12 +1303,12 @@ class DicomMetaDictionary$1 {
         // convert sequence to list of values
         var naturalValues = [];
         for (var index in data.Value) {
-          naturalValues.push(DicomMetaDictionary$1.naturalizeDataset(data.Value[index]));
+          naturalValues.push(DicomMetaDictionary.naturalizeDataset(data.Value[index]));
         }
         data.Value = naturalValues;
       }
-      var punctuatedTag = DicomMetaDictionary$1.punctuateTag(tag);
-      var entry = DicomMetaDictionary$1.dictionary[punctuatedTag];
+      var punctuatedTag = DicomMetaDictionary.punctuateTag(tag);
+      var entry = DicomMetaDictionary.dictionary[punctuatedTag];
       var naturalName = tag;
       if (entry) {
         naturalName = entry.name;
@@ -1469,7 +1342,7 @@ class DicomMetaDictionary$1 {
     Object.keys(dataset).forEach(naturalName => {
       // check if it's a sequence
       var name = naturalName;
-      var entry = DicomMetaDictionary$1.nameMap[name];
+      var entry = DicomMetaDictionary.nameMap[name];
       if (entry) {
         let dataValue = dataset[naturalName];
         if (dataValue === undefined || dataValue === null) {
@@ -1489,12 +1362,12 @@ class DicomMetaDictionary$1 {
           }
         }
 
-        dataItem.Value = DicomMetaDictionary$1.denaturalizeValue(dataItem.Value);
+        dataItem.Value = DicomMetaDictionary.denaturalizeValue(dataItem.Value);
 
         if (entry.vr == "SQ") {
           var unnaturalValues = [];
           dataItem.Value.forEach(nestedDataset => {
-            unnaturalValues.push(DicomMetaDictionary$1.denaturalizeDataset(nestedDataset));
+            unnaturalValues.push(DicomMetaDictionary.denaturalizeDataset(nestedDataset));
           });
           dataItem.Value = unnaturalValues;
         }
@@ -1510,7 +1383,7 @@ class DicomMetaDictionary$1 {
           });
         }
 
-        var tag = DicomMetaDictionary$1.unpunctuateTag(entry.tag);
+        var tag = DicomMetaDictionary.unpunctuateTag(entry.tag);
         unnaturalDataset[tag] = dataItem;
       } else {
         const validMetaNames = ["_vrMap", "_meta"];
@@ -1532,12 +1405,12 @@ class DicomMetaDictionary$1 {
       MediaStorageSOPClassUID: dataset.SOPClassUID,
       MediaStorageSOPInstanceUID: dataset.SOPInstanceUID,
       TransferSyntaxUID: "1.2.840.10008.1.2",
-      ImplementationClassUID: DicomMetaDictionary$1.uid(),
+      ImplementationClassUID: DicomMetaDictionary.uid(),
       ImplementationVersionName: "dcmio-0.0",
     };
-    meta = DicomMetaDictionary$1.denaturalizeDataset(meta);
+    meta = DicomMetaDictionary.denaturalizeDataset(meta);
     let dicomDict = new DicomDict(meta);
-    dicomDict.dict = DicomMetaDictionary$1.denaturalizeDataset(dataset);
+    dicomDict.dict = DicomMetaDictionary.denaturalizeDataset(dataset);
     var buffer = dicomDict.write();
     var blob = new Blob([buffer], {type: "application/dicom"});
     return (blob);
@@ -1569,27 +1442,27 @@ class DicomMetaDictionary$1 {
   }
 
   static _generateNameMap() {
-    DicomMetaDictionary$1.nameMap = {};
-    for (var tag in DicomMetaDictionary$1.dictionary) {
-      var dict = DicomMetaDictionary$1.dictionary[tag];
+    DicomMetaDictionary.nameMap = {};
+    for (var tag in DicomMetaDictionary.dictionary) {
+      var dict = DicomMetaDictionary.dictionary[tag];
       if (dict.version != 'PrivateTag') {
-        DicomMetaDictionary$1.nameMap[dict.name] = dict;
+        DicomMetaDictionary.nameMap[dict.name] = dict;
       }
     }
   }
 
   static _generateUIDMap() {
-    DicomMetaDictionary$1.sopClassUIDsByName = {};
-    for (var uid in DicomMetaDictionary$1.sopClassNamesByUID) {
-      var name = DicomMetaDictionary$1.sopClassNamesByUID[uid];
-      DicomMetaDictionary$1.sopClassUIDsByName[name] = uid;
+    DicomMetaDictionary.sopClassUIDsByName = {};
+    for (var uid in DicomMetaDictionary.sopClassNamesByUID) {
+      var name = DicomMetaDictionary.sopClassNamesByUID[uid];
+      DicomMetaDictionary.sopClassUIDsByName[name] = uid;
     }
   }
 }
 
 // Subset of those listed at:
 // http://dicom.nema.org/medical/dicom/current/output/html/part04.html#sect_B.5
-DicomMetaDictionary$1.sopClassNamesByUID = {
+DicomMetaDictionary.sopClassNamesByUID = {
   "1.2.840.10008.5.1.4.1.1.2" : "CTImage",
   "1.2.840.10008.5.1.4.1.1.2.1" : "EnhancedCTImage",
   "1.2.840.10008.5.1.4.1.1.2.2" : "LegacyConvertedEnhancedCTImage",
@@ -1616,7 +1489,7 @@ DicomMetaDictionary$1.sopClassNamesByUID = {
   "1.2.840.10008.5.1.4.1.1.128.1" : "LegacyConvertedEnhancedPETImage",
 };
 
-DicomMetaDictionary$1.dictionary = {
+DicomMetaDictionary.dictionary = {
   "(0000,0000)": {
     "tag": "(0000,0000)",
     "vr": "UL",
@@ -49677,8 +49550,8 @@ DicomMetaDictionary$1.dictionary = {
 };
 
 
-DicomMetaDictionary$1._generateNameMap();
-DicomMetaDictionary$1._generateUIDMap();
+DicomMetaDictionary._generateNameMap();
+DicomMetaDictionary._generateUIDMap();
 
 var IMPLICIT_LITTLE_ENDIAN = "1.2.840.10008.1.2";
 var EXPLICIT_LITTLE_ENDIAN = "1.2.840.10008.1.2.1";
@@ -49717,21 +49590,21 @@ class DicomDict$1 {
       if (!this.meta['00020010']) {
           this.meta['00020010'] = {vr: 'UI', Value: [EXPLICIT_LITTLE_ENDIAN]};
       }
-      DicomMessage$1.write(this.meta, metaStream, metaSyntax);
-      DicomMessage$1.writeTagObject(fileStream, "00020000", "UL", metaStream.size, metaSyntax);
+      DicomMessage.write(this.meta, metaStream, metaSyntax);
+      DicomMessage.writeTagObject(fileStream, "00020000", "UL", metaStream.size, metaSyntax);
       fileStream.concat(metaStream);
 
       var useSyntax = this.meta['00020010'].Value[0];
-      DicomMessage$1.write(this.dict, fileStream, useSyntax);
+      DicomMessage.write(this.dict, fileStream, useSyntax);
       return fileStream.getBuffer();
     }
 }
 
-class DicomMessage$1 {
+class DicomMessage {
     static read(bufferStream, syntax, length) {
         var dict = {};
         while (!bufferStream.end()) {
-          var readInfo = DicomMessage$1.readTag(bufferStream, syntax);
+          var readInfo = DicomMessage.readTag(bufferStream, syntax);
 
           dict[readInfo.tag.toCleanString()] = {
             vr: readInfo.vr.type, Value: readInfo.values
@@ -49753,23 +49626,23 @@ class DicomMessage$1 {
     }
 
     static readFile(buffer) {
-      var stream = new ReadBufferStream$1(buffer), useSyntax = EXPLICIT_LITTLE_ENDIAN;
+      var stream = new ReadBufferStream(buffer), useSyntax = EXPLICIT_LITTLE_ENDIAN;
       stream.reset();
       stream.increment(128);
       if (stream.readString(4) != 'DICM') {
         throw new Error('Invalid a dicom file');
       }
-      var el = DicomMessage$1.readTag(stream, useSyntax),
+      var el = DicomMessage.readTag(stream, useSyntax),
           metaLength = el.values[0];
 
       //read header buffer
       var metaStream = stream.more(metaLength);
 
-      var metaHeader = DicomMessage$1.read(metaStream, useSyntax);
+      var metaHeader = DicomMessage.read(metaStream, useSyntax);
       //get the syntax
       var mainSyntax = metaHeader["00020010"].Value[0];
-      mainSyntax = DicomMessage$1._normalizeSyntax(mainSyntax);
-      var objects = DicomMessage$1.read(stream, mainSyntax);
+      mainSyntax = DicomMessage._normalizeSyntax(mainSyntax);
+      var objects = DicomMessage.read(stream, mainSyntax);
 
       var dicomDict = new DicomDict$1(metaHeader);
       dicomDict.dict = objects;
@@ -49811,11 +49684,10 @@ class DicomMessage$1 {
 
       if (implicit) {
         length = stream.readUint32();
-        try {
-          var edata = DicomMessage$1.lookupTag(tag);
-          vrType = edata.vr;
-          vr = ValueRepresentation$1.createByTypeString(vrType);
-        } catch(e) {
+        var elementData = DicomMessage.lookupTag(tag);
+        if (elementData) {
+          vrType = elementData.vr;
+        } else {
           //unknown tag
           if (length == 0xffffffff) {
             vrType = 'SQ';
@@ -49826,12 +49698,11 @@ class DicomMessage$1 {
           } else {
             vrType = 'UN';
           }
-
-          vr = ValueRepresentation$1.createByTypeString(vrType);
         }
+        vr = ValueRepresentation.createByTypeString(vrType);
       } else {
         vrType = stream.readString(2);
-        vr = ValueRepresentation$1.createByTypeString(vrType);
+        vr = ValueRepresentation.createByTypeString(vrType);
         if (vr.isExplicit()) {
           stream.increment(2);
           length = stream.readUint32();
@@ -49864,12 +49735,905 @@ class DicomMessage$1 {
     }
 
     static lookupTag(tag) {
-        var tagInfo = DicomMetaDictionary$1.dictionary[tag.toString()];
-        if (!tagInfo) {
-          throw new Error('Failed to lookup tag ' + tag.toString());
-        }
-        return tagInfo;
+        return (DicomMetaDictionary.dictionary[tag.toString()]);
     }
+}
+
+class DerivedDataset {
+  constructor (datasets, options={}) {
+    this.options = JSON.parse(JSON.stringify(options));
+    let o = this.options;
+
+    o.Manufacturer = options.Manufacturer || "Unspecified";
+    o.ManufacturerModelName = options.ManufacturerModelName || "Unspecified";
+    o.SeriesDescription = options.SeriesDescription || "Drived series";
+    o.SeriesNumber = options.SeriesNumber || "99";
+    o.SoftwareVersions = options.SoftwareVersions || "0";
+    o.DeviceSerialNumber = options.DeviceSerialNumber || "1";
+
+    let date = DicomMetaDictionary.date();
+    let time = DicomMetaDictionary.time();
+
+    o.SeriesDate = options.SeriesDate || date;
+    o.SeriesTime = options.SeriesTime || time;
+    o.ContentDate = options.ContentDate || date;
+    o.ContentTime = options.ContentTime || time;
+
+    o.SOPInstanceUID = options.SOPInstanceUID || DicomMetaDictionary.uid();
+    o.SeriesInstanceUID = options.SeriesInstanceUID || DicomMetaDictionary.uid();
+
+    o.ClinicalTrialTimePointID = options.ClinicalTrialTimePointID || "";
+    o.ClinicalTrialCoordinatingCenterName = options.ClinicalTrialCoordinatingCenterName || "";
+    o.ClinicalTrialSeriesID = options.ClinicalTrialSeriesID || "";
+
+    o.ContentLabel = options.ContentLabel || "";
+    o.ContentDescription = options.ContentDescription || "";
+    o.ContentCreatorName = options.ContentCreatorName || "";
+
+    o.ImageComments = options.ImageComments || "NOT FOR CLINICAL USE";
+    o.ContentQualification = "RESEARCH";
+
+    this.referencedDatasets = datasets; // list of one or more dicom-like object instances
+    this.referencedDataset = this.referencedDatasets[0];
+    this.dataset = {
+      _vrMap: this.referencedDataset._vrMap,
+      _meta: this.referencedDataset._meta,
+    };
+
+    this.derive();
+  }
+
+  assignToDataset(data) {
+    Object.keys(data).forEach(key=>this.dataset[key] = data[key]);
+  }
+
+  assignFromReference(tags) {
+    tags.forEach(tag=>this.dataset[tag] = this.referencedDataset[tag] || "");
+  }
+
+  assignFromOptions(tags) {
+    tags.forEach(tag=>this.dataset[tag] = this.options[tag] || "");
+  }
+
+  derive() {
+    // common for all instances in study
+    this.assignFromReference([
+      "AccessionNumber",
+      "ReferringPhysicianName",
+      "StudyDate",
+      "StudyID",
+      "StudyTime",
+      "PatientName",
+      "PatientID",
+      "PatientBirthDate",
+      "PatientSex",
+      "PatientAge",
+      "StudyInstanceUID",
+      "StudyID",]);
+
+    this.assignFromOptions([
+      "Manufacturer",
+      "SoftwareVersions",
+      "DeviceSerialNumber",
+      "ManufacturerModelName",
+      "SeriesDescription",
+      "SeriesNumber",
+      "ContentLabel",
+      "ContentDescription",
+      "ContentCreatorName",
+      "ImageComments",
+      "SeriesDate",
+      "SeriesTime",
+      "ContentDate",
+      "ContentTime",
+      "ContentQualification",
+      "SOPInstanceUID",
+      "SeriesInstanceUID",]);
+  }
+
+  static copyDataset(dataset) {
+    // copies everything but the buffers
+    return(JSON.parse(JSON.stringify(dataset)));
+  }
+}
+
+class DerivedPixels extends DerivedDataset {
+  constructor (datasets, options={}) {
+    super(datasets, options);
+  }
+
+  // this assumes a normalized multiframe input and will create
+  // a multiframe derived image
+  derive() {
+    super.derive();
+
+    this.assignToDataset({
+      "ImageType": [
+        "DERIVED",
+        "PRIMARY"
+      ],
+      "LossyImageCompression": "00",
+      "InstanceNumber": "1",
+    });
+
+    this.assignFromReference([
+      "SOPClassUID",
+      "Modality",
+      "FrameOfReferenceUID",
+      "PositionReferenceIndicator",
+      "NumberOfFrames",
+      "Rows",
+      "Columns",
+      "SamplesPerPixel",
+      "PhotometricInterpretation",
+      "BitsStored",
+      "HighBit",
+    ]);
+
+    //
+    // TODO: more carefully copy only PixelMeasures and related
+    // TODO: add derivation references
+    //
+    if (this.referencedDataset.SharedFunctionalGroupsSequence) {
+      this.dataset.SharedFunctionalGroupsSequence =
+                    DerivedDataset.copyDataset(
+                      this.referencedDataset.SharedFunctionalGroupsSequence);
+    }
+    if (this.referencedDataset.PerFrameFunctionalGroupsSequence) {
+      this.dataset.PerFrameFunctionalGroupsSequence =
+                    DerivedDataset.copyDataset(
+                      this.referencedDataset.PerFrameFunctionalGroupsSequence);
+    }
+
+    // make an array of zeros for the pixels
+    this.dataset.PixelData = new ArrayBuffer(this.referencedDataset.PixelData.byteLength);
+  }
+}
+
+class DerivedImage extends DerivedPixels {
+  constructor (datasets, options={}) {
+    super(datasets, options);
+  }
+
+  derive() {
+    super.derive();
+    this.assignFromReference([
+      "WindowCenter",
+      "WindowWidth",
+      "BitsAllocated",
+      "PixelRepresentation",
+      "BodyPartExamined",
+      "Laterality",
+      "PatientPosition",
+      "RescaleSlope",
+      "RescaleIntercept",
+      "PixelPresentation",
+      "VolumetricProperties",
+      "VolumeBasedCalculationTechnique",
+      "PresentationLUTShape",
+    ]);
+  }
+}
+
+class Segmentation extends DerivedPixels {
+  constructor (datasets, options={includeSliceSpacing: true}) {
+    super(datasets, options);
+  }
+
+  derive() {
+    super.derive();
+
+    this.assignToDataset({
+      "SOPClassUID": DicomMetaDictionary.sopClassUIDsByName.Segmentation,
+      "Modality": "SEG",
+      "SamplesPerPixel": "1",
+      "PhotometricInterpretation": "MONOCHROME2",
+      "BitsAllocated": "1",
+      "BitsStored": "1",
+      "HighBit": "0",
+      "PixelRepresentation": "0",
+      "LossyImageCompression": "00",
+      "SegmentationType": "BINARY",
+      "ContentLabel": "EXAMPLE",
+    });
+
+    let dimensionUID = DicomMetaDictionary.uid();
+    this.dataset.DimensionOrganizationSequence = {
+      DimensionOrganizationUID : dimensionUID
+    };
+    this.dataset.DimensionIndexSequence = [
+      {
+        DimensionOrganizationUID : dimensionUID,
+        DimensionIndexPointer : 6422539,
+        FunctionalGroupPointer : 6422538, // SegmentIdentificationSequence
+        DimensionDescriptionLabel : "ReferencedSegmentNumber"
+      },
+      {
+        DimensionOrganizationUID : dimensionUID,
+        DimensionIndexPointer : 2097202,
+        FunctionalGroupPointer : 2134291, // PlanePositionSequence
+        DimensionDescriptionLabel : "ImagePositionPatient"
+      }
+    ];
+
+    // Example: Slicer tissue green
+    this.dataset.SegmentSequence = [
+      {
+        SegmentedPropertyCategoryCodeSequence: {
+          CodeValue: "T-D0050",
+          CodingSchemeDesignator: "SRT",
+          CodeMeaning: "Tissue"
+        },
+        SegmentNumber: 1,
+        SegmentLabel: "Tissue",
+        SegmentAlgorithmType: "SEMIAUTOMATIC",
+        SegmentAlgorithmName: "Slicer Prototype",
+        RecommendedDisplayCIELabValue: [ 43802, 26566, 37721 ],
+        SegmentedPropertyTypeCodeSequence: {
+          CodeValue: "T-D0050",
+          CodingSchemeDesignator: "SRT",
+          CodeMeaning: "Tissue"
+        }
+      }
+    ];
+
+    // TODO: check logic here.
+    // If the referenced dataset itself references a series, then copy.
+    // Otherwise, reference the dataset itself.
+    // This should allow Slicer and others to get the correct original
+    // images when loading Legacy Converted Images, but it's a workaround
+    // that really doesn't belong here.
+    if (this.referencedDataset.ReferencedSeriesSequence) {
+      this.dataset.ReferencedSeriesSequence =
+                    DerivedDataset.copyDataset(
+                      this.referencedDataset.ReferencedSeriesSequence);
+    } else {
+      this.dataset.ReferencedSeriesSequence = {
+        SeriesInstanceUID : this.referencedDataset.SeriesInstanceUID,
+        ReferencedInstanceSequence : [{
+          ReferencedSOPClassUID: this.referencedDataset.SOPClassUID,
+          ReferencedSOPInstanceUID: this.referencedDataset.SOPInstanceUID,
+        }]
+      };
+    }
+
+    // handle the case of a converted multiframe, so point to original source
+    // TODO: only a single segment is created now
+    for (let frameIndex = 0; frameIndex < this.dataset.NumberOfFrames; frameIndex++) {
+      this.dataset.PerFrameFunctionalGroupsSequence[frameIndex].DerivationImageSequence = {
+        SourceImageSequence: {
+          ReferencedSOPClassUID: this.referencedDataset.SOPClassUID,
+          ReferencedSOPInstanceUID: this.referencedDataset.SOPInstanceUID,
+          ReferencedFrameNumber: frameIndex+1,
+          PurposeOfReferenceCodeSequence: {
+            CodeValue: "121322",
+            CodingSchemeDesignator: "DCM",
+            CodeMeaning: "Source image for image processing operation"
+          }
+        },
+        DerivationCodeSequence: {
+          CodeValue: "113076",
+          CodingSchemeDesignator: "DCM",
+          CodeMeaning: "Segmentation"
+        }
+      };
+      this.dataset.PerFrameFunctionalGroupsSequence[frameIndex].FrameContentSequence = {
+        DimensionIndexValues: [
+          1,
+          frameIndex+1
+        ]
+      };
+      this.dataset.PerFrameFunctionalGroupsSequence[frameIndex].SegmentIdentificationSequence = {
+        ReferencedSegmentNumber: 1
+      };
+    }
+
+    // these are copied with pixels, but don't belong in segmentation
+    for (let frameIndex = 0; frameIndex < this.dataset.NumberOfFrames; frameIndex++) {
+      // TODO: instead explicitly copy the position sequence
+      let group = this.dataset.PerFrameFunctionalGroupsSequence[frameIndex];
+      delete(group.FrameVOILUTSequence);
+    }
+
+    if (!this.options.includeSliceSpacing) {
+      // per dciodvfy this should not be included, but dcmqi/Slicer requires it
+      delete(this.dataset.SharedFunctionalGroupsSequence.PixelMeasuresSequence.SpacingBetweenSlices);
+    }
+
+    // make an array of zeros for the pixels assuming bit packing (one bit per short)
+    // TODO: handle different packing and non-multiple of 8/16 rows and columns
+    this.dataset.PixelData = new ArrayBuffer(this.referencedDataset.PixelData.byteLength/16);
+  }
+
+  // TODO:
+  addSegment(segment) {
+    console.error("Not implemented");
+  }
+  removeSegment(segment) {
+    console.error("Not implemented");
+  }
+}
+
+class StructuredReport extends DerivedDataset {
+  constructor (datasets, options={}) {
+    super(datasets, options);
+  }
+
+  // this assumes a normalized multiframe input and will create
+  // a multiframe derived image
+  derive() {
+    super.derive();
+
+    this.assignToDataset({
+      "SOPClassUID": DicomMetaDictionary.sopClassUIDsByName.ComprehensiveSR,
+      "Modality": "SR",
+      "ValueType": "CONTAINER",
+    });
+
+    this.assignFromReference([
+      "FrameOfReferenceUID",
+    ]);
+  }
+}
+
+class Normalizer {
+  constructor (datasets) {
+    this.datasets = datasets; // one or more dicom-like object instances
+    this.dataset = undefined; // a normalized multiframe dicom object instance
+  }
+
+  static consistentSOPClassUIDs(datasets) {
+    // return sopClassUID if all exist and match, otherwise undefined
+    let sopClassUID;
+    datasets.forEach(function(dataset) {
+      if (!dataset.SOPClassUID) {
+        return(undefined);
+      }
+      if (!sopClassUID) {
+       sopClassUID = dataset.SOPClassUID;
+      }
+      if (dataset.SOPClassUID !== sopClassUID) {
+        console.error('inconsistent sopClassUIDs: ', dataset.SOPClassUID, sopClassUID);
+        return(undefined);
+      }
+    });
+    return(sopClassUID);
+  }
+
+  static normalizerForSOPClassUID(sopClassUID) {
+    sopClassUID = sopClassUID.replace(/[^0-9.]/g,''); // TODO: clean all VRs as part of normalizing
+    let toUID = DicomMetaDictionary.sopClassUIDsByName;
+    let sopClassUIDMap = {};
+    sopClassUIDMap[toUID.CTImage] = CTImageNormalizer;
+    sopClassUIDMap[toUID.MRImage] = MRImageNormalizer;
+    sopClassUIDMap[toUID.EnhancedMRImage] = EnhancedMRImageNormalizer;
+    sopClassUIDMap[toUID.EnhancedUSVolume] = EnhancedUSVolumeNormalizer;
+    sopClassUIDMap[toUID.PETImage] = PETImageNormalizer;
+    sopClassUIDMap[toUID.EnhancedPETImage] = PETImageNormalizer;
+    sopClassUIDMap[toUID.Segmentation] = SEGImageNormalizer;
+    sopClassUIDMap[toUID.DeformableSpatialRegistration] = DSRNormalizer;
+    return(sopClassUIDMap[sopClassUID]);
+  }
+
+  static isMultiframe(ds=this.dataset) {
+    let sopClassUID = ds.SOPClassUID.replace(/[^0-9.]/g,''); // TODO: clean all VRs as part of normalizing
+    let toUID = DicomMetaDictionary.sopClassUIDsByName;
+    let multiframeSOPClasses = [
+      toUID.EnhancedMRImage,
+      toUID.EnhancedCTImage,
+      toUID.EnhancedUSImage,
+      toUID.EnhancedPETImage,
+      toUID.Segmentation,
+    ];
+    return (multiframeSOPClasses.indexOf(sopClassUID) !== -1);
+  }
+
+  normalize() {
+    return("No normalization defined");
+  }
+
+  static normalizeToDataset(datasets) {
+    let sopClassUID = Normalizer.consistentSOPClassUIDs(datasets);
+    let normalizerClass = Normalizer.normalizerForSOPClassUID(sopClassUID);
+    if (!normalizerClass) {
+      console.error('no normalizerClass for ', sopClassUID);
+      return(undefined);
+    }
+    let normalizer = new normalizerClass(datasets);
+    normalizer.normalize();
+    return(normalizer.dataset);
+  }
+}
+
+class ImageNormalizer extends Normalizer {
+  normalize() {
+    this.convertToMultiframe();
+    this.normalizeMultiframe();
+  }
+
+  static vec3CrossProduct(a, b) {
+    let ax = a[0], ay = a[1], az = a[2],
+        bx = b[0], by = b[1], bz = b[2];
+    let out = [];
+    out[0] = ay * bz - az * by;
+    out[1] = az * bx - ax * bz;
+    out[2] = ax * by - ay * bx;
+    return out;
+  }
+
+  static vec3Subtract(a, b) {
+    let out = [];
+    out[0] = a[0] - b[0];
+    out[1] = a[1] - b[1];
+    out[2] = a[2] - b[2];
+    return out;
+  }
+
+  static vec3Dot(a, b) {
+    return (a[0] * b[0] + a[1] * b[1] + a[2] * b[2]);
+  }
+
+  convertToMultiframe() {
+    if (this.datasets.length === 1 && Normalizer.isMultiframe(this.datasets[0])) {
+      // already a multiframe, so just use it
+      this.dataset = this.datasets[0];
+      return;
+    }
+    this.derivation = new DerivedImage(this.datasets);
+    this.dataset = this.derivation.dataset;
+    let ds = this.dataset;
+    // create a new multiframe from the source datasets
+    // fill in only those elements required to make a valid image
+    // for volumetric processing
+    let referenceDataset = this.datasets[0];
+    ds.NumberOfFrames = this.datasets.length;
+
+    // TODO: develop sets of elements to copy over in loops
+    ds.SOPClassUID = referenceDataset.SOPClassUID;
+    ds.Rows = referenceDataset.Rows;
+    ds.Columns = referenceDataset.Columns;
+    ds.BitsAllocated = referenceDataset.BitsAllocated;
+    ds.PixelRepresentation = referenceDataset.PixelRepresentation;
+    ds.RescaleSlope = referenceDataset.RescaleSlope || "1";
+    ds.RescaleIntercept = referenceDataset.RescaleIntercept || "0";
+    //ds.BurnedInAnnotation = referenceDataset.BurnedInAnnotation || "YES";
+
+    // sort
+    // https://github.com/pieper/Slicer3/blob/master/Base/GUI/Tcl/LoadVolume.tcl
+    // TODO: add spacing checks:
+    // https://github.com/Slicer/Slicer/blob/master/Modules/Scripted/DICOMPlugins/DICOMScalarVolumePlugin.py#L228-L250
+    // TODO: put this information into the Shared and PerFrame functional groups
+    let referencePosition = referenceDataset.ImagePositionPatient;
+    let rowVector = referenceDataset.ImageOrientationPatient.slice(0,3);
+    let columnVector = referenceDataset.ImageOrientationPatient.slice(3,6);
+    let scanAxis = ImageNormalizer.vec3CrossProduct(rowVector,columnVector);
+    let distanceDatasetPairs = [];
+    this.datasets.forEach(function(dataset) {
+      let position = dataset.ImagePositionPatient.slice();
+      let positionVector = ImageNormalizer.vec3Subtract(position, referencePosition);
+      let distance = ImageNormalizer.vec3Dot(positionVector, scanAxis);
+      distanceDatasetPairs.push([distance, dataset]);
+    });
+    distanceDatasetPairs.sort(function(a,b) {
+      return (b[0]-a[0]);
+    });
+
+    // assign array buffers
+    if (ds.BitsAllocated !== 16) {
+      console.error('Only works with 16 bit data, not ' + String(dataset.BitsAllocated));
+    }
+    if (referenceDataset._vrMap && !referenceDataset._vrMap.PixelData) {
+      console.warn('No vr map given for pixel data, using OW');
+      ds._vrMap = {'PixelData': 'OW'};
+    } else {
+      ds._vrMap = {'PixelData': referenceDataset._vrMap.PixelData};
+    }
+    let frameSize = referenceDataset.PixelData.byteLength;
+    ds.PixelData = new ArrayBuffer(ds.NumberOfFrames * frameSize);
+    let frame = 0;
+    distanceDatasetPairs.forEach(function(pair) {
+      let [distance, dataset] = pair;
+      let pixels = new Uint16Array(dataset.PixelData);
+      let frameView = new Uint16Array(ds.PixelData, frame * frameSize, frameSize/2);
+      try {
+        frameView.set(pixels);
+      } catch (e) {
+        if (e instanceof RangeError) {
+          console.error("Error inserting pixels in PixelData");
+          console.error("frameSize", frameSize);
+          console.error("NumberOfFrames", ds.NumberOfFrames);
+          console.error("pair", pair);
+          console.error("dataset PixelData size", dataset.PixelData.length);
+        }
+      }
+      frame++;
+    });
+
+    if (ds.NumberOfFrames < 2) {
+      // TODO
+      console.error('Cannot populate shared groups uniquely without multiple frames');
+    }
+    let [distance0, dataset0]  = distanceDatasetPairs[0];
+    let [distance1, dataset1] = distanceDatasetPairs[1];
+
+    //
+    // make the functional groups
+    //
+
+    // shared
+
+    ds.SharedFunctionalGroupsSequence = {
+      PlaneOrientationSequence : {
+        ImageOrientationPatient : dataset0.ImageOrientationPatient,
+      },
+      PixelMeasuresSequence : {
+        PixelSpacing : dataset0.PixelSpacing,
+        SpacingBetweenSlices : Math.abs(distance1 - distance0),
+      },
+    };
+
+    // per-frame
+
+    ds.PerFrameFunctionalGroupsSequence = [];
+    distanceDatasetPairs.forEach(function(pair) {
+      ds.PerFrameFunctionalGroupsSequence.push({
+        PlanePositionSequence : {
+          ImagePositionPatient: pair[1].ImagePositionPatient,
+        },
+      });
+    });
+
+    ds.ReferencedSeriesSequence = {
+      SeriesInstanceUID : dataset0.SeriesInstanceUID,
+      ReferencedInstance : new Array(this.datasets.length),
+    };
+
+    // copy over each datasets window/level into the per-frame groups
+    // and set the referenced series uid
+    let datasetIndex = 0;
+    this.datasets.forEach(function(dataset) {
+      ds.PerFrameFunctionalGroupsSequence[datasetIndex].FrameVOILUTSequence = {
+        WindowCenter: dataset.WindowCenter,
+        WindowWidth: dataset.WindowWidth,
+      };
+      ds.ReferencedSeriesSequence.ReferencedInstance[datasetIndex] = {
+        ReferencedSOPClass: dataset.SOPClassUID,
+        ReferencedSOPInstanceUID: dataset.SOPInstanceUID,
+      };
+      datasetIndex++;
+    });
+
+    let dimensionUID = DicomMetaDictionary.uid();
+    this.dataset.DimensionOrganizationSequence = {
+      DimensionOrganizationUID : dimensionUID
+    };
+    this.dataset.DimensionIndexSequence = [
+      {
+        DimensionOrganizationUID : dimensionUID,
+        DimensionIndexPointer : 2097202,
+        FunctionalGroupPointer : 2134291, // PlanePositionSequence
+        DimensionDescriptionLabel : "ImagePositionPatient"
+      },
+    ];
+  }
+
+  normalizeMultiframe() {
+    let ds = this.dataset;
+    if (!ds.NumberOfFrames) {
+      console.error("Missing number or frames not supported");
+      return;
+    }
+    if (Number(ds.NumberOfFrames) === 1) {
+      console.error("Single frame instance of multiframe class not supported");
+      return;
+    }
+    if (!ds.PixelRepresentation) {
+      // Required tag: guess signed
+      ds.PixelRepresentation = 1;
+    }
+    if (!ds.StudyID || ds.StudyID === "") {
+      // Required tag: fill in if needed
+      ds.StudyID = "No Study ID";
+    }
+
+    let validLateralities = ["R", "L"];
+    if (validLateralities.indexOf(ds.Laterality) === -1) {
+      delete(ds.Laterality);
+    }
+
+    if (!ds.PresentationLUTShape) {
+      ds.PresentationLUTShape = "IDENTITY";
+    }
+
+    if (!ds.SharedFunctionalGroupsSequence) {
+      console.error('Can only process multiframe data with SharedFunctionalGroupsSequence');
+    }
+
+    // TODO: special case!
+    if (ds.BodyPartExamined === "PROSTATE") {
+      ds.SharedFunctionalGroupsSequence.FrameAnatomySequence = {
+        AnatomicRegionSequence: {
+          CodeValue: "T-9200B",
+          CodingSchemeDesignator: "SRT",
+          CodeMeaning: "Prostate",
+        },
+        FrameLaterality: "U",
+      };
+    }
+
+    let rescaleIntercept = ds.RescaleIntercept || 0;
+    let rescaleSlope = ds.RescaleSlope || 1;
+    ds.SharedFunctionalGroupsSequence.PixelValueTransformationSequence = {
+      RescaleIntercept: rescaleIntercept,
+      RescaleSlope: rescaleSlope,
+      RescaleType: "US",
+    };
+
+    let frameNumber = 1;
+    this.datasets.forEach(dataset=>{
+      let frameTime = dataset.AcquisitionDate + dataset.AcquisitionTime;
+      ds.PerFrameFunctionalGroupsSequence[frameNumber-1].FrameContentSequence = {
+        FrameAcquisitionDateTime: frameTime,
+        FrameReferenceDateTime: frameTime,
+        FrameAcquisitionDuration: 0,
+        StackID: 1,
+        InStackPositionNumber: frameNumber,
+        DimensionIndexValues: frameNumber,
+      };
+      frameNumber++;
+    });
+
+
+    //
+    // TODO: convert this to shared functional group not top level element
+    //
+    if (ds.WindowCenter && ds.WindowWidth) {
+      // if they exist as single values, make them lists for consistency
+      if (!Array.isArray(ds.WindowCenter)) {
+        ds.WindowCenter = [ds.WindowCenter];
+      }
+      if (!Array.isArray(ds.WindowWidth)) {
+        ds.WindowWidth = [ds.WindowWidth];
+      }
+    }
+    if (!ds.WindowCenter || !ds.WindowWidth) {
+      // if they don't exist, make them empty lists and try to initialize them
+      ds.WindowCenter = []; // both must exist and be the same length
+      ds.WindowWidth = [];
+      // provide a volume-level window/level guess (mean of per-frame)
+      if (ds.PerFrameFunctionalGroupsSequence) {
+        let wcww = {center: 0, width: 0, count: 0};
+        ds.PerFrameFunctionalGroupsSequence.forEach(function(functionalGroup) {
+          if (functionalGroup.FrameVOILUT) {
+            let wc = functionalGroup.FrameVOILUTSequence.WindowCenter;
+            let ww = functionalGroup.FrameVOILUTSequence.WindowWidth;
+            if (functionalGroup.FrameVOILUTSequence && wc && ww) {
+              if (Array.isArray(wc)) {
+                wc = wc[0];
+              }
+              if (Array.isArray(ww)) {
+                ww = ww[0];
+              }
+              wcww.center += Number(wc);
+              wcww.width += Number(ww);
+              wcww.count++;
+            }
+          }
+        });
+        if (wcww.count > 0) {
+          ds.WindowCenter.push(String(wcww.center / wcww.count));
+          ds.WindowWidth.push(String(wcww.width / wcww.count));
+        }
+      }
+    }
+    // last gasp, pick an arbitrary default
+    if (ds.WindowCenter.length === 0) { ds.WindowCenter = [300]; }
+    if (ds.WindowWidth.length === 0) { ds.WindowWidth = [500]; }
+  }
+}
+
+class MRImageNormalizer extends ImageNormalizer {
+  normalize() {
+    super.normalize();
+    // TODO: provide option at export to swap in LegacyConverted UID
+    let toUID = DicomMetaDictionary.sopClassUIDsByName;
+    //this.dataset.SOPClassUID = "LegacyConvertedEnhancedMRImage";
+    this.dataset.SOPClassUID = toUID.EnhancedMRImage;
+  }
+
+  normalizeMultiframe() {
+    super.normalizeMultiframe();
+    let ds = this.dataset;
+
+    if (!ds.ImageType ||
+        !ds.ImageType.constructor ||
+        ds.ImageType.constructor.name != "Array" ||
+        ds.ImageType.length != 4) {
+      ds.ImageType = ["ORIGINAL", "PRIMARY", "OTHER", "NONE",];
+    }
+
+    ds.SharedFunctionalGroupsSequence.MRImageFrameType = {
+      FrameType: ds.ImageType,
+      PixelPresentation: "MONOCHROME",
+      VolumetricProperties: "VOLUME",
+      VolumeBasedCalculationTechnique: "NONE",
+      ComplexImageComponent: "MAGNITUDE",
+      AcquisitionContrast: "UNKNOWN",
+    };
+  }
+}
+
+class EnhancedMRImageNormalizer extends ImageNormalizer {
+  normalize() {
+    super.normalize();
+  }
+}
+
+class EnhancedUSVolumeNormalizer extends ImageNormalizer {
+  normalize() {
+    super.normalize();
+  }
+}
+
+class CTImageNormalizer extends ImageNormalizer {
+  normalize() {
+    super.normalize();
+    // TODO: provide option at export to swap in LegacyConverted UID
+    let toUID = DicomMetaDictionary.sopClassUIDsByName;
+    //this.dataset.SOPClassUID = "LegacyConvertedEnhancedCTImage";
+    this.dataset.SOPClassUID = toUID.EnhancedCTImage;
+  }
+}
+
+class PETImageNormalizer extends ImageNormalizer {
+  normalize() {
+    super.normalize();
+    // TODO: provide option at export to swap in LegacyConverted UID
+    let toUID = DicomMetaDictionary.sopClassUIDsByName;
+    //this.dataset.SOPClassUID = "LegacyConvertedEnhancedPETImage";
+    this.dataset.SOPClassUID = toUID.EnhancedPETImage;
+  }
+}
+
+class SEGImageNormalizer extends ImageNormalizer {
+  normalize() {
+    super.normalize();
+  }
+}
+
+class DSRNormalizer extends Normalizer {
+  normalize() {
+    this.dataset = this.datasets[0]; // only one dataset per series and for now we assume it is normalized
+  }
+}
+
+class DICOMZero {
+  constructor() {
+    this.reset();
+  }
+
+  reset() {
+    this.mappingLog = [];
+    this.dataTransfer = undefined;
+    this.unnaturalDatasets = [];
+    this.datasets = [];
+    this.readers = [];
+    this.arrayBuffers = [];
+    this.files = [];
+    this.fileIndex = 0;
+  }
+
+  getReadDICOMFunction(doneCallback, statusCallback) {
+    statusCallback = statusCallback || console.log;
+    return progressEvent => {
+      let reader = progressEvent.target;
+      let arrayBuffer = reader.result;
+      this.arrayBuffers.push(arrayBuffer);
+
+      let dicomData;
+      try {
+        dicomData = DicomMessage.readFile(arrayBuffer);
+        this.unnaturalDatasets.push(dicomData.dict);
+        let dataset = DicomMetaDictionary.naturalizeDataset(dicomData.dict);
+        dataset._meta = DicomMetaDictionary.namifyDataset(dicomData.meta);
+        this.datasets.push(dataset);
+      } catch (error) {
+        console.error(error);
+        statusCallback("skipping non-dicom file");
+      }
+
+      let readerIndex = this.readers.indexOf(reader);
+      if (readerIndex < 0) {
+        reject("Logic error: Unexpected reader!");
+      } else {
+        this.readers.splice(readerIndex, 1); // remove the reader
+      }
+
+      if (this.fileIndex === this.dataTransfer.files.length) {
+        statusCallback(`Normalizing...`);
+        try {
+          this.multiframe = Normalizer.normalizeToDataset(this.datasets);
+        } catch (e) {
+          console.error('Could not convert to multiframe');
+          console.error(e);
+        }
+        statusCallback(`Creating segmentation...`);
+        try {
+          this.seg = new Segmentation([this.multiframe]);
+          statusCallback(`Created ${this.multiframe.NumberOfFrames} frame multiframe object and segmentation.`);
+        } catch (e) {
+          console.error('Could not create segmentation');
+          console.error(e);
+        }
+        doneCallback();
+      } else {
+        statusCallback(`Reading... (${this.fileIndex+1}).`);
+        this.readOneFile(doneCallback, statusCallback);
+      }
+    };
+  }
+
+  // Used for file selection button or drop of file list
+  readOneFile(doneCallback, statusCallback) {
+    let file = this.dataTransfer.files[this.fileIndex];
+    this.fileIndex++;
+
+    let reader = new FileReader();
+    reader.onload = this.getReadDICOMFunction(doneCallback, statusCallback);
+    reader.readAsArrayBuffer(file);
+
+    this.files.push(file);
+    this.readers.push(reader);
+  }
+}
+
+/* eslint no-bitwise: 0 */
+function getBytesForBinaryFrame (numPixels) {
+  // Check whether the 1-bit pixels exactly fit into bytes
+  const remainder = numPixels % 8;
+
+  // Number of bytes that work on an exact fit
+  let bytesRequired = Math.floor(numPixels / 8);
+
+  // Add one byte if we have a remainder
+  if (remainder > 0) {
+    bytesRequired++;
+  }
+
+  return bytesRequired;
+}
+
+function packBitArray (pixelData) {
+  const numPixels = pixelData.length;
+  console.log('numPixels: ' + numPixels);
+
+  const length = getBytesForBinaryFrame(numPixels);
+  //console.log('getBytesForBinaryFrame: ' + length);
+
+  const bitPixelData = new Uint8Array(length);
+
+  let bytePos = 0;
+
+  for (let i = 0; i < numPixels; i++) {
+    // Compute byte position
+    bytePos = Math.floor(i / 8);
+
+    const pixValue = (pixelData[i] !== 0);
+
+    //console.log('i: ' + i);
+    //console.log('pixValue: ' + pixValue);
+    //console.log('bytePos: ' + bytePos);
+
+    const bitPixelValue = pixValue << (i % 8);
+    //console.log('current bitPixelData: ' + bitPixelData[bytePos]);
+    //console.log('this bitPixelValue: ' + bitPixelValue);
+
+    bitPixelData[bytePos] |= bitPixelValue;
+
+    //console.log('new bitPixelValue: ' + bitPixelData[bytePos]);
+  }
+
+  return bitPixelData;
 }
 
 //
@@ -50029,7 +50793,7 @@ function datasetToBlob (dataset) {
   };
 
   const denaturalized = DicomMetaDictionary.denaturalizeDataset(meta);
-  const dicomDict = new DicomDict(denaturalized);
+  const dicomDict = new DicomDict$1(denaturalized);
 
   dicomDict.dict = DicomMetaDictionary.denaturalizeDataset(dataset);
 
@@ -50037,785 +50801,17 @@ function datasetToBlob (dataset) {
   return new Blob([buffer], {type: "application/dicom"});
 }
 
-class DerivedDataset {
-  constructor (datasets, options={}) {
-    this.options = JSON.parse(JSON.stringify(options));
-    let o = this.options;
-
-    o.Manufacturer = options.Manufacturer || "Unspecified";
-    o.ManufacturerModelName = options.ManufacturerModelName || "Unspecified";
-    o.SeriesDescription = options.SeriesDescription || "Drived series";
-    o.SeriesNumber = options.SeriesNumber || "99";
-    o.SoftwareVersions = options.SoftwareVersions || "0";
-    o.DeviceSerialNumber = options.DeviceSerialNumber || "1";
-
-    let date = DicomMetaDictionary$1.date();
-    let time = DicomMetaDictionary$1.time();
-
-    o.SeriesDate = options.SeriesDate || date;
-    o.SeriesTime = options.SeriesTime || time;
-    o.ContentDate = options.ContentDate || date;
-    o.ContentTime = options.ContentTime || time;
-
-    o.SOPInstanceUID = options.SOPInstanceUID || DicomMetaDictionary$1.uid();
-    o.SeriesInstanceUID = options.SeriesInstanceUID || DicomMetaDictionary$1.uid();
-
-    o.ClinicalTrialTimePointID = options.ClinicalTrialTimePointID || "";
-    o.ClinicalTrialCoordinatingCenterName = options.ClinicalTrialCoordinatingCenterName || "";
-    o.ClinicalTrialSeriesID = options.ClinicalTrialSeriesID || "";
-
-    o.ContentLabel = options.ContentLabel || "";
-    o.ContentDescription = options.ContentDescription || "";
-    o.ContentCreatorName = options.ContentCreatorName || "";
-
-    o.ImageComments = options.ImageComments || "NOT FOR CLINICAL USE";
-    o.ContentQualification = "RESEARCH";
-
-    this.referencedDatasets = datasets; // list of one or more dicom-like object instances
-    this.referencedDataset = this.referencedDatasets[0];
-    this.dataset = {
-      _vrMap: this.referencedDataset._vrMap,
-      _meta: this.referencedDataset._meta,
-    };
-
-    this.derive();
-  }
-
-  assignToDataset(data) {
-    Object.keys(data).forEach(key=>this.dataset[key] = data[key]);
-  }
-
-  assignFromReference(tags) {
-    tags.forEach(tag=>this.dataset[tag] = this.referencedDataset[tag] || "");
-  }
-
-  assignFromOptions(tags) {
-    tags.forEach(tag=>this.dataset[tag] = this.options[tag] || "");
-  }
-
-  derive() {
-    // common for all instances in study
-    this.assignFromReference([
-      "AccessionNumber",
-      "ReferringPhysicianName",
-      "StudyDate",
-      "StudyID",
-      "StudyTime",
-      "PatientName",
-      "PatientID",
-      "PatientBirthDate",
-      "PatientSex",
-      "PatientAge",
-      "StudyInstanceUID",
-      "StudyID",]);
-
-    this.assignFromOptions([
-      "Manufacturer",
-      "SoftwareVersions",
-      "DeviceSerialNumber",
-      "ManufacturerModelName",
-      "SeriesDescription",
-      "SeriesNumber",
-      "ContentLabel",
-      "ContentDescription",
-      "ContentCreatorName",
-      "ImageComments",
-      "SeriesDate",
-      "SeriesTime",
-      "ContentDate",
-      "ContentTime",
-      "ContentQualification",
-      "SOPInstanceUID",
-      "SeriesInstanceUID",]);
-  }
-
-  static copyDataset(dataset) {
-    // copies everything but the buffers
-    return(JSON.parse(JSON.stringify(dataset)));
-  }
-}
-
-class DerivedPixels extends DerivedDataset {
-  constructor (datasets, options={}) {
-    super(datasets, options);
-  }
-
-  // this assumes a normalized multiframe input and will create
-  // a multiframe derived image
-  derive() {
-    super.derive();
-
-    this.assignToDataset({
-      "ImageType": [
-        "DERIVED",
-        "PRIMARY"
-      ],
-      "LossyImageCompression": "00",
-      "InstanceNumber": "1",
-    });
-
-    this.assignFromReference([
-      "SOPClassUID",
-      "Modality",
-      "FrameOfReferenceUID",
-      "PositionReferenceIndicator",
-      "NumberOfFrames",
-      "Rows",
-      "Columns",
-      "SamplesPerPixel",
-      "PhotometricInterpretation",
-      "BitsStored",
-      "HighBit",
-    ]);
-
-    //
-    // TODO: more carefully copy only PixelMeasures and related
-    // TODO: add derivation references
-    //
-    if (this.referencedDataset.SharedFunctionalGroupsSequence) {
-      this.dataset.SharedFunctionalGroupsSequence =
-                    DerivedDataset.copyDataset(
-                      this.referencedDataset.SharedFunctionalGroupsSequence);
-    }
-    if (this.referencedDataset.PerFrameFunctionalGroupsSequence) {
-      this.dataset.PerFrameFunctionalGroupsSequence =
-                    DerivedDataset.copyDataset(
-                      this.referencedDataset.PerFrameFunctionalGroupsSequence);
-    }
-
-    // make an array of zeros for the pixels
-    this.dataset.PixelData = new ArrayBuffer(this.referencedDataset.PixelData.byteLength);
-  }
-}
-
-class DerivedImage extends DerivedPixels {
-  constructor (datasets, options={}) {
-    super(datasets, options);
-  }
-
-  derive() {
-    super.derive();
-    this.assignFromReference([
-      "WindowCenter",
-      "WindowWidth",
-      "BitsAllocated",
-      "PixelRepresentation",
-      "BodyPartExamined",
-      "Laterality",
-      "PatientPosition",
-      "RescaleSlope",
-      "RescaleIntercept",
-      "PixelPresentation",
-      "VolumetricProperties",
-      "VolumeBasedCalculationTechnique",
-      "PresentationLUTShape",
-    ]);
-  }
-}
-
-class Segmentation$1 extends DerivedPixels {
-  constructor (datasets, options={includeSliceSpacing: true}) {
-    super(datasets, options);
-  }
-
-  derive() {
-    super.derive();
-
-    this.assignToDataset({
-      "SOPClassUID": DicomMetaDictionary$1.sopClassUIDsByName.Segmentation,
-      "Modality": "SEG",
-      "SamplesPerPixel": "1",
-      "PhotometricInterpretation": "MONOCHROME2",
-      "BitsAllocated": "1",
-      "BitsStored": "1",
-      "HighBit": "0",
-      "PixelRepresentation": "0",
-      "LossyImageCompression": "00",
-      "SegmentationType": "BINARY",
-      "ContentLabel": "EXAMPLE",
-    });
-
-    let dimensionUID = DicomMetaDictionary$1.uid();
-    this.dataset.DimensionOrganizationSequence = {
-      DimensionOrganizationUID : dimensionUID
-    };
-    this.dataset.DimensionIndexSequence = [
-      {
-        DimensionOrganizationUID : dimensionUID,
-        DimensionIndexPointer : 6422539,
-        FunctionalGroupPointer : 6422538, // SegmentIdentificationSequence
-        DimensionDescriptionLabel : "ReferencedSegmentNumber"
-      },
-      {
-        DimensionOrganizationUID : dimensionUID,
-        DimensionIndexPointer : 2097202,
-        FunctionalGroupPointer : 2134291, // PlanePositionSequence
-        DimensionDescriptionLabel : "ImagePositionPatient"
-      }
-    ];
-
-    // Example: Slicer tissue green
-    this.dataset.SegmentSequence = [
-      {
-        SegmentedPropertyCategoryCodeSequence: {
-          CodeValue: "T-D0050",
-          CodingSchemeDesignator: "SRT",
-          CodeMeaning: "Tissue"
-        },
-        SegmentNumber: 1,
-        SegmentLabel: "Tissue",
-        SegmentAlgorithmType: "SEMIAUTOMATIC",
-        SegmentAlgorithmName: "Slicer Prototype",
-        RecommendedDisplayCIELabValue: [ 43802, 26566, 37721 ],
-        SegmentedPropertyTypeCodeSequence: {
-          CodeValue: "T-D0050",
-          CodingSchemeDesignator: "SRT",
-          CodeMeaning: "Tissue"
-        }
-      }
-    ];
-
-    // TODO: check logic here.
-    // If the referenced dataset itself references a series, then copy.
-    // Otherwise, reference the dataset itself.
-    // This should allow Slicer and others to get the correct original
-    // images when loading Legacy Converted Images, but it's a workaround
-    // that really doesn't belong here.
-    if (this.referencedDataset.ReferencedSeriesSequence) {
-      this.dataset.ReferencedSeriesSequence =
-                    DerivedDataset.copyDataset(
-                      this.referencedDataset.ReferencedSeriesSequence);
-    } else {
-      this.dataset.ReferencedSeriesSequence = {
-        SeriesInstanceUID : this.referencedDataset.SeriesInstanceUID,
-        ReferencedInstanceSequence : [{
-          ReferencedSOPClassUID: this.referencedDataset.SOPClassUID,
-          ReferencedSOPInstanceUID: this.referencedDataset.SOPInstanceUID,
-        }]
-      };
-    }
-
-    // handle the case of a converted multiframe, so point to original source
-    // TODO: only a single segment is created now
-    for (let frameIndex = 0; frameIndex < this.dataset.NumberOfFrames; frameIndex++) {
-      this.dataset.PerFrameFunctionalGroupsSequence[frameIndex].DerivationImageSequence = {
-        SourceImageSequence: {
-          ReferencedSOPClassUID: this.referencedDataset.SOPClassUID,
-          ReferencedSOPInstanceUID: this.referencedDataset.SOPInstanceUID,
-          ReferencedFrameNumber: frameIndex+1,
-          PurposeOfReferenceCodeSequence: {
-            CodeValue: "121322",
-            CodingSchemeDesignator: "DCM",
-            CodeMeaning: "Source image for image processing operation"
-          }
-        },
-        DerivationCodeSequence: {
-          CodeValue: "113076",
-          CodingSchemeDesignator: "DCM",
-          CodeMeaning: "Segmentation"
-        }
-      };
-      this.dataset.PerFrameFunctionalGroupsSequence[frameIndex].FrameContentSequence = {
-        DimensionIndexValues: [
-          1,
-          frameIndex+1
-        ]
-      };
-      this.dataset.PerFrameFunctionalGroupsSequence[frameIndex].SegmentIdentificationSequence = {
-        ReferencedSegmentNumber: 1
-      };
-    }
-
-    // these are copied with pixels, but don't belong in segmentation
-    for (let frameIndex = 0; frameIndex < this.dataset.NumberOfFrames; frameIndex++) {
-      // TODO: instead explicitly copy the position sequence
-      let group = this.dataset.PerFrameFunctionalGroupsSequence[frameIndex];
-      delete(group.FrameVOILUTSequence);
-    }
-
-    if (!this.options.includeSliceSpacing) {
-      // per dciodvfy this should not be included, but dcmqi/Slicer requires it
-      delete(this.dataset.SharedFunctionalGroupsSequence.PixelMeasuresSequence.SpacingBetweenSlices);
-    }
-
-    // make an array of zeros for the pixels assuming bit packing (one bit per short)
-    // TODO: handle different packing and non-multiple of 8/16 rows and columns
-    this.dataset.PixelData = new ArrayBuffer(this.referencedDataset.PixelData.byteLength/16);
-  }
-
-  // TODO:
-  addSegment(segment) {
-    console.error("Not implemented");
-  }
-  removeSegment(segment) {
-    console.error("Not implemented");
-  }
-}
-
-class StructuredReport extends DerivedDataset {
-  constructor (datasets, options={}) {
-    super(datasets, options);
-  }
-
-  // this assumes a normalized multiframe input and will create
-  // a multiframe derived image
-  derive() {
-    super.derive();
-
-    this.assignToDataset({
-      "SOPClassUID": DicomMetaDictionary$1.sopClassUIDsByName.ComprehensiveSR,
-      "Modality": "SR",
-      "ValueType": "CONTAINER",
-    });
-
-    this.assignFromReference([
-      "FrameOfReferenceUID",
-    ]);
-  }
-}
-
-class Normalizer$1 {
-  constructor (datasets) {
-    this.datasets = datasets; // one or more dicom-like object instances
-    this.dataset = undefined; // a normalized multiframe dicom object instance
-  }
-
-  static consistentSOPClassUIDs(datasets) {
-    // return sopClassUID if all exist and match, otherwise undefined
-    let sopClassUID;
-    datasets.forEach(function(dataset) {
-      if (!dataset.SOPClassUID) {
-        return(undefined);
-      }
-      if (!sopClassUID) {
-       sopClassUID = dataset.SOPClassUID;
-      }
-      if (dataset.SOPClassUID !== sopClassUID) {
-        console.error('inconsistent sopClassUIDs: ', dataset.SOPClassUID, sopClassUID);
-        return(undefined);
-      }
-    });
-    return(sopClassUID);
-  }
-
-  static normalizerForSOPClassUID(sopClassUID) {
-    sopClassUID = sopClassUID.replace(/[^0-9.]/g,''); // TODO: clean all VRs as part of normalizing
-    let toUID = DicomMetaDictionary$1.sopClassUIDsByName;
-    let sopClassUIDMap = {};
-    sopClassUIDMap[toUID.CTImage] = CTImageNormalizer;
-    sopClassUIDMap[toUID.MRImage] = MRImageNormalizer;
-    sopClassUIDMap[toUID.EnhancedMRImage] = EnhancedMRImageNormalizer;
-    sopClassUIDMap[toUID.EnhancedUSVolume] = EnhancedUSVolumeNormalizer;
-    sopClassUIDMap[toUID.PETImage] = PETImageNormalizer;
-    sopClassUIDMap[toUID.EnhancedPETImage] = PETImageNormalizer;
-    sopClassUIDMap[toUID.Segmentation] = SEGImageNormalizer;
-    sopClassUIDMap[toUID.DeformableSpatialRegistration] = DSRNormalizer;
-    return(sopClassUIDMap[sopClassUID]);
-  }
-
-  static isMultiframe(ds=this.dataset) {
-    let sopClassUID = ds.SOPClassUID.replace(/[^0-9.]/g,''); // TODO: clean all VRs as part of normalizing
-    let toUID = DicomMetaDictionary$1.sopClassUIDsByName;
-    let multiframeSOPClasses = [
-      toUID.EnhancedMRImage,
-      toUID.EnhancedCTImage,
-      toUID.EnhancedUSImage,
-      toUID.EnhancedPETImage,
-      toUID.Segmentation,
-    ];
-    return (multiframeSOPClasses.indexOf(sopClassUID) !== -1);
-  }
-
-  normalize() {
-    return("No normalization defined");
-  }
-
-  static normalizeToDataset(datasets) {
-    let sopClassUID = Normalizer$1.consistentSOPClassUIDs(datasets);
-    let normalizerClass = Normalizer$1.normalizerForSOPClassUID(sopClassUID);
-    if (!normalizerClass) {
-      console.error('no normalizerClass for ', sopClassUID);
-      return(undefined);
-    }
-    let normalizer = new normalizerClass(datasets);
-    normalizer.normalize();
-    return(normalizer.dataset);
-  }
-}
-
-class ImageNormalizer extends Normalizer$1 {
-  normalize() {
-    this.convertToMultiframe();
-    this.normalizeMultiframe();
-  }
-
-  static vec3CrossProduct(a, b) {
-    let ax = a[0], ay = a[1], az = a[2],
-        bx = b[0], by = b[1], bz = b[2];
-    let out = [];
-    out[0] = ay * bz - az * by;
-    out[1] = az * bx - ax * bz;
-    out[2] = ax * by - ay * bx;
-    return out;
-  }
-
-  static vec3Subtract(a, b) {
-    let out = [];
-    out[0] = a[0] - b[0];
-    out[1] = a[1] - b[1];
-    out[2] = a[2] - b[2];
-    return out;
-  }
-
-  static vec3Dot(a, b) {
-    return (a[0] * b[0] + a[1] * b[1] + a[2] * b[2]);
-  }
-
-  convertToMultiframe() {
-    if (this.datasets.length === 1 && Normalizer$1.isMultiframe(this.datasets[0])) {
-      // already a multiframe, so just use it
-      this.dataset = this.datasets[0];
-      return;
-    }
-    this.derivation = new DerivedImage(this.datasets);
-    this.dataset = this.derivation.dataset;
-    let ds = this.dataset;
-    // create a new multiframe from the source datasets
-    // fill in only those elements required to make a valid image
-    // for volumetric processing
-    let referenceDataset = this.datasets[0];
-    ds.NumberOfFrames = this.datasets.length;
-
-    // TODO: develop sets of elements to copy over in loops
-    ds.SOPClassUID = referenceDataset.SOPClassUID;
-    ds.Rows = referenceDataset.Rows;
-    ds.Columns = referenceDataset.Columns;
-    ds.BitsAllocated = referenceDataset.BitsAllocated;
-    ds.PixelRepresentation = referenceDataset.PixelRepresentation;
-    ds.RescaleSlope = referenceDataset.RescaleSlope || "1";
-    ds.RescaleIntercept = referenceDataset.RescaleIntercept || "0";
-    //ds.BurnedInAnnotation = referenceDataset.BurnedInAnnotation || "YES";
-
-    // sort
-    // https://github.com/pieper/Slicer3/blob/master/Base/GUI/Tcl/LoadVolume.tcl
-    // TODO: add spacing checks:
-    // https://github.com/Slicer/Slicer/blob/master/Modules/Scripted/DICOMPlugins/DICOMScalarVolumePlugin.py#L228-L250
-    // TODO: put this information into the Shared and PerFrame functional groups
-    let referencePosition = referenceDataset.ImagePositionPatient;
-    let rowVector = referenceDataset.ImageOrientationPatient.slice(0,3);
-    let columnVector = referenceDataset.ImageOrientationPatient.slice(3,6);
-    let scanAxis = vec3CrossProduct(rowVector,columnVector);
-    let distanceDatasetPairs = [];
-    this.datasets.forEach(function(dataset) {
-      let position = dataset.ImagePositionPatient.slice();
-      let positionVector = vec3Subtract(position, referencePosition);
-      let distance = vec3Dot(positionVector, scanAxis);
-      distanceDatasetPairs.push([distance, dataset]);
-    });
-    distanceDatasetPairs.sort(function(a,b) {
-      return (b[0]-a[0]);
-    });
-
-    // assign array buffers
-    if (ds.BitsAllocated !== 16) {
-      console.error('Only works with 16 bit data, not ' + String(dataset.BitsAllocated));
-    }
-    if (referenceDataset._vrMap && !referenceDataset._vrMap.PixelData) {
-      console.warn('No vr map given for pixel data, using OW');
-      ds._vrMap = {'PixelData': 'OW'};
-    } else {
-      ds._vrMap = {'PixelData': referenceDataset._vrMap.PixelData};
-    }
-    let frameSize = referenceDataset.PixelData.byteLength;
-    ds.PixelData = new ArrayBuffer(ds.NumberOfFrames * frameSize);
-    let frame = 0;
-    distanceDatasetPairs.forEach(function(pair) {
-      let [distance, dataset] = pair;
-      let pixels = new Uint16Array(dataset.PixelData);
-      let frameView = new Uint16Array(ds.PixelData, frame * frameSize, frameSize/2);
-      try {
-        frameView.set(pixels);
-      } catch (e) {
-        if (e instanceof RangeError) {
-          console.error("Error inserting pixels in PixelData");
-          console.error("frameSize", frameSize);
-          console.error("NumberOfFrames", ds.NumberOfFrames);
-          console.error("pair", pair);
-          console.error("dataset PixelData size", dataset.PixelData.length);
-        }
-      }
-      frame++;
-    });
-
-    if (ds.NumberOfFrames < 2) {
-      // TODO
-      console.error('Cannot populate shared groups uniquely without multiple frames');
-    }
-    let [distance0, dataset0]  = distanceDatasetPairs[0];
-    let [distance1, dataset1] = distanceDatasetPairs[1];
-
-    //
-    // make the functional groups
-    //
-
-    // shared
-
-    ds.SharedFunctionalGroupsSequence = {
-      PlaneOrientationSequence : {
-        ImageOrientationPatient : dataset0.ImageOrientationPatient,
-      },
-      PixelMeasuresSequence : {
-        PixelSpacing : dataset0.PixelSpacing,
-        SpacingBetweenSlices : Math.abs(distance1 - distance0),
-      },
-    };
-
-    // per-frame
-
-    ds.PerFrameFunctionalGroupsSequence = [];
-    distanceDatasetPairs.forEach(function(pair) {
-      ds.PerFrameFunctionalGroupsSequence.push({
-        PlanePositionSequence : {
-          ImagePositionPatient: pair[1].ImagePositionPatient,
-        },
-      });
-    });
-
-    ds.ReferencedSeriesSequence = {
-      SeriesInstanceUID : dataset0.SeriesInstanceUID,
-      ReferencedInstance : new Array(this.datasets.length),
-    };
-
-    // copy over each datasets window/level into the per-frame groups
-    // and set the referenced series uid
-    let datasetIndex = 0;
-    this.datasets.forEach(function(dataset) {
-      ds.PerFrameFunctionalGroupsSequence[datasetIndex].FrameVOILUTSequence = {
-        WindowCenter: dataset.WindowCenter,
-        WindowWidth: dataset.WindowWidth,
-      };
-      ds.ReferencedSeriesSequence.ReferencedInstance[datasetIndex] = {
-        ReferencedSOPClass: dataset.SOPClassUID,
-        ReferencedSOPInstanceUID: dataset.SOPInstanceUID,
-      };
-      datasetIndex++;
-    });
-
-    let dimensionUID = DicomMetaDictionary$1.uid();
-    this.dataset.DimensionOrganizationSequence = {
-      DimensionOrganizationUID : dimensionUID
-    };
-    this.dataset.DimensionIndexSequence = [
-      {
-        DimensionOrganizationUID : dimensionUID,
-        DimensionIndexPointer : 2097202,
-        FunctionalGroupPointer : 2134291, // PlanePositionSequence
-        DimensionDescriptionLabel : "ImagePositionPatient"
-      },
-    ];
-  }
-
-  normalizeMultiframe() {
-    let ds = this.dataset;
-    if (!ds.NumberOfFrames) {
-      console.error("Missing number or frames not supported");
-      return;
-    }
-    if (Number(ds.NumberOfFrames) === 1) {
-      console.error("Single frame instance of multiframe class not supported");
-      return;
-    }
-    if (!ds.PixelRepresentation) {
-      // Required tag: guess signed
-      ds.PixelRepresentation = 1;
-    }
-    if (!ds.StudyID || ds.StudyID === "") {
-      // Required tag: fill in if needed
-      ds.StudyID = "No Study ID";
-    }
-
-    let validLateralities = ["R", "L"];
-    if (validLateralities.indexOf(ds.Laterality) === -1) {
-      delete(ds.Laterality);
-    }
-
-    if (!ds.PresentationLUTShape) {
-      ds.PresentationLUTShape = "IDENTITY";
-    }
-
-    if (!ds.SharedFunctionalGroupsSequence) {
-      console.error('Can only process multiframe data with SharedFunctionalGroupsSequence');
-    }
-
-    // TODO: special case!
-    if (ds.BodyPartExamined === "PROSTATE") {
-      ds.SharedFunctionalGroupsSequence.FrameAnatomySequence = {
-        AnatomicRegionSequence: {
-          CodeValue: "T-9200B",
-          CodingSchemeDesignator: "SRT",
-          CodeMeaning: "Prostate",
-        },
-        FrameLaterality: "U",
-      };
-    }
-
-    let rescaleIntercept = ds.RescaleIntercept || 0;
-    let rescaleSlope = ds.RescaleSlope || 1;
-    ds.SharedFunctionalGroupsSequence.PixelValueTransformationSequence = {
-      RescaleIntercept: rescaleIntercept,
-      RescaleSlope: rescaleSlope,
-      RescaleType: "US",
-    };
-
-    let frameNumber = 1;
-    this.datasets.forEach(dataset=>{
-      let frameTime = dataset.AcquisitionDate + dataset.AcquisitionTime;
-      ds.PerFrameFunctionalGroupsSequence[frameNumber-1].FrameContentSequence = {
-        FrameAcquisitionDateTime: frameTime,
-        FrameReferenceDateTime: frameTime,
-        FrameAcquisitionDuration: 0,
-        StackID: 1,
-        InStackPositionNumber: frameNumber,
-        DimensionIndexValues: frameNumber,
-      };
-      frameNumber++;
-    });
-
-
-    //
-    // TODO: convert this to shared functional group not top level element
-    //
-    if (ds.WindowCenter && ds.WindowWidth) {
-      // if they exist as single values, make them lists for consistency
-      if (!Array.isArray(ds.WindowCenter)) {
-        ds.WindowCenter = [ds.WindowCenter];
-      }
-      if (!Array.isArray(ds.WindowWidth)) {
-        ds.WindowWidth = [ds.WindowWidth];
-      }
-    }
-    if (!ds.WindowCenter || !ds.WindowWidth) {
-      // if they don't exist, make them empty lists and try to initialize them
-      ds.WindowCenter = []; // both must exist and be the same length
-      ds.WindowWidth = [];
-      // provide a volume-level window/level guess (mean of per-frame)
-      if (ds.PerFrameFunctionalGroupsSequence) {
-        let wcww = {center: 0, width: 0, count: 0};
-        ds.PerFrameFunctionalGroupsSequence.forEach(function(functionalGroup) {
-          if (functionalGroup.FrameVOILUT) {
-            let wc = functionalGroup.FrameVOILUTSequence.WindowCenter;
-            let ww = functionalGroup.FrameVOILUTSequence.WindowWidth;
-            if (functionalGroup.FrameVOILUTSequence && wc && ww) {
-              if (Array.isArray(wc)) {
-                wc = wc[0];
-              }
-              if (Array.isArray(ww)) {
-                ww = ww[0];
-              }
-              wcww.center += Number(wc);
-              wcww.width += Number(ww);
-              wcww.count++;
-            }
-          }
-        });
-        if (wcww.count > 0) {
-          ds.WindowCenter.push(String(wcww.center / wcww.count));
-          ds.WindowWidth.push(String(wcww.width / wcww.count));
-        }
-      }
-    }
-    // last gasp, pick an arbitrary default
-    if (ds.WindowCenter.length === 0) { ds.WindowCenter = [300]; }
-    if (ds.WindowWidth.length === 0) { ds.WindowWidth = [500]; }
-  }
-}
-
-class MRImageNormalizer extends ImageNormalizer {
-  normalize() {
-    super.normalize();
-    // TODO: provide option at export to swap in LegacyConverted UID
-    let toUID = DicomMetaDictionary$1.sopClassUIDsByName;
-    //this.dataset.SOPClassUID = "LegacyConvertedEnhancedMRImage";
-    this.dataset.SOPClassUID = toUID.EnhancedMRImage;
-  }
-
-  normalizeMultiframe() {
-    super.normalizeMultiframe();
-    let ds = this.dataset;
-
-    if (!ds.ImageType ||
-        !ds.ImageType.constructor ||
-        ds.ImageType.constructor.name != "Array" ||
-        ds.ImageType.length != 4) {
-      ds.ImageType = ["ORIGINAL", "PRIMARY", "OTHER", "NONE",];
-    }
-
-    ds.SharedFunctionalGroupsSequence.MRImageFrameType = {
-      FrameType: ds.ImageType,
-      PixelPresentation: "MONOCHROME",
-      VolumetricProperties: "VOLUME",
-      VolumeBasedCalculationTechnique: "NONE",
-      ComplexImageComponent: "MAGNITUDE",
-      AcquisitionContrast: "UNKNOWN",
-    };
-  }
-}
-
-class EnhancedMRImageNormalizer extends ImageNormalizer {
-  normalize() {
-    super.normalize();
-  }
-}
-
-class EnhancedUSVolumeNormalizer extends ImageNormalizer {
-  normalize() {
-    super.normalize();
-  }
-}
-
-class CTImageNormalizer extends ImageNormalizer {
-  normalize() {
-    super.normalize();
-    // TODO: provide option at export to swap in LegacyConverted UID
-    let toUID = DicomMetaDictionary$1.sopClassUIDsByName;
-    //this.dataset.SOPClassUID = "LegacyConvertedEnhancedCTImage";
-    this.dataset.SOPClassUID = toUID.EnhancedCTImage;
-  }
-}
-
-class PETImageNormalizer extends ImageNormalizer {
-  normalize() {
-    super.normalize();
-    // TODO: provide option at export to swap in LegacyConverted UID
-    let toUID = DicomMetaDictionary$1.sopClassUIDsByName;
-    //this.dataset.SOPClassUID = "LegacyConvertedEnhancedPETImage";
-    this.dataset.SOPClassUID = toUID.EnhancedPETImage;
-  }
-}
-
-class SEGImageNormalizer extends ImageNormalizer {
-  normalize() {
-    super.normalize();
-  }
-}
-
-class DSRNormalizer extends Normalizer$1 {
-  normalize() {
-    this.dataset = this.datasets[0]; // only one dataset per series and for now we assume it is normalized
-  }
-}
-
 //export { anonymizer } from './anonymizer.js';
 let data = {
   DICOMZero,
   packBitArray,
-  ReadBufferStream: ReadBufferStream$1,
-  WriteBufferStream: WriteBufferStream$1,
+  ReadBufferStream,
+  WriteBufferStream,
   DicomDict: DicomDict$1,
-  DicomMessage: DicomMessage$1,
-  DicomMetaDictionary: DicomMetaDictionary$1,
-  Tag: Tag$1,
-  ValueRepresentation: ValueRepresentation$1,
+  DicomMessage,
+  DicomMetaDictionary,
+  Tag,
+  ValueRepresentation,
   Colors,
   datasetToBlob
 };
@@ -50824,12 +50820,12 @@ let derivations = {
   DerivedDataset,
   DerivedPixels,
   DerivedImage,
-  Segmentation: Segmentation$1,
+  Segmentation,
   StructuredReport
 };
 
 let normalizers = {
-  Normalizer: Normalizer$1,
+  Normalizer,
   ImageNormalizer,
   MRImageNormalizer,
   EnhancedMRImageNormalizer,
