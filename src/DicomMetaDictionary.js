@@ -23,17 +23,17 @@ class DicomMetaDictionary {
   // or in a dedicated class
   static cleanDataset(dataset) {
     var cleanedDataset = {};
-    dataset.forEach(tag => {
+    Object.keys(dataset).forEach(tag => {
       var data = dataset[tag];
       if (data.vr == "SQ") {
         var cleanedValues = [];
-        data.Value.forEach(index => {
+        Object.keys(data.Value).forEach(index => {
           cleanedValues.push(DicomMetaDictionary.cleanDataset(data.Value[index]));
         });
         data.Value = cleanedValues;
       } else {
         // remove null characters from strings
-        data.Value.forEach(index => {
+        Object.keys(data.Value).forEach(index => {
           let dataItem = data.Value[index];
           if (dataItem.constructor.name == "String") {
             data.Value[index] = dataItem.replace(/\0/, "");
@@ -50,11 +50,11 @@ class DicomMetaDictionary {
   // but leaves the values intact
   static namifyDataset(dataset) {
     var namedDataset = {};
-    dataset.forEach(tag => {
+    Object.keys(dataset).forEach(tag => {
       var data = dataset[tag];
       if (data.vr == "SQ") {
         var namedValues = [];
-        data.Value.forEach(index => {
+        Object.keys(data.Value).forEach(index => {
           namedValues.push(DicomMetaDictionary.namifyDataset(data.Value[index]));
         });
         data.Value = namedValues;
@@ -79,12 +79,12 @@ class DicomMetaDictionary {
     var naturalDataset = {
       _vrMap : {},
     };
-    dataset.forEach(tag => {
+    Object.keys(dataset).forEach(tag => {
       var data = dataset[tag];
       if (data.vr == "SQ") {
         // convert sequence to list of values
         var naturalValues = [];
-        data.Value.forEach(index) {
+        Object.keys(data.Value).forEach(index => {
           naturalValues.push(DicomMetaDictionary.naturalizeDataset(data.Value[index]));
         });
         data.Value = naturalValues;
@@ -148,7 +148,7 @@ class DicomMetaDictionary {
 
         if (entry.vr == "SQ") {
           var unnaturalValues = [];
-          dataItem.Value.forEach(nestedDataset => {
+          Object.keys(dataItem.Value).forEach(nestedDataset => {
             unnaturalValues.push(DicomMetaDictionary.denaturalizeDataset(nestedDataset));
           });
           dataItem.Value = unnaturalValues;
@@ -225,7 +225,7 @@ class DicomMetaDictionary {
 
   static _generateNameMap() {
     DicomMetaDictionary.nameMap = {};
-    DicomMetaDictionary.dictionary.forEach(tag => {
+    Object.keys(DicomMetaDictionary.dictionary).forEach(tag => {
       var dict = DicomMetaDictionary.dictionary[tag];
       if (dict.version != 'PrivateTag') {
         DicomMetaDictionary.nameMap[dict.name] = dict;
@@ -235,7 +235,7 @@ class DicomMetaDictionary {
 
   static _generateUIDMap() {
     DicomMetaDictionary.sopClassUIDsByName = {};
-    DicomMetaDictionary.sopClassNamesByUID.forEach(uid => {
+    Object.keys(DicomMetaDictionary.sopClassNamesByUID).forEach(uid => {
       var name = DicomMetaDictionary.sopClassNamesByUID[uid];
       DicomMetaDictionary.sopClassUIDsByName[name] = uid;
     });
