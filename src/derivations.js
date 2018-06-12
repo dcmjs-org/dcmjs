@@ -341,8 +341,27 @@ class StructuredReport extends DerivedDataset {
   }
 }
 
+class PresentationState extends DerivedDataset {
+  constructor (datasets, options={}) {
+    super(datasets, options);
+  }
+
+  derive() {
+    super.derive();
+
+    this.assignToDataset({
+      "SOPClassUID": DicomMetaDictionary.sopClassUIDsByName.GrayscaleSoftcopyPresentationState,
+      "Modality": "PR",
+    });
+
+    this.assignFromReference([
+    ]);
+  }
+}
+
 export { DerivedDataset };
 export { DerivedPixels };
 export { DerivedImage };
 export { Segmentation };
 export { StructuredReport };
+export { PresentationState };

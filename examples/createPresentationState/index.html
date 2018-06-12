@@ -1,0 +1,369 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1, maximum-scale=1">
+
+    <link href="../css/bootstrap.min.css" rel="stylesheet">
+    <link href="../css/cornerstone.min.css" rel="stylesheet">
+</head>
+<body>
+<div class="container">
+    <div class="page-header">
+        <h1>
+            Create DICOM Presentation State
+        </h1>
+        <p>
+            This example demonstrates how to create a DICOM Presentation State object from linear measurements.
+        </p>
+        <a href="../index.html">Go back to the Examples page</a>
+    </div>
+
+    <div class="row">
+        <button id="sampleData">Get Sample Data</button><p id="statusLine"></p>
+        <!--
+        <p> or</p>
+        <p id='status'>Drag and drop DICOM files here...</p>
+        -->
+        <div class="col-xs-9" id="dropZone">
+            <div style="width:512px;height:512px;position:relative;display:inline-block;"
+                 oncontextmenu="return false"
+                 class='cornerstone-enabled-image'
+                 unselectable='on'
+                 onselectstart='return false;'
+                 onmousedown='return false;'>
+                <div id="dicomImage"
+                     style="width:512px;height:512px;top:0px;left:0px; position:absolute; border: 1px solid black;">
+                </div>
+            </div>
+            <table id="reportTable" class="table">
+                <thead>
+                <tr>
+                    <th>Frame</th>
+                    <th>Length</th>
+                </tr>
+                </thead>
+                <tbody id='reportBody'>
+                <tr class='reportRow'>
+                    <td>N/A</td>
+                    <td>N/A</td>
+                </tr>
+                </tbody>
+            </table>
+            <pre id='reportDump'>
+            </pre>
+        </div>
+
+        <div class="col-xs-3">
+            <div class="row">
+                <input type="button" class="dicomControls" id="downloadReport" value="Download Structured Report"/>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+
+<script src="../js/jquery.min.js"></script>
+<script src="../js/cornerstone.min.js"></script>
+<script src="../js/cornerstoneMath.min.js"></script>
+<script src="../js/cornerstoneTools.min.js"></script>
+<script src="../js/dicomParser.min.js"></script>
+<script src="../js/cornerstoneWADOImageLoader.min.js"></script>
+
+<script src="../js/FileSaver.min.js"></script>
+<script src="../js/jszip.min.js"></script>
+<script src="../js/initWebWorkers.js"></script>
+<script src="../js/jqueryFileDrop.js"></script>
+
+<script src="../../build/dcmjs.js"></script>
+
+<script src="../helpers/DICOMZero.js"></script>
+
+<script>
+  var dc0;
+  $(document).ready(function() {
+
+    $('.dicomControls').prop('disabled', true)
+
+    dc0 = new DICOMZero();
+    const element = document.getElementById('dicomImage');
+    $(element).on('CornerstoneToolsMeasurementModified', updateMeasurementTable)
+    const dropZone = document.getElementById('dropZone');
+    cornerstone.enable(element);
+
+    function resetDICOMzero() {
+      dc0.reset();
+    }
+
+    const metaData = {};
+    function metaDataProvider(type, imageId) {
+      if (!metaData[imageId]) {
+        return;
+      }
+
+      return metaData[imageId][type];
+    }
+
+    function addMetaData(type, imageId, data) {
+      metaData[imageId] = metaData[imageId] || {};
+      metaData[imageId][type] = data;
+    }
+
+    cornerstone.metaData.addProvider(metaDataProvider);
+
+    function loadMultiFrameAndPopulateMetadata(baseImageId) {
+      var promise = new Promise(function (resolve, reject) {
+        var multiframe;
+        cornerstone.loadAndCacheImage(baseImageId).then(function(image) {
+          var arrayBuffer = image.data.byteArray.buffer;
+          dicomData = DCMJS.data.DicomMessage.readFile(arrayBuffer);
+          let dataset = DCMJS.data.DicomMetaDictionary.naturalizeDataset(dicomData.dict);
+          dataset._meta = DCMJS.data.DicomMetaDictionary.namifyDataset(dicomData.meta);
+
+          multiframe = DCMJS.normalizers.Normalizer.normalizeToDataset([dataset]);
+
+          const numFrames = Number(multiframe.NumberOfFrames);
+          for (let i=0; i < numFrames; i++) {
+            const imageId = baseImageId + '?frame=' + i;
+
+            var functionalGroup = multiframe.PerFrameFunctionalGroupsSequence[i];
+            var imagePositionArray = functionalGroup.PlanePositionSequence.ImagePositionPatient;
+
+            addMetaData('imagePlane', imageId, {
+              imagePositionPatient: {
+                x: imagePositionArray[0],
+                y: imagePositionArray[1],
+                z: imagePositionArray[2],
+              }
+            });
+          }
+
+          resolve(multiframe);
+        });
+      });
+
+      return promise;
+    }
+
+    function getImageIds(multiframe, baseImageId) {
+      const imageIds = [];
+      const numFrames = Number(multiframe.NumberOfFrames);
+      for (let i=0; i < numFrames; i++) {
+        const imageId = baseImageId + '?frame=' + i;
+        imageIds.push(imageId);
+      }
+
+      return imageIds;
+    }
+
+    function drawSampleDatasets() {
+      cornerstone.disable(element);
+      const options = {
+        renderer: 'canvas'
+      };
+      cornerstone.enable(element, options);
+      cornerstoneTools.clearToolState(element, 'stack');
+
+      var baseImageId = 'dicomweb:' + 'https://s3.amazonaws.com/IsomicsPublic/SampleData/MRHead/MRHead-8-slices.dcm';
+      var dataPromise = loadMultiFrameAndPopulateMetadata(baseImageId);
+
+      dataPromise.then(multiframe => {
+        dc0.multiframe = multiframe;
+        var imageIds = getImageIds(multiframe, baseImageId);
+
+        /*var files = dc0.dataTransfer.files;
+         var imageIds = [];
+         files.forEach(function(file) {
+         var imageId = cornerstoneWADOImageLoader.wadouri.fileManager.add(file);
+         imageIds.push(imageId);
+         });*/
+
+        dc0.baseStack = {
+          imageIds: imageIds,
+          currentImageIdIndex: 0
+        };
+
+        cornerstone.loadAndCacheImage(dc0.baseStack.imageIds[0]).then(function(image) {
+          cornerstone.displayImage(element, image);
+
+          cornerstoneTools.addStackStateManager(element, ['stack']);
+          cornerstoneTools.addToolState(element, 'stack', dc0.baseStack);
+
+          cornerstoneTools.scrollToIndex(element, 1);
+
+          cornerstoneTools.mouseInput.enable(element);
+          cornerstoneTools.mouseWheelInput.enable(element);
+          cornerstoneTools.keyboardInput.enable(element);
+
+          cornerstoneTools.length.activate(element, 1);
+          cornerstoneTools.pan.activate(element, 2);
+          cornerstoneTools.zoom.activate(element, 4);
+          cornerstoneTools.stackScrollWheel.activate(element);
+          cornerstoneTools.stackScrollKeyboard.activate(element);
+
+          $('p#statusLine').text("Now perform length measurements and download report when finished.");
+          $('.dicomControls').prop('disabled', false)
+        });
+      });
+    }
+
+    function updateMeasurementTable(event) {
+      $('.reportRow').remove();
+      const imageToolState = cornerstoneTools.globalImageIdSpecificToolStateManager.toolState;
+      dc0.baseStack.imageIds.forEach(function(imageId) {
+        if (imageToolState[imageId]) {
+          imageToolState[imageId].length.data.forEach(function(length) {
+            var handles = length.handles;
+            var frame = Number(imageId.slice(imageId.lastIndexOf('frame')).split('=')[1]); // TODO: frame is explicit somewhere?
+            let row = '<tr class="reportRow"><td>'+frame+'</td><td>'+length.length.toFixed(2)+'</td></tr>';
+            $('#reportBody').append(row);
+          });
+        }
+      });
+    }
+
+    function populateReport(dataset) {
+
+      console.log(cornerstoneTools.globalImageIdSpecificToolStateManager);
+      const imageToolState = cornerstoneTools.globalImageIdSpecificToolStateManager.toolState;
+
+      dc0.report = new DCMJS.derivations.PresentationState([dataset]);
+      var graphicObjectSequence = [];
+
+      dc0.report.dataset.GraphicLayerSequence = {
+        GraphicLayer : "LAYER1",
+        GraphicLayerOrder : "1",
+        GraphicLayerRecommendedDisplayGrayscaleValue : 65535,
+        GraphicLayerDescription : "for annotation"
+      };
+
+      var graphicObjectSequence = function(handles, distance, frame) {
+        return [
+          {
+            GraphicAnnotationUnits: "PIXEL",
+            GraphicDimensions: 2,
+            NumberOfGraphicPoints: 2,
+            GraphicData : [handles.start.x, handles.start.y, handles.end.x, handles.end.y],
+            GraphicType : "POLYLINE",
+          }, {
+            GraphicAnnotationUnits: "PIXEL",
+            GraphicDimensions: 2,
+            NumberOfGraphicPoints: 2,
+            GraphicData : [handles.start.x, handles.start.y],
+            GraphicType : "POINT",
+          }, {
+            GraphicAnnotationUnits: "PIXEL",
+            GraphicDimensions: 2,
+            NumberOfGraphicPoints: 2,
+            GraphicData : [handles.end.x, handles.end.y],
+            GraphicType : "POINT",
+          }
+        ];
+      };
+
+      var textObjectSequence = function(handles, distance, frame) {
+        return [
+          {
+            AnchorPointAnnotationUnits: "PIXEL",
+            UnformattedTextValue: `Target X: ${distance}`,
+            AnchorPoint: [handles.start.x, handles.start.y],
+            AnchorPointVisibility: "Y"
+          }
+        ];
+      };
+
+      dc0.report.dataset.GraphicAnnotationSequence = [];
+      dc0.baseStack.imageIds.forEach(function(imageId) {
+        if (!imageToolState[imageId]) {
+          return;
+        }
+
+        const lengthToolData = imageToolState[imageId].length;
+        var sopCommonModule = cornerstone.metaData.get('sopCommonModule', imageId);
+
+        lengthToolData.data.forEach(function(length) {
+          var handles = length.handles;
+          var frame = Number(imageId.slice(imageId.lastIndexOf('frame')).split('=')[1]); // TODO: frame is explicit somewhere?
+          // extend list in place
+
+          dc0.report.dataset.GraphicAnnotationSequence.push({
+            GraphicLayer: 'LAYER1',
+            GraphicObjectSequence: graphicObjectSequence(handles, length.length, frame),
+            TextObjectSequence: textObjectSequence(handles),
+            ReferencedImageSequence: {
+              ReferencedSOPClassUID: sopCommonModule.sopClassUID,
+              ReferencedSOPInstanceUID: sopCommonModule.sopInstanceUID,
+              ReferencedFrameNumber: frame,
+            }
+          });
+        });
+      });
+
+      dc0.report.dataset.ReferencedSeriesSequence = [{
+        SeriesInstanceUID : dataset.SeriesInstanceUID,
+        ReferencedInstanceSequence: [{
+          ReferencedSOPClassUID: dataset.SOPClassUID,
+          ReferencedSOPInstanceUID: dataset.SOPInstanceUID,
+        }]
+      }]
+    }
+
+    function downloadReport() {
+      populateReport(dc0.multiframe);
+      $('#reportDump').text(JSON.stringify(dc0.report.dataset, null,4));
+      let multiframeBlob = DCMJS.data.datasetToBlob(dc0.multiframe);
+      dc0.report.dataset._meta = dc0.multiframe._meta;
+      let reportBlob = DCMJS.data.datasetToBlob(dc0.report.dataset);
+      let zip = new JSZip();
+      zip.file("multiframe.dcm", multiframeBlob);
+      zip.file("report.dcm", reportBlob);
+      zip.generateAsync({type: "blob"})
+        .then(function(contents) {
+          saveAs(contents, "report.zip", true);
+          resetDICOMzero();
+          status(`Finished, waiting for more DICOM files (drop them below).`);
+        });
+    }
+
+    $('#sampleData').click(function(event) {
+      $('p#statusLine').text("Downloading...");
+      drawSampleDatasets();
+    });
+
+    $('#downloadReport').click(function(event) {
+      downloadReport();
+    });
+
+    // utility: todo: keep a log for optional download
+    function status(s) {
+      console.log('status: ', s);
+      $('#status').text(s);
+    }
+
+    window.addEventListener('resize', function() {
+      dropZone.width = window.innerWidth;
+      dropZone.height = window.innerHeight;
+      cornerstone.resize(element, true);
+    });
+
+    window.dispatchEvent(new Event('resize'));
+
+    function handleFileDrop(e) {
+      let evt = e.originalEvent;
+      evt.stopPropagation();
+      evt.preventDefault();
+
+      resetDICOMzero();
+      dc0.dataTransfer = {files: []};
+      for (let fileIndex = 0; fileIndex < evt.dataTransfer.files.length; fileIndex++) {
+        dc0.dataTransfer.files[fileIndex] = evt.dataTransfer.files[fileIndex];
+      }
+
+      status(`Got ${dc0.dataTransfer.files.length} files, click to process...`);
+      dc0.readOneFile(drawSampleDatasets);
+    }
+
+    $('#dropZone').bind('drop', handleFileDrop);
+  });
+</script>
+</html>
