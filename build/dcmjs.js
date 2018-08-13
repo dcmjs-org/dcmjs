@@ -1279,6 +1279,15 @@ class OtherByteString extends BinaryRepresentation {
     } */
 }
 
+class OtherFloatString extends BinaryRepresentation{
+     constructor(){
+        super("OF");
+        this.maxLength = null;
+        this.padByte = "00";
+        this.noMultiple = true;
+    }
+}
+
 class DicomMetaDictionary {
   static punctuateTag(rawTag) {
     if (rawTag.indexOf(',') !== -1) {
@@ -1537,6 +1546,7 @@ DicomMetaDictionary.sopClassNamesByUID = {
   "1.2.840.10008.5.1.4.1.1.6.1" : "USImage",
   "1.2.840.10008.5.1.4.1.1.6.2" : "EnhancedUSVolume",
   "1.2.840.10008.5.1.4.1.1.7" : "SecondaryCaptureImage",
+  "1.2.840.10008.5.1.4.1.1.30" : "ParametricMapStorage",
   "1.2.840.10008.5.1.4.1.1.66" : "RawData",
   "1.2.840.10008.5.1.4.1.1.66.1" : "SpatialRegistration",
   "1.2.840.10008.5.1.4.1.1.66.2" : "SpatialFiducials",
@@ -50336,6 +50346,7 @@ class Normalizer {
     let toUID = DicomMetaDictionary.sopClassUIDsByName;
     let sopClassUIDMap = {};
     sopClassUIDMap[toUID.CTImage] = CTImageNormalizer;
+	sopClassUIDMap[toUID.ParametricMapStorage] = SEGImageNormalizer;
     sopClassUIDMap[toUID.MRImage] = MRImageNormalizer;
     sopClassUIDMap[toUID.EnhancedCTImage] = EnhancedCTImageNormalizer;
     sopClassUIDMap[toUID.LegacyConvertedEnhancedCTImage] = EnhancedCTImageNormalizer;

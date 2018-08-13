@@ -30,6 +30,7 @@ class Normalizer {
     let toUID = DicomMetaDictionary.sopClassUIDsByName;
     let sopClassUIDMap = {};
     sopClassUIDMap[toUID.CTImage] = CTImageNormalizer;
+    sopClassUIDMap[toUID.ParametricMapStorage] = SEGImageNormalizer;
     sopClassUIDMap[toUID.MRImage] = MRImageNormalizer;
     sopClassUIDMap[toUID.EnhancedCTImage] = EnhancedCTImageNormalizer;
     sopClassUIDMap[toUID.LegacyConvertedEnhancedCTImage] = EnhancedCTImageNormalizer;

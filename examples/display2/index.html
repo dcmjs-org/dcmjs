@@ -98,6 +98,7 @@
   // containers for managing background and segmentation data
   var dc0 = new DICOMZero({status});
   var dc0seg = new DICOMZero({status});
+  var dc0paraMap = new DICOMZero({status});
 
   $(document).ready(function() {
 
@@ -125,9 +126,17 @@
       if (dc0.viewer && evt.dataTransfer.files.length == 1) {
         dc0.handleDataTransferFileAsDataset(evt.dataTransfer.files[0], {
           doneCallback: function (dataset) {
+            console.log("callback "+dataset.SOPClassUID)
             if (dataset.SOPClassUID == DCMJS.data.DicomMetaDictionary.sopClassUIDsByName['Segmentation']) {
               dc0.viewer.addSegmentation(dataset);
               dc0seg.datasets = [dataset]
+              dc0.viewer.render();
+              setupControlPanel();
+            } else if (dataset.SOPClassUID == DCMJS.data.DicomMetaDictionary.sopClassUIDsByName['ParametricMapStorage']){
+              console.log("add call paramatric map to viewer...")
+              dc0.viewer.addParametricMap(dataset);
+              console.log("add call to viewer successfull")
+              dc0paraMap.datasets = [dataset]
               dc0.viewer.render();
               setupControlPanel();
             }
