@@ -411,11 +411,59 @@ class Viewer {
     // cornerstoneTools.addToolState(this.element, 'stack', multiframeStack);
   }
 
+  addParametricMap(paramatricMapDataset){
+    this.parametricMapDataset = paramatricMapDataset;
+
+    // TODO: colormap stuff
+          //
+      // then we create stack with an imageId and position metadata
+      // for each frame that references this segment number
+      //
+      let baseImageId = `dcmjsMultiframe${this.id}://`;
+      let imageIds = [];
+      let frameCount = Number(paramatricMapDataset.NumberOfFrames);
+      for (let frameIndex = 0; frameIndex < frameCount; frameIndex++) {
+        let perFrameGroup = paramatricMapDataset.PerFrameFunctionalGroupsSequence[frameIndex];
+        let referencedSegmentNumber;
+
+        const imageId = baseImageId + frameIndex;
+        imageIds.push(imageId);
+
+        let imagePositionPatient = perFrameGroup.PlanePositionSequence.ImagePositionPatient;
+        this.addMetaData('imagePlane', imageId, {
+          imagePositionPatient: {
+            x: imagePositionPatient[0],
+            y: imagePositionPatient[1],
+            z: imagePositionPatient[2],
+          }
+        });
+        
+      }
+
+      let parametricMapStack = {
+        imageIds: imageIds,
+        currentImageIdIndex: 0,
+        options: {
+          opacity: 0.7,
+          visible: true,
+          name: "parametricMap",
+          // viewport: {
+          //   pixelReplication: true,
+          //   colormap: colormapId,
+          //   labelmap: true
+          // }
+        }
+      }
+      // then add the stack to cornerstone
+      cornerstoneTools.addToolState(this.element, 'stack', parametricMapStack);
+  }
+
   //
   // make the set of stacks associated with segmentation segments
   // and add them to the stack tool
   //
   addSegmentation(segmentationDataset) {
+    console.log("sksldsd")
     this.segmentationDataset = segmentationDataset;
     let segmentSequence = this.segmentationDataset.SegmentSequence;
     if (!Array.isArray(segmentSequence)) {

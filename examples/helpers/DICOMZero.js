@@ -29,10 +29,10 @@ class DICOMZero {
 
       let dicomData;
       try {
-        dicomData = dcmjs.data.DicomMessage.readFile(arrayBuffer);
+        dicomData = DCMJS.data.DicomMessage.readFile(arrayBuffer);
         this.unnaturalDatasets.push(dicomData.dict);
-        let dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(dicomData.dict);
-        dataset._meta = dcmjs.data.DicomMetaDictionary.namifyDataset(dicomData.meta);
+        let dataset = DCMJS.data.DicomMetaDictionary.naturalizeDataset(dicomData.dict);
+        dataset._meta = DCMJS.data.DicomMetaDictionary.namifyDataset(dicomData.meta);
         this.datasets.push(dataset);
       } catch (error) {
         console.error(error);
@@ -49,14 +49,14 @@ class DICOMZero {
       if (this.fileIndex === this.dataTransfer.files.length) {
         statusCallback(`Normalizing...`);
         try {
-          this.multiframe = dcmjs.normalizers.Normalizer.normalizeToDataset(this.datasets);
+          this.multiframe = DCMJS.normalizers.Normalizer.normalizeToDataset(this.datasets);
         } catch (e) {
           console.error('Could not convert to multiframe');
           console.error(e);
         }
         statusCallback(`Creating segmentation...`);
         try {
-          this.seg = new dcmjs.derivations.Segmentation([this.multiframe]);
+          this.seg = new DCMJS.derivations.Segmentation([this.multiframe]);
           statusCallback(`Created ${this.multiframe.NumberOfFrames} frame multiframe object and segmentation.`);
         } catch (e) {
           console.error('Could not create segmentation');
@@ -95,10 +95,13 @@ class DICOMZero {
   }
 
   datasetFromArrayBuffer(arrayBuffer) {
-    let dicomData = dcmjs.data.DicomMessage.readFile(arrayBuffer);
+    console.log("loading dicom data 1..")
+    let dicomData = DCMJS.data.DicomMessage.readFile(arrayBuffer);
+    console.log("loading dicom data 2..")
     this.unnaturalDatasets.push(dicomData.dict);
-    let dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(dicomData.dict);
-    dataset._meta = dcmjs.data.DicomMetaDictionary.namifyDataset(dicomData.meta);
+    let dataset = DCMJS.data.DicomMetaDictionary.naturalizeDataset(dicomData.dict);
+    dataset._meta = DCMJS.data.DicomMetaDictionary.namifyDataset(dicomData.meta);
+    console.log("loading dataset successfully")
     return(dataset);
   }
 
