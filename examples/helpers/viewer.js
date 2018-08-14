@@ -190,11 +190,77 @@ class Viewer {
     return (deferred);
   }
 
+  dcmjsPMImageloader(imageId){
+    console.log("here we are in dcmjs awesome pm image loader: "+imageId)
+
+    //let dataset = this.paramatricMapDataset // did not work with assignment
+
+    let index = Number(imageId.slice(imageId.lastIndexOf('/')+1));
+    let image;
+    if (index >= 0 && index < this.parametricMapDataset.NumberOfFrames-1) {
+      // only handle BitsAllocated == 32, signed BitsStored for now
+      let frameBytes = this.parametricMapDataset.Rows * this.parametricMapDataset.Columns * 4; // 4 Bytes * 8 Bits = 32 Bits
+      let frameOffset = frameBytes * index;
+
+      console.log("bytes: "+frameBytes)
+      console.log("pixel data: "+this.parametricMapDataset.FloatPixelData[0].byteLength)
+      let pixelData = new Float32Array(this.parametricMapDataset.FloatPixelData[0], frameOffset, frameBytes);
+      let [min,max] = [Number.MAX_VALUE, Number.MIN_VALUE];
+      for (let pixelIndex = 0; pixelIndex < pixelData.length; pixelIndex++) {
+        if (pixelData[pixelIndex] > max) { max = pixelData[pixelIndex]; }
+        if (pixelData[pixelIndex] < min) { min = pixelData[pixelIndex]; }
+      }
+      let [wc,ww] = [this.parametricMapDataset.WindowCenter,this.parametricMapDataset.WindowWidth];
+      if (Array.isArray(wc)) { wc = wc[0]; }
+      if (Array.isArray(ww)) { ww = ww[0]; }
+      let pixelMeasures = this.parametricMapDataset.SharedFunctionalGroupsSequence.PixelMeasuresSequence
+      image = {
+        imageId: imageId,
+        minPixelValue: min,
+        maxPixelValue: max,
+        slope: Number(this.parametricMapDataset.RescaleSlope || 1),
+        intercept: Number(this.parametricMapDataset.RescaleIntercept || 0),
+        windowCenter: Number(wc),
+        windowWidth: Number(ww),
+        rows: Number(this.parametricMapDataset.Rows),
+        columns: Number(this.parametricMapDataset.Columns),
+        height: Number(this.parametricMapDataset.Rows),
+        width: Number(this.parametricMapDataset.Columns),
+        columnPixelSpacing: Number(pixelMeasures.PixelSpacing[0]),
+        rowPixelSpacing: Number(pixelMeasures.PixelSpacing[1]),
+        invert: false,
+        sizeInBytes: pixelData.byteLength,
+        getPixelData: function () { return(pixelData); },
+      };
+      console.log("min: "+min)
+      console.log("max: "+max)
+      console.log("width: "+image.width)
+      console.log("spacingColumns: "+ image.columnPixelSpacing)
+    }
+
+    //
+    // create a deferred object and resolve it asynchronously
+    //
+    let deferred = $.Deferred();
+    setTimeout(() => {
+      if (image) {
+        deferred.resolve(image);
+      } else {
+        deferred.reject({error: 'bad index'});
+      }
+    },0);
+
+    // return the pending deferred object to cornerstone so it can setup callbacks to be
+    // invoked asynchronously for the success/resolve and failure/reject scenarios.
+    return (deferred);
+  }
+
   //
   // make a cornerstone ImageObject from a multiframe dataset
   // imageId is dcmjsMultiframe://# where # is index in this.datasets
   //
   dcmjsMultiframeImageLoader(imageId) {
+    console.log("here we are in dcmjs multiframe image loader ")
     let dataset = this.multiframeDataset
     let index = Number(imageId.slice(imageId.lastIndexOf('/')+1));
     let image;
@@ -258,6 +324,7 @@ class Viewer {
     cornerstone.registerImageLoader(`dcmjs${this.id}`, this.dcmjsImageLoader.bind(this));
     cornerstone.registerImageLoader(`dcmjsSEG${this.id}`, this.dcmjsSEGImageLoader.bind(this));
     cornerstone.registerImageLoader(`dcmjsMultiframe${this.id}`, this.dcmjsMultiframeImageLoader.bind(this));
+    cornerstone.registerImageLoader(`dcmjsPM${this.id}`, this.dcmjsPMImageloader.bind(this));
     cornerstone.metaData.addProvider(this.metaDataProvider.bind(this));
 
     if (DCMJS.normalizers.Normalizer.isMultiframe(this.datasets[0])) {
@@ -411,51 +478,68 @@ class Viewer {
     // cornerstoneTools.addToolState(this.element, 'stack', multiframeStack);
   }
 
+  /**
+   * Adds a paramatric map object to this viewer instance.
+   * 
+   * @param {dataset} paramatricMapDataset the data set which contains a multiframe dicom paramatric map object
+   */
   addParametricMap(paramatricMapDataset){
     this.parametricMapDataset = paramatricMapDataset;
+    console.log("parametric map data set added")
+    console.log(this.parametricMapDataset)
 
     // TODO: colormap stuff
-          //
-      // then we create stack with an imageId and position metadata
-      // for each frame that references this segment number
-      //
-      let baseImageId = `dcmjsMultiframe${this.id}://`;
-      let imageIds = [];
-      let frameCount = Number(paramatricMapDataset.NumberOfFrames);
-      for (let frameIndex = 0; frameIndex < frameCount; frameIndex++) {
-        let perFrameGroup = paramatricMapDataset.PerFrameFunctionalGroupsSequence[frameIndex];
-        let referencedSegmentNumber;
+    let rgba = [0, 250, 100, 255];
+    const colormapId = 'Colormap_PM';
+    let colormap = cornerstone.colors.getColormap(colormapId);
+    let numberOfColors = 10/0.01
+    console.log(numberOfColors)
+    colormap.setNumberOfColors(numberOfColors);
+    colormap.insertColor(0, [0, 0, 0, 0]);
+  
+    for(var i = 0.1; i < 10; i=i+0.01){
+      colormap.insertColor(i, rgba);
+    }
 
-        const imageId = baseImageId + frameIndex;
-        imageIds.push(imageId);
+    // then we create stack with an imageId and position metadata
+    // for each frame that references this segment number
+    //
+    let baseImageId = `dcmjsPM${this.id}://`;
+    let imageIds = [];
+    let frameCount = Number(paramatricMapDataset.NumberOfFrames);
+    for (let frameIndex = 0; frameIndex < frameCount; frameIndex++) {
+      let perFrameGroup = paramatricMapDataset.PerFrameFunctionalGroupsSequence[frameIndex];
 
-        let imagePositionPatient = perFrameGroup.PlanePositionSequence.ImagePositionPatient;
-        this.addMetaData('imagePlane', imageId, {
-          imagePositionPatient: {
-            x: imagePositionPatient[0],
-            y: imagePositionPatient[1],
-            z: imagePositionPatient[2],
-          }
-        });
-        
-      }
+      const imageId = baseImageId + frameIndex;
+      imageIds.push(imageId);
 
-      let parametricMapStack = {
-        imageIds: imageIds,
-        currentImageIdIndex: 0,
-        options: {
-          opacity: 0.7,
-          visible: true,
-          name: "parametricMap",
-          // viewport: {
-          //   pixelReplication: true,
-          //   colormap: colormapId,
-          //   labelmap: true
-          // }
+      let imagePositionPatient = perFrameGroup.PlanePositionSequence.ImagePositionPatient;
+      this.addMetaData('imagePlane', imageId, {
+        imagePositionPatient: {
+          x: imagePositionPatient[0],
+          y: imagePositionPatient[1],
+          z: imagePositionPatient[2],
+        }
+      });
+      
+    }
+
+    let parametricMapStack = {
+      imageIds: imageIds,
+      currentImageIdIndex: 0,
+      options: {
+        opacity: 0.8,
+        visible: true,
+        name: "parametricMap",
+        viewport: {
+          pixelReplication: true,
+          colormap: colormapId,
+          labelmap: true
         }
       }
-      // then add the stack to cornerstone
-      cornerstoneTools.addToolState(this.element, 'stack', parametricMapStack);
+    }
+    // then add the stack to cornerstone
+    cornerstoneTools.addToolState(this.element, 'stack', parametricMapStack);
   }
 
   //
@@ -463,7 +547,8 @@ class Viewer {
   // and add them to the stack tool
   //
   addSegmentation(segmentationDataset) {
-    console.log("sksldsd")
+    console.log("segmentation data set added")
+    console.log(segmentationDataset)
     this.segmentationDataset = segmentationDataset;
     let segmentSequence = this.segmentationDataset.SegmentSequence;
     if (!Array.isArray(segmentSequence)) {
