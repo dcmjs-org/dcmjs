@@ -95,9 +95,7 @@ class DICOMZero {
   }
 
   datasetFromArrayBuffer(arrayBuffer) {
-    console.log("loading dicom data 1..")
     let dicomData = DCMJS.data.DicomMessage.readFile(arrayBuffer);
-    console.log("loading dicom data 2..")
     this.unnaturalDatasets.push(dicomData.dict);
     let dataset = DCMJS.data.DicomMetaDictionary.naturalizeDataset(dicomData.dict);
     dataset._meta = DCMJS.data.DicomMetaDictionary.namifyDataset(dicomData.meta);
