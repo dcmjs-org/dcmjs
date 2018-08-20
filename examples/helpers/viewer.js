@@ -206,22 +206,24 @@ class Viewer {
       console.log("pixel data: "+this.parametricMapDataset.FloatPixelData[0].byteLength)
       let pixelData = new Float32Array(this.parametricMapDataset.FloatPixelData[0], frameOffset, frameBytes);
       let [min,max] = [Number.MAX_VALUE, Number.MIN_VALUE];
+      let nonZeroValues = []
       for (let pixelIndex = 0; pixelIndex < pixelData.length; pixelIndex++) {
+        if (pixelData[pixelIndex] > 0.0){
+          pixelData[pixelIndex] = Math.floor(pixelData[pixelIndex])*10;
+          nonZeroValues.push(pixelData[pixelIndex])
+        } else {
+          pixelData[pixelIndex] = 0;
+        }
         if (pixelData[pixelIndex] > max) { max = pixelData[pixelIndex]; }
         if (pixelData[pixelIndex] < min) { min = pixelData[pixelIndex]; }
       }
-      let [wc,ww] = [this.parametricMapDataset.WindowCenter,this.parametricMapDataset.WindowWidth];
-      if (Array.isArray(wc)) { wc = wc[0]; }
-      if (Array.isArray(ww)) { ww = ww[0]; }
+
+      console.log("nonzero values: "+nonZeroValues)
       let pixelMeasures = this.parametricMapDataset.SharedFunctionalGroupsSequence.PixelMeasuresSequence
       image = {
         imageId: imageId,
         minPixelValue: min,
         maxPixelValue: max,
-        slope: Number(this.parametricMapDataset.RescaleSlope || 1),
-        intercept: Number(this.parametricMapDataset.RescaleIntercept || 0),
-        windowCenter: Number(wc),
-        windowWidth: Number(ww),
         rows: Number(this.parametricMapDataset.Rows),
         columns: Number(this.parametricMapDataset.Columns),
         height: Number(this.parametricMapDataset.Rows),
@@ -230,12 +232,13 @@ class Viewer {
         rowPixelSpacing: Number(pixelMeasures.PixelSpacing[1]),
         invert: false,
         sizeInBytes: pixelData.byteLength,
-        getPixelData: function () { return(pixelData); },
+        labelmap: true,
+        getPixelData: function () { 
+          console.log("get pixel data: "+pixelData.length)
+          return(pixelData); },
       };
-      console.log("min: "+min)
-      console.log("max: "+max)
-      console.log("width: "+image.width)
-      console.log("spacingColumns: "+ image.columnPixelSpacing)
+      console.log("imageData: ")
+      console.log(image)
     }
 
     //
@@ -427,7 +430,7 @@ class Viewer {
       options: {
         name: 'Referenced Image',
         viewport: {
-          invert: invert
+          invert: invert,
         }
       }
     };
@@ -488,18 +491,20 @@ class Viewer {
     console.log("parametric map data set added")
     console.log(this.parametricMapDataset)
 
-    // TODO: colormap stuff
-    let rgba = [0, 250, 100, 255];
-    const colormapId = 'Colormap_PM';
+    //colormap stuff
+    const colormapId = 'hotIron';
     let colormap = cornerstone.colors.getColormap(colormapId);
-    let numberOfColors = 10/0.01
-    console.log(numberOfColors)
-    colormap.setNumberOfColors(numberOfColors);
-    colormap.insertColor(0, [0, 0, 0, 0]);
+    // let numberOfColors = 15
+
+    // colormap.setNumberOfColors(numberOfColors);
+
+    // for (let i = 1; i < numberOfColors; i++) {
+    //   var green = Math.round(i/Number(numberOfColors) * 255);
+    //   var rgba = [0, green, 0, 255];
   
-    for(var i = 0.1; i < 10; i=i+0.01){
-      colormap.insertColor(i, rgba);
-    }
+    //   colormap.insertColor(i, rgba);
+    // }
+    colormap.insertColor(0, [0, 0, 0, 0]);
 
     // then we create stack with an imageId and position metadata
     // for each frame that references this segment number
@@ -528,12 +533,12 @@ class Viewer {
       imageIds: imageIds,
       currentImageIdIndex: 0,
       options: {
-        opacity: 0.8,
+        opacity: 0.7,
         visible: true,
         name: "parametricMap",
         viewport: {
           pixelReplication: true,
-          colormap: colormapId,
+          colormap: "hotIron",
           labelmap: true
         }
       }

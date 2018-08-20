@@ -827,14 +827,14 @@ class OtherByteString extends BinaryRepresentation {
     } */
 }
 
-// class OtherFloatString extends BinaryRepresentation{
-//     constructor(){
-//         super("OF");
-//         this.maxLength = null;
-//         this.padByte = "00";
-//         this.noMultiple = true;
-//     }
-// }  
+class OtherFloatString extends BinaryRepresentation{
+    constructor(){
+        super("OF");
+        this.maxLength = null;
+        this.padByte = "00";
+        this.noMultiple = true;
+    }
+}  
 
 export { paddingLeft };
 export { tagFromNumbers };
