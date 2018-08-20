@@ -52,6 +52,9 @@
         <label for="datasetSlider" class='datasetControl'>Frame: <span id="frameOffset">0</span></label>
         <input id="datasetSlider" class='datasetControl' type="range" min="0" max="0" value="0" steps="1" style="width: 512px"/>
         <div id='dicomImages'></div>
+        <div style="width:512px; padding-top: 5px;">
+          <canvas id="colorbar" width="512px" height="20px"></canvas>
+      </div>
       </div>
       <div class='col-md-4'>
         <h2>Controls</h2>
@@ -134,7 +137,7 @@
               setupControlPanel();
             } else if (dataset.SOPClassUID == DCMJS.data.DicomMetaDictionary.sopClassUIDsByName['ParametricMapStorage']){
               console.log("add call paramatric map to viewer...")
-              dc0.viewer.addParametricMap(dataset);
+              dc0.viewer.addParametricMap(dataset, "colorbar");
               console.log("add call to viewer successfull")
               dc0paraMap.datasets = [dataset]
               dc0.viewer.render();

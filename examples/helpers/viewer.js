@@ -478,12 +478,46 @@ class Viewer {
     // cornerstoneTools.addToolState(this.element, 'stack', multiframeStack);
   }
 
+
+  /**
+   * Updates the colorbar with the given colormap and the corresponding element id
+   * @param {*} colormap 
+   * @param {*} colorbarId 
+   */
+  updateColorbar(colormap, colorbarId) {
+    const lookupTable = colormap.createLookupTable();
+    const canvas = document.getElementById(colorbarId);
+    const ctx = canvas.getContext('2d');
+    const height = canvas.height;
+    const width = canvas.width;
+    const colorbar = ctx.createImageData(512, 20);
+
+    // Set the min and max values then the lookup table
+    // will be able to return the right color for this range
+    lookupTable.setTableRange(0, width);
+
+    // Update the colorbar pixel by pixel
+    for(let col = 0; col < width; col++) {
+        const color = lookupTable.mapValue(col);
+
+        for(let row = 0; row < height; row++) {
+            const pixel = (col + row * width) * 4;
+            colorbar.data[pixel] = color[0];
+            colorbar.data[pixel+1] = color[1];
+            colorbar.data[pixel+2] = color[2];
+            colorbar.data[pixel+3] = color[3];
+        }
+    }
+
+    ctx.putImageData(colorbar, 0, 0);
+  }
+
   /**
    * Adds a paramatric map object to this viewer instance.
    *
    * @param {dataset} paramatricMapDataset the data set which contains a multiframe dicom paramatric map object
    */
-  addParametricMap(paramatricMapDataset){
+  addParametricMap(paramatricMapDataset, colorbarId){
     this.parametricMapDataset = paramatricMapDataset;
 
     console.log(this.parametricMapDataset)
@@ -555,6 +589,8 @@ class Viewer {
     }
     // then add the stack to cornerstone
     cornerstoneTools.addToolState(this.element, 'stack', parametricMapStack);
+
+    this.updateColorbar(colormap, colorbarId)
   }
 
   //
