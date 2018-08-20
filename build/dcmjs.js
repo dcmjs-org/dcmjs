@@ -50346,7 +50346,7 @@ class Normalizer {
     let toUID = DicomMetaDictionary.sopClassUIDsByName;
     let sopClassUIDMap = {};
     sopClassUIDMap[toUID.CTImage] = CTImageNormalizer;
-	sopClassUIDMap[toUID.ParametricMapStorage] = SEGImageNormalizer;
+    sopClassUIDMap[toUID.ParametricMapStorage] = PMImageNormalizer;
     sopClassUIDMap[toUID.MRImage] = MRImageNormalizer;
     sopClassUIDMap[toUID.EnhancedCTImage] = EnhancedCTImageNormalizer;
     sopClassUIDMap[toUID.LegacyConvertedEnhancedCTImage] = EnhancedCTImageNormalizer;
@@ -50373,6 +50373,7 @@ class Normalizer {
       toUID.EnhancedPETImage,
       toUID.LegacyConvertedEnhancedPETImage,
       toUID.Segmentation,
+      toUID.ParametricMapStorage,
     ];
     return (multiframeSOPClasses.indexOf(sopClassUID) !== -1);
   }
@@ -50757,6 +50758,16 @@ class PETImageNormalizer extends ImageNormalizer {
   }
 }
 
+class PMImageNormalizer extends ImageNormalizer{
+  normalize() {
+    super.normalize();
+    let ds = this.datasets[0]
+    if (ds.BitsAllocated !== 32) {
+      console.error('Only works with 32 bit data, not ' + String(ds.BitsAllocated));
+    }
+  }
+}
+
 class SEGImageNormalizer extends ImageNormalizer {
   normalize() {
     super.normalize();
@@ -50800,6 +50811,7 @@ let normalizers = {
   CTImageNormalizer,
   PETImageNormalizer,
   SEGImageNormalizer,
+  PMImageNormalizer,
   DSRNormalizer
 };
 

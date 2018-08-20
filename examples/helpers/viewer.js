@@ -191,9 +191,7 @@ class Viewer {
   }
 
   dcmjsPMImageloader(imageId){
-    console.log("here we are in dcmjs awesome pm image loader: "+imageId)
-
-    //let dataset = this.paramatricMapDataset // did not work with assignment
+    //let dataset = this.paramatricMapDataset // TODO: did not work with assignment
 
     let index = Number(imageId.slice(imageId.lastIndexOf('/')+1));
     let image;
@@ -202,14 +200,17 @@ class Viewer {
       let frameBytes = this.parametricMapDataset.Rows * this.parametricMapDataset.Columns * 4; // 4 Bytes * 8 Bits = 32 Bits
       let frameOffset = frameBytes * index;
 
-      console.log("bytes: "+frameBytes)
-      console.log("pixel data: "+this.parametricMapDataset.FloatPixelData[0].byteLength)
       let pixelData = new Float32Array(this.parametricMapDataset.FloatPixelData[0], frameOffset, frameBytes);
       let [min,max] = [Number.MAX_VALUE, Number.MIN_VALUE];
       let nonZeroValues = []
+
+      // normalize value range
+      // newMin = 0;
+      // newMax = 255;
       for (let pixelIndex = 0; pixelIndex < pixelData.length; pixelIndex++) {
         if (pixelData[pixelIndex] > 0.0){
-          pixelData[pixelIndex] = Math.floor(pixelData[pixelIndex])*10;
+          //pixelData[pixelIndex] = (newMax-newMin)/(this.maxValue-this.minValue)*(value-this.maxValue)+newMax
+          pixelData[pixelIndex] = Math.floor(pixelData[pixelIndex]);
           nonZeroValues.push(pixelData[pixelIndex])
         } else {
           pixelData[pixelIndex] = 0;
@@ -233,12 +234,9 @@ class Viewer {
         invert: false,
         sizeInBytes: pixelData.byteLength,
         labelmap: true,
-        getPixelData: function () { 
-          console.log("get pixel data: "+pixelData.length)
-          return(pixelData); },
+        getPixelData: function () { return(pixelData); },
       };
-      console.log("imageData: ")
-      console.log(image)
+      console.log("slice: "+index+" min: "+min+" max: "+max)
     }
 
     //
@@ -263,7 +261,6 @@ class Viewer {
   // imageId is dcmjsMultiframe://# where # is index in this.datasets
   //
   dcmjsMultiframeImageLoader(imageId) {
-    console.log("here we are in dcmjs multiframe image loader ")
     let dataset = this.multiframeDataset
     let index = Number(imageId.slice(imageId.lastIndexOf('/')+1));
     let image;
@@ -483,27 +480,40 @@ class Viewer {
 
   /**
    * Adds a paramatric map object to this viewer instance.
-   * 
+   *
    * @param {dataset} paramatricMapDataset the data set which contains a multiframe dicom paramatric map object
    */
   addParametricMap(paramatricMapDataset){
     this.parametricMapDataset = paramatricMapDataset;
-    console.log("parametric map data set added")
+
     console.log(this.parametricMapDataset)
+
+    // let pixelData = new Float32Array(this.parametricMapDataset.FloatPixelData[0], 0, Number(this.parametricMapDataset.FloatPixelData[0].byteLength));
+    // let [min,max] = [Number.MAX_VALUE, Number.MIN_VALUE];
+
+    // for (let pixelIndex = 0; pixelIndex < pixelData.length; pixelIndex++) {
+    //   if (pixelData[pixelIndex] > max) { max = pixelData[pixelIndex]; }
+    //   if (pixelData[pixelIndex] < min) { min = pixelData[pixelIndex]; }
+    // }
+
+    // this.minValue = min;
+    // this.maxValue = max;
+    // console.log("min "+min+" , max: "+max)
+    // normalize value range
 
     //colormap stuff
     const colormapId = 'hotIron';
     let colormap = cornerstone.colors.getColormap(colormapId);
-    // let numberOfColors = 15
+    let numberOfColors = 20;
 
-    // colormap.setNumberOfColors(numberOfColors);
+    //colormap.setNumberOfColors(numberOfColors);
 
-    // for (let i = 1; i < numberOfColors; i++) {
-    //   var green = Math.round(i/Number(numberOfColors) * 255);
-    //   var rgba = [0, green, 0, 255];
-  
-    //   colormap.insertColor(i, rgba);
-    // }
+    for (let i = 1; i < numberOfColors; i++) {
+      var red = Math.round(i/Number(numberOfColors) * 255);
+      var rgba = [red, 100, 50, 255];
+
+      colormap.insertColor(i, rgba);
+    }
     colormap.insertColor(0, [0, 0, 0, 0]);
 
     // then we create stack with an imageId and position metadata
@@ -526,7 +536,7 @@ class Viewer {
           z: imagePositionPatient[2],
         }
       });
-      
+
     }
 
     let parametricMapStack = {
@@ -552,8 +562,6 @@ class Viewer {
   // and add them to the stack tool
   //
   addSegmentation(segmentationDataset) {
-    console.log("segmentation data set added")
-    console.log(segmentationDataset)
     this.segmentationDataset = segmentationDataset;
     let segmentSequence = this.segmentationDataset.SegmentSequence;
     if (!Array.isArray(segmentSequence)) {
