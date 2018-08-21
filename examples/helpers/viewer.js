@@ -197,29 +197,34 @@ class Viewer {
     let image;
     if (index >= 0 && index < this.parametricMapDataset.NumberOfFrames-1) {
       // only handle BitsAllocated == 32, signed BitsStored for now
-      let frameBytes = this.parametricMapDataset.Rows * this.parametricMapDataset.Columns * 4; // 4 Bytes * 8 Bits = 32 Bits
+      let frameBytes = this.parametricMapDataset.Rows * this.parametricMapDataset.Columns * Float32Array.prototype.BYTES_PER_ELEMENT; // 4 Bytes * 8 Bits = 32 Bits
       let frameOffset = frameBytes * index;
 
-      let pixelData = new Float32Array(this.parametricMapDataset.FloatPixelData[0], frameOffset, frameBytes);
+      console.log("array byte length: "+this.parametricMapDataset.FloatPixelData[0].byteLength+" frameOffset: "+frameOffset+" frameByteRange: "+frameBytes);
+
+      try{
+        var pixelData = new Float32Array(this.parametricMapDataset.FloatPixelData[0], frameOffset, frameBytes);
+      } catch (e){
+        console.log(e);
+        let deferred = $.Deferred();
+        return (deferred.reject({error: 'bad index'}));
+      }
+
       let [min,max] = [Number.MAX_VALUE, Number.MIN_VALUE];
       let nonZeroValues = []
-
-      // normalize value range
-      // newMin = 0;
-      // newMax = 255;
       for (let pixelIndex = 0; pixelIndex < pixelData.length; pixelIndex++) {
         if (pixelData[pixelIndex] > 0.0){
-          //pixelData[pixelIndex] = (newMax-newMin)/(this.maxValue-this.minValue)*(value-this.maxValue)+newMax
+          //let value = pixelData[pixelIndex];
+          //pixelData[pixelIndex] = Math.round(Number(newMax-newMin)/Number(15.6-min)*(value-15.6)+newMax)
           pixelData[pixelIndex] = Math.floor(pixelData[pixelIndex]);
-          nonZeroValues.push(pixelData[pixelIndex])
+          //nonZeroValues.push(pixelData[index])
         } else {
           pixelData[pixelIndex] = 0;
         }
         if (pixelData[pixelIndex] > max) { max = pixelData[pixelIndex]; }
         if (pixelData[pixelIndex] < min) { min = pixelData[pixelIndex]; }
       }
-
-      console.log("nonzero values: "+nonZeroValues)
+      //console.log(nonZeroValues)
       let pixelMeasures = this.parametricMapDataset.SharedFunctionalGroupsSequence.PixelMeasuresSequence
       image = {
         imageId: imageId,
@@ -481,8 +486,8 @@ class Viewer {
 
   /**
    * Updates the colorbar with the given colormap and the corresponding element id
-   * @param {*} colormap 
-   * @param {*} colorbarId 
+   * @param {*} colormap
+   * @param {*} colorbarId
    */
   updateColorbar(colormap, colorbarId) {
     const lookupTable = colormap.createLookupTable();
@@ -522,33 +527,22 @@ class Viewer {
 
     console.log(this.parametricMapDataset)
 
-    // let pixelData = new Float32Array(this.parametricMapDataset.FloatPixelData[0], 0, Number(this.parametricMapDataset.FloatPixelData[0].byteLength));
-    // let [min,max] = [Number.MAX_VALUE, Number.MIN_VALUE];
-
-    // for (let pixelIndex = 0; pixelIndex < pixelData.length; pixelIndex++) {
-    //   if (pixelData[pixelIndex] > max) { max = pixelData[pixelIndex]; }
-    //   if (pixelData[pixelIndex] < min) { min = pixelData[pixelIndex]; }
-    // }
-
-    // this.minValue = min;
-    // this.maxValue = max;
-    // console.log("min "+min+" , max: "+max)
     // normalize value range
+    let maxRealWorldValue = this.parametricMapDataset.SharedFunctionalGroupsSequence.RealWorldValueMappingSequence.RealWorldValueLastValueMapped;
+    let minRealWorldValue = this.parametricMapDataset.SharedFunctionalGroupsSequence.RealWorldValueMappingSequence.RealWorldValueFirstValueMapped;
 
     //colormap stuff
-    const colormapId = 'hotIron';
+    const colormapId = 'myColormap';
     let colormap = cornerstone.colors.getColormap(colormapId);
-    let numberOfColors = 20;
+    let numberOfColors = maxRealWorldValue+1;
+    colormap.setNumberOfColors(numberOfColors);
 
-    //colormap.setNumberOfColors(numberOfColors);
-
+    colormap.insertColor(0, [0, 0, 0, 0]);
     for (let i = 1; i < numberOfColors; i++) {
       var red = Math.round(i/Number(numberOfColors) * 255);
-      var rgba = [red, 100, 50, 255];
-
+      var rgba = [Math.max(red*1.3,255), Math.max(255-red*1.3,0), 0, 255];
       colormap.insertColor(i, rgba);
     }
-    colormap.insertColor(0, [0, 0, 0, 0]);
 
     // then we create stack with an imageId and position metadata
     // for each frame that references this segment number
@@ -582,7 +576,7 @@ class Viewer {
         name: "parametricMap",
         viewport: {
           pixelReplication: true,
-          colormap: "hotIron",
+          colormap: colormapId,
           labelmap: true
         }
       }
