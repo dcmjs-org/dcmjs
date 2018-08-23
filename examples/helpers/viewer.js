@@ -3,8 +3,35 @@
 //
 // currently only handles single frame images with segmentation overlay
 //
-class Viewer {
 
+/**
+ * Calculate the minimum and maximum values in an Array
+ *
+ * @param {Number[]} storedPixelData
+ * @return {{min: Number, max: Number}}
+ */
+function getMinMax (storedPixelData) {
+  // we always calculate the min max values since they are not always
+  // present in DICOM and we don't want to trust them anyway as cornerstone
+  // depends on us providing reliable values for these
+  let min = Number.MAX_VALUE;
+  let max = Number.MIN_VALUE;
+  let storedPixel;
+  const numPixels = storedPixelData.length;
+
+  for (let index = 1; index < numPixels; index++) {
+    storedPixel = storedPixelData[index];
+    min = Math.min(min, storedPixel);
+    max = Math.max(max, storedPixel);
+  }
+
+  return {
+    min,
+    max
+  };
+}
+
+class Viewer {
   constructor(datasets, options={}) {
     this.status = options.status || function() {};
     this.datasets = datasets;
@@ -192,39 +219,24 @@ class Viewer {
 
   dcmjsPMImageloader(imageId){
     //let dataset = this.paramatricMapDataset // TODO: did not work with assignment
-
     let index = Number(imageId.slice(imageId.lastIndexOf('/')+1));
     let image;
     if (index >= 0 && index < this.parametricMapDataset.NumberOfFrames-1) {
       // only handle BitsAllocated == 32, signed BitsStored for now
       let frameBytes = this.parametricMapDataset.Rows * this.parametricMapDataset.Columns * Float32Array.prototype.BYTES_PER_ELEMENT; // 4 Bytes * 8 Bits = 32 Bits
       let frameOffset = frameBytes * index;
+      let framePixels = this.parametricMapDataset.Rows * this.parametricMapDataset.Columns;
 
-      console.log("array byte length: "+this.parametricMapDataset.FloatPixelData[0].byteLength+" frameOffset: "+frameOffset+" frameByteRange: "+frameBytes);
-
-      try{
-        var pixelData = new Float32Array(this.parametricMapDataset.FloatPixelData[0], frameOffset, frameBytes);
-      } catch (e){
-        console.log(e);
-        let deferred = $.Deferred();
-        return (deferred.reject({error: 'bad index'}));
-      }
+      let pixelData = new Float32Array(this.parametricMapDataset.FloatPixelData[0], frameOffset, framePixels);
 
       let [min,max] = [Number.MAX_VALUE, Number.MIN_VALUE];
-      let nonZeroValues = []
+
       for (let pixelIndex = 0; pixelIndex < pixelData.length; pixelIndex++) {
-        if (pixelData[pixelIndex] > 0.0){
-          //let value = pixelData[pixelIndex];
-          //pixelData[pixelIndex] = Math.round(Number(newMax-newMin)/Number(15.6-min)*(value-15.6)+newMax)
-          pixelData[pixelIndex] = Math.floor(pixelData[pixelIndex]);
-          //nonZeroValues.push(pixelData[index])
-        } else {
-          pixelData[pixelIndex] = 0;
-        }
-        if (pixelData[pixelIndex] > max) { max = pixelData[pixelIndex]; }
-        if (pixelData[pixelIndex] < min) { min = pixelData[pixelIndex]; }
+        let currentValue = pixelData[pixelIndex];
+        max = Math.max(max, currentValue);
+        max = Math.min(min, currentValue)
       }
-      //console.log(nonZeroValues)
+
       let pixelMeasures = this.parametricMapDataset.SharedFunctionalGroupsSequence.PixelMeasuresSequence
       image = {
         imageId: imageId,
@@ -241,7 +253,6 @@ class Viewer {
         labelmap: true,
         getPixelData: function () { return(pixelData); },
       };
-      console.log("slice: "+index+" min: "+min+" max: "+max)
     }
 
     //
@@ -525,14 +536,28 @@ class Viewer {
   addParametricMap(paramatricMapDataset, colorbarId){
     this.parametricMapDataset = paramatricMapDataset;
 
-    console.log(this.parametricMapDataset)
+    let framePixels = this.parametricMapDataset.Rows * this.parametricMapDataset.Columns * (this.parametricMapDataset.NumberOfFrames);
+    let offset = 0;
+    let pixelData = new Float32Array(this.parametricMapDataset.FloatPixelData[0], offset, framePixels);
+    const floatMinMax = getMinMax(pixelData);
+    console.log(floatMinMax);
 
-    // normalize value range
-    let maxRealWorldValue = this.parametricMapDataset.SharedFunctionalGroupsSequence.RealWorldValueMappingSequence.RealWorldValueLastValueMapped;
-    let minRealWorldValue = this.parametricMapDataset.SharedFunctionalGroupsSequence.RealWorldValueMappingSequence.RealWorldValueFirstValueMapped;
+    for (let pixelIndex = 0; pixelIndex < pixelData.length; pixelIndex++) {
+      let currentValue = pixelData[pixelIndex];
+      if (currentValue > 0.0){
+        //let value = pixelData[pixelIndex];
+        //pixelData[pixelIndex] = Math.round(Number(newMax-newMin)/Number(15.6-min)*(value-15.6)+newMax)
+        pixelData[pixelIndex] = Math.floor(currentValue);
+        //nonZeroValues.push(pixelData[index])
+      } else {
+        pixelData[pixelIndex] = 0;
+      }
+    }
+
+    let maxRealWorldValue = Math.round(floatMinMax.max);
 
     //colormap stuff
-    const colormapId = 'myColormap';
+    const colormapId = 'hotIron';
     let colormap = cornerstone.colors.getColormap(colormapId);
     let numberOfColors = maxRealWorldValue+1;
     colormap.setNumberOfColors(numberOfColors);
