@@ -1,7 +1,7 @@
 <!DOCTYPE HTML>
 <html>
 <head>
-  <title>dcmjs Display</title>
+  <title>DCMJS Display</title>
   <meta charset="utf-8">
   <meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1, maximum-scale=1">
 
@@ -35,7 +35,7 @@
         DICOM Data Display
       </h1>
       <p>
-        This example demonstrates display of DICOM images and SEG overlays.
+        This example demonstrates display of DICOM images and Parametric Map overlays.
       </p>
       <a href="../index.html">Go back to the Examples page</a>
     </div>
@@ -43,15 +43,21 @@
     <div class="row" id="mainDisplay" style="border: 1px solid black;">
         <ul>
           <li>Drag and drop a multiframe image file or a set of single frame images.</li>
-          <li>Drag and drop a segmentation object in the space of those images.</li>
+          <li>Drag and drop a parametric map object in the space of those images.</li>
         </ul>
       <p id='status'>Ready for images...</p>
       <div class='col-md-8'>
         <h2>DICOM Images</h2>
+		<div style="padding-bottom: 15px" class='row-md-8'>
+			<button id="sampleData">Get Sample Data</button>
+		</div>
         <button id='datasetPlayStop' class='datasetControl'>Play</button>
         <label for="datasetSlider" class='datasetControl'>Frame: <span id="frameOffset">0</span></label>
         <input id="datasetSlider" class='datasetControl' type="range" min="0" max="0" value="0" steps="1" style="width: 512px"/>
         <div id='dicomImages'></div>
+        <div style="width:512px; padding-top: 5px;">
+          <canvas id="colorbar" width="512px" height="20px"></canvas>
+      </div>
       </div>
       <div class='col-md-4'>
         <h2>Controls</h2>
@@ -95,9 +101,9 @@
     $('#status').text(statusMessage);
   }
 
-  // containers for managing background and segmentation data
+  // containers for managing background and parametric map data
   var dc0 = new DICOMZero({status});
-  var dc0seg = new DICOMZero({status});
+  var dc0paraMap = new DICOMZero({status});
 
   $(document).ready(function() {
 
@@ -118,16 +124,19 @@
 
       //
       // if one file dropped, and we already have a viewer,
-      // check if it's a segmentation and overlay.
-      // Also special case for two files that might be a multiframe and seg.
+      // check if it's a parametric map and overlay.
+      // Also special case for two files that might be a multiframe and parametric map.
       // Otherwise reset and load the dropped data.
       //
       if (dc0.viewer && evt.dataTransfer.files.length == 1) {
         dc0.handleDataTransferFileAsDataset(evt.dataTransfer.files[0], {
           doneCallback: function (dataset) {
-            if (dataset.SOPClassUID == dcmjs.data.DicomMetaDictionary.sopClassUIDsByName['Segmentation']) {
-              dc0.viewer.addSegmentation(dataset);
-              dc0seg.datasets = [dataset]
+            console.log("callback "+dataset.SOPClassUID)
+			if (dataset.SOPClassUID == DCMJS.data.DicomMetaDictionary.sopClassUIDsByName['ParametricMapStorage']){
+              console.log("add call paramatric map to viewer...")
+              dc0.viewer.addParametricMap(dataset, "colorbar");
+              console.log("add call to viewer successfull")
+              dc0paraMap.datasets = [dataset]
               dc0.viewer.render();
               setupControlPanel();
             }
@@ -167,7 +176,7 @@
     }
 
     function frameCount() {
-      if (dcmjs.normalizers.Normalizer.isMultiframe(dc0.datasets[0])) {
+      if (DCMJS.normalizers.Normalizer.isMultiframe(dc0.datasets[0])) {
         return (dc0.datasets[0].NumberOfFrames);
       } else {
         return (dc0.datasets.length);
@@ -185,10 +194,10 @@
 
       var options = {
         callback: function() {
-          // now add the segmentation
-          status("Adding segmentations...");
-          if (dc0seg.datasets.length > 0) {
-            dc0.viewer.addSegmentation(dc0seg.datasets[0]);
+          // now add the parametric map
+          status("Adding parametric map...");
+          if (dc0paraMap.datasets.length > 0) {
+            dc0.viewer.addParametricMap(dc0paraMap.datasets[0]);
             setupControlPanel();
           }
           status("Done reading.");
@@ -200,13 +209,6 @@
       dc0.viewer = new Viewer(dc0.datasets);
       dc0.viewer.display('#dicomImages', options);
 
-    }
-
-    function displaySegmentation() {
-      console.log(dc0seg);
-
-      let imageUID = dc0seg.datasets[0].ReferencedSeriesSequence.SeriesInstanceUID;
-      loadQIICRImages(imageUID);
     }
 
     $('#datasetSlider').on('input', function(){
@@ -250,34 +252,22 @@
     //
     // download and process functions
     //
+	function drawSampleDatasets() {
+      // TODO: fill dicomZero Object with data from aws
+	  // https://s3.amazonaws.com/IsomicsPublic/SampleData/dicomPM/000045.dcm
+	  // https://s3.amazonaws.com/IsomicsPublic/SampleData/dicomPM/ldMap_axial_cap.dcm
+	  
+	  let baseURL = "https://s3.amazonaws.com/IsomicsPublic/SampleData/dicomPM/";
+	  for (let i = 45; i < 89; i++){
+		let = url = baseURL + "0000" + i + ".dcm";
+	  }
+    }
+	
+	$('#sampleData').click(function(event) {
+      drawSampleDatasets();
+    });
 
     resetDICOMzero();
-
-    let segmentNumberToOffsetMap = [];
-    function scrollToSegment (segmentNumber) {
-      if (segmentNumberToOffsetMap.length == 0) {
-        status('Calculating segment locations');
-        let perSegmentISList = [];
-        dc0seg.datasets[0].PerFrameFunctionalGroupsSequence.forEach(perFrameGroup => {
-          let segment = perFrameGroup.SegmentIdentificationSequence.ReferencedSegmentNumber;
-          if (!perSegmentISList[segment]) {
-            perSegmentISList[segment] = [];
-          }
-          let isCoordinate = Number(perFrameGroup.PlanePositionSequence.ImagePositionPatient[2]);
-          perSegmentISList[segment].push(isCoordinate);
-        });
-        let isFirst = Number(dc0.datasets[0].ImagePositionPatient[2]);
-        let isLast = Number(dc0.datasets[dc0.datasets.length-1].ImagePositionPatient[2]);
-        let sliceSpacing = (isLast - isFirst) / (dc0.datasets.length - 1);
-        perSegmentISList.forEach((segmentList,index) => {
-          let isAverage = segmentList.reduce((a,b) => a+b) / segmentList.length;
-          let offset = Math.round((isAverage - isFirst) / sliceSpacing);
-          segmentNumberToOffsetMap[index] = offset;
-        });
-      }
-      status(`Segment ${segmentNumber} at ${segmentNumberToOffsetMap[segmentNumber]}`);
-      setOffset(segmentNumberToOffsetMap[segmentNumber]);
-    }
 
     function createControlPanel (options={}) {
       options.id = options.id || "controlPanel";
@@ -330,61 +320,11 @@
 
     function setupControlPanel() {
       let panelOptions = {
-        subject: dc0seg.datasets[0].PatientID,
-        seriesDescription: dc0seg.datasets[0].SeriesDescription,
-        onSegmentVisibilityChanged: (segmentNumber, visibility) => {
-          console.log(`toggle ${segmentNumber}`);
-          dc0.viewer.layerVisibility(segmentNumber, visibility);
-        },
-        onSegmentClicked: (segmentNumber) => {
-          playStop();
-          scrollToSegment(segmentNumber);
-        },
-        segments: []
+        subject: dc0paraMap.datasets[0].PatientID,
+        seriesDescription: dc0paraMap.datasets[0].SeriesDescription,
       };
-      let segmentSequence = dc0seg.datasets[0].SegmentSequence;
-      if (segmentSequence.constructor.name != "Array") {
-        segmentSequence = [segmentSequence];
-      }
-      let hexColor = `#00cc99`;
-      segmentSequence.forEach(segment => {
-        if (segment.RecommendedDisplayCIELabValue) {
-          let rgb = dcmjs.data.Colors.dicomlab2RGB(segment.RecommendedDisplayCIELabValue);
-          rgb = rgb.map(e => Math.round(e*255).toString(16)); // convert to hex
-          rgb = rgb.map(e => e.length < 2 ? "0"+e : e); // zero pad
-          hexColor = `#${rgb[0]}${rgb[1]}${rgb[2]}`;
-        }
-        let anatomicRegion = segment.AnatomicRegionSequence || {CodeMeaning: "Undefined"};
-        panelOptions.segments.push({
-          segmentNumber: segment.SegmentNumber,
-          label: `${segment.SegmentNumber}: ${segment.SegmentLabel} (${anatomicRegion.CodeMeaning})`,
-          color: hexColor,
-        });
-      });
       createControlPanel(panelOptions);
     }
-
-    //
-    // allow drag and drop of segmentation and background datasets
-    //
-
-    function loadQIICRImages(seriesInstanceUID) {
-      resetDICOMzero();
-      console.log('loading ', seriesInstanceUID);
-      tcia.images(seriesInstanceUID).then(arrayBuffer => {
-        status('Extracting reference image data...');
-        dc0.extractFromZipArrayBuffer(arrayBuffer, displayDatasets);
-      });
-    }
-
-    function loadQIICRSegmentation(seriesInstanceUID) {
-      console.log('looking for images from ', seriesInstanceUID);
-      tcia.images(seriesInstanceUID).then(arrayBuffer => {
-        status('Extracting segmentation data...');
-        dc0seg.extractFromZipArrayBuffer(arrayBuffer, displaySegmentation);
-      });
-    }
-
   });
 </script>
 </html>
