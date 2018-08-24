@@ -52,7 +52,6 @@ function convertToIntPixelData(floatPixelData){
     let rescaledPixel = 0
     if (floatPixelData[i] > 0){
       rescaledPixel = Math.floor((floatPixelData[i] - intercept) / slope);
-      count++;
     }
 
     intPixelData[i] = rescaledPixel;
