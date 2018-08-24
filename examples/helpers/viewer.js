@@ -31,6 +31,44 @@ function getMinMax (storedPixelData) {
   };
 }
 
+/**
+ * Converts a float pixel array to a unsigned int 8 bit array.
+ * 
+ * @param {Int8Array} floatPixelData
+ * @return {{min, max, intPixelData, slope, intercept}}
+ */
+function convertToIntPixelData(floatPixelData){
+  const floatMinMax = getMinMax(floatPixelData);
+  const floatRange = Math.abs(floatMinMax.max - floatMinMax.min);
+  const intRange = 255;
+  const slope = floatRange / intRange;
+  const intercept = floatMinMax.min;
+  const numPixels = floatPixelData.length;
+  const intPixelData = new Uint8Array(numPixels);
+  let min = 255;
+  let max = 0;
+
+  for (let i = 0; i < numPixels; i++) {
+    let rescaledPixel = 0
+    if (floatPixelData[i] > 0){
+      rescaledPixel = Math.floor((floatPixelData[i] - intercept) / slope);
+      count++;
+    }
+
+    intPixelData[i] = rescaledPixel;
+    min = Math.min(min, rescaledPixel);
+    max = Math.max(max, rescaledPixel);
+  }
+
+  return {
+    min,
+    max,
+    intPixelData,
+    slope,
+    intercept
+  };
+}
+
 class Viewer {
   constructor(datasets, options={}) {
     this.status = options.status || function() {};
@@ -218,34 +256,32 @@ class Viewer {
   }
 
   dcmjsPMImageloader(imageId){
-    //let dataset = this.paramatricMapDataset // TODO: did not work with assignment
+    let dataset = this.parametricMapDataset;
     let index = Number(imageId.slice(imageId.lastIndexOf('/')+1));
     let image;
-    if (index >= 0 && index < this.parametricMapDataset.NumberOfFrames-1) {
-      // only handle BitsAllocated == 32, signed BitsStored for now
-      let frameBytes = this.parametricMapDataset.Rows * this.parametricMapDataset.Columns * Float32Array.prototype.BYTES_PER_ELEMENT; // 4 Bytes * 8 Bits = 32 Bits
-      let frameOffset = frameBytes * index;
-      let framePixels = this.parametricMapDataset.Rows * this.parametricMapDataset.Columns;
+    if (index >= 0 && index < dataset.NumberOfFrames-1) {
 
-      let pixelData = new Float32Array(this.parametricMapDataset.FloatPixelData[0], frameOffset, framePixels);
-
-      let [min,max] = [Number.MAX_VALUE, Number.MIN_VALUE];
+      let framePixels = dataset.Rows * dataset.Columns;
+      let startIndex = dataset.Rows * dataset.Columns * index;
+      let endIndex = startIndex + framePixels;
+      let pixelData = dataset.PMPixelData.slice(startIndex, endIndex)
+      let [min,max] = [255, 0];
 
       for (let pixelIndex = 0; pixelIndex < pixelData.length; pixelIndex++) {
         let currentValue = pixelData[pixelIndex];
         max = Math.max(max, currentValue);
-        max = Math.min(min, currentValue)
+        min = Math.min(min, currentValue);
       }
 
-      let pixelMeasures = this.parametricMapDataset.SharedFunctionalGroupsSequence.PixelMeasuresSequence
+      let pixelMeasures = dataset.SharedFunctionalGroupsSequence.PixelMeasuresSequence
       image = {
         imageId: imageId,
         minPixelValue: min,
         maxPixelValue: max,
-        rows: Number(this.parametricMapDataset.Rows),
-        columns: Number(this.parametricMapDataset.Columns),
-        height: Number(this.parametricMapDataset.Rows),
-        width: Number(this.parametricMapDataset.Columns),
+        rows: Number(dataset.Rows),
+        columns: Number(dataset.Columns),
+        height: Number(dataset.Rows),
+        width: Number(dataset.Columns),
         columnPixelSpacing: Number(pixelMeasures.PixelSpacing[0]),
         rowPixelSpacing: Number(pixelMeasures.PixelSpacing[1]),
         invert: false,
@@ -539,29 +575,19 @@ class Viewer {
     let framePixels = this.parametricMapDataset.Rows * this.parametricMapDataset.Columns * (this.parametricMapDataset.NumberOfFrames);
     let offset = 0;
     let pixelData = new Float32Array(this.parametricMapDataset.FloatPixelData[0], offset, framePixels);
-    const floatMinMax = getMinMax(pixelData);
-    console.log(floatMinMax);
 
-    for (let pixelIndex = 0; pixelIndex < pixelData.length; pixelIndex++) {
-      let currentValue = pixelData[pixelIndex];
-      if (currentValue > 0.0){
-        //let value = pixelData[pixelIndex];
-        //pixelData[pixelIndex] = Math.round(Number(newMax-newMin)/Number(15.6-min)*(value-15.6)+newMax)
-        pixelData[pixelIndex] = Math.floor(currentValue);
-        //nonZeroValues.push(pixelData[index])
-      } else {
-        pixelData[pixelIndex] = 0;
-      }
-    }
+    // pixel data conversion from float to int
+    let result = convertToIntPixelData(pixelData);
+    console.log(result);
 
-    let maxRealWorldValue = Math.round(floatMinMax.max);
+    // add int pixel data as typed array (!). float is still here with FloatPixelData (array buffer)
+    this.parametricMapDataset.PMPixelData = result.intPixelData;
 
     //colormap stuff
-    const colormapId = 'hotIron';
+    const colormapId = 'myColorMap';
     let colormap = cornerstone.colors.getColormap(colormapId);
-    let numberOfColors = maxRealWorldValue+1;
+    let numberOfColors = 255;
     colormap.setNumberOfColors(numberOfColors);
-
     colormap.insertColor(0, [0, 0, 0, 0]);
     for (let i = 1; i < numberOfColors; i++) {
       var red = Math.round(i/Number(numberOfColors) * 255);
