@@ -54,14 +54,26 @@ class DICOMZero {
           console.error('Could not convert to multiframe');
           console.error(e);
         }
-        statusCallback(`Creating segmentation...`);
-        try {
-          this.seg = new DCMJS.derivations.Segmentation([this.multiframe]);
-          statusCallback(`Created ${this.multiframe.NumberOfFrames} frame multiframe object and segmentation.`);
-        } catch (e) {
-          console.error('Could not create segmentation');
-          console.error(e);
-        }
+		
+		if (this.multiframe.SOPClassUID == DCMJS.data.DicomMetaDictionary.sopClassUIDsByName['Segmentation']){
+			statusCallback(`Creating segmentation...`);
+			try {
+			  this.seg = new DCMJS.derivations.Segmentation([this.multiframe]);
+			  statusCallback(`Created ${this.multiframe.NumberOfFrames} frame multiframe object and segmentation.`);
+			} catch (e) {
+			  console.error('Could not create segmentation');
+			  console.error(e);
+			}
+	    } else if (this.multiframe.SOPClassUID == DCMJS.data.DicomMetaDictionary.sopClassUIDsByName['ParametricMapStorage']){
+			statusCallback(`Creating parametric map...`);
+			try {
+			  this.pm = new DCMJS.derivations.ParametricMap([this.multiframe]);
+			  statusCallback(`Created ${this.multiframe.NumberOfFrames} frame multiframe object and parametric map.`);
+			} catch (e) {
+			  console.error('Could not create parametric map');
+			  console.error(e);
+			}
+		}
         doneCallback();
       } else {
         statusCallback(`Reading... (${this.fileIndex+1}).`);

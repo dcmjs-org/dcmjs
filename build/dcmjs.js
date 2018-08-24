@@ -50317,6 +50317,25 @@ class StructuredReport extends DerivedDataset {
   }
 }
 
+class ParametricMap extends DerivedDataset {
+  constructor (datasets, options={}) {
+    super(datasets, options);
+  }
+
+  // this assumes a normalized multiframe input and will create
+  // a multiframe derived image
+  derive() {
+    super.derive();
+
+    this.assignToDataset({
+		// TODO: ???
+    });
+
+    this.assignFromReference([
+    ]);
+  }
+}
+
 class Normalizer {
   constructor (datasets) {
     this.datasets = datasets; // one or more dicom-like object instances
@@ -50799,7 +50818,8 @@ let derivations = {
   DerivedPixels,
   DerivedImage,
   Segmentation,
-  StructuredReport
+  StructuredReport,
+  ParametricMap
 };
 
 let normalizers = {

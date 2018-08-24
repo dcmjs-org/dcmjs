@@ -577,7 +577,6 @@ class Viewer {
 
     // pixel data conversion from float to int
     let result = convertToIntPixelData(pixelData);
-    console.log(result);
 
     // add int pixel data as typed array (!). float is still here with FloatPixelData (array buffer)
     this.parametricMapDataset.PMPixelData = result.intPixelData;
