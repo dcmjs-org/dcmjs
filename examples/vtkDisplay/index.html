@@ -1,0 +1,349 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1, maximum-scale=1">
+
+    <link href="../css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<div class="container">
+    <div class="page-header">
+        <h1>
+            Display DICOM Segmentation with VTK-JS
+        </h1>
+        <p>
+            This example demonstrates how to display a DICOM Segmentation object with vtk-js.
+        </p>
+        <a href="../index.html">Go back to the Examples page</a>
+    </div>
+
+    <div class="row">
+        <button id="sampleData">Get Sample Data</button><p id="statusLine"></p>
+        <div class="col-xs-9">
+            <div style="width:512px;height:512px;position:relative;display:inline-block;"
+                 oncontextmenu="return false"
+                 unselectable='on'
+                 onselectstart='return false;'
+                 onmousedown='return false;'>
+                <div id="dicomImage"
+                     style="width:512px;height:512px;top:0px;left:0px; position:absolute;">
+                </div>
+            </div>
+
+            <p>Sample data is from the dicom4qi connectathon event to be held at RSNA 2017.  This is <a href='https://qiicr.gitbooks.io/dicom4qi/content/instructions/seg.html#test-dataset-2'>test dataset #2</a>
+        </div>
+        <div class="col-xs-3">
+            <label for="layers">Select active layer</label>
+            <select name="layers" id="layers" size="2" style="width: 100%; min-width: 150px;"></select>
+            <div id="properties" style="width: 100%; min-width: 150px; margin-top: 15px;">
+                <label>Layer Properties</label>
+                <div style="width: 100%; padding: 5px 5px 5px 10px;">
+                    <div style="margin-bottom: 15px;">
+                        <label for="visible"> Visible</label><br>
+                        <input name="visible" type="radio" value="1"> Yes &nbsp;&nbsp;
+                        <input name="visible" type="radio" value="0"> No
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label for="imageOpacity"> Opacity</label>
+                        <input id="imageOpacity" type="range" class="range" min=0 max=1 step=0.1 value=0>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+
+<script src="../js/jquery.min.js"></script>
+<script src="../js/jqueryFileDrop.js"></script>
+
+<script src="../../build/dcmjs.js"></script>
+
+<script type="text/javascript" src="https://unpkg.com/vtk.js"></script>
+
+<script>
+  let element;
+  let volumeViewer;
+  let vtkVolumes = [];
+
+  $(document).ready(function() {
+
+    element = document.getElementById('dicomImage');
+
+    volumeViewer = vtk.Rendering.Misc.vtkGenericRenderWindow.newInstance({
+        background: [0, 0, 0],
+    });
+    const renderWindow = volumeViewer.getRenderWindow();
+    const renderer = volumeViewer.getRenderer();
+
+    element.innerHTML = '';
+    volumeViewer.setContainer(element);
+
+    // TODO: VTK's canvas currently does not fill the viewport element
+    // after it has been resized. We need to set the height to 100% and
+    // trigger volumeViewer.resize() whenever things are resized.
+    // We might need to find a way to hook onto the OHIF Viewer ResizeManager
+    // div.querySelector('canvas').style.height = '100%';
+    volumeViewer.resize();
+
+
+
+    //
+    // generic promisified XMLHttpRequest
+    // based on https://stackoverflow.com/questions/30008114/how-do-i-promisify-native-xhr
+    //
+    function makeRequest (options) {
+      return new Promise(function (resolve, reject) {
+        options.method = options.method || "GET";
+        if (!options.url) {
+          reject({
+            status: 404,
+            statusText: "need a url to request"
+          });
+        }
+        var xhr = new XMLHttpRequest();
+        if (options.responseType) {
+          xhr.responseType = options.responseType;
+        }
+        xhr.open(options.method, options.url);
+        xhr.onload = function () {
+          if (this.status >= 200 && this.status < 300) {
+            resolve(xhr.response);
+          } else {
+            reject({
+              status: this.status,
+              statusText: xhr.statusText
+            });
+          }
+        };
+        xhr.onerror = function () {
+          reject({
+            status: this.status,
+            statusText: xhr.statusText
+          });
+        };
+        if (options.headers) {
+          Object.keys(options.headers).forEach(function (key) {
+            xhr.setRequestHeader(key, options.headers[key]);
+          });
+        }
+        var params = options.params;
+        // We'll need to stringify if we've been given an object
+        // If we have a string, this is skipped.
+        if (params && typeof params === 'object') {
+          params = Object.keys(params).map(function (key) {
+            return encodeURIComponent(key) + '=' + encodeURIComponent(params[key]);
+          }).join('&');
+        }
+        xhr.send(params);
+      });
+    }
+
+    //
+    // takes the arraybuffer of dicom data and returns
+    // an object with a dcmjs dataset and a vtkImageData
+    //
+    function parsePart10(part10) {
+      const dicomData = dcmjs.data.DicomMessage.readFile(part10);
+      let dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(dicomData.dict);
+      dataset._meta = dcmjs.data.DicomMetaDictionary.namifyDataset(dicomData.meta);
+      dataset = dcmjs.normalizers.Normalizer.normalizeToDataset([dataset]);
+
+      const scalarArray = vtk.Common.Core.vtkDataArray.newInstance({
+          name: "Scalars",
+          numberOfComponents: dataset.SamplesPerPixel,
+          values: new Int16Array(dataset.PixelData),
+      });
+
+      // NB: DICOM PixelSpacing is defined as Row then Column,
+      // unlike ImageOrientationPatient
+      let pixelMeasures = dataset.SharedFunctionalGroupsSequence.PixelMeasuresSequence;
+      const spacing = [pixelMeasures.PixelSpacing[1],
+                       pixelMeasures.PixelSpacing[0],
+                       pixelMeasures.SpacingBetweenSlices].map(Number);
+      const dimensions = [dataset.Columns,
+                          dataset.Rows,
+                          dataset.NumberOfFrames].map(Number);
+      // TODO: orientation and origin
+
+      const imageData = vtk.Common.DataModel.vtkImageData.newInstance();
+      imageData.setDimensions(dimensions);
+      imageData.setSpacing(spacing);
+      imageData.getPointData().setScalars(scalarArray);
+
+      return({dataset, imageData});
+    }
+
+    //
+    // makes a vtkVolume (actor) from imageData and dataset
+    //
+    function vtkVolumeForData({imageData, dataset}) {
+      const mapper = vtk.Rendering.Core.vtkVolumeMapper.newInstance();
+      mapper.setInputData(imageData);
+      mapper.setSampleDistance(2.);
+
+      const actor = vtk.Rendering.Core.vtkVolume.newInstance();
+      actor.setMapper(mapper);
+
+      // create color and opacity transfer functions
+      const rgbTransferFunction = vtk.Rendering.Core.vtkColorTransferFunction.newInstance();
+
+      rgbTransferFunction.addRGBPoint(10.0, 0.4, 0.2, 0.0);
+      rgbTransferFunction.addRGBPoint(100.0, 1.0, 1.0, 1.0);
+
+      const scalarOpacity = vtk.Common.DataModel.vtkPiecewiseFunction.newInstance();
+      scalarOpacity.addPoint(0.0, 0.0);
+      scalarOpacity.addPoint(200.0, 0.9);
+      scalarOpacity.addPoint(1000.0, 0.9);
+
+      actor.getProperty().setRGBTransferFunction(0, rgbTransferFunction);
+      actor.getProperty().setScalarOpacity(0, scalarOpacity);
+      actor.getProperty().setScalarOpacityUnitDistance(0, 4.5);
+      actor.getProperty().setInterpolationTypeToLinear();
+      actor.getProperty().setUseGradientOpacity(0, true);
+      actor.getProperty().setGradientOpacityMinimumValue(0, 15);
+      actor.getProperty().setGradientOpacityMinimumOpacity(0, 0.0);
+      actor.getProperty().setGradientOpacityMaximumValue(0, 100);
+      actor.getProperty().setGradientOpacityMaximumOpacity(0, 1.0);
+      actor.getProperty().setShade(true);
+      actor.getProperty().setAmbient(0.7);
+      actor.getProperty().setDiffuse(0.7);
+      actor.getProperty().setSpecular(0.3);
+      actor.getProperty().setSpecularPower(8.0);
+
+      console.log(actor);
+      console.log(actor.getBounds());
+
+      return actor;
+    }
+
+    function downloadAndDisplaySampleData() {
+
+      const urlRoot = 'https://s3.amazonaws.com/IsomicsPublic/SampleData/rsna2017/seg/task2/'
+      const petURL = urlRoot + 'PT-multiframe.dcm';
+      const segURL = urlRoot + 'SEG/tumor_User1_Manual_Trial1.dcm';
+
+      var petPromise = makeRequest({url: petURL, responseType: "arraybuffer"});
+      var segPromise = makeRequest({url: segURL, responseType: "arraybuffer"});
+
+      //
+      // once the images have been loaded
+      //
+      Promise.all([petPromise, segPromise]).then(values => {
+        const petPart10 = values[0];
+        const segPart10 = values[1];
+
+        const pet = parsePart10(petPart10);
+        const seg = parsePart10(segPart10);
+
+        vtkVolumes.push(vtkVolumeForData(pet));
+
+        const colormap = [];
+        seg.dataset.SegmentSequence.forEach(segment => {
+          // first, map the dicom color into a cornerstone colormap
+          const cielab = segment.RecommendedDisplayCIELabValue;
+          let rgba = dcmjs.data.Colors.dicomlab2RGB(cielab).map(x => Math.round(x * 255));
+          rgba.push(255);
+          colormap.push(rgba);
+        });
+
+        console.log('vtkVolumes', vtkVolumes);
+        console.log('seg colors', colormap);
+
+        vtkVolumes.forEach(volume => {
+          renderer.addVolume(volume);
+
+          const controllerWidget = vtk.Interaction.UI.vtkVolumeController.newInstance({
+            size: [400, 150],
+            rescaleColorMap: true,
+          });
+          const properties = document.getElementById('properties');
+          const volumeDiv = document.createElement('div');
+          controllerWidget.setContainer(volumeDiv);
+          controllerWidget.setupContent(renderWindow, volume);
+          const volumeControlContainer = volumeDiv.querySelector('div[class^=VolumeController-container]');
+          volumeControlContainer.style.top = 'auto';
+          properties.appendChild(volumeDiv);
+        });
+        renderer.resetCamera();
+        renderer.getActiveCamera().zoom(1.5);
+        renderer.getActiveCamera().elevation(70);
+        renderer.updateLightsGeometryToFollowCamera();
+        renderWindow.render();
+
+        $('p#statusLine').text("");
+      });
+
+    }
+
+    // Select the right layer in the dropdown
+    function updateSelectedLayer(layerId) {
+      var $layers = $('#layers');
+      var currentLayerId = $layers.val();
+
+      if(currentLayerId !== layerId) {
+        $layers.val(layerId);
+        $layers.trigger('change');
+      }
+    }
+
+    // Listen to `change` event to update the opacity of the active layer
+    $("#imageOpacity").on('input',function(event) {
+      var layer = cornerstone.getActiveLayer(element);
+      layer.options.opacity = parseFloat(event.currentTarget.value);
+      cornerstone.updateImage(element);
+    });
+
+    // Listen to `change` event to update the visibility of the active layer
+    $('input[name=visible]').change(function(event) {
+      var layer = cornerstone.getActiveLayer(element);
+      layer.options.visible = (event.currentTarget.value === "1");
+      cornerstone.updateImage(element);
+    });
+
+    // This event will be called every time a layer is added through cornerstone.addLayer
+    // The layer is added to the dropdown to make it possible to select and interact with it
+    $(element).on('CornerstoneLayerAdded', function(e, eventData) {
+      var layer = cornerstone.getLayer(eventData.element, eventData.layerId);
+      var $layers = $('#layers');
+      var $layerOption = $('<option></option>')
+        .val(layer.layerId)
+        .text(layer.options.name);
+
+      // Set the layer as selected in case its the the first layer to be added
+      if($layers.children().length === 0) {
+        $layerOption.prop('selected', true);
+      }
+
+      $layers.append($layerOption);
+    });
+
+    // This event will be called every time cornerstone.setActiveLayer is called
+    // We need to load the layer properties and update the selected layer in the dropdown
+    $(element).on('CornerstoneActiveLayerChanged', function(e, eventData) {
+      var layer = cornerstone.getActiveLayer(element);
+      var opacity = layer.options.opacity == null ? 1 : layer.options.opacity;
+      var visible = layer.options.visible !== false ? 1 : 0;
+
+      // Restore all properties for the active layer
+      $('#imageOpacity').val(opacity);
+      $("input[name=visible][value=" + visible + "]").prop('checked', true);
+
+      updateSelectedLayer(eventData.layerId);
+    });
+
+    $('#sampleData').click(function(event) {
+      $('p#statusLine').text("Downloading...");
+      downloadAndDisplaySampleData();
+    });
+
+
+    window.addEventListener('resize', function() {
+      console.log('need to resize the vtk window');
+    });
+    window.dispatchEvent(new Event('resize'));
+
+  });
+</script>
+</html>
