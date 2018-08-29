@@ -20,7 +20,7 @@
 
     <div class="row">
         <button id="sampleData">Get Sample Data</button><p id="statusLine"></p>
-        <div class="col-xs-9">
+        <div class="col-xs-6">
             <div style="width:512px;height:512px;position:relative;display:inline-block;"
                  oncontextmenu="return false"
                  unselectable='on'
@@ -33,22 +33,8 @@
 
             <p>Sample data is from the dicom4qi connectathon event to be held at RSNA 2017.  This is <a href='https://qiicr.gitbooks.io/dicom4qi/content/instructions/seg.html#test-dataset-2'>test dataset #2</a>
         </div>
-        <div class="col-xs-3">
-            <label for="layers">Select active layer</label>
-            <select name="layers" id="layers" size="2" style="width: 100%; min-width: 150px;"></select>
-            <div id="properties" style="width: 100%; min-width: 150px; margin-top: 15px;">
-                <label>Layer Properties</label>
-                <div style="width: 100%; padding: 5px 5px 5px 10px;">
-                    <div style="margin-bottom: 15px;">
-                        <label for="visible"> Visible</label><br>
-                        <input name="visible" type="radio" value="1"> Yes &nbsp;&nbsp;
-                        <input name="visible" type="radio" value="0"> No
-                    </div>
-                    <div style="margin-bottom: 15px;">
-                        <label for="imageOpacity"> Opacity</label>
-                        <input id="imageOpacity" type="range" class="range" min=0 max=1 step=0.1 value=0>
-                    </div>
-                </div>
+        <div class="col-xs-6">
+            <div id="properties">
             </div>
         </div>
     </div>
@@ -58,6 +44,8 @@
 <script src="../js/jquery.min.js"></script>
 <script src="../js/jqueryFileDrop.js"></script>
 
+<script src="../helpers/DICOMZero.js"></script>
+
 <script src="../../build/dcmjs.js"></script>
 
 <script type="text/javascript" src="https://unpkg.com/vtk.js"></script>
@@ -65,7 +53,8 @@
 <script>
   let element;
   let volumeViewer;
-  let vtkVolumes = [];
+  let vtkVolumeActors = [];
+  let controllerWidgets = [];
 
   $(document).ready(function() {
 
@@ -140,15 +129,58 @@
       });
     }
 
+    // uses dataset for common elements but perFrame to override
+    // (for multiple segments)
+    function geometryFromFunctionalGroups(dataset, perFrame) {
+      const vtkMath = vtk.Common.Core.vtkMath;
+      let pixelMeasures = dataset.SharedFunctionalGroupsSequence.PixelMeasuresSequence;
+      let planeOrientation = dataset.SharedFunctionalGroupsSequence.PlaneOrientationSequence;
+      let planePosition = perFrame[0].PlanePositionSequence; // TODO: assume sorted frames!
+
+      const geometry = {};
+
+      // NB: DICOM PixelSpacing is defined as Row then Column,
+      // unlike ImageOrientationPatient
+      geometry.spacing = [pixelMeasures.PixelSpacing[1],
+                          pixelMeasures.PixelSpacing[0],
+                          pixelMeasures.SpacingBetweenSlices].map(Number);
+
+      geometry.dimensions = [dataset.Columns,
+                             dataset.Rows,
+                             perFrame.length].map(Number);
+
+      let orientation = planeOrientation.ImageOrientationPatient.map(Number);
+      const columnStepToPatient = orientation.slice(0,3);
+      const rowStepToPatient = orientation.slice(3,6);
+      const planeNormal = [];
+      vtkMath.cross(columnStepToPatient, rowStepToPatient, planeNormal);
+
+      let firstPosition = perFrame[0].PlanePositionSequence.ImagePositionPatient.map(Number);
+      let lastPosition = perFrame[perFrame.length-1].PlanePositionSequence.ImagePositionPatient.map(Number);
+      geometry.sliceStep = [];
+      vtkMath.subtract(lastPosition, firstPosition, geometry.sliceStep);
+      vtkMath.normalize(geometry.sliceStep);
+
+
+                               // TODO vtk requires orthonormal directions
+                               // which could mean we need to shuffle the data
+
+      geometry.direction = columnStepToPatient.concat(rowStepToPatient).concat(planeNormal);
+
+      geometry.origin = planePosition.ImagePositionPatient.map(Number);
+
+      console.log(geometry);
+
+      return(geometry);
+    }
+
     //
     // takes the arraybuffer of dicom data and returns
-    // an object with a dcmjs dataset and a vtkImageData
+    // a vtkVolume (actor) ready to render
     //
-    function parsePart10(part10) {
-      const dicomData = dcmjs.data.DicomMessage.readFile(part10);
-      let dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(dicomData.dict);
-      dataset._meta = dcmjs.data.DicomMetaDictionary.namifyDataset(dicomData.meta);
-      dataset = dcmjs.normalizers.Normalizer.normalizeToDataset([dataset]);
+    function part10ToVolumeActor(part10) {
+
+      dataset = DICOMZero.datasetFromArrayBuffer(part10);
 
       const scalarArray = vtk.Common.Core.vtkDataArray.newInstance({
           name: "Scalars",
@@ -156,29 +188,15 @@
           values: new Int16Array(dataset.PixelData),
       });
 
-      // NB: DICOM PixelSpacing is defined as Row then Column,
-      // unlike ImageOrientationPatient
-      let pixelMeasures = dataset.SharedFunctionalGroupsSequence.PixelMeasuresSequence;
-      const spacing = [pixelMeasures.PixelSpacing[1],
-                       pixelMeasures.PixelSpacing[0],
-                       pixelMeasures.SpacingBetweenSlices].map(Number);
-      const dimensions = [dataset.Columns,
-                          dataset.Rows,
-                          dataset.NumberOfFrames].map(Number);
-      // TODO: orientation and origin
-
       const imageData = vtk.Common.DataModel.vtkImageData.newInstance();
-      imageData.setDimensions(dimensions);
-      imageData.setSpacing(spacing);
       imageData.getPointData().setScalars(scalarArray);
 
-      return({dataset, imageData});
-    }
+      geometry = geometryFromFunctionalGroups(dataset, dataset.PerFrameFunctionalGroupsSequence);
+      imageData.setDimensions(geometry.dimensions);
+      imageData.setSpacing(geometry.spacing);
+      imageData.setOrigin(geometry.origin);
+      imageData.setDirection(geometry.direction);
 
-    //
-    // makes a vtkVolume (actor) from imageData and dataset
-    //
-    function vtkVolumeForData({imageData, dataset}) {
       const mapper = vtk.Rendering.Core.vtkVolumeMapper.newInstance();
       mapper.setInputData(imageData);
       mapper.setSampleDistance(2.);
@@ -186,36 +204,79 @@
       const actor = vtk.Rendering.Core.vtkVolume.newInstance();
       actor.setMapper(mapper);
 
-      // create color and opacity transfer functions
-      const rgbTransferFunction = vtk.Rendering.Core.vtkColorTransferFunction.newInstance();
-
-      rgbTransferFunction.addRGBPoint(10.0, 0.4, 0.2, 0.0);
-      rgbTransferFunction.addRGBPoint(100.0, 1.0, 1.0, 1.0);
-
-      const scalarOpacity = vtk.Common.DataModel.vtkPiecewiseFunction.newInstance();
-      scalarOpacity.addPoint(0.0, 0.0);
-      scalarOpacity.addPoint(200.0, 0.9);
-      scalarOpacity.addPoint(1000.0, 0.9);
-
-      actor.getProperty().setRGBTransferFunction(0, rgbTransferFunction);
-      actor.getProperty().setScalarOpacity(0, scalarOpacity);
-      actor.getProperty().setScalarOpacityUnitDistance(0, 4.5);
-      actor.getProperty().setInterpolationTypeToLinear();
-      actor.getProperty().setUseGradientOpacity(0, true);
-      actor.getProperty().setGradientOpacityMinimumValue(0, 15);
-      actor.getProperty().setGradientOpacityMinimumOpacity(0, 0.0);
-      actor.getProperty().setGradientOpacityMaximumValue(0, 100);
-      actor.getProperty().setGradientOpacityMaximumOpacity(0, 1.0);
-      actor.getProperty().setShade(true);
-      actor.getProperty().setAmbient(0.7);
-      actor.getProperty().setDiffuse(0.7);
-      actor.getProperty().setSpecular(0.3);
-      actor.getProperty().setSpecularPower(8.0);
-
-      console.log(actor);
-      console.log(actor.getBounds());
-
       return actor;
+    }
+
+    function part10ToSEGVolumeActors(part10) {
+      const segments = {};
+
+      dataset = DICOMZero.datasetFromArrayBuffer(part10);
+      dataset.SegmentSequence.forEach(segment => {
+
+        // TODO: other interesting fields could be extracted from the segment
+
+        // color for making the lookup table
+        const cielab = segment.RecommendedDisplayCIELabValue;
+        const rgba = dcmjs.data.Colors.dicomlab2RGB(cielab).map(x => Math.round(x * 255));
+        rgba.push(255);
+
+        segments[segment.SegmentNumber] = {
+          color: rgba,
+          functionalGroups: [],
+          offset: null,
+          size: null,
+          pixelData: null,
+        }
+
+      });
+
+      // make a list of functional groups per segment
+      dataset.PerFrameFunctionalGroupsSequence.forEach(functionalGroup => {
+        let segmentNumber = functionalGroup.SegmentIdentificationSequence.ReferencedSegmentNumber;
+        segments[segmentNumber].functionalGroups.push(functionalGroup);
+      });
+
+      // determine per-segment index into the pixel data
+      // TODO: only handles one-bit-per pixel
+      const actors = [];
+      let frameSize = Math.ceil(dataset.Rows * dataset.Columns / 8);
+      let nextOffset = 0;
+      Object.keys(segments).forEach(segmentKey => {
+        const segment = segments[segmentKey];
+        segment.numberOfFrames = segment.functionalGroups.length;
+        segment.size = segment.numberOfFrames * frameSize;
+        segment.offset = nextOffset;
+        nextOffset  = segment.offset + segment.size
+        const packedSegment = dataset.PixelData.slice(segment.offset, nextOffset);
+        segment.pixelData = dcmjs.data.BitArray.unpack(packedSegment);
+
+        // now make actors using the segment information
+        const scalarArray = vtk.Common.Core.vtkDataArray.newInstance({
+            name: "Scalars",
+            numberOfComponents: 1,
+            values: segment.pixelData,
+        });
+
+        const imageData = vtk.Common.DataModel.vtkImageData.newInstance();
+        imageData.getPointData().setScalars(scalarArray);
+
+        geometry = geometryFromFunctionalGroups(dataset, segment.functionalGroups);
+        imageData.setDimensions(geometry.dimensions);
+        imageData.setSpacing(geometry.spacing);
+        imageData.setOrigin(geometry.origin);
+        imageData.setDirection(geometry.direction);
+
+        const mapper = vtk.Rendering.Core.vtkVolumeMapper.newInstance();
+        mapper.setInputData(imageData);
+        mapper.setSampleDistance(2.);
+
+        const actor = vtk.Rendering.Core.vtkVolume.newInstance();
+        actor.setMapper(mapper);
+
+        actors.push(actor);
+      });
+
+      return(actors);
     }
 
     function downloadAndDisplaySampleData() {
@@ -234,37 +295,31 @@
         const petPart10 = values[0];
         const segPart10 = values[1];
 
-        const pet = parsePart10(petPart10);
-        const seg = parsePart10(segPart10);
+        vtkVolumeActors.push(part10ToVolumeActor(petPart10));
 
-        vtkVolumes.push(vtkVolumeForData(pet));
+        const segActors = part10ToSEGVolumeActors(segPart10);
+        vtkVolumeActors = vtkVolumeActors.concat(segActors);
 
-        const colormap = [];
-        seg.dataset.SegmentSequence.forEach(segment => {
-          // first, map the dicom color into a cornerstone colormap
-          const cielab = segment.RecommendedDisplayCIELabValue;
-          let rgba = dcmjs.data.Colors.dicomlab2RGB(cielab).map(x => Math.round(x * 255));
-          rgba.push(255);
-          colormap.push(rgba);
-        });
+        vtkVolumeActors.forEach(volume => {
 
-        console.log('vtkVolumes', vtkVolumes);
-        console.log('seg colors', colormap);
-
-        vtkVolumes.forEach(volume => {
           renderer.addVolume(volume);
 
           const controllerWidget = vtk.Interaction.UI.vtkVolumeController.newInstance({
             size: [400, 150],
             rescaleColorMap: true,
           });
+          controllerWidgets.push(controllerWidget);
+
           const properties = document.getElementById('properties');
           const volumeDiv = document.createElement('div');
-          controllerWidget.setContainer(volumeDiv);
-          controllerWidget.setupContent(renderWindow, volume);
-          const volumeControlContainer = volumeDiv.querySelector('div[class^=VolumeController-container]');
-          volumeControlContainer.style.top = 'auto';
           properties.appendChild(volumeDiv);
+          controllerWidget.setContainer(volumeDiv);
+          controllerWidget.setupContent(renderWindow, volume, isBackgroundDark=true, useShadow=false, presetName='Grayscale');
+          controllerWidget.onModified();
+          //volume.getProperty().getRGBTransferFunction(0).setMappingRange([0,500]); // TODO - fix default lookup table
+          const volumeControlContainer = volumeDiv.querySelector('div[class^=VolumeController-container]');
+          volumeControlContainer.style.position = 'inherit';
+
         });
         renderer.resetCamera();
         renderer.getActiveCamera().zoom(1.5);
