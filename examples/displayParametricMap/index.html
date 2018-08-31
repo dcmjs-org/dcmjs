@@ -1,5 +1,6 @@
 <!DOCTYPE HTML>
 <html>
+
 <head>
   <title>DCMJS Display</title>
   <meta charset="utf-8">
@@ -14,6 +15,7 @@
       padding-left: 15px;
       padding-right: 15px;
     }
+
     .qiicrStepUIPanel span:hover {
       font-style: oblique;
     }
@@ -21,13 +23,14 @@
     .visibleSegment {
       color: #fff;
     }
+
     .invisibleSegment {
       color: #000;
     }
-
   </style>
 
 </head>
+
 <body>
   <div id='dropZone' class="container">
     <div class="page-header">
@@ -41,23 +44,23 @@
     </div>
 
     <div class="row" id="mainDisplay" style="border: 1px solid black;">
-        <ul>
-          <li>Drag and drop a multiframe image file or a set of single frame images.</li>
-          <li>Drag and drop a parametric map object in the space of those images.</li>
-        </ul>
+      <ul>
+        <li>Drag and drop a multiframe image file or a set of single frame images.</li>
+        <li>Drag and drop a parametric map object in the space of those images.</li>
+      </ul>
       <p id='status'>Ready for images...</p>
       <div class='col-md-8'>
         <h2>DICOM Images</h2>
-		<div style="padding-bottom: 15px" class='row-md-8'>
-			<button id="sampleData">Get Sample Data</button>
-		</div>
+        <div style="padding-bottom: 15px" class='row-md-8'>
+          <button id="sampleData">Get Sample Data</button>
+        </div>
         <button id='datasetPlayStop' class='datasetControl'>Play</button>
         <label for="datasetSlider" class='datasetControl'>Frame: <span id="frameOffset">0</span></label>
-        <input id="datasetSlider" class='datasetControl' type="range" min="0" max="0" value="0" steps="1" style="width: 512px"/>
+        <input id="datasetSlider" class='datasetControl' type="range" min="0" max="0" value="0" steps="1" style="width: 512px" />
         <div id='dicomImages'></div>
         <div style="width:512px; padding-top: 5px;">
           <canvas id="colorbar" width="512px" height="20px"></canvas>
-      </div>
+        </div>
       </div>
       <div class='col-md-4'>
         <h2>Controls</h2>
@@ -93,7 +96,7 @@
 
 <script src="../helpers/DICOMZero.js"></script>
 <script src="../helpers/viewer.js"></script>
-
+<script src="../helpers/dicomwebclient.js"></script>
 
 <script>
   function status(statusMessage) {
@@ -102,16 +105,16 @@
   }
 
   // containers for managing background and parametric map data
-  var dc0 = new DICOMZero({status});
-  var dc0paraMap = new DICOMZero({status});
+  var dc0 = new DICOMZero({ status });
+  var dc0paraMap = new DICOMZero({ status });
 
-  $(document).ready(function() {
+  $(document).ready(function () {
 
     //
     // dropZone
     //
     const dropZone = document.getElementById('dropZone');
-    window.addEventListener('resize', function() {
+    window.addEventListener('resize', function () {
       dropZone.width = window.innerWidth;
       dropZone.height = window.innerHeight;
     });
@@ -131,8 +134,8 @@
       if (dc0.viewer && evt.dataTransfer.files.length == 1) {
         dc0.handleDataTransferFileAsDataset(evt.dataTransfer.files[0], {
           doneCallback: function (dataset) {
-            console.log("callback "+dataset.SOPClassUID)
-			if (dataset.SOPClassUID == DCMJS.data.DicomMetaDictionary.sopClassUIDsByName['ParametricMapStorage']){
+            console.log("callback " + dataset.SOPClassUID)
+            if (dataset.SOPClassUID == DCMJS.data.DicomMetaDictionary.sopClassUIDsByName['ParametricMapStorage']) {
               console.log("add call paramatric map to viewer...")
               dc0.viewer.addParametricMap(dataset, "colorbar");
               console.log("add call to viewer successfull")
@@ -144,7 +147,7 @@
         });
       } else {
         resetDICOMzero();
-        dc0.dataTransfer = {files: []};
+        dc0.dataTransfer = { files: [] };
         for (let fileIndex = 0; fileIndex < evt.dataTransfer.files.length; fileIndex++) {
           dc0.dataTransfer.files[fileIndex] = evt.dataTransfer.files[fileIndex];
         }
@@ -185,15 +188,15 @@
 
     function displayDatasets() {
       status("Displaying...");
-      dc0.datasets.sort(function(a,b) {
-        return (Number(a.InstanceNumber)-Number(b.InstanceNumber));
+      dc0.datasets.sort(function (a, b) {
+        return (Number(a.InstanceNumber) - Number(b.InstanceNumber));
       });
       $('#datasetSlider').attr('min', 0);
-      $('#datasetSlider').attr('max', frameCount()-1);
+      $('#datasetSlider').attr('max', frameCount() - 1);
       $('.datasetControl').attr('disabled', false);
 
       var options = {
-        callback: function() {
+        callback: function () {
           // now add the parametric map
           status("Adding parametric map...");
           if (dc0paraMap.datasets.length > 0) {
@@ -211,15 +214,15 @@
 
     }
 
-    $('#datasetSlider').on('input', function(){
+    $('#datasetSlider').on('input', function () {
       var offset = $('#datasetSlider').val();
       setOffset(offset);
     });
 
-    function playStep () {
+    function playStep() {
       var offset = Number($('#datasetSlider').val());
       offset += 1;
-      if (offset > frameCount()-1) {
+      if (offset > frameCount() - 1) {
         offset = 0;
       }
       setOffset(offset);
@@ -232,8 +235,8 @@
       $('#datasetPlayStop').text('Play');
     }
     function playStart() {
-        $('#datasetPlayStop').text('Stop');
-        window.requestAnimationFrame(playStep);
+      $('#datasetPlayStop').text('Stop');
+      window.requestAnimationFrame(playStep);
     }
     function togglePlayMode() {
       if ($('#datasetPlayStop').text() === 'Stop') {
@@ -246,76 +249,51 @@
 
 
     function progressStatus(progressEvent) {
-      status(`Downloaded ${(progressEvent.loaded/1024/1024).toFixed(2)} MB so far...`);
+      status(`Downloaded ${(progressEvent.loaded / 1024 / 1024).toFixed(2)} MB so far...`);
     }
 
-    //
-    // download and process functions
-    //
-	function drawSampleDatasets() {
-      // TODO: fill dicomZero Object with data from aws
-	  // https://s3.amazonaws.com/IsomicsPublic/SampleData/dicomPM/000045.dcm
-	  // https://s3.amazonaws.com/IsomicsPublic/SampleData/dicomPM/ldMap_axial_cap.dcm
-	  
-	  let baseURL = "https://s3.amazonaws.com/IsomicsPublic/SampleData/dicomPM/";
-	  for (let i = 45; i < 89; i++){
-		let = url = baseURL + "0000" + i + ".dcm";
-	  }
+    /**
+     * Downloads some demo data with the dicom web client helper
+     * which uses asynchronous xmlhttp-requests to retrieve byte arrays from a server.
+     */
+    function drawSampleDatasets() {
+      const headers = { 'Accept': 'multipart/related; type="application/octet-stream"' };
+      const responseType = 'arraybuffer';
+      const progressCallback = { "progressCallback": this.progressStatus }
+
+      let baseImageURL = "https://s3.amazonaws.com/IsomicsPublic/SampleData/dicomPM/";
+      let imagesCount = 45;
+      for (let i = 45; i < 89; i++) {
+        let url = baseImageURL + "0000" + i + ".dcm";
+        httpRequest(url, "GET", headers, { responseType, progressCallback }).then(arrayBuffer => {
+          let dataset = dc0.datasetFromArrayBuffer(arrayBuffer);
+          dc0.datasets.push(dataset);
+          if (i == 88) {
+            displayDatasets();
+          }
+        });
+      }
+
+      let basePMURL = "https://s3.amazonaws.com/IsomicsPublic/SampleData/dicomPM/ldMap_axial_cap.dcm";
+      httpRequest(basePMURL, "GET", headers, { responseType, progressCallback }).then(arrayBuffer => {
+        let dataset = dc0paraMap.datasetFromArrayBuffer(arrayBuffer);
+        dc0paraMap.datasets.push(dataset);
+        dc0.viewer.addParametricMap(dataset, "colorbar");
+        dc0.viewer.render();
+        setupControlPanel();
+      });
     }
-	
-	$('#sampleData').click(function(event) {
+
+    $('#sampleData').click(function (event) {
       drawSampleDatasets();
     });
 
     resetDICOMzero();
 
-    function createControlPanel (options={}) {
+    function createControlPanel(options = {}) {
       options.id = options.id || "controlPanel";
       options.subject = options.subject || "Subject not specified";
       options.seriesDescription = options.seriesDescription || "Series Description not specified";
-      options.segments = options.segments || [];
-      options.onSegmentVisibilityChanged = options.onSegmentVisibilityChanged || function (segment, visibility) {};
-      options.onSegmentClicked = options.onSegmentClicked || function (segment) {};
-
-      this.element = document.getElementById(options.id);
-
-      this.subjectNode = document.createElement('p');
-      this.subjectNode.innerText = options.subject;
-      this.element.appendChild(this.subjectNode);
-
-      this.seriesDescriptionNode = document.createElement('p');
-      this.seriesDescriptionNode.innerText = options.seriesDescription;
-      this.element.appendChild(this.seriesDescriptionNode);
-
-      this.segmentNodes = [];
-      options.segments.forEach(segment => {
-        let segmentNode = document.createElement('div');
-        let segmentDisplayNode = document.createElement('span');
-        //segmentDisplayNode.innerText = '\u2713'; // TODO: fix layer visibility
-        segmentDisplayNode.classList.add('visibleSegment');
-        segmentDisplayNode.style.background  = segment.color;
-        segmentDisplayNode.style.border  = '1px solid black';
-        this.element.appendChild(segmentNode);
-        segmentNode.appendChild(segmentDisplayNode);
-        let segmentTextNode = document.createElement('span');
-        segmentTextNode.innerText = segment.label;
-        segmentNode.appendChild(segmentTextNode);
-
-        segmentDisplayNode.addEventListener('click', event => {
-          if (event.target.classList.contains('visibleSegment')) {
-            event.target.classList.remove('visibleSegment');
-            event.target.classList.add('invisibleSegment');
-            options.onSegmentVisibilityChanged(segment.segmentNumber, false);
-          } else {
-            event.target.classList.remove('invisibleSegment');
-            event.target.classList.add('visibleSegment');
-            options.onSegmentVisibilityChanged(segment.segmentNumber, true);
-          }
-        });
-        segmentTextNode.addEventListener('click', event => {
-          options.onSegmentClicked(segment.segmentNumber);
-        });
-      });
     }
 
     function setupControlPanel() {
@@ -327,4 +305,5 @@
     }
   });
 </script>
+
 </html>
