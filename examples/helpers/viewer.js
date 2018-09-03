@@ -564,12 +564,12 @@ class Viewer {
   }
 
   /**
-   * Adds a paramatric map object to this viewer instance.
+   * Adds a parametric map object to this viewer instance.
    *
-   * @param {dataset} paramatricMapDataset the data set which contains a multiframe dicom paramatric map object
+   * @param {dataset} parametricMapDataset the data set which contains a multiframe dicom parametric map object
    */
-  addParametricMap(paramatricMapDataset, colorbarId){
-    this.parametricMapDataset = paramatricMapDataset;
+  addParametricMap(parametricMapDataset, colorbarId){
+    this.parametricMapDataset = parametricMapDataset;
 
     let framePixels = this.parametricMapDataset.Rows * this.parametricMapDataset.Columns * (this.parametricMapDataset.NumberOfFrames);
     let offset = 0;
@@ -598,9 +598,9 @@ class Viewer {
     //
     let baseImageId = `dcmjsPM${this.id}://`;
     let imageIds = [];
-    let frameCount = Number(paramatricMapDataset.NumberOfFrames);
+    let frameCount = Number(parametricMapDataset.NumberOfFrames);
     for (let frameIndex = 0; frameIndex < frameCount; frameIndex++) {
-      let perFrameGroup = paramatricMapDataset.PerFrameFunctionalGroupsSequence[frameIndex];
+      let perFrameGroup = parametricMapDataset.PerFrameFunctionalGroupsSequence[frameIndex];
 
       const imageId = baseImageId + frameIndex;
       imageIds.push(imageId);
