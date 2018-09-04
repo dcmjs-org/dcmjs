@@ -96,7 +96,9 @@
 
 <script src="../helpers/DICOMZero.js"></script>
 <script src="../helpers/viewer.js"></script>
-<script src="../helpers/dicomwebclient.js"></script>
+
+<!-- dicom web client -->
+<script type="text/javascript" src="https://unpkg.com/dicomweb-client"></script>
 
 <script>
   function status(statusMessage) {
@@ -203,7 +205,6 @@
             dc0.viewer.addParametricMap(dc0paraMap.datasets[0]);
             setupControlPanel();
           }
-          status("Done reading.");
           togglePlayMode();
         }
       }
@@ -253,34 +254,34 @@
     }
 
     /**
-     * Downloads some demo data with the dicom web client helper
+     * Downloads some demo data with the dicom web client
      * which uses asynchronous xmlhttp-requests to retrieve byte arrays from a server.
      */
     function drawSampleDatasets() {
-      const headers = { 'Accept': 'multipart/related; type="application/octet-stream"' };
-      const responseType = 'arraybuffer';
-      const progressCallback = { "progressCallback": this.progressStatus }
+      const client = new DICOMwebClient.api.DICOMwebClient({"url" : "noURL"});
 
       let baseImageURL = "https://s3.amazonaws.com/IsomicsPublic/SampleData/dicomPM/";
       let imagesCount = 45;
       for (let i = 45; i < 89; i++) {
         let url = baseImageURL + "0000" + i + ".dcm";
-        httpRequest(url, "GET", headers, { responseType, progressCallback }).then(arrayBuffer => {
+        client._httpGetApplicationOctetStream(url).then(arrayBuffer => {
           let dataset = dc0.datasetFromArrayBuffer(arrayBuffer);
           dc0.datasets.push(dataset);
           if (i == 88) {
             displayDatasets();
+            status("waiting for parametric map...")
           }
         });
       }
 
       let basePMURL = "https://s3.amazonaws.com/IsomicsPublic/SampleData/dicomPM/ldMap_axial_cap.dcm";
-      httpRequest(basePMURL, "GET", headers, { responseType, progressCallback }).then(arrayBuffer => {
+      client._httpGetApplicationOctetStream(basePMURL).then(arrayBuffer => {
         let dataset = dc0paraMap.datasetFromArrayBuffer(arrayBuffer);
         dc0paraMap.datasets.push(dataset);
         dc0.viewer.addParametricMap(dataset, "colorbar");
         dc0.viewer.render();
         setupControlPanel();
+        status("Done loading.")
       });
     }
 
