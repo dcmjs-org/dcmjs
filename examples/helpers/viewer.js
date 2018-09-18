@@ -89,6 +89,10 @@ class Viewer {
       let [wc,ww] = [dataset.WindowCenter,dataset.WindowWidth];
       if (Array.isArray(wc)) { wc = wc[0]; }
       if (Array.isArray(ww)) { ww = ww[0]; }
+      if (wc === undefined || ww === undefined) {
+        wc = (max+min) / 2.;
+        ww = (max-min);
+      }
       image = {
         imageId: imageId,
         minPixelValue: min,
