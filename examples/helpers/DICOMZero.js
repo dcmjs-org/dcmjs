@@ -93,7 +93,7 @@ class DICOMZero {
 
     let reader = new FileReader();
     reader.onload = (progressEvent) => {
-      let dataset = this.datasetFromArrayBuffer(reader.result);
+      let dataset = DICOMZero.datasetFromArrayBuffer(reader.result);
       options.doneCallback(dataset);
     }
     reader.readAsArrayBuffer(file);
@@ -101,7 +101,7 @@ class DICOMZero {
 
   extractDatasetFromZipArrayBuffer(arrayBuffer) {
     this.status(`Extracting ${this.datasets.length} of ${this.expectedDICOMFileCount}...`);
-    this.datasets.push(this.datasetFromArrayBuffer(arrayBuffer));
+    this.datasets.push(DICOMZero.datasetFromArrayBuffer(arrayBuffer));
     if (this.datasets.length == this.expectedDICOMFileCount) {
       this.status(`Finished extracting`);
       this.zipFinishCallback();
