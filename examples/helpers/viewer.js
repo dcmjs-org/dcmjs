@@ -343,9 +343,9 @@ class Viewer {
       imageIds.push(imageId);
       this.addMetaData('imagePlane', imageId, {
         imagePositionPatient: {
-          x: this.datasets[index].ImagePositionPatient[0],
-          y: this.datasets[index].ImagePositionPatient[1],
-          z: this.datasets[index].ImagePositionPatient[2],
+          x: Number(this.datasets[index].ImagePositionPatient[0]),
+          y: Number(this.datasets[index].ImagePositionPatient[1]),
+          z: Number(this.datasets[index].ImagePositionPatient[2]),
         }
       });
     }
@@ -391,7 +391,7 @@ class Viewer {
       const imageId = baseImageId + frameIndex;
       imageIds.push(imageId);
 
-      let imagePositionPatient = perFrameGroup.PlanePositionSequence.ImagePositionPatient;
+      let imagePositionPatient = perFrameGroup.PlanePositionSequence.ImagePositionPatient.map(Number);
       this.addMetaData('imagePlane', imageId, {
         imagePositionPatient: {
           x: imagePositionPatient[0],
@@ -460,7 +460,7 @@ class Viewer {
           const imageId = baseImageId + frameIndex;
           imageIds.push(imageId);
 
-          let imagePositionPatient = perFrameGroup.PlanePositionSequence.ImagePositionPatient;
+          let imagePositionPatient = perFrameGroup.PlanePositionSequence.ImagePositionPatient.map(Number);
           this.addMetaData('imagePlane', imageId, {
             imagePositionPatient: {
               x: imagePositionPatient[0],
