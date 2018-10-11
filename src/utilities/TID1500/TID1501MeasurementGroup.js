@@ -1,4 +1,4 @@
-export default class TID1501MeasurementGroup() {
+export default class TID1501MeasurementGroup {
 	constructor(TID300Measurements) {
 		this.TID300Measurements = TID300Measurements
 	}

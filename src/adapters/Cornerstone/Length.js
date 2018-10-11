@@ -1,4 +1,4 @@
-class Length() {
+export default class Length {
   constructor() {
 
   }

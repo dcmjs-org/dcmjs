@@ -1,5 +1,8 @@
-export default class Length extends TID300Measurement () {
+import TID300Measurement from './TID300Measurement.js';
+
+export default class Length extends TID300Measurement {
     constructor(point1, point2, distance, sopInstanceUid, frameIndex) {
+        super();
         this.contentItem(point1, point2, distance, sopInstanceUid, frameIndex)
     }
 
@@ -10,7 +13,7 @@ export default class Length extends TID300Measurement () {
             frameIndex,
             sopInstanceUid
         } = measurement;
-        
+
         return [
             {
                 RelationshipType: 'HAS OBS CONTEXT',

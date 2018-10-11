@@ -74,7 +74,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /******/
 /******/ 	var hotApplyOnUpdate = true;
 /******/ 	// eslint-disable-next-line no-unused-vars
-/******/ 	var hotCurrentHash = "9771ab40a27a5141e62a";
+/******/ 	var hotCurrentHash = "5b272ebae24b772f2084";
 /******/ 	var hotRequestTimeout = 10000;
 /******/ 	var hotCurrentModuleData = {};
 /******/ 	var hotCurrentChildModule;
@@ -2799,6 +2799,440 @@ exports.ValueRepresentation = ValueRepresentation;
 
 /***/ }),
 
+/***/ "./adapters/Cornerstone/Length.js":
+/*!****************************************!*\
+  !*** ./adapters/Cornerstone/Length.js ***!
+  \****************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var Length = function () {
+  function Length() {
+    _classCallCheck(this, Length);
+  }
+
+  // TODO: figure out how to get rid of displaySets
+
+
+  _createClass(Length, [{
+    key: 'getLengthMeasurementData',
+    value: function getLengthMeasurementData(lengthMeasurementContent, displaySets) {
+      var lengthStates = [];
+
+      lengthMeasurementContent.forEach(function (groupItemContent) {
+        var lengthContent = groupItemContent.ContentSequence;
+        var reference = lengthContent.ContentSequence.ReferencedSOPSequence;
+        var lengthState = {};
+
+        lengthState.measuredValue = groupItemContent.MeasuredValueSequence.NumericValue;
+        lengthState.handles = { start: {}, end: {} };
+
+        // TODO: Save textbox position in GraphicData?
+        var _lengthContent$Graphi = _slicedToArray(lengthContent.GraphicData, 4);
+
+        lengthState.handles.start.x = _lengthContent$Graphi[0];
+        lengthState.handles.start.y = _lengthContent$Graphi[1];
+        lengthState.handles.end.x = _lengthContent$Graphi[2];
+        lengthState.handles.end.y = _lengthContent$Graphi[3];
+        lengthState.handles.textBox = {
+          hasMoved: false,
+          movesIndependently: false,
+          drawnIndependently: true,
+          allowedOutsideImage: true,
+          hasBoundingBox: true
+        };
+
+        lengthState.ReferencedInstanceUID = reference.ReferencedSOPInstanceUID;
+        if (reference.ReferencedFrameNumber && reference.ReferencedFrameNumber !== 'NaN') {
+          lengthState.ReferencedFrameNumber = reference.ReferencedFrameNumber;
+        } else {
+          lengthState.ReferencedFrameNumber = 0;
+        }
+
+        lengthStates.push(lengthState);
+      });
+
+      var lengthMeasurementData = [];
+
+      var measurementNumber = 0;
+      lengthStates.forEach(function (lengthState) {
+        var sopInstanceUid = lengthState.ReferencedInstanceUID;
+        var instanceMetadata = getInstanceMetadata(displaySets, sopInstanceUid);
+        var imageId = OHIF.viewerbase.getImageId(instanceMetadata);
+        if (!imageId) {
+          return;
+        }
+
+        var studyInstanceUid = cornerstone.metaData.get('study', imageId).studyInstanceUid;
+        var seriesInstanceUid = cornerstone.metaData.get('series', imageId).seriesInstanceUid;
+        var patientId = instanceMetadata._study.patientId;
+        var frameIndex = lengthState.ReferencedFrameNumber;
+        var imagePath = [studyInstanceUid, seriesInstanceUid, sopInstanceUid, frameIndex].join('_');
+        var measurement = {
+          handles: lengthState.handles,
+          length: lengthState.measuredValue,
+          imageId: imageId,
+          imagePath: imagePath,
+          sopInstanceUid: sopInstanceUid,
+          seriesInstanceUid: seriesInstanceUid,
+          studyInstanceUid: studyInstanceUid,
+          patientId: patientId,
+          frameIndex: frameIndex,
+          measurementNumber: ++measurementNumber,
+          userId: 'UserID',
+          timepointId: OHIF.viewer.data.currentTimepointId,
+          toolType: 'length',
+          _id: imageId + measurementNumber
+        };
+
+        lengthMeasurementData.push(measurement);
+      });
+
+      return lengthMeasurementData;
+    }
+  }]);
+
+  return Length;
+}();
+
+exports.default = Length;
+
+/***/ }),
+
+/***/ "./adapters/Cornerstone/MeasurementReport.js":
+/*!***************************************************!*\
+  !*** ./adapters/Cornerstone/MeasurementReport.js ***!
+  \***************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+var _Length = __webpack_require__(/*! ../../utilities/TID300/Length.js */ "./utilities/TID300/Length.js");
+
+var _Length2 = _interopRequireDefault(_Length);
+
+var _index = __webpack_require__(/*! ../../utilities/TID1500/index.js */ "./utilities/TID1500/index.js");
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
+
+// Object which maps between the Cornerstone toolType and the
+// appropriate TID300 Measurement Type Class.
+var toolConstructors = {
+  length: _Length2.default
+};
+
+function getConstructorArgs(tool, toolType) {
+  switch (toolType) {
+    case 'length':
+      var point1 = tool.handles.start;
+      var point2 = tool.handles.end;
+      var distance = tool.length;
+
+      return { point1: point1, point2: point2, distance: distance };
+  }
+}
+
+function getTID300ContentItem(tool, toolType, sopInstanceUid, frameIndex, ToolConstructor) {
+  var args = getConstructorArgs(tool, toolType);
+  args.sopInstanceUid = sopInstanceUid;
+  args.frameIndex = frameIndex;
+
+  var TID300Measurement = new (Function.prototype.bind.apply(ToolConstructor, [null].concat(_toConsumableArray(args))))();
+
+  return TID300Measurement.contentItem;
+}
+
+function getMeasurementGroup(toolType, toolData, sopInstanceUid, frameIndex) {
+  var toolTypeData = toolData[toolType];
+  var ToolConstructor = toolConstructors[toolType];
+  if (!toolTypeData || !toolTypeData.data || !toolTypeData.data.length) {
+    return;
+  }
+
+  // Loop through the array of tool instances
+  // for this tool
+  var Measurements = toolTypeData.data.map(function (tool) {
+    return getTID300ContentItem(tool, toolType, sopInstanceUid, frameIndex, ToolConstructor);
+  });
+
+  var MeasurementGroup = new _index.TID1501MeasurementGroup(Measurements);
+
+  return MeasurementGroup.contentItem;
+}
+
+var MeasurementReport = function () {
+  function MeasurementReport() {
+    _classCallCheck(this, MeasurementReport);
+  }
+
+  _createClass(MeasurementReport, null, [{
+    key: 'generateReport',
+    value: function generateReport(toolState, metadataProvider) {
+      // ToolState for array of imageIDs to a Report
+      // Assume Cornerstone metadata provider has access to Study / Series / Sop Instance UID
+      // (by default, look with cornerstone.metadata.get())
+
+      // check we have access to cornerstone.metadata?
+
+      // fill it in with all the Cornerstone data
+
+      var allMeasurementGroups = [];
+
+      // Loop through each image in the toolData
+      Object.keys(toolState).forEach(function (imageId) {
+        // TODO: Verify that all images are for same patient and study
+        // TODO: Check these: study / instance are undefined...
+        var study = metadataProvider.get('study', imageId);
+        var instance = metadataProvider.get('instance', imageId);
+        var sopInstanceUid = instance ? instance.sopInstanceUid : undefined;
+        var frameIndex = instance ? instance.frameIndex : undefined;
+        var toolData = toolState[imageId];
+        var toolTypes = Object.keys(toolData);
+
+        // Loop through each tool type for the image
+        var MeasurementGroups = toolTypes.map(function (toolType) {
+          return getMeasurementGroup(toolType, toolData, sopInstanceUid, frameIndex);
+        });
+
+        allMeasurementGroups.concat(measurementGroups);
+      });
+
+      var MeasurementReport = new _index.TID1500MeasurementReport(MeasurementGroups);
+
+      // TODO: what is the correct metaheader
+      // http://dicom.nema.org/medical/Dicom/current/output/chtml/part10/chapter_7.html
+      // TODO: move meta creation to dcmjs
+      var fileMetaInformationVersionArray = new Uint16Array(1);
+      fileMetaInformationVersionArray[0] = 1;
+
+      var derivationSourceDataset = {
+        StudyInstanceUID: studyInstanceUid,
+        SeriesInstanceUID: seriesInstanceUid,
+        SOPInstanceUID: sopInstanceUid,
+        SOPClassUID: sopClassUid,
+        _meta: {
+          FileMetaInformationVersion: fileMetaInformationVersionArray.buffer,
+          MediaStorageSOPClassUID: dataset.SOPClassUID,
+          MediaStorageSOPInstanceUID: dataset.SOPInstanceUID,
+          TransferSyntaxUID: "1.2.840.10008.1.2.1", // Explicit little endian (always for dcmjs?)
+          ImplementationClassUID: dcmjs.data.DicomMetaDictionary.uid(), // TODO: could be git hash or other valid id
+          ImplementationVersionName: "OHIFViewer"
+        }
+      };
+      var report = new StructuredReport([derivationSourceDataset]);
+
+      report.TID1500MeasurementReport = MeasurementReport.contentItem(derivationSourceDataset);
+
+      return report;
+    }
+
+    // TODO: Find a way to define 'how' to get an imageId
+
+  }, {
+    key: 'generateToolState',
+    value: function generateToolState(dataset, getImageIdFunction) {
+      // Ingest report, generate toolState = { imageIdx: [], imageIdy: [] }
+      // Need to provide something to generate imageId from Study / Series / Sop Instance UID
+
+      // Given a dataset
+      // Verify that it's structured report
+      // Checks that it is TID1500
+      // extract
+
+
+      // Identify the Imaging Measurements
+      var imagingMeasurementContent = toArray(dataset.ContentSequence).find(codeMeaningEquals("Imaging Measurements"));
+
+      // Retrieve the Measurements themselves
+      var measurementGroupContent = toArray(imagingMeasurementContent.ContentSequence).find(codeMeaningEquals("Measurement Group"));
+
+      // For now, bail out if the dataset is not a TID1500 SR with length measurements
+      // TODO: generalize to the various kinds of report
+      // TODO: generalize to the kinds of measurements the Viewer supports
+      if (dataset.ContentTemplateSequence.TemplateIdentifier !== "1500") {
+        OHIF.log.warn("This package can currently only interpret DICOM SR TID 1500");
+
+        return {};
+      }
+
+      // TODO: Find all tools
+      ['length', 'bidimensional'].forEach(function () {
+        // Filter to find Length measurements in the Structured Report
+        var lengthMeasurementContent = toArray(measurementGroupContent.ContentSequence).filter(codeMeaningEquals("Length"));
+
+        // Retrieve Length Measurement Data
+        return getLengthMeasurementData(lengthMeasurementContent, displaySets);
+      });
+
+      // combine / reorganize all the toolData into the expected toolState format for Cornerstone Tools
+    }
+  }]);
+
+  return MeasurementReport;
+}();
+
+exports.default = MeasurementReport;
+
+/***/ }),
+
+/***/ "./adapters/Cornerstone/Segmentation.js":
+/*!**********************************************!*\
+  !*** ./adapters/Cornerstone/Segmentation.js ***!
+  \**********************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var Segmentation = function Segmentation() {
+  _classCallCheck(this, Segmentation);
+};
+
+exports.default = Segmentation;
+
+/***/ }),
+
+/***/ "./adapters/Cornerstone/index.js":
+/*!***************************************!*\
+  !*** ./adapters/Cornerstone/index.js ***!
+  \***************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _Length = __webpack_require__(/*! ./Length.js */ "./adapters/Cornerstone/Length.js");
+
+var _Length2 = _interopRequireDefault(_Length);
+
+var _MeasurementReport = __webpack_require__(/*! ./MeasurementReport.js */ "./adapters/Cornerstone/MeasurementReport.js");
+
+var _MeasurementReport2 = _interopRequireDefault(_MeasurementReport);
+
+var _Segmentation = __webpack_require__(/*! ./Segmentation.js */ "./adapters/Cornerstone/Segmentation.js");
+
+var _Segmentation2 = _interopRequireDefault(_Segmentation);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var Cornerstone = {
+  Length: _Length2.default,
+  MeasurementReport: _MeasurementReport2.default,
+  Segmentation: _Segmentation2.default
+};
+
+exports.default = Cornerstone;
+
+/***/ }),
+
+/***/ "./adapters/VTKjs/Segmentation.js":
+/*!****************************************!*\
+  !*** ./adapters/VTKjs/Segmentation.js ***!
+  \****************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var Segmentation = function Segmentation() {
+  _classCallCheck(this, Segmentation);
+};
+
+exports.default = Segmentation;
+
+/***/ }),
+
+/***/ "./adapters/VTKjs/index.js":
+/*!*********************************!*\
+  !*** ./adapters/VTKjs/index.js ***!
+  \*********************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+__webpack_require__(/*! ./Segmentation.js */ "./adapters/VTKjs/Segmentation.js");
+
+/***/ }),
+
+/***/ "./adapters/index.js":
+/*!***************************!*\
+  !*** ./adapters/index.js ***!
+  \***************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _index = __webpack_require__(/*! ./Cornerstone/index.js */ "./adapters/Cornerstone/index.js");
+
+var _index2 = _interopRequireDefault(_index);
+
+var _index3 = __webpack_require__(/*! ./VTKjs/index.js */ "./adapters/VTKjs/index.js");
+
+var _index4 = _interopRequireDefault(_index3);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var adapters = {
+  Cornerstone: _index2.default,
+  VTKjs: _index4.default
+};
+
+exports.default = adapters;
+
+/***/ }),
+
 /***/ "./bitArray.js":
 /*!*********************!*\
   !*** ./bitArray.js ***!
@@ -3126,7 +3560,7 @@ exports.datasetToBlob = datasetToBlob;
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.normalizers = exports.derivations = exports.data = undefined;
+exports.utilities = exports.adapters = exports.normalizers = exports.derivations = exports.data = undefined;
 
 var _bitArray = __webpack_require__(/*! ./bitArray.js */ "./bitArray.js");
 
@@ -3147,6 +3581,16 @@ var _datasetToBlob = __webpack_require__(/*! ./datasetToBlob.js */ "./datasetToB
 var _derivations = __webpack_require__(/*! ./derivations.js */ "./derivations.js");
 
 var _normalizers = __webpack_require__(/*! ./normalizers.js */ "./normalizers.js");
+
+var _index = __webpack_require__(/*! ./adapters/index.js */ "./adapters/index.js");
+
+var _index2 = _interopRequireDefault(_index);
+
+var _index3 = __webpack_require__(/*! ./utilities/index.js */ "./utilities/index.js");
+
+var _index4 = _interopRequireDefault(_index3);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 //export { anonymizer } from './anonymizer.js';
 var data = {
@@ -3189,6 +3633,8 @@ var normalizers = {
 };
 
 exports.normalizers = normalizers;
+exports.adapters = _index2.default;
+exports.utilities = _index4.default;
 
 /***/ }),
 
@@ -4204,6 +4650,508 @@ exports.CTImageNormalizer = CTImageNormalizer;
 exports.PETImageNormalizer = PETImageNormalizer;
 exports.SEGImageNormalizer = SEGImageNormalizer;
 exports.DSRNormalizer = DSRNormalizer;
+
+/***/ }),
+
+/***/ "./utilities/TID1500/TID1500MeasurementReport.js":
+/*!*******************************************************!*\
+  !*** ./utilities/TID1500/TID1500MeasurementReport.js ***!
+  \*******************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var TID1500MeasurementReport = function () {
+    function TID1500MeasurementReport(TID1501MeasurementGroups) {
+        _classCallCheck(this, TID1500MeasurementReport);
+
+        this.TID1501MeasurementGroups = TID1501MeasurementGroups;
+    }
+
+    _createClass(TID1500MeasurementReport, [{
+        key: 'validate',
+        value: function validate() {}
+    }, {
+        key: 'contentItem',
+        value: function contentItem(derivationSourceDataset) {
+            return {
+                ConceptNameCodeSequence: {
+                    CodeValue: '126000',
+                    CodingSchemeDesignator: 'DCM',
+                    CodeMeaning: 'Imaging Measurement Report'
+                },
+                ContinuityOfContent: 'SEPARATE',
+                PerformedProcedureCodeSequence: [],
+                CompletionFlag: 'COMPLETE',
+                VerificationFlag: 'UNVERIFIED',
+                ReferencedPerformedProcedureStepSequence: [],
+                InstanceNumber: 1,
+                CurrentRequestedProcedureEvidenceSequence: {
+                    StudyInstanceUID: dataset.StudyInstanceUID,
+                    ReferencedSeriesSequence: {
+                        SeriesInstanceUID: dataset.SeriesInstanceUID,
+                        ReferencedSOPSequence: {
+                            ReferencedSOPClassUID: derivationSourceDataset.SOPClassUID,
+                            ReferencedSOPInstanceUID: derivationSourceDataset.SOPInstanceUID
+                        }
+                    }
+                },
+                CodingSchemeIdentificationSequence: {
+                    CodingSchemeDesignator: "99dcmjs",
+                    CodingSchemeName: "Codes used for dcmjs",
+                    CodingSchemeVersion: "0",
+                    CodingSchemeResponsibleOrganization: "https://github.com/dcmjs-org/dcmjs"
+                },
+                ContentTemplateSequence: {
+                    MappingResource: 'DCMR',
+                    TemplateIdentifier: '1500'
+                },
+                ContentSequence: [{
+                    RelationshipType: 'HAS CONCEPT MOD',
+                    ValueType: 'CODE',
+                    ConceptNameCodeSequence: {
+                        CodeValue: '121049',
+                        CodingSchemeDesignator: 'DCM',
+                        CodeMeaning: 'Language of Content Item and Descendants'
+                    },
+                    ConceptCodeSequence: {
+                        CodeValue: 'eng',
+                        CodingSchemeDesignator: 'RFC3066',
+                        CodeMeaning: 'English'
+                    },
+                    ContentSequence: {
+                        RelationshipType: 'HAS CONCEPT MOD',
+                        ValueType: 'CODE',
+                        ConceptNameCodeSequence: {
+                            CodeValue: '121046',
+                            CodingSchemeDesignator: 'DCM',
+                            CodeMeaning: 'Country of Language'
+                        },
+                        ConceptCodeSequence: {
+                            CodeValue: 'US',
+                            CodingSchemeDesignator: 'ISO3166_1',
+                            CodeMeaning: 'United States'
+                        }
+                    }
+                }, {
+                    RelationshipType: 'HAS OBS CONTEXT',
+                    ValueType: 'PNAME',
+                    ConceptNameCodeSequence: {
+                        CodeValue: '121008',
+                        CodingSchemeDesignator: 'DCM',
+                        CodeMeaning: 'Person Observer Name'
+                    },
+                    PersonName: 'user^web' // TODO: these can be options argument for constructor
+                }, {
+                    RelationshipType: 'HAS CONCEPT MOD',
+                    ValueType: 'CODE',
+                    ConceptNameCodeSequence: {
+                        CodeValue: '121058',
+                        CodingSchemeDesignator: 'DCM',
+                        CodeMeaning: 'Procedure reported'
+                    },
+                    ConceptCodeSequence: {
+                        CodeValue: '1',
+                        CodingSchemeDesignator: '99dcmjs',
+                        CodeMeaning: 'Unknown procedure'
+                    }
+                }, {
+                    RelationshipType: 'CONTAINS',
+                    ValueType: 'CONTAINER',
+                    ConceptNameCodeSequence: {
+                        CodeValue: '111028',
+                        CodingSchemeDesignator: 'DCM',
+                        CodeMeaning: 'Image Library'
+                    },
+                    ContinuityOfContent: 'SEPARATE',
+                    ContentSequence: {
+                        RelationshipType: 'CONTAINS',
+                        ValueType: 'CONTAINER',
+                        ConceptNameCodeSequence: {
+                            CodeValue: '126200',
+                            CodingSchemeDesignator: 'DCM',
+                            CodeMeaning: 'Image Library Group'
+                        },
+                        ContinuityOfContent: 'SEPARATE',
+                        ContentSequence: {
+                            RelationshipType: 'CONTAINS',
+                            ValueType: 'IMAGE',
+                            ReferencedSOPSequence: {
+                                // TODO: this should refer to the UIDs extracted from the toolState / instance info
+                                ReferencedSOPClassUID: dataset.SOPClassUID,
+                                ReferencedSOPInstanceUID: dataset.SOPInstanceUID
+                            }
+                        }
+                    }
+                }, {
+                    RelationshipType: 'CONTAINS',
+                    ValueType: 'CONTAINER',
+                    ConceptNameCodeSequence: {
+                        CodeValue: '126010',
+                        CodingSchemeDesignator: 'DCM',
+                        CodeMeaning: 'Imaging Measurements' // TODO: would be nice to abstract the code sequences (in a dictionary? a service?)
+                    },
+                    ContinuityOfContent: 'SEPARATE',
+                    ContentSequence: {
+                        RelationshipType: 'CONTAINS',
+                        ValueType: 'CONTAINER',
+                        ConceptNameCodeSequence: {
+                            CodeValue: '125007',
+                            CodingSchemeDesignator: 'DCM',
+                            CodeMeaning: 'Measurement Group'
+                        },
+                        ContinuityOfContent: 'SEPARATE',
+                        ContentSequence: this.TID1501MeasurementGroups
+                    }
+                }]
+            };
+        }
+    }]);
+
+    return TID1500MeasurementReport;
+}();
+
+exports.default = TID1500MeasurementReport;
+
+/***/ }),
+
+/***/ "./utilities/TID1500/TID1501MeasurementGroup.js":
+/*!******************************************************!*\
+  !*** ./utilities/TID1500/TID1501MeasurementGroup.js ***!
+  \******************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var TID1501MeasurementGroup = function () {
+    function TID1501MeasurementGroup(TID300Measurements) {
+        _classCallCheck(this, TID1501MeasurementGroup);
+
+        this.TID300Measurements = TID300Measurements;
+    }
+
+    _createClass(TID1501MeasurementGroup, [{
+        key: 'contentItem',
+        value: function contentItem() {
+            var contentItem = [{
+                RelationshipType: 'HAS OBS CONTEXT',
+                ValueType: 'TEXT',
+                ConceptNameCodeSequence: {
+                    CodeValue: '112039',
+                    CodingSchemeDesignator: 'DCM',
+                    CodeMeaning: 'Tracking Identifier'
+                },
+                TextValue: 'web annotation'
+            }, {
+                RelationshipType: 'HAS OBS CONTEXT',
+                ValueType: 'UIDREF',
+                ConceptNameCodeSequence: {
+                    CodeValue: '112040',
+                    CodingSchemeDesignator: 'DCM',
+                    CodeMeaning: 'Tracking Unique Identifier'
+                },
+                UID: dcmjs.data.DicomMetaDictionary.uid()
+            }, {
+                RelationshipType: 'CONTAINS',
+                ValueType: 'CODE',
+                ConceptNameCodeSequence: {
+                    CodeValue: '121071',
+                    CodingSchemeDesignator: 'DCM',
+                    CodeMeaning: 'Finding'
+                },
+                ConceptCodeSequence: {
+                    CodeValue: 'SAMPLEFINDING',
+                    CodingSchemeDesignator: '99dcmjs',
+                    CodeMeaning: 'Sample Finding'
+                }
+            }];
+
+            return contentItem.concat(TID300Measurements);
+        }
+    }]);
+
+    return TID1501MeasurementGroup;
+}();
+
+exports.default = TID1501MeasurementGroup;
+
+/***/ }),
+
+/***/ "./utilities/TID1500/index.js":
+/*!************************************!*\
+  !*** ./utilities/TID1500/index.js ***!
+  \************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.TID1500 = undefined;
+
+var _TID1500MeasurementReport = __webpack_require__(/*! ./TID1500MeasurementReport.js */ "./utilities/TID1500/TID1500MeasurementReport.js");
+
+var _TID1500MeasurementReport2 = _interopRequireDefault(_TID1500MeasurementReport);
+
+var _TID1501MeasurementGroup = __webpack_require__(/*! ./TID1501MeasurementGroup.js */ "./utilities/TID1500/TID1501MeasurementGroup.js");
+
+var _TID1501MeasurementGroup2 = _interopRequireDefault(_TID1501MeasurementGroup);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var TID1500 = exports.TID1500 = {
+  TID1500MeasurementReport: _TID1500MeasurementReport2.default,
+  TID1501MeasurementGroup: _TID1501MeasurementGroup2.default
+};
+
+/***/ }),
+
+/***/ "./utilities/TID300/Length.js":
+/*!************************************!*\
+  !*** ./utilities/TID300/Length.js ***!
+  \************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+var _TID300Measurement2 = __webpack_require__(/*! ./TID300Measurement.js */ "./utilities/TID300/TID300Measurement.js");
+
+var _TID300Measurement3 = _interopRequireDefault(_TID300Measurement2);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+var Length = function (_TID300Measurement) {
+    _inherits(Length, _TID300Measurement);
+
+    function Length(point1, point2, distance, sopInstanceUid, frameIndex) {
+        _classCallCheck(this, Length);
+
+        var _this = _possibleConstructorReturn(this, (Length.__proto__ || Object.getPrototypeOf(Length)).call(this));
+
+        _this.contentItem(point1, point2, distance, sopInstanceUid, frameIndex);
+        return _this;
+    }
+
+    _createClass(Length, [{
+        key: 'contentItem',
+        value: function contentItem(measurement, sopClassUid) {
+            var handles = measurement.handles,
+                length = measurement.length,
+                frameIndex = measurement.frameIndex,
+                sopInstanceUid = measurement.sopInstanceUid;
+
+
+            return [{
+                RelationshipType: 'HAS OBS CONTEXT',
+                ValueType: 'TEXT',
+                ConceptNameCodeSequence: {
+                    CodeValue: '112039',
+                    CodingSchemeDesignator: 'DCM',
+                    CodeMeaning: 'Tracking Identifier'
+                },
+                TextValue: 'web annotation'
+            }, {
+                RelationshipType: 'HAS OBS CONTEXT',
+                ValueType: 'UIDREF',
+                ConceptNameCodeSequence: {
+                    CodeValue: '112040',
+                    CodingSchemeDesignator: 'DCM',
+                    CodeMeaning: 'Tracking Unique Identifier'
+                },
+                UID: dcmjs.data.DicomMetaDictionary.uid()
+            }, {
+                RelationshipType: 'CONTAINS',
+                ValueType: 'CODE',
+                ConceptNameCodeSequence: {
+                    CodeValue: '121071',
+                    CodingSchemeDesignator: 'DCM',
+                    CodeMeaning: 'Finding'
+                },
+                ConceptCodeSequence: {
+                    CodeValue: 'SAMPLEFINDING',
+                    CodingSchemeDesignator: '99dcmjs',
+                    CodeMeaning: 'Sample Finding'
+                }
+            }, {
+                RelationshipType: 'CONTAINS',
+                ValueType: 'NUM',
+                ConceptNameCodeSequence: {
+                    CodeValue: 'G-D7FE',
+                    CodingSchemeDesignator: 'SRT',
+                    CodeMeaning: 'Length'
+                },
+                MeasuredValueSequence: {
+                    MeasurementUnitsCodeSequence: {
+                        CodeValue: 'mm',
+                        CodingSchemeDesignator: 'UCUM',
+                        CodingSchemeVersion: '1.4',
+                        CodeMeaning: 'millimeter'
+                    },
+                    NumericValue: length
+                },
+                ContentSequence: {
+                    RelationshipType: 'INFERRED FROM',
+                    ValueType: 'SCOORD',
+                    GraphicType: 'POLYLINE',
+                    GraphicData: [handles.start.x, handles.start.y, handles.end.x, handles.end.y],
+                    ContentSequence: {
+                        RelationshipType: 'SELECTED FROM',
+                        ValueType: 'IMAGE',
+                        ReferencedSOPSequence: {
+                            ReferencedSOPClassUID: sopClassUid,
+                            ReferencedSOPInstanceUID: sopInstanceUid,
+                            ReferencedFrameNumber: frameIndex
+                        }
+                    }
+                }
+            }];
+        }
+    }]);
+
+    return Length;
+}(_TID300Measurement3.default);
+
+exports.default = Length;
+
+/***/ }),
+
+/***/ "./utilities/TID300/TID300Measurement.js":
+/*!***********************************************!*\
+  !*** ./utilities/TID300/TID300Measurement.js ***!
+  \***********************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+	value: true
+});
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var TID300Measurement = function TID300Measurement() {
+	_classCallCheck(this, TID300Measurement);
+};
+
+exports.default = TID300Measurement;
+
+/***/ }),
+
+/***/ "./utilities/TID300/index.js":
+/*!***********************************!*\
+  !*** ./utilities/TID300/index.js ***!
+  \***********************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.TID300 = undefined;
+
+var _TID300Measurement = __webpack_require__(/*! ./TID300Measurement.js */ "./utilities/TID300/TID300Measurement.js");
+
+var _TID300Measurement2 = _interopRequireDefault(_TID300Measurement);
+
+var _Length = __webpack_require__(/*! ./Length.js */ "./utilities/TID300/Length.js");
+
+var _Length2 = _interopRequireDefault(_Length);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+// TODO
+// To be implemented
+// Ellipse
+// Arrow
+// BidimensionalMeasurement
+// AngulatedDistance
+// CurvedDistance
+// SmoothPolygon
+// ROI
+//
+// To be defined
+// Rectangle
+// Angle
+
+var TID300 = exports.TID300 = {
+  TID300Measurement: _TID300Measurement2.default,
+  Length: _Length2.default
+};
+
+/***/ }),
+
+/***/ "./utilities/index.js":
+/*!****************************!*\
+  !*** ./utilities/index.js ***!
+  \****************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _TID = __webpack_require__(/*! ./TID1500/ */ "./utilities/TID1500/index.js");
+
+var _TID2 = _interopRequireDefault(_TID);
+
+var _TID3 = __webpack_require__(/*! ./TID300/ */ "./utilities/TID300/index.js");
+
+var _TID4 = _interopRequireDefault(_TID3);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var utilities = {
+  TID1500: _TID2.default,
+  TID300: _TID4.default
+};
+
+exports.default = utilities;
 
 /***/ })
 

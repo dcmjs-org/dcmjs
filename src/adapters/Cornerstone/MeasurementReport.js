@@ -1,36 +1,88 @@
-// ToolState for array of imageIDs to a Report
-// Assume Cornerstone metadata provider has access to Study / Series / Sop Instance UID
-// (by default, look with cornerstone.metadata.get())
+import TID300Length from '../../utilities/TID300/Length.js';
+import { TID1500MeasurementReport, TID1501MeasurementGroup } from '../../utilities/TID1500/index.js';
 
-// Ingest report, generate toolState = { imageIdx: [], imageIdy: [] }
-// Need to provide something to generate imageId from Study / Series / Sop Instance UID
+// Object which maps between the Cornerstone toolType and the
+// appropriate TID300 Measurement Type Class.
+const toolConstructors = {
+  length: TID300Length
+}
 
-// Length tool to SR
-// SR to Length tool
+function getConstructorArgs(tool, toolType) {
+  switch (toolType) {
+    case 'length':
+      const point1 = tool.handles.start;
+      const point2 = tool.handles.end;
+      const distance = tool.length;
 
-class MeasurementReport() {
+      return { point1, point2, distance };
+  }
+}
+
+function getTID300ContentItem(tool, toolType, sopInstanceUid, frameIndex, ToolConstructor) {
+  const args = getConstructorArgs(tool, toolType);
+  args.sopInstanceUid = sopInstanceUid;
+  args.frameIndex = frameIndex;
+
+  const TID300Measurement = new ToolConstructor(...args);
+
+  return TID300Measurement.contentItem;
+}
+
+function getMeasurementGroup(toolType, toolData, sopInstanceUid, frameIndex) {
+  const toolTypeData = toolData[toolType];
+  const ToolConstructor = toolConstructors[toolType];
+  if (!toolTypeData || !toolTypeData.data || !toolTypeData.data.length) {
+    return;
+  }
+
+
+  // Loop through the array of tool instances
+  // for this tool
+  const Measurements = toolTypeData.data.map(tool => {
+    return getTID300ContentItem(tool, toolType, sopInstanceUid, frameIndex, ToolConstructor);
+  });
+
+  const MeasurementGroup = new TID1501MeasurementGroup(Measurements);
+
+  return MeasurementGroup.contentItem;
+}
+
+export default class MeasurementReport {
   constructor() {
 
   }
 
-  static generateTID1500MeasurementReport(toolData, metadataProvider) {
+  static generateReport(toolState, metadataProvider) {
+    // ToolState for array of imageIDs to a Report
+    // Assume Cornerstone metadata provider has access to Study / Series / Sop Instance UID
+    // (by default, look with cornerstone.metadata.get())
+
     // check we have access to cornerstone.metadata?
 
     // fill it in with all the Cornerstone data
 
-    // for images
+    const allMeasurementGroups = [];
+
+    // Loop through each image in the toolData
+    Object.keys(toolState).forEach(imageId => {
       // TODO: Verify that all images are for same patient and study
+      // TODO: Check these: study / instance are undefined...
+      const study = metadataProvider.get('study', imageId);
+      const instance = metadataProvider.get('instance', imageId);
+      const sopInstanceUid = instance ? instance.sopInstanceUid : undefined;
+      const frameIndex = instance ? instance.frameIndex : undefined;
+      const toolData = toolState[imageId];
+      const toolTypes = Object.keys(toolData);
 
-      // for tooltype
-        // for tool instance
-          // generate TID300Measurement ContentItem
-      // generate TID1501MeasurementGroup ContentItem from TID300Measurements
-    // generate TID1500MeasurementReport from TID1501MeasurementGroups
+      // Loop through each tool type for the image
+      const MeasurementGroups = toolTypes.map(toolType => {
+        return getMeasurementGroup(toolType, toolData, sopInstanceUid, frameIndex);
+      });
 
-    // get datasets from images (or use the first image)
-    // TODO: figure out what is needed to make a dcmjs dataset from
-    // information available in the viewer.  Apparently the raw dicom is not available
-    // directly.
+      allMeasurementGroups.concat(measurementGroups);
+    });
+
+    const MeasurementReport = new TID1500MeasurementReport(MeasurementGroups);
 
     // TODO: what is the correct metaheader
     // http://dicom.nema.org/medical/Dicom/current/output/chtml/part10/chapter_7.html
@@ -54,13 +106,16 @@ class MeasurementReport() {
     };
     const report = new StructuredReport([derivationSourceDataset]);
 
-    // place TID1500MeasurementReport content item into Dataset
-    // return dataset;
-    const report = new TID1500MeasurementReport();
+    report.TID1500MeasurementReport = MeasurementReport.contentItem(derivationSourceDataset);
+
+    return report;
   }
 
   // TODO: Find a way to define 'how' to get an imageId
   static generateToolState(dataset, getImageIdFunction) {
+    // Ingest report, generate toolState = { imageIdx: [], imageIdy: [] }
+    // Need to provide something to generate imageId from Study / Series / Sop Instance UID
+
     // Given a dataset
     // Verify that it's structured report
     // Checks that it is TID1500
