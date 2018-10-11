@@ -3,7 +3,11 @@ export default class TID1500MeasurementReport() {
         this.TID1501MeasurementGroups = TID1501MeasurementGroups
     }
 
-    contentItem() {
+    validate() {
+
+    }
+
+    contentItem(derivationSourceDataset) {
         return {
             ConceptNameCodeSequence: {
                 CodeValue: '126000',
