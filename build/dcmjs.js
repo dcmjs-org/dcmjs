@@ -74,7 +74,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /******/
 /******/ 	var hotApplyOnUpdate = true;
 /******/ 	// eslint-disable-next-line no-unused-vars
-/******/ 	var hotCurrentHash = "5b272ebae24b772f2084";
+/******/ 	var hotCurrentHash = "415da05c171892a1d330";
 /******/ 	var hotRequestTimeout = 10000;
 /******/ 	var hotCurrentModuleData = {};
 /******/ 	var hotCurrentChildModule;
@@ -2928,25 +2928,31 @@ Object.defineProperty(exports, "__esModule", {
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
+var _derivations = __webpack_require__(/*! ../../derivations.js */ "./derivations.js");
+
+var _TID1500MeasurementReport = __webpack_require__(/*! ../../utilities/TID1500/TID1500MeasurementReport.js */ "./utilities/TID1500/TID1500MeasurementReport.js");
+
+var _TID1500MeasurementReport2 = _interopRequireDefault(_TID1500MeasurementReport);
+
+var _TID1501MeasurementGroup = __webpack_require__(/*! ../../utilities/TID1500/TID1501MeasurementGroup.js */ "./utilities/TID1500/TID1501MeasurementGroup.js");
+
+var _TID1501MeasurementGroup2 = _interopRequireDefault(_TID1501MeasurementGroup);
+
 var _Length = __webpack_require__(/*! ../../utilities/TID300/Length.js */ "./utilities/TID300/Length.js");
 
 var _Length2 = _interopRequireDefault(_Length);
-
-var _index = __webpack_require__(/*! ../../utilities/TID1500/index.js */ "./utilities/TID1500/index.js");
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
-
 // Object which maps between the Cornerstone toolType and the
 // appropriate TID300 Measurement Type Class.
-var toolConstructors = {
+var TOOL_CONSTRUCTORS = {
   length: _Length2.default
 };
 
-function getConstructorArgs(tool, toolType) {
+function getToolArgs(tool, toolType) {
   switch (toolType) {
     case 'length':
       var point1 = tool.handles.start;
@@ -2957,19 +2963,19 @@ function getConstructorArgs(tool, toolType) {
   }
 }
 
-function getTID300ContentItem(tool, toolType, sopInstanceUid, frameIndex, ToolConstructor) {
-  var args = getConstructorArgs(tool, toolType);
-  args.sopInstanceUid = sopInstanceUid;
-  args.frameIndex = frameIndex;
+function getTID300ContentItem(tool, toolType, ReferencedSOPSequence, ToolConstructor) {
 
-  var TID300Measurement = new (Function.prototype.bind.apply(ToolConstructor, [null].concat(_toConsumableArray(args))))();
+  var args = getToolArgs(tool, toolType);
+  args.ReferencedSOPSequence = ReferencedSOPSequence;
 
-  return TID300Measurement.contentItem;
+  var TID300Measurement = new ToolConstructor(args);
+
+  return TID300Measurement;
 }
 
-function getMeasurementGroup(toolType, toolData, sopInstanceUid, frameIndex) {
+function getMeasurementGroup(toolType, toolData, ReferencedSOPSequence) {
   var toolTypeData = toolData[toolType];
-  var ToolConstructor = toolConstructors[toolType];
+  var ToolConstructor = TOOL_CONSTRUCTORS[toolType];
   if (!toolTypeData || !toolTypeData.data || !toolTypeData.data.length) {
     return;
   }
@@ -2977,12 +2983,10 @@ function getMeasurementGroup(toolType, toolData, sopInstanceUid, frameIndex) {
   // Loop through the array of tool instances
   // for this tool
   var Measurements = toolTypeData.data.map(function (tool) {
-    return getTID300ContentItem(tool, toolType, sopInstanceUid, frameIndex, ToolConstructor);
+    return getTID300ContentItem(tool, toolType, ReferencedSOPSequence, ToolConstructor);
   });
 
-  var MeasurementGroup = new _index.TID1501MeasurementGroup(Measurements);
-
-  return MeasurementGroup.contentItem;
+  return new _TID1501MeasurementGroup2.default(Measurements);
 }
 
 var MeasurementReport = function () {
@@ -2995,58 +2999,71 @@ var MeasurementReport = function () {
     value: function generateReport(toolState, metadataProvider) {
       // ToolState for array of imageIDs to a Report
       // Assume Cornerstone metadata provider has access to Study / Series / Sop Instance UID
-      // (by default, look with cornerstone.metadata.get())
-
-      // check we have access to cornerstone.metadata?
-
-      // fill it in with all the Cornerstone data
 
       var allMeasurementGroups = [];
+      var firstImageId = Object.keys(toolState)[0];
+      var generalSeriesModule = metadataProvider.get('generalSeriesModule', firstImageId);
+      var studyInstanceUID = generalSeriesModule.studyInstanceUID,
+          seriesInstanceUID = generalSeriesModule.seriesInstanceUID;
 
       // Loop through each image in the toolData
+
       Object.keys(toolState).forEach(function (imageId) {
         // TODO: Verify that all images are for same patient and study
         // TODO: Check these: study / instance are undefined...
-        var study = metadataProvider.get('study', imageId);
-        var instance = metadataProvider.get('instance', imageId);
-        var sopInstanceUid = instance ? instance.sopInstanceUid : undefined;
-        var frameIndex = instance ? instance.frameIndex : undefined;
+        var generalSeriesModule = metadataProvider.get('generalSeriesModule', imageId);
+        var sopCommonModule = metadataProvider.get('sopCommonModule', imageId);
+
         var toolData = toolState[imageId];
         var toolTypes = Object.keys(toolData);
 
+        var ReferencedSOPSequence = {
+          ReferencedSOPClassUID: sopCommonModule.sopClassUID,
+          ReferencedSOPInstanceUID: sopCommonModule.sopInstanceUID,
+          ReferencedFrameNumber: 0 // TOOD: Find from imageId,
+        };
+
         // Loop through each tool type for the image
-        var MeasurementGroups = toolTypes.map(function (toolType) {
-          return getMeasurementGroup(toolType, toolData, sopInstanceUid, frameIndex);
+        var measurementGroups = toolTypes.map(function (toolType) {
+          return getMeasurementGroup(toolType, toolData, ReferencedSOPSequence);
         });
 
-        allMeasurementGroups.concat(measurementGroups);
+        allMeasurementGroups = allMeasurementGroups.concat(measurementGroups);
       });
 
-      var MeasurementReport = new _index.TID1500MeasurementReport(MeasurementGroups);
+      var MeasurementReport = new _TID1500MeasurementReport2.default(allMeasurementGroups);
 
       // TODO: what is the correct metaheader
       // http://dicom.nema.org/medical/Dicom/current/output/chtml/part10/chapter_7.html
-      // TODO: move meta creation to dcmjs
+      // TODO: move meta creation to happen in derivations.js
       var fileMetaInformationVersionArray = new Uint16Array(1);
       fileMetaInformationVersionArray[0] = 1;
 
       var derivationSourceDataset = {
-        StudyInstanceUID: studyInstanceUid,
-        SeriesInstanceUID: seriesInstanceUid,
-        SOPInstanceUID: sopInstanceUid,
-        SOPClassUID: sopClassUid,
+        StudyInstanceUID: studyInstanceUID,
+        SeriesInstanceUID: seriesInstanceUID,
+        //SOPInstanceUID: sopInstanceUID, // TODO: Necessary?
+        //SOPClassUID: sopClassUID,
         _meta: {
-          FileMetaInformationVersion: fileMetaInformationVersionArray.buffer,
-          MediaStorageSOPClassUID: dataset.SOPClassUID,
-          MediaStorageSOPInstanceUID: dataset.SOPInstanceUID,
+          FileMetaInformationVersion: {
+            Value: fileMetaInformationVersionArray.buffer,
+            VR: "OB"
+          },
+          //MediaStorageSOPClassUID: dataset.SOPClassUID,
+          //MediaStorageSOPInstanceUID: dataset.SOPInstanceUID,
           TransferSyntaxUID: "1.2.840.10008.1.2.1", // Explicit little endian (always for dcmjs?)
           ImplementationClassUID: dcmjs.data.DicomMetaDictionary.uid(), // TODO: could be git hash or other valid id
-          ImplementationVersionName: "OHIFViewer"
+          ImplementationVersionName: "dcmjs"
         }
       };
-      var report = new StructuredReport([derivationSourceDataset]);
+      var report = new _derivations.StructuredReport([derivationSourceDataset]);
 
-      report.TID1500MeasurementReport = MeasurementReport.contentItem(derivationSourceDataset);
+      report._meta = derivationSourceDataset._meta;
+
+      var contentItem = MeasurementReport.contentItem(derivationSourceDataset);
+
+      // Merge the derived dataset with the content from the Measurement Report
+      report.dataset = Object.assign(report.dataset, contentItem);
 
       return report;
     }
@@ -4684,6 +4701,13 @@ var TID1500MeasurementReport = function () {
     }, {
         key: 'contentItem',
         value: function contentItem(derivationSourceDataset) {
+            var dataset = {};
+
+            var ContentSequence = [];
+            this.TID1501MeasurementGroups.forEach(function (child) {
+                ContentSequence = ContentSequence.concat(child.contentItem());
+            });
+
             return {
                 ConceptNameCodeSequence: {
                     CodeValue: '126000',
@@ -4811,7 +4835,7 @@ var TID1500MeasurementReport = function () {
                             CodeMeaning: 'Measurement Group'
                         },
                         ContinuityOfContent: 'SEPARATE',
-                        ContentSequence: this.TID1501MeasurementGroups
+                        ContentSequence: ContentSequence
                     }
                 }]
             };
@@ -4853,6 +4877,9 @@ var TID1501MeasurementGroup = function () {
     _createClass(TID1501MeasurementGroup, [{
         key: 'contentItem',
         value: function contentItem() {
+            var TID300Measurements = this.TID300Measurements;
+
+
             var contentItem = [{
                 RelationshipType: 'HAS OBS CONTEXT',
                 ValueType: 'TEXT',
@@ -4886,7 +4913,14 @@ var TID1501MeasurementGroup = function () {
                 }
             }];
 
-            return contentItem.concat(TID300Measurements);
+            var measurements = [];
+            TID300Measurements.forEach(function (TID300Measurement) {
+                measurements = measurements.concat(TID300Measurement.contentItem());
+            });
+
+            contentItem = contentItem.concat(measurements);
+
+            return contentItem;
         }
     }]);
 
@@ -4910,7 +4944,7 @@ exports.default = TID1501MeasurementGroup;
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.TID1500 = undefined;
+exports.TID1501MeasurementGroup = exports.TID1500MeasurementReport = undefined;
 
 var _TID1500MeasurementReport = __webpack_require__(/*! ./TID1500MeasurementReport.js */ "./utilities/TID1500/TID1500MeasurementReport.js");
 
@@ -4922,10 +4956,14 @@ var _TID1501MeasurementGroup2 = _interopRequireDefault(_TID1501MeasurementGroup)
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-var TID1500 = exports.TID1500 = {
+var TID1500 = {
   TID1500MeasurementReport: _TID1500MeasurementReport2.default,
   TID1501MeasurementGroup: _TID1501MeasurementGroup2.default
 };
+
+exports.TID1500MeasurementReport = _TID1500MeasurementReport2.default;
+exports.TID1501MeasurementGroup = _TID1501MeasurementGroup2.default;
+exports.default = TID1500;
 
 /***/ }),
 
@@ -4960,22 +4998,30 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
 var Length = function (_TID300Measurement) {
     _inherits(Length, _TID300Measurement);
 
-    function Length(point1, point2, distance, sopInstanceUid, frameIndex) {
+    function Length(_ref) {
+        var point1 = _ref.point1,
+            point2 = _ref.point2,
+            distance = _ref.distance,
+            ReferencedSOPSequence = _ref.ReferencedSOPSequence;
+
         _classCallCheck(this, Length);
 
         var _this = _possibleConstructorReturn(this, (Length.__proto__ || Object.getPrototypeOf(Length)).call(this));
 
-        _this.contentItem(point1, point2, distance, sopInstanceUid, frameIndex);
+        _this.point1 = point1;
+        _this.point2 = point2;
+        _this.distance = distance;
+        _this.ReferencedSOPSequence = ReferencedSOPSequence;
         return _this;
     }
 
     _createClass(Length, [{
         key: 'contentItem',
-        value: function contentItem(measurement, sopClassUid) {
-            var handles = measurement.handles,
-                length = measurement.length,
-                frameIndex = measurement.frameIndex,
-                sopInstanceUid = measurement.sopInstanceUid;
+        value: function contentItem() {
+            var point1 = this.point1,
+                point2 = this.point2,
+                distance = this.distance,
+                ReferencedSOPSequence = this.ReferencedSOPSequence;
 
 
             return [{
@@ -5024,21 +5070,17 @@ var Length = function (_TID300Measurement) {
                         CodingSchemeVersion: '1.4',
                         CodeMeaning: 'millimeter'
                     },
-                    NumericValue: length
+                    NumericValue: distance
                 },
                 ContentSequence: {
                     RelationshipType: 'INFERRED FROM',
                     ValueType: 'SCOORD',
                     GraphicType: 'POLYLINE',
-                    GraphicData: [handles.start.x, handles.start.y, handles.end.x, handles.end.y],
+                    GraphicData: [point1.x, point1.y, point2.x, point2.y],
                     ContentSequence: {
                         RelationshipType: 'SELECTED FROM',
                         ValueType: 'IMAGE',
-                        ReferencedSOPSequence: {
-                            ReferencedSOPClassUID: sopClassUid,
-                            ReferencedSOPInstanceUID: sopInstanceUid,
-                            ReferencedFrameNumber: frameIndex
-                        }
+                        ReferencedSOPSequence: ReferencedSOPSequence
                     }
                 }
             }];
@@ -5089,7 +5131,7 @@ exports.default = TID300Measurement;
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.TID300 = undefined;
+exports.Length = exports.TID300Measurement = undefined;
 
 var _TID300Measurement = __webpack_require__(/*! ./TID300Measurement.js */ "./utilities/TID300/TID300Measurement.js");
 
@@ -5115,10 +5157,14 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 // Rectangle
 // Angle
 
-var TID300 = exports.TID300 = {
+var TID300 = {
   TID300Measurement: _TID300Measurement2.default,
   Length: _Length2.default
 };
+
+exports.TID300Measurement = _TID300Measurement2.default;
+exports.Length = _Length2.default;
+exports.default = TID300;
 
 /***/ }),
 

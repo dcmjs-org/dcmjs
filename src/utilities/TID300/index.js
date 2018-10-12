@@ -15,7 +15,14 @@ import Length from "./Length.js";
 // Rectangle
 // Angle
 
-export const TID300 = {
+const TID300 = {
   TID300Measurement,
   Length
 };
+
+export {
+  TID300Measurement,
+  Length
+};
+
+export default TID300;

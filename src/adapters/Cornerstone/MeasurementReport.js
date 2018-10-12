@@ -1,13 +1,15 @@
+import { StructuredReport } from '../../derivations.js';
+import TID1500MeasurementReport from '../../utilities/TID1500/TID1500MeasurementReport.js';
+import TID1501MeasurementGroup from '../../utilities/TID1500/TID1501MeasurementGroup.js';
 import TID300Length from '../../utilities/TID300/Length.js';
-import { TID1500MeasurementReport, TID1501MeasurementGroup } from '../../utilities/TID1500/index.js';
 
 // Object which maps between the Cornerstone toolType and the
 // appropriate TID300 Measurement Type Class.
-const toolConstructors = {
+const TOOL_CONSTRUCTORS = {
   length: TID300Length
-}
+};
 
-function getConstructorArgs(tool, toolType) {
+function getToolArgs(tool, toolType) {
   switch (toolType) {
     case 'length':
       const point1 = tool.handles.start;
@@ -18,19 +20,19 @@ function getConstructorArgs(tool, toolType) {
   }
 }
 
-function getTID300ContentItem(tool, toolType, sopInstanceUid, frameIndex, ToolConstructor) {
-  const args = getConstructorArgs(tool, toolType);
-  args.sopInstanceUid = sopInstanceUid;
-  args.frameIndex = frameIndex;
+function getTID300ContentItem(tool, toolType, ReferencedSOPSequence, ToolConstructor) {
 
-  const TID300Measurement = new ToolConstructor(...args);
+  const args = getToolArgs(tool, toolType);
+  args.ReferencedSOPSequence = ReferencedSOPSequence;
 
-  return TID300Measurement.contentItem;
+  const TID300Measurement = new ToolConstructor(args);
+
+  return TID300Measurement;
 }
 
-function getMeasurementGroup(toolType, toolData, sopInstanceUid, frameIndex) {
+function getMeasurementGroup(toolType, toolData, ReferencedSOPSequence) {
   const toolTypeData = toolData[toolType];
-  const ToolConstructor = toolConstructors[toolType];
+  const ToolConstructor = TOOL_CONSTRUCTORS[toolType];
   if (!toolTypeData || !toolTypeData.data || !toolTypeData.data.length) {
     return;
   }
@@ -39,12 +41,10 @@ function getMeasurementGroup(toolType, toolData, sopInstanceUid, frameIndex) {
   // Loop through the array of tool instances
   // for this tool
   const Measurements = toolTypeData.data.map(tool => {
-    return getTID300ContentItem(tool, toolType, sopInstanceUid, frameIndex, ToolConstructor);
+    return getTID300ContentItem(tool, toolType, ReferencedSOPSequence, ToolConstructor);
   });
 
-  const MeasurementGroup = new TID1501MeasurementGroup(Measurements);
-
-  return MeasurementGroup.contentItem;
+  return new TID1501MeasurementGroup(Measurements);
 }
 
 export default class MeasurementReport {
@@ -55,58 +55,69 @@ export default class MeasurementReport {
   static generateReport(toolState, metadataProvider) {
     // ToolState for array of imageIDs to a Report
     // Assume Cornerstone metadata provider has access to Study / Series / Sop Instance UID
-    // (by default, look with cornerstone.metadata.get())
 
-    // check we have access to cornerstone.metadata?
-
-    // fill it in with all the Cornerstone data
-
-    const allMeasurementGroups = [];
+    let allMeasurementGroups = [];
+    const firstImageId = Object.keys(toolState)[0];
+    const generalSeriesModule = metadataProvider.get('generalSeriesModule', firstImageId);
+    const { studyInstanceUID, seriesInstanceUID } = generalSeriesModule
 
     // Loop through each image in the toolData
     Object.keys(toolState).forEach(imageId => {
       // TODO: Verify that all images are for same patient and study
       // TODO: Check these: study / instance are undefined...
-      const study = metadataProvider.get('study', imageId);
-      const instance = metadataProvider.get('instance', imageId);
-      const sopInstanceUid = instance ? instance.sopInstanceUid : undefined;
-      const frameIndex = instance ? instance.frameIndex : undefined;
+      const generalSeriesModule = metadataProvider.get('generalSeriesModule', imageId);
+      const sopCommonModule = metadataProvider.get('sopCommonModule', imageId);
+
       const toolData = toolState[imageId];
       const toolTypes = Object.keys(toolData);
 
+      const ReferencedSOPSequence = {
+        ReferencedSOPClassUID: sopCommonModule.sopClassUID,
+        ReferencedSOPInstanceUID: sopCommonModule.sopInstanceUID,
+        ReferencedFrameNumber: 0 // TOOD: Find from imageId,
+      };
+
       // Loop through each tool type for the image
-      const MeasurementGroups = toolTypes.map(toolType => {
-        return getMeasurementGroup(toolType, toolData, sopInstanceUid, frameIndex);
+      const measurementGroups = toolTypes.map(toolType => {
+        return getMeasurementGroup(toolType, toolData, ReferencedSOPSequence);
       });
 
-      allMeasurementGroups.concat(measurementGroups);
+      allMeasurementGroups = allMeasurementGroups.concat(measurementGroups);
     });
 
-    const MeasurementReport = new TID1500MeasurementReport(MeasurementGroups);
+    const MeasurementReport = new TID1500MeasurementReport(allMeasurementGroups);
 
     // TODO: what is the correct metaheader
     // http://dicom.nema.org/medical/Dicom/current/output/chtml/part10/chapter_7.html
-    // TODO: move meta creation to dcmjs
+    // TODO: move meta creation to happen in derivations.js
     const fileMetaInformationVersionArray = new Uint16Array(1);
     fileMetaInformationVersionArray[0] = 1;
 
     const derivationSourceDataset = {
-      StudyInstanceUID: studyInstanceUid,
-      SeriesInstanceUID: seriesInstanceUid,
-      SOPInstanceUID: sopInstanceUid,
-      SOPClassUID: sopClassUid,
+      StudyInstanceUID: studyInstanceUID,
+      SeriesInstanceUID: seriesInstanceUID,
+      //SOPInstanceUID: sopInstanceUID, // TODO: Necessary?
+      //SOPClassUID: sopClassUID,
       _meta: {
-        FileMetaInformationVersion: fileMetaInformationVersionArray.buffer,
-        MediaStorageSOPClassUID: dataset.SOPClassUID,
-        MediaStorageSOPInstanceUID: dataset.SOPInstanceUID,
+        FileMetaInformationVersion: {
+          Value: fileMetaInformationVersionArray.buffer,
+          VR: "OB"
+        },
+        //MediaStorageSOPClassUID: dataset.SOPClassUID,
+        //MediaStorageSOPInstanceUID: dataset.SOPInstanceUID,
         TransferSyntaxUID: "1.2.840.10008.1.2.1", // Explicit little endian (always for dcmjs?)
         ImplementationClassUID: dcmjs.data.DicomMetaDictionary.uid(), // TODO: could be git hash or other valid id
-        ImplementationVersionName: "OHIFViewer"
+        ImplementationVersionName: "dcmjs"
       }
     };
     const report = new StructuredReport([derivationSourceDataset]);
 
-    report.TID1500MeasurementReport = MeasurementReport.contentItem(derivationSourceDataset);
+    report._meta = derivationSourceDataset._meta;
+
+    const contentItem = MeasurementReport.contentItem(derivationSourceDataset);
+
+    // Merge the derived dataset with the content from the Measurement Report
+    report.dataset = Object.assign(report.dataset, contentItem);
 
     return report;
   }

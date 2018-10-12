@@ -8,6 +8,13 @@ export default class TID1500MeasurementReport {
     }
 
     contentItem(derivationSourceDataset) {
+        const dataset = {};
+
+        let ContentSequence = [];
+        this.TID1501MeasurementGroups.forEach(child => {
+          ContentSequence = ContentSequence.concat(child.contentItem());
+        });
+
         return {
             ConceptNameCodeSequence: {
                 CodeValue: '126000',
@@ -135,7 +142,7 @@ export default class TID1500MeasurementReport {
                         CodeMeaning: 'Measurement Group',
                     },
                     ContinuityOfContent: 'SEPARATE',
-                    ContentSequence: this.TID1501MeasurementGroups,
+                    ContentSequence,
                 },
             }]
         };

@@ -248,12 +248,11 @@
 
     function downloadReport() {
       const report = populateReport(dc0.multiframe);
-      $('#reportDump').text(JSON.stringify(dc0.report.dataset, null,4));
+      $('#reportDump').text(JSON.stringify(report.dataset, null,4));
 
       const multiframeBlob = dcmjs.data.datasetToBlob(dc0.multiframe);
-      dc0.report.dataset._meta = dc0.multiframe._meta;
 
-      const reportBlob = dcmjs.data.datasetToBlob(report);
+      const reportBlob = dcmjs.data.datasetToBlob(report.dataset);
       const zip = new JSZip();
       zip.file("multiframe.dcm", multiframeBlob);
       zip.file("report.dcm", reportBlob);
