@@ -2,11 +2,30 @@ import { StructuredReport } from '../../derivations.js';
 import TID1500MeasurementReport from '../../utilities/TID1500/TID1500MeasurementReport.js';
 import TID1501MeasurementGroup from '../../utilities/TID1500/TID1501MeasurementGroup.js';
 import TID300Length from '../../utilities/TID300/Length.js';
+import CornerstoneLength from './Length.js';
+
+import { toArray, codeMeaningEquals } from '../helpers.js';
 
 // Object which maps between the Cornerstone toolType and the
-// appropriate TID300 Measurement Type Class.
-const TOOL_CONSTRUCTORS = {
-  length: TID300Length
+// appropriate TID300 Measurement Type.
+const MEASUREMENT_BY_TOOLTYPE = {
+  length: 'Length'
+};
+
+// Object which maps between the Measurement Type and the
+// appropriate TID300 Measurement Type Class
+const TOOL_CLASSES = {
+  Length: TID300Length
+};
+
+// Object which maps between the Measurement Type and the
+// appropriate TID300 Measurement Type Class
+const CORNERSTONE_TOOL_CLASSES = {
+  Length: CornerstoneLength
+};
+
+const CORNERSTONE_TOOLTYPES = {
+  Length: 'length'
 };
 
 function getToolArgs(tool, toolType) {
@@ -32,7 +51,8 @@ function getTID300ContentItem(tool, toolType, ReferencedSOPSequence, ToolConstru
 
 function getMeasurementGroup(toolType, toolData, ReferencedSOPSequence) {
   const toolTypeData = toolData[toolType];
-  const ToolConstructor = TOOL_CONSTRUCTORS[toolType];
+  const measurementType = MEASUREMENT_BY_TOOLTYPE[toolType]
+  const ToolClass = TOOL_CLASSES[measurementType];
   if (!toolTypeData || !toolTypeData.data || !toolTypeData.data.length) {
     return;
   }
@@ -41,7 +61,7 @@ function getMeasurementGroup(toolType, toolData, ReferencedSOPSequence) {
   // Loop through the array of tool instances
   // for this tool
   const Measurements = toolTypeData.data.map(tool => {
-    return getTID300ContentItem(tool, toolType, ReferencedSOPSequence, ToolConstructor);
+    return getTID300ContentItem(tool, toolType, ReferencedSOPSequence, ToolClass);
   });
 
   return new TID1501MeasurementGroup(Measurements);
@@ -49,7 +69,6 @@ function getMeasurementGroup(toolType, toolData, ReferencedSOPSequence) {
 
 export default class MeasurementReport {
   constructor() {
-
   }
 
   static generateReport(toolState, metadataProvider) {
@@ -63,11 +82,8 @@ export default class MeasurementReport {
 
     // Loop through each image in the toolData
     Object.keys(toolState).forEach(imageId => {
-      // TODO: Verify that all images are for same patient and study
-      // TODO: Check these: study / instance are undefined...
       const generalSeriesModule = metadataProvider.get('generalSeriesModule', imageId);
       const sopCommonModule = metadataProvider.get('sopCommonModule', imageId);
-
       const toolData = toolState[imageId];
       const toolTypes = Object.keys(toolData);
 
@@ -122,43 +138,48 @@ export default class MeasurementReport {
     return report;
   }
 
-  // TODO: Find a way to define 'how' to get an imageId
-  static generateToolState(dataset, getImageIdFunction) {
-    // Ingest report, generate toolState = { imageIdx: [], imageIdy: [] }
-    // Need to provide something to generate imageId from Study / Series / Sop Instance UID
 
-    // Given a dataset
-    // Verify that it's structured report
-    // Checks that it is TID1500
-    // extract
-
-
-
-    // Identify the Imaging Measurements
-    const imagingMeasurementContent = toArray(dataset.ContentSequence).find(codeMeaningEquals("Imaging Measurements"));
-
-    // Retrieve the Measurements themselves
-    const measurementGroupContent = toArray(imagingMeasurementContent.ContentSequence).find(codeMeaningEquals("Measurement Group"));
-
+  static generateToolState(dataset) {
     // For now, bail out if the dataset is not a TID1500 SR with length measurements
-    // TODO: generalize to the various kinds of report
-    // TODO: generalize to the kinds of measurements the Viewer supports
     if (dataset.ContentTemplateSequence.TemplateIdentifier !== "1500") {
-      OHIF.log.warn("This package can currently only interpret DICOM SR TID 1500");
-
-      return {};
+      throw new Error("This package can currently only interpret DICOM SR TID 1500");
     }
 
-    // TODO: Find all tools
-    ['length', 'bidimensional'].forEach(() => {
-      // Filter to find Length measurements in the Structured Report
-      const lengthMeasurementContent = toArray(measurementGroupContent.ContentSequence).filter(codeMeaningEquals("Length"));
+    const REPORT = "Imaging Measurements";
+    const GROUP = "Measurement Group";
+    const SUPPORTED_MEASUREMENTS = [
+      "Length"
+    ];
+
+    // Identify the Imaging Measurements
+    const imagingMeasurementContent = toArray(dataset.ContentSequence).find(codeMeaningEquals(REPORT));
+
+    // Retrieve the Measurements themselves
+    const measurementGroupContent = toArray(imagingMeasurementContent.ContentSequence).find(codeMeaningEquals(GROUP));
+
+    // For each of the supported measurement types, compute the measurement data
+    const measurementData = {};
+
+    SUPPORTED_MEASUREMENTS.forEach(measurementType => {
+      // Filter to find supported measurement types in the Structured Report
+      const measurementGroups = toArray(measurementGroupContent.ContentSequence);
+      const measurementContent = measurementGroups.filter(codeMeaningEquals(measurementType));
+      if (!measurementContent) {
+        return;
+      }
+
+      const ToolClass = CORNERSTONE_TOOL_CLASSES[measurementType];
+      const toolType = CORNERSTONE_TOOLTYPES[measurementType];
 
       // Retrieve Length Measurement Data
-      return getLengthMeasurementData(lengthMeasurementContent, displaySets);
+      measurementData[toolType] = ToolClass.getMeasurementData(measurementContent);
     });
 
+    // TODO: Find a way to define 'how' to get an imageId ?
+    // Need to provide something to generate imageId from Study / Series / Sop Instance UID
     // combine / reorganize all the toolData into the expected toolState format for Cornerstone Tools
+
+    return measurementData;
   }
 }
 
