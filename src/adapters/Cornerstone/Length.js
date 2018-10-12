@@ -32,6 +32,7 @@ export default class Length {
     return lengthState;
   }
 
+  // TODO: this function is required for all Cornerstone Tool Adapters, since it is called by MeasurementReport.
   static getMeasurementData(measurementContent) {
     return measurementContent.map(Length.measurementContentToLengthState);
   }

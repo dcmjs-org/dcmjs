@@ -71,7 +71,7 @@ export default class MeasurementReport {
   constructor() {
   }
 
-  static generateReport(toolState, metadataProvider) {
+  static generateReport(toolState, metadataProvider, options) {
     // ToolState for array of imageIDs to a Report
     // Assume Cornerstone metadata provider has access to Study / Series / Sop Instance UID
 
@@ -90,8 +90,9 @@ export default class MeasurementReport {
       const ReferencedSOPSequence = {
         ReferencedSOPClassUID: sopCommonModule.sopClassUID,
         ReferencedSOPInstanceUID: sopCommonModule.sopInstanceUID,
-        ReferencedFrameNumber: 0 // TOOD: Find from imageId,
+        ReferencedFrameNumber: 0 // TODO: Find from imageId,
       };
+      // TODO: something is wrong with my referenced sop sequence
 
       // Loop through each tool type for the image
       const measurementGroups = toolTypes.map(toolType => {
@@ -101,7 +102,7 @@ export default class MeasurementReport {
       allMeasurementGroups = allMeasurementGroups.concat(measurementGroups);
     });
 
-    const MeasurementReport = new TID1500MeasurementReport(allMeasurementGroups);
+    const MeasurementReport = new TID1500MeasurementReport(allMeasurementGroups, options);
 
     // TODO: what is the correct metaheader
     // http://dicom.nema.org/medical/Dicom/current/output/chtml/part10/chapter_7.html
@@ -129,6 +130,8 @@ export default class MeasurementReport {
     const report = new StructuredReport([derivationSourceDataset]);
 
     report._meta = derivationSourceDataset._meta;
+
+    //
 
     const contentItem = MeasurementReport.contentItem(derivationSourceDataset);
 
@@ -170,6 +173,10 @@ export default class MeasurementReport {
 
       const ToolClass = CORNERSTONE_TOOL_CLASSES[measurementType];
       const toolType = CORNERSTONE_TOOLTYPES[measurementType];
+
+      if (!ToolClass.getMeasurementData) {
+        throw new Error('Cornerstone Tool Adapters must define a getMeasurementData static method.');
+      }
 
       // Retrieve Length Measurement Data
       measurementData[toolType] = ToolClass.getMeasurementData(measurementContent);

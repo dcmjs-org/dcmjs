@@ -7,12 +7,24 @@ export default class TID1500MeasurementReport {
 
     }
 
-    contentItem(derivationSourceDataset) {
-        const dataset = {};
-
+    contentItem(derivationSourceDataset, options={}) {
+        // Add the Measurement Groups to the Measurement Report
         let ContentSequence = [];
         this.TID1501MeasurementGroups.forEach(child => {
           ContentSequence = ContentSequence.concat(child.contentItem());
+        });
+
+        // For each measurement that is referenced, add a link to the
+        // Image Library Group with the proper ReferencedSOPSequence
+        let ImageLibraryContentSequence = [];
+        this.TID1501MeasurementGroups.forEach(measurementGroup => {
+          measurementGroup.TID300Measurements.forEach(measurement => {
+            ImageLibraryContentSequence.push({
+              RelationshipType: 'CONTAINS',
+              ValueType: 'IMAGE',
+              ReferencedSOPSequence: measurement.ReferencedSOPSequence,
+            });
+          });
         });
 
         return {
@@ -28,9 +40,9 @@ export default class TID1500MeasurementReport {
             ReferencedPerformedProcedureStepSequence: [],
             InstanceNumber: 1,
             CurrentRequestedProcedureEvidenceSequence: {
-                StudyInstanceUID: dataset.StudyInstanceUID,
+                StudyInstanceUID: derivationSourceDataset.StudyInstanceUID,
                 ReferencedSeriesSequence: {
-                    SeriesInstanceUID: dataset.SeriesInstanceUID,
+                    SeriesInstanceUID: derivationSourceDataset.SeriesInstanceUID,
                     ReferencedSOPSequence: {
                         ReferencedSOPClassUID: derivationSourceDataset.SOPClassUID,
                         ReferencedSOPInstanceUID: derivationSourceDataset.SOPInstanceUID
@@ -82,7 +94,7 @@ export default class TID1500MeasurementReport {
                     CodingSchemeDesignator: 'DCM',
                     CodeMeaning: 'Person Observer Name',
                 },
-                PersonName: 'user^web' // TODO: these can be options argument for constructor
+                PersonName: options.PersonName || 'Unknown'
             }, {
                 RelationshipType: 'HAS CONCEPT MOD',
                 ValueType: 'CODE',
@@ -106,24 +118,16 @@ export default class TID1500MeasurementReport {
                 },
                 ContinuityOfContent: 'SEPARATE',
                 ContentSequence: {
-                    RelationshipType: 'CONTAINS',
-                    ValueType: 'CONTAINER',
-                    ConceptNameCodeSequence: {
-                        CodeValue: '126200',
-                        CodingSchemeDesignator: 'DCM',
-                        CodeMeaning: 'Image Library Group',
-                    },
-                    ContinuityOfContent: 'SEPARATE',
-                    ContentSequence: {
-                        RelationshipType: 'CONTAINS',
-                        ValueType: 'IMAGE',
-                        ReferencedSOPSequence: {
-                            // TODO: this should refer to the UIDs extracted from the toolState / instance info
-                            ReferencedSOPClassUID: dataset.SOPClassUID,
-                            ReferencedSOPInstanceUID: dataset.SOPInstanceUID,
-                        },
-                    },
-                },
+                  RelationshipType: 'CONTAINS',
+                  ValueType: 'CONTAINER',
+                  ConceptNameCodeSequence: {
+                    CodeValue: '126200',
+                    CodingSchemeDesignator: 'DCM',
+                    CodeMeaning: 'Image Library Group',
+                  },
+                  ContinuityOfContent: 'SEPARATE',
+                  ContentSequence: ImageLibraryContentSequence,
+                }
             }, {
                 RelationshipType: 'CONTAINS',
                 ValueType: 'CONTAINER',
