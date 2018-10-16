@@ -2,38 +2,6 @@ import TID300Measurement from "./TID300Measurement.js";
 import Length from "./Length.js";
 
 // To be implemented:
-//
-// 1. BidimensionalMeasurement
-// Note: Should be added to the OHIF Viewer from Lesion Tracker (or CornerstoneTools if it's done yet: https://github.com/cornerstonejs/cornerstoneTools/pull/635)
-//
-// Sample data file:
-//
-// TID 1500 MeasurementReport
-// --TID 1501 Measurement Group
-// ---Measurement Group (DCM 125007)
-// ----TID 300 Measurement
-// ------"Short Axis"
-// ------SCOORD. Graphic Type: POLYLINE
-//        (ftp://dicom.nema.org/MEDICAL/dicom/current/output/chtml/part03/sect_C.10.5.html)
-//
-// ----TID 300 Measurement
-// ------"Long Axis"
-// ------SCOORD. Graphic Type: POLYLINE
-//        (ftp://dicom.nema.org/MEDICAL/dicom/current/output/chtml/part03/sect_C.10.5.html)
-//
-// Note: Each measurement should specify the Length measured in mm, including the units in UCUM
-//
-//
-// 2. Cornerstone Probe
-// Note: OHIF currently uses Cornerstone's 'dragProbe'. We need to add the regular Probe tool, which drops a single point.
-//
-// Hierarchy
-// TID 1500 MeasurementReport
-// --TID 1501 Measurement Group
-// ---Measurement Group (DCM 125007)
-// ----TID 300 Measurement
-// ------SCOORD. Graphic Type: POINT
-//
 // 3. Cornerstone Freehand ROI
 //
 // Hierarchy
@@ -46,6 +14,17 @@ import Length from "./Length.js";
 // Note: You should repeat the first point in POLYLINE to indicate the contour is closed.
 // Should specify the Mean Modality Pixel Value measured in whatever units the image is in
 // Should specify the Standard Deviation Modality Pixel Value measured in whatever units the image is in
+//
+// 2. Cornerstone Probe
+// Note: OHIF currently uses Cornerstone's 'dragProbe'. We need to add the regular Probe tool, which drops a single point.
+//
+// Hierarchy
+// TID 1500 MeasurementReport
+// --TID 1501 Measurement Group
+// ---Measurement Group (DCM 125007)
+// ----TID 300 Measurement
+// ------SCOORD. Graphic Type: POINT
+//
 //
 // 4. Cornerstone Ellipse:
 //

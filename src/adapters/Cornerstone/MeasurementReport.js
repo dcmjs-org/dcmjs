@@ -1,67 +1,29 @@
 import { StructuredReport } from '../../derivations.js';
 import TID1500MeasurementReport from '../../utilities/TID1500/TID1500MeasurementReport.js';
 import TID1501MeasurementGroup from '../../utilities/TID1500/TID1501MeasurementGroup.js';
-import TID300Length from '../../utilities/TID300/Length.js';
-import CornerstoneLength from './Length.js';
 
 import { toArray, codeMeaningEquals } from '../helpers.js';
 
-// Object which maps between the Cornerstone toolType and the
-// appropriate TID300 Measurement Type.
-const MEASUREMENT_BY_TOOLTYPE = {
-  length: 'Length'
-};
-
-// Object which maps between the Measurement Type and the
-// appropriate TID300 Measurement Type Class
-const TOOL_CLASSES = {
-  Length: TID300Length
-};
-
-// Object which maps between the Measurement Type and the
-// appropriate TID300 Measurement Type Class
-const CORNERSTONE_TOOL_CLASSES = {
-  Length: CornerstoneLength
-};
-
-const CORNERSTONE_TOOLTYPES = {
-  Length: 'length'
-};
-
-function getToolArgs(tool, toolType) {
-  switch (toolType) {
-    case 'length':
-      const point1 = tool.handles.start;
-      const point2 = tool.handles.end;
-      const distance = tool.length;
-
-      return { point1, point2, distance };
-  }
-}
-
-function getTID300ContentItem(tool, toolType, ReferencedSOPSequence, ToolConstructor) {
-
-  const args = getToolArgs(tool, toolType);
+function getTID300ContentItem(tool, toolType, ReferencedSOPSequence, toolClass) {
+  const args = toolClass.getTID300RepresentationArguments(tool);
   args.ReferencedSOPSequence = ReferencedSOPSequence;
 
-  const TID300Measurement = new ToolConstructor(args);
+  const TID300Measurement = new toolClass.TID300Representation(args);
 
   return TID300Measurement;
 }
 
 function getMeasurementGroup(toolType, toolData, ReferencedSOPSequence) {
   const toolTypeData = toolData[toolType];
-  const measurementType = MEASUREMENT_BY_TOOLTYPE[toolType]
-  const ToolClass = TOOL_CLASSES[measurementType];
+  const toolClass = MeasurementReport.CORNERSTONE_TOOL_CLASSES_BY_TOOL_TYPE[toolType];
   if (!toolTypeData || !toolTypeData.data || !toolTypeData.data.length) {
     return;
   }
 
-
   // Loop through the array of tool instances
   // for this tool
   const Measurements = toolTypeData.data.map(tool => {
-    return getTID300ContentItem(tool, toolType, ReferencedSOPSequence, ToolClass);
+    return getTID300ContentItem(tool, toolType, ReferencedSOPSequence, toolClass);
   });
 
   return new TID1501MeasurementGroup(Measurements);
@@ -171,22 +133,30 @@ export default class MeasurementReport {
         return;
       }
 
-      const ToolClass = CORNERSTONE_TOOL_CLASSES[measurementType];
-      const toolType = CORNERSTONE_TOOLTYPES[measurementType];
+      const toolClass = MeasurementReport.CORNERSTONE_TOOL_CLASSES_BY_UTILITY_TYPE[measurementType];
+      const toolType = toolClass.toolType;
 
-      if (!ToolClass.getMeasurementData) {
+      if (!toolClass.getMeasurementData) {
         throw new Error('Cornerstone Tool Adapters must define a getMeasurementData static method.');
       }
 
       // Retrieve Length Measurement Data
-      measurementData[toolType] = ToolClass.getMeasurementData(measurementContent);
+      measurementData[toolType] = toolClass.getMeasurementData(measurementContent);
     });
 
     // TODO: Find a way to define 'how' to get an imageId ?
     // Need to provide something to generate imageId from Study / Series / Sop Instance UID
     // combine / reorganize all the toolData into the expected toolState format for Cornerstone Tools
-
     return measurementData;
+  }
+
+  static registerTool(toolClass) {
+    MeasurementReport.CORNERSTONE_TOOL_CLASSES_BY_UTILITY_TYPE[toolClass.utilityToolType] = toolClass;
+    MeasurementReport.CORNERSTONE_TOOL_CLASSES_BY_TOOL_TYPE[toolClass.toolType] = toolClass;
+    MeasurementReport.MEASUREMENT_BY_TOOLTYPE[toolClass.toolType] = toolClass.utilityToolType;
   }
 }
 
+MeasurementReport.MEASUREMENT_BY_TOOLTYPE = {};
+MeasurementReport.CORNERSTONE_TOOL_CLASSES_BY_UTILITY_TYPE = {};
+MeasurementReport.CORNERSTONE_TOOL_CLASSES_BY_TOOL_TYPE = {}

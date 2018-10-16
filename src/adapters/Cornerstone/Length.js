@@ -1,9 +1,11 @@
-export default class Length {
+import MeasurementReport from './MeasurementReport.js';
+import TID300Length from '../../utilities/TID300/Length.js';
+
+class Length {
   constructor() {
   }
 
   static measurementContentToLengthState(groupItemContent) {
-    const toolType = 'length';
     const lengthContent = groupItemContent.ContentSequence;
     const { ReferencedSOPSequence } = lengthContent.ContentSequence;
     const { ReferencedSOPInstanceUID, ReferencedFrameNumber } = ReferencedSOPSequence
@@ -11,7 +13,7 @@ export default class Length {
       sopInstanceUid: ReferencedSOPInstanceUID,
       frameIndex: ReferencedFrameNumber || 0,
       length: groupItemContent.MeasuredValueSequence.NumericValue,
-      toolType,
+      toolType: Length.toolType,
     };
 
     lengthState.handles = {start: {}, end: {}};
@@ -36,4 +38,20 @@ export default class Length {
   static getMeasurementData(measurementContent) {
     return measurementContent.map(Length.measurementContentToLengthState);
   }
+
+  static getTID300RepresentationArguments(tool) {
+    const point1 = tool.handles.start;
+    const point2 = tool.handles.end;
+    const distance = tool.length;
+
+    return { point1, point2, distance };
+  }
 }
+
+Length.toolType = 'length';
+Length.utilityToolType = 'Length';
+Length.TID300Representation = TID300Length;
+
+MeasurementReport.registerTool(Length);
+
+export default Length;

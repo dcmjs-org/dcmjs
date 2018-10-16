@@ -74,7 +74,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /******/
 /******/ 	var hotApplyOnUpdate = true;
 /******/ 	// eslint-disable-next-line no-unused-vars
-/******/ 	var hotCurrentHash = "eddbb5701fa4215ac5ae";
+/******/ 	var hotCurrentHash = "be4ae1280d2b0731889d";
 /******/ 	var hotRequestTimeout = 10000;
 /******/ 	var hotCurrentModuleData = {};
 /******/ 	var hotCurrentChildModule;
@@ -2799,6 +2799,168 @@ exports.ValueRepresentation = ValueRepresentation;
 
 /***/ }),
 
+/***/ "./adapters/Cornerstone/Bidirectional.js":
+/*!***********************************************!*\
+  !*** ./adapters/Cornerstone/Bidirectional.js ***!
+  \***********************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+var _MeasurementReport = __webpack_require__(/*! ./MeasurementReport */ "./adapters/Cornerstone/MeasurementReport.js");
+
+var _MeasurementReport2 = _interopRequireDefault(_MeasurementReport);
+
+var _Bidirectional = __webpack_require__(/*! ../../utilities/TID300/Bidirectional */ "./utilities/TID300/Bidirectional.js");
+
+var _Bidirectional2 = _interopRequireDefault(_Bidirectional);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var Bidirectional = function () {
+  function Bidirectional() {
+    _classCallCheck(this, Bidirectional);
+  }
+
+  _createClass(Bidirectional, null, [{
+    key: "measurementContentToLengthState",
+    value: function measurementContentToLengthState(groupItemContent) {
+      var content = groupItemContent.ContentSequence;
+      var ReferencedSOPSequence = content.ContentSequence.ReferencedSOPSequence;
+      var ReferencedSOPInstanceUID = ReferencedSOPSequence.ReferencedSOPInstanceUID,
+          ReferencedFrameNumber = ReferencedSOPSequence.ReferencedFrameNumber;
+
+      var state = {
+        sopInstanceUid: ReferencedSOPInstanceUID,
+        frameIndex: ReferencedFrameNumber || 0,
+        toolType: Bidirectional.toolType
+      };
+
+      // TODO: To be implemented!
+      // Needs to add longAxis, shortAxis, longAxisLength, shortAxisLength
+
+      return state;
+    }
+
+    // TODO: this function is required for all Cornerstone Tool Adapters, since it is called by MeasurementReport.
+
+  }, {
+    key: "getMeasurementData",
+    value: function getMeasurementData(measurementContent) {
+      return measurementContent.map(Bidirectional.measurementContentToLengthState);
+    }
+  }, {
+    key: "getTID300RepresentationArguments",
+    value: function getTID300RepresentationArguments(tool) {
+      // TO BE IMPLEMENTED
+      return { longAxis: longAxis, shortAxis: shortAxis, longAxisLength: longAxisLength, shortAxisLength: shortAxisLength };
+    }
+  }]);
+
+  return Bidirectional;
+}();
+
+Bidirectional.toolType = 'bidirectional';
+Bidirectional.utilityToolType = 'Bidirectional';
+Bidirectional.TID300Representation = _Bidirectional2.default;
+
+_MeasurementReport2.default.registerTool(Bidirectional);
+
+exports.default = Bidirectional;
+
+/***/ }),
+
+/***/ "./adapters/Cornerstone/Freehand.js":
+/*!******************************************!*\
+  !*** ./adapters/Cornerstone/Freehand.js ***!
+  \******************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+var _MeasurementReport = __webpack_require__(/*! ./MeasurementReport */ "./adapters/Cornerstone/MeasurementReport.js");
+
+var _MeasurementReport2 = _interopRequireDefault(_MeasurementReport);
+
+var _Polygon = __webpack_require__(/*! ../../utilities/TID300/Polygon */ "./utilities/TID300/Polygon.js");
+
+var _Polygon2 = _interopRequireDefault(_Polygon);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var Freehand = function () {
+  function Freehand() {
+    _classCallCheck(this, Freehand);
+  }
+
+  _createClass(Freehand, null, [{
+    key: "measurementContentToLengthState",
+    value: function measurementContentToLengthState(groupItemContent) {
+      var content = groupItemContent.ContentSequence;
+      var ReferencedSOPSequence = content.ContentSequence.ReferencedSOPSequence;
+      var ReferencedSOPInstanceUID = ReferencedSOPSequence.ReferencedSOPInstanceUID,
+          ReferencedFrameNumber = ReferencedSOPSequence.ReferencedFrameNumber;
+
+      var state = {
+        sopInstanceUid: ReferencedSOPInstanceUID,
+        frameIndex: ReferencedFrameNumber || 0,
+        toolType: Bidirectional.toolType
+      };
+
+      // TODO: To be implemented!
+      // Needs to add points, lengths
+
+      return state;
+    }
+
+    // TODO: this function is required for all Cornerstone Tool Adapters, since it is called by MeasurementReport.
+
+  }, {
+    key: "getMeasurementData",
+    value: function getMeasurementData(measurementContent) {
+      return measurementContent.map(Bidirectional.measurementContentToLengthState);
+    }
+  }, {
+    key: "getTID300RepresentationArguments",
+    value: function getTID300RepresentationArguments(tool) {
+      // TO BE IMPLEMENTED
+      return { points: points, lengths: lengths };
+    }
+  }]);
+
+  return Freehand;
+}();
+
+Freehand.toolType = 'freehand';
+Freehand.utilityToolType = 'Polygon';
+Freehand.TID300Representation = _Polygon2.default;
+
+_MeasurementReport2.default.registerTool(Freehand);
+
+exports.default = Freehand;
+
+/***/ }),
+
 /***/ "./adapters/Cornerstone/Length.js":
 /*!****************************************!*\
   !*** ./adapters/Cornerstone/Length.js ***!
@@ -2817,6 +2979,16 @@ var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = [
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
+var _MeasurementReport = __webpack_require__(/*! ./MeasurementReport.js */ "./adapters/Cornerstone/MeasurementReport.js");
+
+var _MeasurementReport2 = _interopRequireDefault(_MeasurementReport);
+
+var _Length = __webpack_require__(/*! ../../utilities/TID300/Length.js */ "./utilities/TID300/Length.js");
+
+var _Length2 = _interopRequireDefault(_Length);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 var Length = function () {
@@ -2827,7 +2999,6 @@ var Length = function () {
   _createClass(Length, null, [{
     key: 'measurementContentToLengthState',
     value: function measurementContentToLengthState(groupItemContent) {
-      var toolType = 'length';
       var lengthContent = groupItemContent.ContentSequence;
       var ReferencedSOPSequence = lengthContent.ContentSequence.ReferencedSOPSequence;
       var ReferencedSOPInstanceUID = ReferencedSOPSequence.ReferencedSOPInstanceUID,
@@ -2837,7 +3008,7 @@ var Length = function () {
         sopInstanceUid: ReferencedSOPInstanceUID,
         frameIndex: ReferencedFrameNumber || 0,
         length: groupItemContent.MeasuredValueSequence.NumericValue,
-        toolType: toolType
+        toolType: Length.toolType
       };
 
       lengthState.handles = { start: {}, end: {} };
@@ -2867,10 +3038,25 @@ var Length = function () {
     value: function getMeasurementData(measurementContent) {
       return measurementContent.map(Length.measurementContentToLengthState);
     }
+  }, {
+    key: 'getTID300RepresentationArguments',
+    value: function getTID300RepresentationArguments(tool) {
+      var point1 = tool.handles.start;
+      var point2 = tool.handles.end;
+      var distance = tool.length;
+
+      return { point1: point1, point2: point2, distance: distance };
+    }
   }]);
 
   return Length;
 }();
+
+Length.toolType = 'length';
+Length.utilityToolType = 'Length';
+Length.TID300Representation = _Length2.default;
+
+_MeasurementReport2.default.registerTool(Length);
 
 exports.default = Length;
 
@@ -2902,67 +3088,24 @@ var _TID1501MeasurementGroup = __webpack_require__(/*! ../../utilities/TID1500/T
 
 var _TID1501MeasurementGroup2 = _interopRequireDefault(_TID1501MeasurementGroup);
 
-var _Length = __webpack_require__(/*! ../../utilities/TID300/Length.js */ "./utilities/TID300/Length.js");
-
-var _Length2 = _interopRequireDefault(_Length);
-
-var _Length3 = __webpack_require__(/*! ./Length.js */ "./adapters/Cornerstone/Length.js");
-
-var _Length4 = _interopRequireDefault(_Length3);
-
 var _helpers = __webpack_require__(/*! ../helpers.js */ "./adapters/helpers.js");
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-// Object which maps between the Cornerstone toolType and the
-// appropriate TID300 Measurement Type.
-var MEASUREMENT_BY_TOOLTYPE = {
-  length: 'Length'
-};
-
-// Object which maps between the Measurement Type and the
-// appropriate TID300 Measurement Type Class
-var TOOL_CLASSES = {
-  Length: _Length2.default
-};
-
-// Object which maps between the Measurement Type and the
-// appropriate TID300 Measurement Type Class
-var CORNERSTONE_TOOL_CLASSES = {
-  Length: _Length4.default
-};
-
-var CORNERSTONE_TOOLTYPES = {
-  Length: 'length'
-};
-
-function getToolArgs(tool, toolType) {
-  switch (toolType) {
-    case 'length':
-      var point1 = tool.handles.start;
-      var point2 = tool.handles.end;
-      var distance = tool.length;
-
-      return { point1: point1, point2: point2, distance: distance };
-  }
-}
-
-function getTID300ContentItem(tool, toolType, ReferencedSOPSequence, ToolConstructor) {
-
-  var args = getToolArgs(tool, toolType);
+function getTID300ContentItem(tool, toolType, ReferencedSOPSequence, toolClass) {
+  var args = toolClass.getTID300RepresentationArguments(tool);
   args.ReferencedSOPSequence = ReferencedSOPSequence;
 
-  var TID300Measurement = new ToolConstructor(args);
+  var TID300Measurement = new toolClass.TID300Representation(args);
 
   return TID300Measurement;
 }
 
 function getMeasurementGroup(toolType, toolData, ReferencedSOPSequence) {
   var toolTypeData = toolData[toolType];
-  var measurementType = MEASUREMENT_BY_TOOLTYPE[toolType];
-  var ToolClass = TOOL_CLASSES[measurementType];
+  var toolClass = MeasurementReport.CORNERSTONE_TOOL_CLASSES_BY_TOOL_TYPE[toolType];
   if (!toolTypeData || !toolTypeData.data || !toolTypeData.data.length) {
     return;
   }
@@ -2970,7 +3113,7 @@ function getMeasurementGroup(toolType, toolData, ReferencedSOPSequence) {
   // Loop through the array of tool instances
   // for this tool
   var Measurements = toolTypeData.data.map(function (tool) {
-    return getTID300ContentItem(tool, toolType, ReferencedSOPSequence, ToolClass);
+    return getTID300ContentItem(tool, toolType, ReferencedSOPSequence, toolClass);
   });
 
   return new _TID1501MeasurementGroup2.default(Measurements);
@@ -3083,22 +3226,28 @@ var MeasurementReport = function () {
           return;
         }
 
-        var ToolClass = CORNERSTONE_TOOL_CLASSES[measurementType];
-        var toolType = CORNERSTONE_TOOLTYPES[measurementType];
+        var toolClass = MeasurementReport.CORNERSTONE_TOOL_CLASSES_BY_UTILITY_TYPE[measurementType];
+        var toolType = toolClass.toolType;
 
-        if (!ToolClass.getMeasurementData) {
+        if (!toolClass.getMeasurementData) {
           throw new Error('Cornerstone Tool Adapters must define a getMeasurementData static method.');
         }
 
         // Retrieve Length Measurement Data
-        measurementData[toolType] = ToolClass.getMeasurementData(measurementContent);
+        measurementData[toolType] = toolClass.getMeasurementData(measurementContent);
       });
 
       // TODO: Find a way to define 'how' to get an imageId ?
       // Need to provide something to generate imageId from Study / Series / Sop Instance UID
       // combine / reorganize all the toolData into the expected toolState format for Cornerstone Tools
-
       return measurementData;
+    }
+  }, {
+    key: 'registerTool',
+    value: function registerTool(toolClass) {
+      MeasurementReport.CORNERSTONE_TOOL_CLASSES_BY_UTILITY_TYPE[toolClass.utilityToolType] = toolClass;
+      MeasurementReport.CORNERSTONE_TOOL_CLASSES_BY_TOOL_TYPE[toolClass.toolType] = toolClass;
+      MeasurementReport.MEASUREMENT_BY_TOOLTYPE[toolClass.toolType] = toolClass.utilityToolType;
     }
   }]);
 
@@ -3106,6 +3255,11 @@ var MeasurementReport = function () {
 }();
 
 exports.default = MeasurementReport;
+
+
+MeasurementReport.MEASUREMENT_BY_TOOLTYPE = {};
+MeasurementReport.CORNERSTONE_TOOL_CLASSES_BY_UTILITY_TYPE = {};
+MeasurementReport.CORNERSTONE_TOOL_CLASSES_BY_TOOL_TYPE = {};
 
 /***/ }),
 
@@ -3147,13 +3301,21 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
+var _MeasurementReport = __webpack_require__(/*! ./MeasurementReport.js */ "./adapters/Cornerstone/MeasurementReport.js");
+
+var _MeasurementReport2 = _interopRequireDefault(_MeasurementReport);
+
 var _Length = __webpack_require__(/*! ./Length.js */ "./adapters/Cornerstone/Length.js");
 
 var _Length2 = _interopRequireDefault(_Length);
 
-var _MeasurementReport = __webpack_require__(/*! ./MeasurementReport.js */ "./adapters/Cornerstone/MeasurementReport.js");
+var _Freehand = __webpack_require__(/*! ./Freehand.js */ "./adapters/Cornerstone/Freehand.js");
 
-var _MeasurementReport2 = _interopRequireDefault(_MeasurementReport);
+var _Freehand2 = _interopRequireDefault(_Freehand);
+
+var _Bidirectional = __webpack_require__(/*! ./Bidirectional.js */ "./adapters/Cornerstone/Bidirectional.js");
+
+var _Bidirectional2 = _interopRequireDefault(_Bidirectional);
 
 var _Segmentation = __webpack_require__(/*! ./Segmentation.js */ "./adapters/Cornerstone/Segmentation.js");
 
@@ -3163,6 +3325,8 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 var Cornerstone = {
   Length: _Length2.default,
+  Freehand: _Freehand2.default,
+  Bidirectional: _Bidirectional2.default,
   MeasurementReport: _MeasurementReport2.default,
   Segmentation: _Segmentation2.default
 };
@@ -4993,6 +5157,164 @@ exports.default = TID1500;
 
 /***/ }),
 
+/***/ "./utilities/TID300/Bidirectional.js":
+/*!*******************************************!*\
+  !*** ./utilities/TID300/Bidirectional.js ***!
+  \*******************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+var _TID300Measurement2 = __webpack_require__(/*! ./TID300Measurement.js */ "./utilities/TID300/TID300Measurement.js");
+
+var _TID300Measurement3 = _interopRequireDefault(_TID300Measurement2);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+var Bidirectional = function (_TID300Measurement) {
+  _inherits(Bidirectional, _TID300Measurement);
+
+  function Bidirectional(_ref) {
+    var longAxis = _ref.longAxis,
+        shortAxis = _ref.shortAxis,
+        longAxisLength = _ref.longAxisLength,
+        shortAxisLength = _ref.shortAxisLength,
+        ReferencedSOPSequence = _ref.ReferencedSOPSequence;
+
+    _classCallCheck(this, Bidirectional);
+
+    var _this = _possibleConstructorReturn(this, (Bidirectional.__proto__ || Object.getPrototypeOf(Bidirectional)).call(this));
+
+    _this.longAxis = longAxis;
+    _this.shortAxis = shortAxis;
+    _this.longAxisLength = longAxisLength;
+    _this.shortAxisLength = shortAxisLength;
+    _this.ReferencedSOPSequence = ReferencedSOPSequence;
+    return _this;
+  }
+
+  _createClass(Bidirectional, [{
+    key: 'contentItem',
+    value: function contentItem() {
+      var longAxis = this.longAxis,
+          shortAxis = this.shortAxis,
+          longAxisLength = this.longAxisLength,
+          shortAxisLength = this.shortAxisLength,
+          ReferencedSOPSequence = this.ReferencedSOPSequence;
+
+
+      return [{
+        RelationshipType: 'HAS OBS CONTEXT',
+        ValueType: 'TEXT',
+        ConceptNameCodeSequence: {
+          CodeValue: '112039',
+          CodingSchemeDesignator: 'DCM',
+          CodeMeaning: 'Tracking Identifier'
+        },
+        TextValue: 'web annotation'
+      }, {
+        RelationshipType: 'HAS OBS CONTEXT',
+        ValueType: 'UIDREF',
+        ConceptNameCodeSequence: {
+          CodeValue: '112040',
+          CodingSchemeDesignator: 'DCM',
+          CodeMeaning: 'Tracking Unique Identifier'
+        },
+        UID: dcmjs.data.DicomMetaDictionary.uid()
+      }, {
+        RelationshipType: 'CONTAINS',
+        ValueType: 'CODE',
+        ConceptNameCodeSequence: {
+          CodeValue: '121071',
+          CodingSchemeDesignator: 'DCM',
+          CodeMeaning: 'Finding'
+        },
+        ConceptCodeSequence: {
+          CodeValue: 'SAMPLEFINDING',
+          CodingSchemeDesignator: '99dcmjs',
+          CodeMeaning: 'Sample Finding'
+        }
+      }, {
+        RelationshipType: 'CONTAINS',
+        ValueType: 'NUM',
+        ConceptNameCodeSequence: {
+          CodeValue: 'G-A185',
+          CodingSchemeDesignator: 'SRT',
+          CodeMeaning: 'Long Axis' // TODO: Look this up from a Code Meaning dictionary
+        },
+        MeasuredValueSequence: {
+          MeasurementUnitsCodeSequence: {
+            CodeValue: 'mm',
+            CodingSchemeDesignator: 'UCUM',
+            CodingSchemeVersion: '1.4',
+            CodeMeaning: 'millimeter'
+          },
+          NumericValue: longAxisLength
+        },
+        ContentSequence: {
+          RelationshipType: 'INFERRED FROM',
+          ValueType: 'SCOORD',
+          GraphicType: 'POLYLINE', // TODO: Is this MULTIPOINT or POLYLINE?
+          GraphicData: [longAxis.point1.x, longAxis.point1.y, longAxis.point2.x, longAxis.point2.y],
+          ContentSequence: {
+            RelationshipType: 'SELECTED FROM',
+            ValueType: 'IMAGE',
+            ReferencedSOPSequence: ReferencedSOPSequence
+          }
+        }
+      }, {
+        RelationshipType: 'CONTAINS',
+        ValueType: 'NUM',
+        ConceptNameCodeSequence: {
+          CodeValue: 'G-A186',
+          CodingSchemeDesignator: 'SRT',
+          CodeMeaning: 'Short Axis' // TODO: Look this up from a Code Meaning dictionary
+        },
+        MeasuredValueSequence: {
+          MeasurementUnitsCodeSequence: {
+            CodeValue: 'mm',
+            CodingSchemeDesignator: 'UCUM',
+            CodingSchemeVersion: '1.4',
+            CodeMeaning: 'millimeter'
+          },
+          NumericValue: shortAxisLength
+        },
+        ContentSequence: {
+          RelationshipType: 'INFERRED FROM',
+          ValueType: 'SCOORD',
+          GraphicType: 'POLYLINE', // TODO: Is this MULTIPOINT or POLYLINE?
+          GraphicData: [shortAxis.point1.x, shortAxis.point1.y, shortAxis.point2.x, shortAxis.point2.y],
+          ContentSequence: {
+            RelationshipType: 'SELECTED FROM',
+            ValueType: 'IMAGE',
+            ReferencedSOPSequence: ReferencedSOPSequence
+          }
+        }
+      }];
+    }
+  }]);
+
+  return Bidirectional;
+}(_TID300Measurement3.default);
+
+exports.default = Bidirectional;
+
+/***/ }),
+
 /***/ "./utilities/TID300/Length.js":
 /*!************************************!*\
   !*** ./utilities/TID300/Length.js ***!
@@ -5120,6 +5442,186 @@ exports.default = Length;
 
 /***/ }),
 
+/***/ "./utilities/TID300/Polygon.js":
+/*!*************************************!*\
+  !*** ./utilities/TID300/Polygon.js ***!
+  \*************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+var _TID300Measurement2 = __webpack_require__(/*! ./TID300Measurement.js */ "./utilities/TID300/TID300Measurement.js");
+
+var _TID300Measurement3 = _interopRequireDefault(_TID300Measurement2);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+/**
+ * Expand an array of points stored as objects into
+ * a flattened array of points
+ *
+ * @param points [{x: 0, y: 1}, {x: 1, y: 2}]
+ * @return {Array} [point1x, point1y, point2x, point2y]
+ */
+function expandPoints(points) {
+  var allPoints = [];
+
+  points.forEach(function (point) {
+    allPoints.push(point.x);
+    allPoints.push(point.y);
+  });
+
+  return allPoints;
+}
+
+var Polygon = function (_TID300Measurement) {
+  _inherits(Polygon, _TID300Measurement);
+
+  // Note: the last point should be equal to the first point to indicate that the polygon is closed.
+  function Polygon(_ref) {
+    var points = _ref.points,
+        lengths = _ref.lengths,
+        ReferencedSOPSequence = _ref.ReferencedSOPSequence;
+
+    _classCallCheck(this, Polygon);
+
+    var _this = _possibleConstructorReturn(this, (Polygon.__proto__ || Object.getPrototypeOf(Polygon)).call(this));
+
+    _this.points = points;
+    _this.lengths = lengths; // Array of lengths between each point
+    _this.ReferencedSOPSequence = ReferencedSOPSequence;
+    return _this;
+  }
+
+  _createClass(Polygon, [{
+    key: 'contentItem',
+    value: function contentItem() {
+      var points = this.points,
+          lengths = this.lengths,
+          ReferencedSOPSequence = this.ReferencedSOPSequence;
+
+      // Combine all lengths to save the perimeter
+
+      var reducer = function reducer(accumulator, currentValue) {
+        return accumulator + currentValue;
+      };
+      var perimeter = lengths.reduce(reducer);
+      var GraphicData = expandPoints(points);
+
+      // TODO: Add Mean and STDev value of (modality?) pixels
+
+      return [{
+        RelationshipType: 'HAS OBS CONTEXT',
+        ValueType: 'TEXT',
+        ConceptNameCodeSequence: {
+          CodeValue: '112039',
+          CodingSchemeDesignator: 'DCM',
+          CodeMeaning: 'Tracking Identifier'
+        },
+        TextValue: 'web annotation'
+      }, {
+        RelationshipType: 'HAS OBS CONTEXT',
+        ValueType: 'UIDREF',
+        ConceptNameCodeSequence: {
+          CodeValue: '112040',
+          CodingSchemeDesignator: 'DCM',
+          CodeMeaning: 'Tracking Unique Identifier'
+        },
+        UID: dcmjs.data.DicomMetaDictionary.uid()
+      }, {
+        RelationshipType: 'CONTAINS',
+        ValueType: 'CODE',
+        ConceptNameCodeSequence: {
+          CodeValue: '121071',
+          CodingSchemeDesignator: 'DCM',
+          CodeMeaning: 'Finding'
+        },
+        ConceptCodeSequence: {
+          CodeValue: 'SAMPLEFINDING',
+          CodingSchemeDesignator: '99dcmjs',
+          CodeMeaning: 'Sample Finding'
+        }
+      }, {
+        RelationshipType: 'CONTAINS',
+        ValueType: 'NUM',
+        ConceptNameCodeSequence: {
+          CodeValue: 'G-A197',
+          CodingSchemeDesignator: 'SRT',
+          CodeMeaning: 'Perimeter' // TODO: Look this up from a Code Meaning dictionary
+        },
+        MeasuredValueSequence: {
+          MeasurementUnitsCodeSequence: {
+            CodeValue: 'mm',
+            CodingSchemeDesignator: 'UCUM',
+            CodingSchemeVersion: '1.4',
+            CodeMeaning: 'millimeter'
+          },
+          NumericValue: perimeter
+        },
+        ContentSequence: {
+          RelationshipType: 'INFERRED FROM',
+          ValueType: 'SCOORD',
+          GraphicType: 'POLYLINE',
+          GraphicData: GraphicData,
+          ContentSequence: {
+            RelationshipType: 'SELECTED FROM',
+            ValueType: 'IMAGE',
+            ReferencedSOPSequence: ReferencedSOPSequence
+          }
+        }
+      }, { // TODO: This feels weird to repeat the GraphicData
+        RelationshipType: 'CONTAINS',
+        ValueType: 'NUM',
+        ConceptNameCodeSequence: {
+          CodeValue: 'G-A166',
+          CodingSchemeDesignator: 'SRT',
+          CodeMeaning: 'Area' // TODO: Look this up from a Code Meaning dictionary
+        },
+        MeasuredValueSequence: {
+          MeasurementUnitsCodeSequence: {
+            CodeValue: 'mm2',
+            CodingSchemeDesignator: 'UCUM',
+            CodingSchemeVersion: '1.4',
+            CodeMeaning: 'SquareMilliMeter'
+          },
+          NumericValue: perimeter
+        },
+        ContentSequence: {
+          RelationshipType: 'INFERRED FROM',
+          ValueType: 'SCOORD',
+          GraphicType: 'POLYLINE',
+          GraphicData: GraphicData,
+          ContentSequence: {
+            RelationshipType: 'SELECTED FROM',
+            ValueType: 'IMAGE',
+            ReferencedSOPSequence: ReferencedSOPSequence
+          }
+        }
+      }];
+    }
+  }]);
+
+  return Polygon;
+}(_TID300Measurement3.default);
+
+exports.default = Polygon;
+
+/***/ }),
+
 /***/ "./utilities/TID300/TID300Measurement.js":
 /*!***********************************************!*\
   !*** ./utilities/TID300/TID300Measurement.js ***!
@@ -5170,38 +5672,6 @@ var _Length2 = _interopRequireDefault(_Length);
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 // To be implemented:
-//
-// 1. BidimensionalMeasurement
-// Note: Should be added to the OHIF Viewer from Lesion Tracker (or CornerstoneTools if it's done yet: https://github.com/cornerstonejs/cornerstoneTools/pull/635)
-//
-// Sample data file:
-//
-// TID 1500 MeasurementReport
-// --TID 1501 Measurement Group
-// ---Measurement Group (DCM 125007)
-// ----TID 300 Measurement
-// ------"Short Axis"
-// ------SCOORD. Graphic Type: POLYLINE
-//        (ftp://dicom.nema.org/MEDICAL/dicom/current/output/chtml/part03/sect_C.10.5.html)
-//
-// ----TID 300 Measurement
-// ------"Long Axis"
-// ------SCOORD. Graphic Type: POLYLINE
-//        (ftp://dicom.nema.org/MEDICAL/dicom/current/output/chtml/part03/sect_C.10.5.html)
-//
-// Note: Each measurement should specify the Length measured in mm, including the units in UCUM
-//
-//
-// 2. Cornerstone Probe
-// Note: OHIF currently uses Cornerstone's 'dragProbe'. We need to add the regular Probe tool, which drops a single point.
-//
-// Hierarchy
-// TID 1500 MeasurementReport
-// --TID 1501 Measurement Group
-// ---Measurement Group (DCM 125007)
-// ----TID 300 Measurement
-// ------SCOORD. Graphic Type: POINT
-//
 // 3. Cornerstone Freehand ROI
 //
 // Hierarchy
@@ -5214,6 +5684,17 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 // Note: You should repeat the first point in POLYLINE to indicate the contour is closed.
 // Should specify the Mean Modality Pixel Value measured in whatever units the image is in
 // Should specify the Standard Deviation Modality Pixel Value measured in whatever units the image is in
+//
+// 2. Cornerstone Probe
+// Note: OHIF currently uses Cornerstone's 'dragProbe'. We need to add the regular Probe tool, which drops a single point.
+//
+// Hierarchy
+// TID 1500 MeasurementReport
+// --TID 1501 Measurement Group
+// ---Measurement Group (DCM 125007)
+// ----TID 300 Measurement
+// ------SCOORD. Graphic Type: POINT
+//
 //
 // 4. Cornerstone Ellipse:
 //
