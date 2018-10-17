@@ -6,52 +6,18 @@ export default class TID1501MeasurementGroup {
 	}
 
 	contentItem() {
-	  const { TID300Measurements } = this;
+        const { TID300Measurements } = this;
 
-		let contentItem = [
-        {
-            RelationshipType: 'HAS OBS CONTEXT',
-            ValueType: 'TEXT',
-            ConceptNameCodeSequence: {
-                CodeValue: '112039',
-                CodingSchemeDesignator: 'DCM',
-                CodeMeaning: 'Tracking Identifier',
-            },
-            TextValue: 'web annotation',
-        },
-        {
-            RelationshipType: 'HAS OBS CONTEXT',
-            ValueType: 'UIDREF',
-            ConceptNameCodeSequence: {
-                CodeValue: '112040',
-                CodingSchemeDesignator: 'DCM',
-                CodeMeaning: 'Tracking Unique Identifier',
-            },
-            UID: DicomMetaDictionary.uid(),
-        },
-        {
-            RelationshipType: 'CONTAINS',
-            ValueType: 'CODE',
-            ConceptNameCodeSequence: {
-                CodeValue: '121071',
-                CodingSchemeDesignator: 'DCM',
-                CodeMeaning: 'Finding',
-            },
-            ConceptCodeSequence: {
-                CodeValue: 'SAMPLEFINDING',
-                CodingSchemeDesignator: '99dcmjs',
-                CodeMeaning: 'Sample Finding',
-            },
-        },
-    ];
+        // TODO: Is there nothing else in this group?
+        let contentItem = [];
 
-		let measurements = [];
-    TID300Measurements.forEach(TID300Measurement => {
-      measurements = measurements.concat(TID300Measurement.contentItem())
-    });
+        let measurements = [];
+        TID300Measurements.forEach(TID300Measurement => {
+            measurements = measurements.concat(TID300Measurement.contentItem())
+        });
 
-    contentItem = contentItem.concat(measurements);
+        contentItem = contentItem.concat(measurements);
 
-    return contentItem;
+        return contentItem;
 	}
 }

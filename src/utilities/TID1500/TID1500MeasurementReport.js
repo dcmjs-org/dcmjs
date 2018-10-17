@@ -15,8 +15,10 @@ export default class TID1500MeasurementReport {
         });
 
         // For each measurement that is referenced, add a link to the
-        // Image Library Group with the proper ReferencedSOPSequence
+        // Image Library Group and the Current Requested Procedure Evidence
+        // with the proper ReferencedSOPSequence
         let ImageLibraryContentSequence = [];
+        let CurrentRequestedProcedureEvidenceSequence = [];
         this.TID1501MeasurementGroups.forEach(measurementGroup => {
           measurementGroup.TID300Measurements.forEach(measurement => {
             ImageLibraryContentSequence.push({
@@ -24,6 +26,14 @@ export default class TID1500MeasurementReport {
               ValueType: 'IMAGE',
               ReferencedSOPSequence: measurement.ReferencedSOPSequence,
             });
+
+            CurrentRequestedProcedureEvidenceSequence.push({
+              StudyInstanceUID: derivationSourceDataset.StudyInstanceUID,
+              ReferencedSeriesSequence: {
+                SeriesInstanceUID: derivationSourceDataset.SeriesInstanceUID,
+                ReferencedSOPSequence: measurement.ReferencedSOPSequence,                
+              }
+            })
           });
         });
 
@@ -39,16 +49,7 @@ export default class TID1500MeasurementReport {
             VerificationFlag: 'UNVERIFIED',
             ReferencedPerformedProcedureStepSequence: [],
             InstanceNumber: 1,
-            CurrentRequestedProcedureEvidenceSequence: {
-                StudyInstanceUID: derivationSourceDataset.StudyInstanceUID,
-                ReferencedSeriesSequence: {
-                    SeriesInstanceUID: derivationSourceDataset.SeriesInstanceUID,
-                    ReferencedSOPSequence: {
-                        ReferencedSOPClassUID: derivationSourceDataset.SOPClassUID,
-                        ReferencedSOPInstanceUID: derivationSourceDataset.SOPInstanceUID
-                    },
-                },
-            },
+            CurrentRequestedProcedureEvidenceSequence,
             CodingSchemeIdentificationSequence: {
                 CodingSchemeDesignator: "99dcmjs",
                 CodingSchemeName: "Codes used for dcmjs",
@@ -95,6 +96,15 @@ export default class TID1500MeasurementReport {
                     CodeMeaning: 'Person Observer Name',
                 },
                 PersonName: options.PersonName || 'unknown^unknown'
+            }, {    
+                RelationshipType: 'HAS OBS CONTEXT',    
+                ValueType: 'TEXT',  
+                ConceptNameCodeSequence: {  
+                    CodeValue: 'RP-100006', 
+                    CodingSchemeDesignator: '99dcmjs',  
+                    CodeMeaning: "Person Observer's Login Name" 
+                },  
+                TextValue: options.PersonObserversLoginName || 'user'   
             }, {
                 RelationshipType: 'HAS CONCEPT MOD',
                 ValueType: 'CODE',

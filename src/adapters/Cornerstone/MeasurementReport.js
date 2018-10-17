@@ -94,7 +94,7 @@ export default class MeasurementReport {
       //MediaStorageSOPClassUID
       //MediaStorageSOPInstanceUID: sopCommonModule.sopInstanceUID,
       TransferSyntaxUID: {
-        Value: ["1.2.840.10008.1.2"],
+        Value: ["1.2.840.10008.1.2.1"],
         vr: 'UI'
       },
       ImplementationClassUID: {
