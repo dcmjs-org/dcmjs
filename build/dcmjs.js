@@ -74,7 +74,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /******/
 /******/ 	var hotApplyOnUpdate = true;
 /******/ 	// eslint-disable-next-line no-unused-vars
-/******/ 	var hotCurrentHash = "be4ae1280d2b0731889d";
+/******/ 	var hotCurrentHash = "0943dc208dbc32126466";
 /******/ 	var hotRequestTimeout = 10000;
 /******/ 	var hotCurrentModuleData = {};
 /******/ 	var hotCurrentChildModule;
@@ -3141,15 +3141,15 @@ var MeasurementReport = function () {
       Object.keys(toolState).forEach(function (imageId) {
         var generalSeriesModule = metadataProvider.get('generalSeriesModule', imageId);
         var sopCommonModule = metadataProvider.get('sopCommonModule', imageId);
+        var frameNumber = metadataProvider.get('frameNumber', imageId);
         var toolData = toolState[imageId];
         var toolTypes = Object.keys(toolData);
 
         var ReferencedSOPSequence = {
           ReferencedSOPClassUID: sopCommonModule.sopClassUID,
           ReferencedSOPInstanceUID: sopCommonModule.sopInstanceUID,
-          ReferencedFrameNumber: 0 // TODO: Find from imageId,
+          ReferencedFrameNumber: frameNumber || 1
         };
-        // TODO: something is wrong with my referenced sop sequence
 
         // Loop through each tool type for the image
         var measurementGroups = toolTypes.map(function (toolType) {
@@ -3172,6 +3172,9 @@ var MeasurementReport = function () {
         SeriesInstanceUID: seriesInstanceUID,
         //SOPInstanceUID: sopInstanceUID, // TODO: Necessary?
         //SOPClassUID: sopClassUID,
+        _vrMap: {
+          PixelData: "OW"
+        },
         _meta: {
           FileMetaInformationVersion: {
             Value: fileMetaInformationVersionArray.buffer,
@@ -3187,6 +3190,7 @@ var MeasurementReport = function () {
       var report = new _derivations.StructuredReport([derivationSourceDataset]);
 
       report._meta = derivationSourceDataset._meta;
+      report._vrMap = derivationSourceDataset._vrMap;
 
       //
 

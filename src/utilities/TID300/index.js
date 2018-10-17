@@ -2,20 +2,7 @@ import TID300Measurement from "./TID300Measurement.js";
 import Length from "./Length.js";
 
 // To be implemented:
-// 3. Cornerstone Freehand ROI
-//
-// Hierarchy
-// TID 1500 MeasurementReport
-// --TID 1501 Measurement Group
-// ---Measurement Group (DCM 125007)
-// ----TID 300 Measurement
-// ------SCOORD. Graphic Type: POLYLINE
-//
-// Note: You should repeat the first point in POLYLINE to indicate the contour is closed.
-// Should specify the Mean Modality Pixel Value measured in whatever units the image is in
-// Should specify the Standard Deviation Modality Pixel Value measured in whatever units the image is in
-//
-// 2. Cornerstone Probe
+// - Cornerstone Probe
 // Note: OHIF currently uses Cornerstone's 'dragProbe'. We need to add the regular Probe tool, which drops a single point.
 //
 // Hierarchy
@@ -26,7 +13,7 @@ import Length from "./Length.js";
 // ------SCOORD. Graphic Type: POINT
 //
 //
-// 4. Cornerstone Ellipse:
+// - Cornerstone Ellipse:
 //
 // Hierarchy
 // TID 1500 MeasurementReport
@@ -45,7 +32,7 @@ import Length from "./Length.js";
 // Should specify the Standard Deviation Modality Pixel Value measured in whatever units the image is in
 //
 //
-// 5. Cornerstone Rectangle ROI
+// - Cornerstone Rectangle ROI
 //
 // Hierarchy
 // TID 1500 MeasurementReport
@@ -53,9 +40,7 @@ import Length from "./Length.js";
 // ---Measurement Group (DCM 125007)
 // ----TID 300 Measurement
 // ------SCOORD. Graphic Type: POLYLINE
-// ------ TID 4019 Algorithm Identification:
-//                 AlgorithmName: 'Rectangle'
-//                 AlgorithmVersion: 'Cornerstone'
+// ------ Use concept corresponding to Rectangle measurement
 //
 //                 http://dicom.nema.org/medical/dicom/current/output/html/part16.html#sect_TID_4019
 //
@@ -66,10 +51,8 @@ import Length from "./Length.js";
 // Should specify the Mean Modality Pixel Value measured in whatever units the image is in
 // Should specify the Standard Deviation Modality Pixel Value measured in whatever units the image is in
 //
-// TODO: Should we specify the
 //
-//
-// 6. Cornerstone Simple Angle tool
+// - Cornerstone Simple Angle tool
 //
 // Hierarchy
 // TID 1500 MeasurementReport
@@ -82,9 +65,7 @@ import Length from "./Length.js";
 // ------SCOORD. Graphic Type: POLYLINE
 //        (ftp://dicom.nema.org/MEDICAL/dicom/current/output/chtml/part03/sect_C.10.5.html)
 //
-// ------ TID 4019 Algorithm Identification:
-//                 AlgorithmName: 'Angle'
-//                 AlgorithmVersion: 'Cornerstone'
+// ------ Use concept corresponding to Angle measurement
 //
 // Two lines specify the angle
 // Should specify the Angle measured in Degrees, including the units in UCUM

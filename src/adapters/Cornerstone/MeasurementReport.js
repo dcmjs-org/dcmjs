@@ -46,15 +46,15 @@ export default class MeasurementReport {
     Object.keys(toolState).forEach(imageId => {
       const generalSeriesModule = metadataProvider.get('generalSeriesModule', imageId);
       const sopCommonModule = metadataProvider.get('sopCommonModule', imageId);
+      const frameNumber = metadataProvider.get('frameNumber', imageId);
       const toolData = toolState[imageId];
       const toolTypes = Object.keys(toolData);
 
       const ReferencedSOPSequence = {
         ReferencedSOPClassUID: sopCommonModule.sopClassUID,
         ReferencedSOPInstanceUID: sopCommonModule.sopInstanceUID,
-        ReferencedFrameNumber: 0 // TODO: Find from imageId,
+        ReferencedFrameNumber: frameNumber || 1
       };
-      // TODO: something is wrong with my referenced sop sequence
 
       // Loop through each tool type for the image
       const measurementGroups = toolTypes.map(toolType => {
@@ -77,6 +77,9 @@ export default class MeasurementReport {
       SeriesInstanceUID: seriesInstanceUID,
       //SOPInstanceUID: sopInstanceUID, // TODO: Necessary?
       //SOPClassUID: sopClassUID,
+      _vrMap: {
+        PixelData: "OW"
+      },
       _meta: {
         FileMetaInformationVersion: {
           Value: fileMetaInformationVersionArray.buffer,
@@ -92,6 +95,7 @@ export default class MeasurementReport {
     const report = new StructuredReport([derivationSourceDataset]);
 
     report._meta = derivationSourceDataset._meta;
+    report._vrMap = derivationSourceDataset._vrMap;
 
     //
 

@@ -150,6 +150,8 @@
                 z: imagePositionArray[2],
               }
             });
+
+            addMetaData('frameNumber', imageId, i);
           }
 
           resolve(multiframe);
