@@ -1,3 +1,4 @@
+import { DicomMetaDictionary } from '../../DicomMetaDictionary.js';
 import { StructuredReport } from '../../derivations.js';
 import TID1500MeasurementReport from '../../utilities/TID1500/TID1500MeasurementReport.js';
 import TID1501MeasurementGroup from '../../utilities/TID1500/TID1501MeasurementGroup.js';
@@ -40,6 +41,7 @@ export default class MeasurementReport {
     let allMeasurementGroups = [];
     const firstImageId = Object.keys(toolState)[0];
     const generalSeriesModule = metadataProvider.get('generalSeriesModule', firstImageId);
+    const sopCommonModule = metadataProvider.get('sopCommonModule', firstImageId);
     const { studyInstanceUID, seriesInstanceUID } = generalSeriesModule
 
     // Loop through each image in the toolData
@@ -57,8 +59,13 @@ export default class MeasurementReport {
       };
 
       // Loop through each tool type for the image
-      const measurementGroups = toolTypes.map(toolType => {
-        return getMeasurementGroup(toolType, toolData, ReferencedSOPSequence);
+      const measurementGroups = [];
+
+      toolTypes.forEach(toolType => {
+        const group = getMeasurementGroup(toolType, toolData, ReferencedSOPSequence);
+        if (group) {
+          measurementGroups.push(group);  
+        }
       });
 
       allMeasurementGroups = allMeasurementGroups.concat(measurementGroups);
@@ -69,40 +76,50 @@ export default class MeasurementReport {
     // TODO: what is the correct metaheader
     // http://dicom.nema.org/medical/Dicom/current/output/chtml/part10/chapter_7.html
     // TODO: move meta creation to happen in derivations.js
-    const fileMetaInformationVersionArray = new Uint16Array(1);
-    fileMetaInformationVersionArray[0] = 1;
+    const fileMetaInformationVersionArray = new Uint8Array(2);
+    fileMetaInformationVersionArray[1] = 1;
 
     const derivationSourceDataset = {
       StudyInstanceUID: studyInstanceUID,
       SeriesInstanceUID: seriesInstanceUID,
       //SOPInstanceUID: sopInstanceUID, // TODO: Necessary?
       //SOPClassUID: sopClassUID,
-      _vrMap: {
-        PixelData: "OW"
+    };
+
+    const _meta = {
+      FileMetaInformationVersion: {
+        Value: [fileMetaInformationVersionArray.buffer],
+        vr: 'OB'
       },
-      _meta: {
-        FileMetaInformationVersion: {
-          Value: fileMetaInformationVersionArray.buffer,
-          VR: "OB"
-        },
-        //MediaStorageSOPClassUID: dataset.SOPClassUID,
-        //MediaStorageSOPInstanceUID: dataset.SOPInstanceUID,
-        TransferSyntaxUID: "1.2.840.10008.1.2.1", // Explicit little endian (always for dcmjs?)
-        ImplementationClassUID: dcmjs.data.DicomMetaDictionary.uid(), // TODO: could be git hash or other valid id
-        ImplementationVersionName: "dcmjs"
+      //MediaStorageSOPClassUID
+      //MediaStorageSOPInstanceUID: sopCommonModule.sopInstanceUID,
+      TransferSyntaxUID: {
+        Value: ["1.2.840.10008.1.2"],
+        vr: 'UI'
+      },
+      ImplementationClassUID: {
+        Value: [DicomMetaDictionary.uid()], // TODO: could be git hash or other valid id
+        vr: 'UI'
+      },
+      ImplementationVersionName: {
+        Value: ["dcmjs"],
+        vr: 'SH'
       }
     };
+
+    const _vrMap = {
+      PixelData: "OW"
+    };
+
+    derivationSourceDataset._meta = _meta;
+    derivationSourceDataset._vrMap = _vrMap;
+
     const report = new StructuredReport([derivationSourceDataset]);
-
-    report._meta = derivationSourceDataset._meta;
-    report._vrMap = derivationSourceDataset._vrMap;
-
-    //
-
     const contentItem = MeasurementReport.contentItem(derivationSourceDataset);
 
     // Merge the derived dataset with the content from the Measurement Report
     report.dataset = Object.assign(report.dataset, contentItem);
+    report.dataset._meta = _meta;
 
     return report;
   }
@@ -116,9 +133,6 @@ export default class MeasurementReport {
 
     const REPORT = "Imaging Measurements";
     const GROUP = "Measurement Group";
-    const SUPPORTED_MEASUREMENTS = [
-      "Length"
-    ];
 
     // Identify the Imaging Measurements
     const imagingMeasurementContent = toArray(dataset.ContentSequence).find(codeMeaningEquals(REPORT));
@@ -129,7 +143,7 @@ export default class MeasurementReport {
     // For each of the supported measurement types, compute the measurement data
     const measurementData = {};
 
-    SUPPORTED_MEASUREMENTS.forEach(measurementType => {
+    Object.keys(MeasurementReport.CORNERSTONE_TOOL_CLASSES_BY_UTILITY_TYPE).forEach(measurementType => {
       // Filter to find supported measurement types in the Structured Report
       const measurementGroups = toArray(measurementGroupContent.ContentSequence);
       const measurementContent = measurementGroups.filter(codeMeaningEquals(measurementType));

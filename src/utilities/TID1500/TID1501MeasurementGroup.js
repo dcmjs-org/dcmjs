@@ -1,3 +1,5 @@
+import { DicomMetaDictionary } from '../../DicomMetaDictionary.js';
+
 export default class TID1501MeasurementGroup {
 	constructor(TID300Measurements) {
 		this.TID300Measurements = TID300Measurements
@@ -25,7 +27,7 @@ export default class TID1501MeasurementGroup {
                 CodingSchemeDesignator: 'DCM',
                 CodeMeaning: 'Tracking Unique Identifier',
             },
-            UID: dcmjs.data.DicomMetaDictionary.uid(),
+            UID: DicomMetaDictionary.uid(),
         },
         {
             RelationshipType: 'CONTAINS',

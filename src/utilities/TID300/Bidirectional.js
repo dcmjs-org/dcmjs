@@ -1,3 +1,4 @@
+import { DicomMetaDictionary } from '../../DicomMetaDictionary.js';
 import TID300Measurement from './TID300Measurement.js';
 
 export default class Bidirectional extends TID300Measurement {
@@ -33,7 +34,7 @@ export default class Bidirectional extends TID300Measurement {
           CodingSchemeDesignator: 'DCM',
           CodeMeaning: 'Tracking Unique Identifier',
         },
-        UID: dcmjs.data.DicomMetaDictionary.uid(),
+        UID: DicomMetaDictionary.uid(),
       },
       {
         RelationshipType: 'CONTAINS',

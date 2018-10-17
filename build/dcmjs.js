@@ -74,7 +74,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /******/
 /******/ 	var hotApplyOnUpdate = true;
 /******/ 	// eslint-disable-next-line no-unused-vars
-/******/ 	var hotCurrentHash = "0943dc208dbc32126466";
+/******/ 	var hotCurrentHash = "1f3baca3f80e61f5a97e";
 /******/ 	var hotRequestTimeout = 10000;
 /******/ 	var hotCurrentModuleData = {};
 /******/ 	var hotCurrentChildModule;
@@ -1449,11 +1449,7 @@ naturalDataset._vrMap[naturalName]=data.vr;}}naturalDataset[naturalName]=data.Va
 naturalDataset[naturalName]=naturalDataset[naturalName][0];}});return naturalDataset;}},{key:'denaturalizeValue',value:function denaturalizeValue(naturalValue){var value=naturalValue;if(!Array.isArray(value)){value=[value];}value=value.map(function(entry){return entry.constructor.name=="Number"?String(entry):entry;});return value;}},{key:'denaturalizeDataset',value:function denaturalizeDataset(dataset){var unnaturalDataset={};Object.keys(dataset).forEach(function(naturalName){// check if it's a sequence
 var name=naturalName;var entry=DicomMetaDictionary.nameMap[name];if(entry){var dataValue=dataset[naturalName];if(dataValue===undefined||dataValue===null){// handle the case where it was deleted from the object but is in keys
 return;}// process this one entry
-var dataItem={vr:entry.vr,Value:dataset[naturalName]};if(entry.vr=='ox'){if(dataset._vrMap&&dataset._vrMap[naturalName]){dataItem.vr=dataset._vrMap[naturalName];}else{console.error('No value representation given for',naturalName);}}dataItem.Value=DicomMetaDictionary.denaturalizeValue(dataItem.Value);if(entry.vr=="SQ"){var unnaturalValues=[];for(var datasetIndex=0;datasetIndex<dataItem.Value.length;datasetIndex++){var nestedDataset=dataItem.Value[datasetIndex];unnaturalValues.push(DicomMetaDictionary.denaturalizeDataset(nestedDataset));}dataItem.Value=unnaturalValues;}var vr=_ValueRepresentation.ValueRepresentation.createByTypeString(dataItem.vr);if(!vr.isBinary()&&vr.maxLength){dataItem.Value=dataItem.Value.map(function(value){if(value.length>vr.maxLength){console.warn('Truncating value '+value+' of '+naturalName+' because it is longer than '+vr.maxLength);return value.slice(0,vr.maxLength);}else{return value;}});}var tag=DicomMetaDictionary.unpunctuateTag(entry.tag);unnaturalDataset[tag]=dataItem;}else{var validMetaNames=["_vrMap","_meta"];if(validMetaNames.indexOf(name)==-1){console.warn("Unknown name in dataset",name,":",dataset[name]);}}});return unnaturalDataset;}},{key:'datasetToBlob',value:function datasetToBlob(dataset){// create a meta dataset,
-// then associate it with a part 10 binary stream
-// as a file blob
-var meta={// TODO: generate FileMetaInformationVersion de novo
-FileMetaInformationVersion:dataset._meta.FileMetaInformationVersion.Value[0],MediaStorageSOPClassUID:dataset.SOPClassUID,MediaStorageSOPInstanceUID:dataset.SOPInstanceUID,TransferSyntaxUID:"1.2.840.10008.1.2",ImplementationClassUID:DicomMetaDictionary.uid(),ImplementationVersionName:"dcmio-0.0"};meta=DicomMetaDictionary.denaturalizeDataset(meta);var dicomDict=new DicomDict(meta);dicomDict.dict=DicomMetaDictionary.denaturalizeDataset(dataset);var buffer=dicomDict.write();var blob=new Blob([buffer],{type:"application/dicom"});return blob;}},{key:'uid',value:function uid(){var uid="2.25."+Math.floor(1+Math.random()*9);for(var index=0;index<38;index++){uid=uid+Math.floor(Math.random()*10);}return uid;}// date and time in UTC
+var dataItem={vr:entry.vr,Value:dataset[naturalName]};if(entry.vr=='ox'){if(dataset._vrMap&&dataset._vrMap[naturalName]){dataItem.vr=dataset._vrMap[naturalName];}else{console.error('No value representation given for',naturalName);}}dataItem.Value=DicomMetaDictionary.denaturalizeValue(dataItem.Value);if(entry.vr=="SQ"){var unnaturalValues=[];for(var datasetIndex=0;datasetIndex<dataItem.Value.length;datasetIndex++){var nestedDataset=dataItem.Value[datasetIndex];unnaturalValues.push(DicomMetaDictionary.denaturalizeDataset(nestedDataset));}dataItem.Value=unnaturalValues;}var vr=_ValueRepresentation.ValueRepresentation.createByTypeString(dataItem.vr);if(!vr.isBinary()&&vr.maxLength){dataItem.Value=dataItem.Value.map(function(value){if(value.length>vr.maxLength){console.warn('Truncating value '+value+' of '+naturalName+' because it is longer than '+vr.maxLength);return value.slice(0,vr.maxLength);}else{return value;}});}var tag=DicomMetaDictionary.unpunctuateTag(entry.tag);unnaturalDataset[tag]=dataItem;}else{var validMetaNames=["_vrMap","_meta"];if(validMetaNames.indexOf(name)==-1){console.warn("Unknown name in dataset",name,":",dataset[name]);}}});return unnaturalDataset;}},{key:'uid',value:function uid(){var uid="2.25."+Math.floor(1+Math.random()*9);for(var index=0;index<38;index++){uid=uid+Math.floor(Math.random()*10);}return uid;}// date and time in UTC
 },{key:'date',value:function date(){var now=new Date();return now.toISOString().replace(/-/g,'').slice(0,8);}},{key:'time',value:function time(){var now=new Date();return now.toISOString().replace(/:/g,'').slice(11,17);}},{key:'dateTime',value:function dateTime(){// "2017-07-07T16:09:18.079Z" -> "20170707160918.079"
 var now=new Date();return now.toISOString().replace(/[:\-TZ]/g,'');}},{key:'_generateNameMap',value:function _generateNameMap(){DicomMetaDictionary.nameMap={};Object.keys(DicomMetaDictionary.dictionary).forEach(function(tag){var dict=DicomMetaDictionary.dictionary[tag];if(dict.version!='PrivateTag'){DicomMetaDictionary.nameMap[dict.name]=dict;}});}},{key:'_generateUIDMap',value:function _generateUIDMap(){DicomMetaDictionary.sopClassUIDsByName={};Object.keys(DicomMetaDictionary.sopClassNamesByUID).forEach(function(uid){var name=DicomMetaDictionary.sopClassNamesByUID[uid];DicomMetaDictionary.sopClassUIDsByName[name]=uid;});}}]);return DicomMetaDictionary;}();// Subset of those listed at:
 // http://dicom.nema.org/medical/dicom/current/output/html/part04.html#sect_B.5
@@ -2924,7 +2920,7 @@ var Freehand = function () {
       var state = {
         sopInstanceUid: ReferencedSOPInstanceUID,
         frameIndex: ReferencedFrameNumber || 0,
-        toolType: Bidirectional.toolType
+        toolType: Freehand.toolType
       };
 
       // TODO: To be implemented!
@@ -2938,7 +2934,7 @@ var Freehand = function () {
   }, {
     key: "getMeasurementData",
     value: function getMeasurementData(measurementContent) {
-      return measurementContent.map(Bidirectional.measurementContentToLengthState);
+      return measurementContent.map(Freehand.measurementContentToLengthState);
     }
   }, {
     key: "getTID300RepresentationArguments",
@@ -3078,6 +3074,8 @@ Object.defineProperty(exports, "__esModule", {
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
+var _DicomMetaDictionary = __webpack_require__(/*! ../../DicomMetaDictionary.js */ "./DicomMetaDictionary.js");
+
 var _derivations = __webpack_require__(/*! ../../derivations.js */ "./derivations.js");
 
 var _TID1500MeasurementReport = __webpack_require__(/*! ../../utilities/TID1500/TID1500MeasurementReport.js */ "./utilities/TID1500/TID1500MeasurementReport.js");
@@ -3133,6 +3131,7 @@ var MeasurementReport = function () {
       var allMeasurementGroups = [];
       var firstImageId = Object.keys(toolState)[0];
       var generalSeriesModule = metadataProvider.get('generalSeriesModule', firstImageId);
+      var sopCommonModule = metadataProvider.get('sopCommonModule', firstImageId);
       var studyInstanceUID = generalSeriesModule.studyInstanceUID,
           seriesInstanceUID = generalSeriesModule.seriesInstanceUID;
 
@@ -3152,8 +3151,13 @@ var MeasurementReport = function () {
         };
 
         // Loop through each tool type for the image
-        var measurementGroups = toolTypes.map(function (toolType) {
-          return getMeasurementGroup(toolType, toolData, ReferencedSOPSequence);
+        var measurementGroups = [];
+
+        toolTypes.forEach(function (toolType) {
+          var group = getMeasurementGroup(toolType, toolData, ReferencedSOPSequence);
+          if (group) {
+            measurementGroups.push(group);
+          }
         });
 
         allMeasurementGroups = allMeasurementGroups.concat(measurementGroups);
@@ -3164,40 +3168,50 @@ var MeasurementReport = function () {
       // TODO: what is the correct metaheader
       // http://dicom.nema.org/medical/Dicom/current/output/chtml/part10/chapter_7.html
       // TODO: move meta creation to happen in derivations.js
-      var fileMetaInformationVersionArray = new Uint16Array(1);
-      fileMetaInformationVersionArray[0] = 1;
+      var fileMetaInformationVersionArray = new Uint8Array(2);
+      fileMetaInformationVersionArray[1] = 1;
 
       var derivationSourceDataset = {
         StudyInstanceUID: studyInstanceUID,
-        SeriesInstanceUID: seriesInstanceUID,
+        SeriesInstanceUID: seriesInstanceUID
         //SOPInstanceUID: sopInstanceUID, // TODO: Necessary?
         //SOPClassUID: sopClassUID,
-        _vrMap: {
-          PixelData: "OW"
+      };
+
+      var _meta = {
+        FileMetaInformationVersion: {
+          Value: [fileMetaInformationVersionArray.buffer],
+          vr: 'OB'
         },
-        _meta: {
-          FileMetaInformationVersion: {
-            Value: fileMetaInformationVersionArray.buffer,
-            VR: "OB"
-          },
-          //MediaStorageSOPClassUID: dataset.SOPClassUID,
-          //MediaStorageSOPInstanceUID: dataset.SOPInstanceUID,
-          TransferSyntaxUID: "1.2.840.10008.1.2.1", // Explicit little endian (always for dcmjs?)
-          ImplementationClassUID: dcmjs.data.DicomMetaDictionary.uid(), // TODO: could be git hash or other valid id
-          ImplementationVersionName: "dcmjs"
+        //MediaStorageSOPClassUID
+        //MediaStorageSOPInstanceUID: sopCommonModule.sopInstanceUID,
+        TransferSyntaxUID: {
+          Value: ["1.2.840.10008.1.2"],
+          vr: 'UI'
+        },
+        ImplementationClassUID: {
+          Value: [_DicomMetaDictionary.DicomMetaDictionary.uid()], // TODO: could be git hash or other valid id
+          vr: 'UI'
+        },
+        ImplementationVersionName: {
+          Value: ["dcmjs"],
+          vr: 'SH'
         }
       };
+
+      var _vrMap = {
+        PixelData: "OW"
+      };
+
+      derivationSourceDataset._meta = _meta;
+      derivationSourceDataset._vrMap = _vrMap;
+
       var report = new _derivations.StructuredReport([derivationSourceDataset]);
-
-      report._meta = derivationSourceDataset._meta;
-      report._vrMap = derivationSourceDataset._vrMap;
-
-      //
-
       var contentItem = MeasurementReport.contentItem(derivationSourceDataset);
 
       // Merge the derived dataset with the content from the Measurement Report
       report.dataset = Object.assign(report.dataset, contentItem);
+      report.dataset._meta = _meta;
 
       return report;
     }
@@ -3211,7 +3225,6 @@ var MeasurementReport = function () {
 
       var REPORT = "Imaging Measurements";
       var GROUP = "Measurement Group";
-      var SUPPORTED_MEASUREMENTS = ["Length"];
 
       // Identify the Imaging Measurements
       var imagingMeasurementContent = (0, _helpers.toArray)(dataset.ContentSequence).find((0, _helpers.codeMeaningEquals)(REPORT));
@@ -3222,7 +3235,7 @@ var MeasurementReport = function () {
       // For each of the supported measurement types, compute the measurement data
       var measurementData = {};
 
-      SUPPORTED_MEASUREMENTS.forEach(function (measurementType) {
+      Object.keys(MeasurementReport.CORNERSTONE_TOOL_CLASSES_BY_UTILITY_TYPE).forEach(function (measurementType) {
         // Filter to find supported measurement types in the Structured Report
         var measurementGroups = (0, _helpers.toArray)(measurementGroupContent.ContentSequence);
         var measurementContent = measurementGroups.filter((0, _helpers.codeMeaningEquals)(measurementType));
@@ -3731,13 +3744,18 @@ var _DicomMessage = __webpack_require__(/*! ./DicomMessage.js */ "./DicomMessage
 
 function datasetToBlob(dataset) {
   var meta = {
-    FileMetaInformationVersion: dataset._meta.FileMetaInformationVersion.Value[0],
+    FileMetaInformationVersion: dataset._meta.FileMetaInformationVersion.Value,
     MediaStorageSOPClassUID: dataset.SOPClassUID,
     MediaStorageSOPInstanceUID: dataset.SOPInstanceUID,
     TransferSyntaxUID: "1.2.840.10008.1.2",
     ImplementationClassUID: _DicomMetaDictionary.DicomMetaDictionary.uid(),
     ImplementationVersionName: "dcmjs-0.0"
   };
+
+  // TODO: Clean this up later
+  if (!meta.FileMetaInformationVersion) {
+    meta.FileMetaInformationVersion = dataset._meta.FileMetaInformationVersion.Value[0];
+  }
 
   var denaturalized = _DicomMetaDictionary.DicomMetaDictionary.denaturalizeDataset(meta);
   var dicomDict = new _DicomMessage.DicomDict(denaturalized);
@@ -4977,7 +4995,7 @@ var TID1500MeasurementReport = function () {
                         CodingSchemeDesignator: 'DCM',
                         CodeMeaning: 'Person Observer Name'
                     },
-                    PersonName: options.PersonName || 'Unknown'
+                    PersonName: options.PersonName || 'unknown^unknown'
                 }, {
                     RelationshipType: 'HAS CONCEPT MOD',
                     ValueType: 'CODE',
@@ -5059,6 +5077,8 @@ Object.defineProperty(exports, "__esModule", {
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
+var _DicomMetaDictionary = __webpack_require__(/*! ../../DicomMetaDictionary.js */ "./DicomMetaDictionary.js");
+
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 var TID1501MeasurementGroup = function () {
@@ -5091,7 +5111,7 @@ var TID1501MeasurementGroup = function () {
                     CodingSchemeDesignator: 'DCM',
                     CodeMeaning: 'Tracking Unique Identifier'
                 },
-                UID: dcmjs.data.DicomMetaDictionary.uid()
+                UID: _DicomMetaDictionary.DicomMetaDictionary.uid()
             }, {
                 RelationshipType: 'CONTAINS',
                 ValueType: 'CODE',
@@ -5177,6 +5197,8 @@ Object.defineProperty(exports, "__esModule", {
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
+var _DicomMetaDictionary = __webpack_require__(/*! ../../DicomMetaDictionary.js */ "./DicomMetaDictionary.js");
+
 var _TID300Measurement2 = __webpack_require__(/*! ./TID300Measurement.js */ "./utilities/TID300/TID300Measurement.js");
 
 var _TID300Measurement3 = _interopRequireDefault(_TID300Measurement2);
@@ -5238,7 +5260,7 @@ var Bidirectional = function (_TID300Measurement) {
           CodingSchemeDesignator: 'DCM',
           CodeMeaning: 'Tracking Unique Identifier'
         },
-        UID: dcmjs.data.DicomMetaDictionary.uid()
+        UID: _DicomMetaDictionary.DicomMetaDictionary.uid()
       }, {
         RelationshipType: 'CONTAINS',
         ValueType: 'CODE',
@@ -5335,6 +5357,8 @@ Object.defineProperty(exports, "__esModule", {
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
+var _DicomMetaDictionary = __webpack_require__(/*! ../../DicomMetaDictionary.js */ "./DicomMetaDictionary.js");
+
 var _TID300Measurement2 = __webpack_require__(/*! ./TID300Measurement.js */ "./utilities/TID300/TID300Measurement.js");
 
 var _TID300Measurement3 = _interopRequireDefault(_TID300Measurement2);
@@ -5393,7 +5417,7 @@ var Length = function (_TID300Measurement) {
                     CodingSchemeDesignator: 'DCM',
                     CodeMeaning: 'Tracking Unique Identifier'
                 },
-                UID: dcmjs.data.DicomMetaDictionary.uid()
+                UID: _DicomMetaDictionary.DicomMetaDictionary.uid()
             }, {
                 RelationshipType: 'CONTAINS',
                 ValueType: 'CODE',
@@ -5461,6 +5485,8 @@ Object.defineProperty(exports, "__esModule", {
 });
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+var _DicomMetaDictionary = __webpack_require__(/*! ../../DicomMetaDictionary.js */ "./DicomMetaDictionary.js");
 
 var _TID300Measurement2 = __webpack_require__(/*! ./TID300Measurement.js */ "./utilities/TID300/TID300Measurement.js");
 
@@ -5545,7 +5571,7 @@ var Polygon = function (_TID300Measurement) {
           CodingSchemeDesignator: 'DCM',
           CodeMeaning: 'Tracking Unique Identifier'
         },
-        UID: dcmjs.data.DicomMetaDictionary.uid()
+        UID: _DicomMetaDictionary.DicomMetaDictionary.uid()
       }, {
         RelationshipType: 'CONTAINS',
         ValueType: 'CODE',
@@ -5676,20 +5702,7 @@ var _Length2 = _interopRequireDefault(_Length);
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 // To be implemented:
-// 3. Cornerstone Freehand ROI
-//
-// Hierarchy
-// TID 1500 MeasurementReport
-// --TID 1501 Measurement Group
-// ---Measurement Group (DCM 125007)
-// ----TID 300 Measurement
-// ------SCOORD. Graphic Type: POLYLINE
-//
-// Note: You should repeat the first point in POLYLINE to indicate the contour is closed.
-// Should specify the Mean Modality Pixel Value measured in whatever units the image is in
-// Should specify the Standard Deviation Modality Pixel Value measured in whatever units the image is in
-//
-// 2. Cornerstone Probe
+// - Cornerstone Probe
 // Note: OHIF currently uses Cornerstone's 'dragProbe'. We need to add the regular Probe tool, which drops a single point.
 //
 // Hierarchy
@@ -5700,7 +5713,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 // ------SCOORD. Graphic Type: POINT
 //
 //
-// 4. Cornerstone Ellipse:
+// - Cornerstone Ellipse:
 //
 // Hierarchy
 // TID 1500 MeasurementReport
@@ -5719,7 +5732,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 // Should specify the Standard Deviation Modality Pixel Value measured in whatever units the image is in
 //
 //
-// 5. Cornerstone Rectangle ROI
+// - Cornerstone Rectangle ROI
 //
 // Hierarchy
 // TID 1500 MeasurementReport
@@ -5727,9 +5740,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 // ---Measurement Group (DCM 125007)
 // ----TID 300 Measurement
 // ------SCOORD. Graphic Type: POLYLINE
-// ------ TID 4019 Algorithm Identification:
-//                 AlgorithmName: 'Rectangle'
-//                 AlgorithmVersion: 'Cornerstone'
+// ------ Use concept corresponding to Rectangle measurement
 //
 //                 http://dicom.nema.org/medical/dicom/current/output/html/part16.html#sect_TID_4019
 //
@@ -5740,10 +5751,8 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 // Should specify the Mean Modality Pixel Value measured in whatever units the image is in
 // Should specify the Standard Deviation Modality Pixel Value measured in whatever units the image is in
 //
-// TODO: Should we specify the
 //
-//
-// 6. Cornerstone Simple Angle tool
+// - Cornerstone Simple Angle tool
 //
 // Hierarchy
 // TID 1500 MeasurementReport
@@ -5756,9 +5765,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 // ------SCOORD. Graphic Type: POLYLINE
 //        (ftp://dicom.nema.org/MEDICAL/dicom/current/output/chtml/part03/sect_C.10.5.html)
 //
-// ------ TID 4019 Algorithm Identification:
-//                 AlgorithmName: 'Angle'
-//                 AlgorithmVersion: 'Cornerstone'
+// ------ Use concept corresponding to Angle measurement
 //
 // Two lines specify the angle
 // Should specify the Angle measured in Degrees, including the units in UCUM

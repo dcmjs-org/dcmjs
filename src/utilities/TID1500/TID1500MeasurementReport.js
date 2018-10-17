@@ -94,7 +94,7 @@ export default class TID1500MeasurementReport {
                     CodingSchemeDesignator: 'DCM',
                     CodeMeaning: 'Person Observer Name',
                 },
-                PersonName: options.PersonName || 'Unknown'
+                PersonName: options.PersonName || 'unknown^unknown'
             }, {
                 RelationshipType: 'HAS CONCEPT MOD',
                 ValueType: 'CODE',

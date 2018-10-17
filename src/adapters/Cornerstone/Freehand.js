@@ -12,7 +12,7 @@ class Freehand {
     const state = {
       sopInstanceUid: ReferencedSOPInstanceUID,
       frameIndex: ReferencedFrameNumber || 0,
-      toolType: Bidirectional.toolType,
+      toolType: Freehand.toolType,
     };
 
     // TODO: To be implemented!
@@ -23,7 +23,7 @@ class Freehand {
 
   // TODO: this function is required for all Cornerstone Tool Adapters, since it is called by MeasurementReport.
   static getMeasurementData(measurementContent) {
-    return measurementContent.map(Bidirectional.measurementContentToLengthState);
+    return measurementContent.map(Freehand.measurementContentToLengthState);
   }
 
   static getTID300RepresentationArguments(tool) {
