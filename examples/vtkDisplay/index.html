@@ -66,15 +66,13 @@ function vtkCustomSliceInteractorStyle(publicAPI, model) {
     const renderer = callData.pokedRenderer;
     const camera = renderer.getActiveCamera();
 
-    let distance = camera.getDistance();
-    distance += callData.spinY;
+    const pos = camera.getPosition();
+    const dop = camera.getDirectionOfProjection().map((c) => c * callData.spinY);
+    pos[0] += dop[0];
+    pos[1] += dop[1];
+    pos[2] += dop[2];
 
-    const range = camera.getClippingRange();
-    range[0] += callData.spinY;
-    range[1] += callData.spinY;
-
-    camera.setClippingRange(range);
-    camera.setDistance(distance);
+    camera.setPosition(...pos);
 
     publicAPI.invokeInteractionEvent({ type: 'InteractionEvent' });
   };
