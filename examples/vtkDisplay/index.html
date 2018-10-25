@@ -49,6 +49,12 @@ const CustomSliceInteractorStyle = (function() {
 
 const States = vtk.Rendering.Core.vtkInteractorStyle.States;
 
+const SlicingMode = {
+  I: 0,
+  J: 1,
+  K: 2,
+};
+
 function vtkCustomSliceInteractorStyle(publicAPI, model) {
   model.classHierarchy.push('vtkCustomSliceInteractorStyle');
 
@@ -66,13 +72,15 @@ function vtkCustomSliceInteractorStyle(publicAPI, model) {
     const renderer = callData.pokedRenderer;
     const camera = renderer.getActiveCamera();
 
-    const pos = camera.getPosition();
-    const dop = camera.getDirectionOfProjection().map((c) => c * callData.spinY);
-    pos[0] += dop[0];
-    pos[1] += dop[1];
-    pos[2] += dop[2];
+    const dims = model.currentImage.getDimensions();
+    const newSlice = Math.min(
+      // negate spinY, since scrolling up is negative, and scrolling down is positive
+      Math.max(0, model.slice - callData.spinY),
+      // ignore last slice
+      dims[model.slicingMode] - 2
+    );
 
-    camera.setPosition(...pos);
+    publicAPI.setSlice(newSlice);
 
     publicAPI.invokeInteractionEvent({ type: 'InteractionEvent' });
   };
@@ -187,21 +195,105 @@ function vtkCustomSliceInteractorStyle(publicAPI, model) {
 
     if (prop) {
       model.currentProperty = prop.getProperty();
+      model.currentImage = prop.getMapper().getInputData();
+    }
+  };
+
+  publicAPI.setSlice = (slice) => {
+    if (slice !== model.slice) {
+      model.slice = slice;
+
+      const renderer = model.interactor.getCurrentRenderer();
+      const camera = renderer.getActiveCamera();
+      const clipRange = camera.getClippingRange();
+
+      const mode = model.slicingMode;
+      const dims = model.currentImage.getDimensions();
+
+      // index space
+      const camPosIndex = [
+        (dims[0] - 1) / 2,
+        (dims[1] - 1) / 2,
+        (dims[2] - 1) / 2,
+      ];
+      camPosIndex[mode] = slice;
+
+      // world space
+      const camPosWorld = [0, 0, 0];
+      model.currentImage.indexToWorldVec3(camPosIndex, camPosWorld);
+
+      // side-effect: update DOP
+      camera.setPosition(...camPosWorld);
+
+      // add clip range distance to camera
+      const dop = camera.getDirectionOfProjection();
+      camPosWorld[0] += -1 * dop[0] * clipRange[0];
+      camPosWorld[1] += -1 * dop[1] * clipRange[0];
+      camPosWorld[2] += -1 * dop[2] * clipRange[0];
+
+      camera.setPosition(...camPosWorld);
+
+      console.log('---', slice);
+      console.log('camIndex', camPosIndex);
+      console.log('camWorld', camPosWorld);
+      console.log('fp', camera.getFocalPoint());
+      console.log('dop', camera.getDirectionOfProjection());
+
+      publicAPI.modified();
+    }
+  };
+
+  publicAPI.setSlicingMode = (mode) => {
+    if (mode !== model.slicingMode && mode >= 0 && mode < 3) {
+      model.slicingMode = mode;
+
+      const renderer = model.interactor.getCurrentRenderer();
+      const camera = renderer.getActiveCamera();
+      const dims = model.currentImage.getDimensions();
+
+      const indexFp = [
+        (dims[0] - 1) / 2,
+        (dims[1] - 1) / 2,
+        (dims[2] - 1) / 2,
+      ];
+      // +10 so camera doesn't flip when we reach last slice
+      indexFp[mode] = dims[mode] + 10;
+
+      const worldFp = [0, 0, 0];
+      model.currentImage.indexToWorldVec3(indexFp, worldFp);
+
+      // some epsilon, otherwise the volume doesn't render?
+      worldFp[mode] += 1 / 65536;
+
+      camera.setFocalPoint(...worldFp);
+
+      // trigger camera position update
+      const slice = model.slice;
+      model.slice = -1;
+      publicAPI.setSlice(slice);
     }
   };
 }
 
+const INITIAL_VALUES = {
+  slice: -1,
+  slicingMode: -1,
+};
+
 function extend(publicAPI, model, initialValues) {
-  Object.assign(model, initialValues || {});
+  Object.assign(model, INITIAL_VALUES, initialValues || {});
 
   vtk.Interaction.Style.vtkInteractorStyleTrackballCamera.extend(publicAPI, model, initialValues || {});
+
+  vtk.macro.setGet(publicAPI, model, ['slicingMode']);
+  vtk.macro.get(publicAPI, model, ['slice']);
 
   vtkCustomSliceInteractorStyle(publicAPI, model);
 }
 
 const newInstance = vtk.macro.newInstance(extend, 'vtkCustomSliceInteractorStyle');
 
-return Object.freeze({ newInstance, extend });
+return Object.freeze({ newInstance, extend, SlicingMode });
 
 })();
 
@@ -493,6 +585,8 @@ return Object.freeze({ newInstance, extend });
     volumeViewer.getRenderer().getActiveCamera().setClippingRange([645, 647])
 
     istyle.setCurrentVolumeNumber(0); // background volume
+    istyle.setSlice(1);
+    istyle.setSlicingMode(0);
   }
 </script>
 </html>
