@@ -201,83 +201,115 @@ function vtkCustomSliceInteractorStyle(publicAPI, model) {
 
   publicAPI.setSlice = (slice) => {
     if (slice !== model.slice) {
+      const sliceDelta = slice - model.slice;
       model.slice = slice;
 
       const renderer = model.interactor.getCurrentRenderer();
       const camera = renderer.getActiveCamera();
-      const clipRange = camera.getClippingRange();
-
-      const mode = model.slicingMode;
-      const dims = model.currentImage.getDimensions();
-
-      // index space
-      const camPosIndex = [
-        (dims[0] - 1) / 2,
-        (dims[1] - 1) / 2,
-        (dims[2] - 1) / 2,
-      ];
-      camPosIndex[mode] = slice;
-
-      // world space
-      const camPosWorld = [0, 0, 0];
-      model.currentImage.indexToWorldVec3(camPosIndex, camPosWorld);
-
-      // side-effect: update DOP
-      camera.setPosition(...camPosWorld);
-
-      // add clip range distance to camera
       const dop = camera.getDirectionOfProjection();
-      camPosWorld[0] += -1 * dop[0] * clipRange[0];
-      camPosWorld[1] += -1 * dop[1] * clipRange[0];
-      camPosWorld[2] += -1 * dop[2] * clipRange[0];
 
-      camera.setPosition(...camPosWorld);
+      const pos = camera.getPosition();
+      const fp = camera.getFocalPoint();
 
-      console.log('---', slice);
-      console.log('camIndex', camPosIndex);
-      console.log('camWorld', camPosWorld);
-      console.log('fp', camera.getFocalPoint());
-      console.log('dop', camera.getDirectionOfProjection());
+      const deltaV = [
+        sliceDelta * dop[0],
+        sliceDelta * dop[1],
+        sliceDelta * dop[2],
+      ];
+
+      pos[0] += deltaV[0];
+      pos[1] += deltaV[1];
+      pos[2] += deltaV[2];
+
+      fp[0] += deltaV[0];
+      fp[1] += deltaV[1];
+      fp[2] += deltaV[2];
+
+      camera.setPosition(...pos);
+      camera.setFocalPoint(...fp);
 
       publicAPI.modified();
     }
   };
 
-  publicAPI.setSlicingMode = (mode) => {
-    if (mode !== model.slicingMode && mode >= 0 && mode < 3) {
+  publicAPI.setSlicingMode = (mode, force = false) => {
+    if (force || mode !== model.slicingMode && mode >= 0 && mode < 3) {
       model.slicingMode = mode;
 
       const renderer = model.interactor.getCurrentRenderer();
       const camera = renderer.getActiveCamera();
       const dims = model.currentImage.getDimensions();
 
-      const indexFp = [
+      const indexDOP = [0, 0, 0];
+      indexDOP[mode] = 1;
+
+      const worldDOP = [0, 0, 0];
+      model.currentImage.indexToWorldVec3(indexDOP, worldDOP);
+
+      // need to ignore translation for DOP transform
+      // const indexToWorld = model.currentImage.getIndexToWorld();
+      // // indexToWorld is column major
+      // indexToWorld[12] = 0;
+      // indexToWorld[13] = 0;
+      // indexToWorld[14] = 0;
+
+      // this is a replacement for the incomplete code above, but has
+      // numerical accuracy issues due worldDOP already having gone through
+      // a transformation
+      const origin = model.currentImage.getOrigin();
+      worldDOP[0] -= origin[0];
+      worldDOP[1] -= origin[1];
+      worldDOP[2] -= origin[2];
+
+      // set camera focal point and position
+      const fpIndex = [
         (dims[0] - 1) / 2,
         (dims[1] - 1) / 2,
         (dims[2] - 1) / 2,
       ];
-      // +10 so camera doesn't flip when we reach last slice
-      indexFp[mode] = dims[mode] + 10;
+      fpIndex[mode] = model.slice;
 
-      const worldFp = [0, 0, 0];
-      model.currentImage.indexToWorldVec3(indexFp, worldFp);
+      const widthVectIndex = [0, 0, 0];
+      widthVectIndex[mode] = dims[mode];
 
-      // some epsilon, otherwise the volume doesn't render?
-      worldFp[mode] += 1 / 65536;
+      // world space
+      const fpWorld = [0, 0, 0];
+      const widthVectWorld = [0, 0, 0];
+      model.currentImage.indexToWorldVec3(fpIndex, fpWorld);
+      model.currentImage.indexToWorldVec3(widthVectIndex, widthVectWorld);
 
-      camera.setFocalPoint(...worldFp);
+      // ignore translation
+      widthVectWorld[0] -= origin[0];
+      widthVectWorld[0] -= origin[1];
+      widthVectWorld[0] -= origin[2];
 
-      // trigger camera position update
-      const slice = model.slice;
-      model.slice = -1;
-      publicAPI.setSlice(slice);
+      const width = Math.sqrt(vtk.Common.Core.vtkMath.dot(widthVectWorld, widthVectWorld));
+      const angle = 90; // 90 will be our start angle
+      const d = width / (2 * Math.tan(angle/360*Math.PI));
+
+      const newPos = [
+        fpWorld[0] - d * worldDOP[0],
+        fpWorld[1] - d * worldDOP[1],
+        fpWorld[2] - d * worldDOP[2],
+      ];
+
+      // some epsilon, otherwise the volume doesn't show up?
+      fpWorld[mode] += 1 / 65536;
+
+      camera.setPosition(...newPos);
+      camera.setFocalPoint(...fpWorld);
+      // TODO change this to set zoom
+      camera.setViewAngle(angle);
+
+      camera.setClippingRange(d, d+1);
     }
   };
 }
 
 const INITIAL_VALUES = {
-  slice: -1,
-  slicingMode: -1,
+  slice: 0,
+  slicingMode: SlicingMode.K,
+  autoAdjustCameraClippingRange: false,
 };
 
 function extend(publicAPI, model, initialValues) {
@@ -580,13 +612,10 @@ return Object.freeze({ newInstance, extend, SlicingMode });
     // set custom interactor style here
     const istyle = CustomSliceInteractorStyle.newInstance();
     volumeViewer.getRenderWindow().getInteractor().setInteractorStyle(istyle);
-    volumeViewer.getRenderWindow().getInteractor().getInteractorStyle().get().autoAdjustCameraClippingRange = false;
-    console.warn('Hard coding clipping range');
-    volumeViewer.getRenderer().getActiveCamera().setClippingRange([645, 647])
 
     istyle.setCurrentVolumeNumber(0); // background volume
-    istyle.setSlice(1);
-    istyle.setSlicingMode(0);
+    istyle.setSlice(40);
+    istyle.setSlicingMode(2, true); // force set slice mode
   }
 </script>
 </html>
