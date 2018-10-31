@@ -59,6 +59,7 @@ function vtkCustomSliceInteractorStyle(publicAPI, model) {
   model.classHierarchy.push('vtkCustomSliceInteractorStyle');
 
   model.wlStartPos = [0, 0];
+  model.zoomStartPos = [0, 0];
 
   publicAPI.handleStartMouseWheel = (callData) => {
     publicAPI.startSlice();
@@ -96,7 +97,7 @@ function vtkCustomSliceInteractorStyle(publicAPI, model) {
         model.initialMRange = property.getRGBTransferFunction(0).getMappingRange().slice();
         publicAPI.startWindowLevel();
       }
-    } else {
+    } else if (superHandleLeftButtonPress) {
       superHandleLeftButtonPress(callData);
     }
   };
@@ -105,8 +106,30 @@ function vtkCustomSliceInteractorStyle(publicAPI, model) {
   publicAPI.handleLeftButtonRelease = (callData) => {
     if (model.state === States.IS_WINDOW_LEVEL) {
       publicAPI.endWindowLevel();
-    } else {
+    } else if (superHandleLeftButtonRelease) {
       superHandleLeftButtonRelease(callData);
+    }
+  };
+
+  const superHandleRightButtonPress = publicAPI.handleRightButtonPress;
+  publicAPI.handleRightButtonPress = (callData) => {
+    model.zoomStartPos[0] = callData.position.x;
+    model.zoomStartPos[1] = callData.position.y;
+
+    if (!callData.shiftKey && !callData.controlKey) {
+      model.initialAngle = callData.pokedRenderer.getActiveCamera().getViewAngle();
+      publicAPI.startCameraPose();
+    } else if (superHandleRightButtonPress) {
+      superHandleRightButtonPress(callData);
+    }
+  };
+
+  const superHandleRightButtonRelease = publicAPI.handleRightButtonRelease;
+  publicAPI.handleRightButtonRelease = (callData) => {
+    if (model.state === States.IS_CAMERA_POSE) {
+      publicAPI.endCameraPose();
+    } else if (superHandleRightButtonRelease) {
+      superHandleRightButtonRelease(callData);
     }
   };
 
@@ -118,8 +141,10 @@ function vtkCustomSliceInteractorStyle(publicAPI, model) {
     if (model.state === States.IS_WINDOW_LEVEL) {
       publicAPI.windowLevel(renderer, pos);
       publicAPI.invokeInteractionEvent({ type: 'InteractionEvent' });
-    }
-    else {
+    } else if (model.state === States.IS_CAMERA_POSE) {
+      publicAPI.zoom(renderer, pos);
+      publicAPI.invokeInteractionEvent({ type: 'InteractionEvent' });
+    } else {
       superHandleMouseMove(callData);
     }
   };
@@ -162,6 +187,13 @@ function vtkCustomSliceInteractorStyle(publicAPI, model) {
 
       model.currentProperty.getRGBTransferFunction(0).setMappingRange(lower, upper);
     }
+  };
+
+  publicAPI.zoom = (renderer, pos) => {
+    const camera = renderer.getActiveCamera();
+    const dy = (pos[1] - model.zoomStartPos[1]) / 10.0;
+    const newAngle = Math.max(1, Math.min(179, model.initialAngle + dy));
+    camera.setViewAngle(newAngle);
   };
 
   publicAPI.setCurrentVolumeNumber = (i) => {
@@ -284,8 +316,9 @@ function vtkCustomSliceInteractorStyle(publicAPI, model) {
       widthVectWorld[0] -= origin[2];
 
       const width = Math.sqrt(vtk.Common.Core.vtkMath.dot(widthVectWorld, widthVectWorld));
-      const angle = 90; // 90 will be our start angle
-      const d = width / (2 * Math.tan(angle/360*Math.PI));
+      // reset zoom angle to 90
+      const angle = 90;
+      const d = width / (2 * Math.tan(angle / 360 * Math.PI));
 
       const newPos = [
         fpWorld[0] - d * worldDOP[0],
@@ -298,7 +331,6 @@ function vtkCustomSliceInteractorStyle(publicAPI, model) {
 
       camera.setPosition(...newPos);
       camera.setFocalPoint(...fpWorld);
-      // TODO change this to set zoom
       camera.setViewAngle(angle);
 
       camera.setClippingRange(d, d+1);
