@@ -6,7 +6,7 @@ defaults: &defaults
     - image: circleci/node:latest
 
 jobs:
-  # Used to publish latest under @next tag
+  # Used to publish latest under @dev tag
   deploy:
     <<: *defaults
     steps:
