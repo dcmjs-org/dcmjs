@@ -44,6 +44,14 @@ _Parts of DICOM that dcmjs *will not* focus on:_
 
 Currently dcmjs is an early-stage development experiment.
 
+```js
+// To install latest _stable_ release
+npm install --save dcmjs
+
+// To install latest code merged to master
+npm install --save dcmjs@dev
+```
+
 ### Implemented
   
 * Bidirectional conversion to and from part 10 binary DICOM and DICOM standard JSON encoding (as in [DICOMweb](http://dicomweb.org))
