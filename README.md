@@ -1,3 +1,5 @@
+[![CircleCI](https://circleci.com/gh/dcmjs-org/dcmjs.svg?style=svg)](https://circleci.com/gh/dcmjs-org/dcmjs)
+
 # dcmjs
 JavaScript implementation of DICOM manipulation
 
