@@ -74,7 +74,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /******/
 /******/ 	var hotApplyOnUpdate = true;
 /******/ 	// eslint-disable-next-line no-unused-vars
-/******/ 	var hotCurrentHash = "a29a305d6783154d12ad";
+/******/ 	var hotCurrentHash = "93a86160f489c3cf2d6f";
 /******/ 	var hotRequestTimeout = 10000;
 /******/ 	var hotCurrentModuleData = {};
 /******/ 	var hotCurrentChildModule;
@@ -4090,24 +4090,7 @@ var Segmentation = function (_DerivedPixels2) {
         DimensionDescriptionLabel: "ImagePositionPatient"
       }];
 
-      // Example: Slicer tissue green
-      this.dataset.SegmentSequence = [{
-        SegmentedPropertyCategoryCodeSequence: {
-          CodeValue: "T-D0050",
-          CodingSchemeDesignator: "SRT",
-          CodeMeaning: "Tissue"
-        },
-        SegmentNumber: 1,
-        SegmentLabel: "Tissue",
-        SegmentAlgorithmType: "SEMIAUTOMATIC",
-        SegmentAlgorithmName: "Slicer Prototype",
-        RecommendedDisplayCIELabValue: [43802, 26566, 37721],
-        SegmentedPropertyTypeCodeSequence: {
-          CodeValue: "T-D0050",
-          CodingSchemeDesignator: "SRT",
-          CodeMeaning: "Tissue"
-        }
-      }];
+      this.dataset.SegmentSequence = [];
 
       // TODO: check logic here.
       // If the referenced dataset itself references a series, then copy.
@@ -4171,18 +4154,49 @@ var Segmentation = function (_DerivedPixels2) {
       // TODO: handle different packing and non-multiple of 8/16 rows and columns
       this.dataset.PixelData = new ArrayBuffer(this.referencedDataset.PixelData.byteLength / 16);
     }
-
-    // TODO:
-
   }, {
     key: "addSegment",
-    value: function addSegment(segment) {
-      console.error("Not implemented");
+    value: function addSegment(Segment) {
+      if (!Segment.SegmentLabel || !Segment.SegmentedPropertyCategoryCodeSequence || !Segment.SegmentedPropertyTypeCodeSequence || !Segment.SegmentAlgorithmType) {
+        throw new Error("Segment does not contain all the required fields.");
+      }
+
+      // Capitalise the SegmentAlgorithmType if it happens to be given in
+      // Lower/mixed case.
+      Segment.SegmentAlgorithmType = Segment.SegmentAlgorithmType.toUpperCase();
+
+      // Check SegmentAlgorithmType and SegmentAlgorithmName if necessary.
+      switch (Segment.SegmentAlgorithmType) {
+        case 'AUTOMATIC':
+        case 'SEMIAUTOMATIC':
+          if (!Segment.SegmentAlgorithmName) {
+            throw new Error("If the SegmentAlgorithmType is SEMIAUTOMATIC or AUTOMATIC,\n            SegmentAlgorithmName must be provided");
+          }
+
+          break;
+        case 'MANUAL':
+          break;
+        default:
+          throw new Error("SegmentAlgorithmType " + Segment.SegmentAlgorithmType + " invalid.");
+      }
+
+      var SegmentSequence = this.dataset.SegmentSequence;
+      Segment.SegmentNumber = SegmentSequence.length + 1;
+
+      SegmentSequence.push(Segment);
     }
   }, {
     key: "removeSegment",
-    value: function removeSegment(segment) {
-      console.error("Not implemented");
+    value: function removeSegment(segmentNumber) {
+      var SegmentSequence = this.dataset.SegmentSequence;
+
+      // Remove the Segment
+      SegmentSequence.splice(segmentNumber - 1, 1);
+
+      // Alter the numbering of the following Segments.
+      for (var i = segmentNumber - 1; i < SegmentSequence.length; i++) {
+        SegmentSequence[i].SegmentNumber = i + 1;
+      }
     }
   }]);
 
