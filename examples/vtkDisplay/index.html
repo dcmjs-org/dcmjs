@@ -55,6 +55,16 @@ const SlicingMode = {
   K: 2,
 };
 
+// from gl-matrix
+function transformMat3(a, m) {
+  const out = [0, 0, 0];
+  let x = a[0], y = a[1], z = a[2];
+  out[0] = x * m[0] + y * m[3] + z * m[6];
+  out[1] = x * m[1] + y * m[4] + z * m[7];
+  out[2] = x * m[2] + y * m[5] + z * m[8];
+  return out;
+}
+
 function vtkCustomSliceInteractorStyle(publicAPI, model) {
   model.classHierarchy.push('vtkCustomSliceInteractorStyle');
 
@@ -78,10 +88,10 @@ function vtkCustomSliceInteractorStyle(publicAPI, model) {
       // negate spinY, since scrolling up is negative, and scrolling down is positive
       Math.max(0, model.slice - callData.spinY),
       // ignore last slice
-      dims[model.slicingMode] - 2
+      dims[model.slicingMode] - 1
     );
 
-    publicAPI.setSlice(newSlice);
+    publicAPI.setSlice(Math.round(newSlice));
 
     publicAPI.invokeInteractionEvent({ type: 'InteractionEvent' });
   };
@@ -238,15 +248,20 @@ function vtkCustomSliceInteractorStyle(publicAPI, model) {
 
       const renderer = model.interactor.getCurrentRenderer();
       const camera = renderer.getActiveCamera();
-      const dop = camera.getDirectionOfProjection();
+
+      const spacing = model.currentImage.getSpacing();
+      const direction = model.currentImage.getDirection();
+      const worldSpacing = transformMat3(spacing, direction);
+      const delta = sliceDelta * worldSpacing[model.slicingMode];
 
       const pos = camera.getPosition();
       const fp = camera.getFocalPoint();
+      const dop = camera.getDirectionOfProjection();
 
       const deltaV = [
-        sliceDelta * dop[0],
-        sliceDelta * dop[1],
-        sliceDelta * dop[2],
+        delta * dop[0],
+        delta * dop[1],
+        delta * dop[2],
       ];
 
       pos[0] += deltaV[0];
@@ -270,69 +285,55 @@ function vtkCustomSliceInteractorStyle(publicAPI, model) {
 
       const renderer = model.interactor.getCurrentRenderer();
       const camera = renderer.getActiveCamera();
+      const bounds = model.currentImage.getBounds();
       const dims = model.currentImage.getDimensions();
 
-      const indexDOP = [0, 0, 0];
-      indexDOP[mode] = 1;
+      const dop = [0, 0, 0];
+      dop[mode] = 1;
 
-      const worldDOP = [0, 0, 0];
-      model.currentImage.indexToWorldVec3(indexDOP, worldDOP);
-
-      // need to ignore translation for DOP transform
-      // const indexToWorld = model.currentImage.getIndexToWorld();
-      // // indexToWorld is column major
-      // indexToWorld[12] = 0;
-      // indexToWorld[13] = 0;
-      // indexToWorld[14] = 0;
-
-      // this is a replacement for the incomplete code above, but has
-      // numerical accuracy issues due worldDOP already having gone through
-      // a transformation
-      const origin = model.currentImage.getOrigin();
-      worldDOP[0] -= origin[0];
-      worldDOP[1] -= origin[1];
-      worldDOP[2] -= origin[2];
-
-      // set camera focal point and position
-      const fpIndex = [
-        (dims[0] - 1) / 2,
-        (dims[1] - 1) / 2,
-        (dims[2] - 1) / 2,
+      const boundsCenter = [
+        (bounds[0] + bounds[1]) / 2,
+        (bounds[2] + bounds[3]) / 2,
+        (bounds[4] + bounds[5]) / 2,
       ];
-      fpIndex[mode] = model.slice;
 
-      const widthVectIndex = [0, 0, 0];
-      widthVectIndex[mode] = dims[mode];
+      let viewUp = [0, 0, 1];
+      if (mode === 2) {
+        // switch viewUp to Y if viewing down Z axis
+        viewUp = [0, 1, 0];
+      }
 
-      // world space
-      const fpWorld = [0, 0, 0];
-      const widthVectWorld = [0, 0, 0];
-      model.currentImage.indexToWorldVec3(fpIndex, fpWorld);
-      model.currentImage.indexToWorldVec3(widthVectIndex, widthVectWorld);
+      let widthAxis = 0;
+      // get perpendicular to dop and viewup, assuming those vects are axis-aligned.
+      for (let i = 0; i < 3; i++) {
+        if (dop[i] === 0 && viewUp[i] === 0) {
+          widthAxis = i;
+          break;
+        }
+      }
 
-      // ignore translation
-      widthVectWorld[0] -= origin[0];
-      widthVectWorld[0] -= origin[1];
-      widthVectWorld[0] -= origin[2];
+      const viewWidth = bounds[2 * widthAxis + 1] - bounds[2 * widthAxis];
 
-      const width = Math.sqrt(vtk.Common.Core.vtkMath.dot(widthVectWorld, widthVectWorld));
-      // reset zoom angle to 90
       const angle = 90;
-      const d = width / (2 * Math.tan(angle / 360 * Math.PI));
+      // dist from camera to fp
+      const d = viewWidth / (2 * Math.tan(angle / 360 * Math.PI));
 
-      const newPos = [
-        fpWorld[0] - d * worldDOP[0],
-        fpWorld[1] - d * worldDOP[1],
-        fpWorld[2] - d * worldDOP[2],
-      ];
+      const fp = boundsCenter.slice();
+      fp[mode] = bounds[2 * mode]; // 0 slice
 
-      // some epsilon, otherwise the volume doesn't show up?
-      fpWorld[mode] += 1 / 65536;
+      const pos = fp.slice();
+      pos[mode] -= d; // distance from camera to focal point is d
 
-      camera.setPosition(...newPos);
-      camera.setFocalPoint(...fpWorld);
+      // move to current slice
+      const spacing = model.currentImage.getSpacing();
+      const direction = model.currentImage.getDirection();
+      const worldSpacing = transformMat3(spacing, direction);
+      fp[mode] += model.slice * worldSpacing[mode];
+
+      camera.setPosition(...pos);
+      camera.setFocalPoint(...fp);
+      camera.setViewUp(...viewUp);
       camera.setViewAngle(angle);
-
       camera.setClippingRange(d, d+1);
     }
   };
@@ -646,8 +647,9 @@ return Object.freeze({ newInstance, extend, SlicingMode });
     volumeViewer.getRenderWindow().getInteractor().setInteractorStyle(istyle);
 
     istyle.setCurrentVolumeNumber(0); // background volume
+    istyle.setSlicingMode(1, true); // force set slice mode
     istyle.setSlice(40);
-    istyle.setSlicingMode(2, true); // force set slice mode
   }
+
 </script>
 </html>
