@@ -21,6 +21,9 @@
     <div class="row">
         <div class="col-xs-6">
           <h2>Status: </h2><p id="statusLine"></p>
+          <label for="istyle">Interaction style: </label>
+          <input class="styleOption" name="istyle" type="radio" value="slice">Slice</input>
+          <input class="styleOption" name="istyle" type="radio" value="rotate">Rotate</input>
           <h2>Volume:</h2>
             <div id="volumeViewer"> </div>
             <p>Sample data is from the dicom4qi connectathon event to be held at RSNA 2017.  This is <a href='https://qiicr.gitbooks.io/dicom4qi/content/instructions/seg.html#test-dataset-2'>test dataset #2</a>
@@ -371,7 +374,18 @@ return Object.freeze({ newInstance, extend, SlicingMode });
   let controllerWidgets = [];
   let segments = {};
 
+  function status (text) {
+    $('p#statusLine').text(text);
+  }
+
   $(document).ready(function() {
+
+    Array.from(document.getElementsByClassName('styleOption')).forEach(element => {
+      element.setAttribute("disabled", "disabled");
+    });
+    $('input[name=istyle]').change(event => {
+      setVTKInteractorStyle(event.currentTarget.value);
+    });
 
     //
     // set up the volume viewer
@@ -541,16 +555,13 @@ return Object.freeze({ newInstance, extend, SlicingMode });
       //segURL = 'https://s3.amazonaws.com/IsomicsPublic/SampleData/MRHead/MRHead-segmentation.dcm';
       segURL = 'https://s3.amazonaws.com/IsomicsPublic/SampleData/MRHead/aseg-t1space.dcm';
 
-      let status = (text) => {
-        $('p#statusLine').text(text);
-      };
-      let downloadProgress = (event) => {
-        status(`Downloading... ${Number(100 * event.loaded / event.total).toFixed(2)}%`);
+      let downloadProgress = (label, event) => {
+        status(`Downloading... ${label} ${Number(100 * event.loaded / event.total).toFixed(2)}%`);
       };
 
       const client = new DICOMwebClient.api.DICOMwebClient({});
-      var backgroundPromise = client._httpGet(backgroundURL, {}, "arraybuffer", downloadProgress);
-      var segPromise = client._httpGet(segURL, {}, "arraybuffer", downloadProgress);
+      var backgroundPromise = client._httpGet(backgroundURL, {}, "arraybuffer", event => {downloadProgress("MR", event)});
+      var segPromise = client._httpGet(segURL, {}, "arraybuffer", event => {downloadProgress("SEG", event)});
 
       //
       // once the images have been loaded
@@ -587,9 +598,12 @@ return Object.freeze({ newInstance, extend, SlicingMode });
           setTimeout(() => {
             volumeRenderWindow.render(); // first render setus up default lookup tables
             createLookupTables();
+            setVTKInteractorStyle('slice');
             volumeRenderWindow.render(); // second render displays correct colors
 
-            status('Click and drag the left mouse button to rotate rotate the slice plane');
+            Array.from(document.getElementsByClassName('styleOption')).forEach(element => {
+              element.removeAttribute("disabled");
+            });
           }, 0);
         }, 0);
       });
@@ -638,17 +652,43 @@ return Object.freeze({ newInstance, extend, SlicingMode });
     // segment colors
     Object.keys(segments).forEach(segmentIndex => {
       let vtkColor = segments[segmentIndex].color.slice(0,3).map(e => e / 255.);
-      vtkVolumeActors[segmentIndex].getProperty().getRGBTransferFunction(0).setNodeValue(1, [1, ...vtkColor, .5, 0])
+      vtkVolumeActors[segmentIndex].getProperty().getRGBTransferFunction(0).setNodeValue(1, [1, ...vtkColor, .5, 0]);
     });
+  }
 
-
-    // set custom interactor style here
-    const istyle = CustomSliceInteractorStyle.newInstance();
-    volumeViewer.getRenderWindow().getInteractor().setInteractorStyle(istyle);
-
-    istyle.setCurrentVolumeNumber(0); // background volume
-    istyle.setSlicingMode(1, true); // force set slice mode
-    istyle.setSlice(40);
+  function setVTKInteractorStyle(style="slice") {
+    if (style === "slice") {
+      // use our custom style
+      const istyle = CustomSliceInteractorStyle.newInstance();
+      volumeViewer.getRenderWindow().getInteractor().setInteractorStyle(istyle);
+      istyle.setCurrentVolumeNumber(0); // background volume
+      istyle.setSlicingMode(1, true); // force set slice mode
+      istyle.setSlice(40);
+      status('Click and drag left mouse for window/level; middle mouse to pan, right mouse for zoom');
+    } else if (style === "rotate") {
+      // use the vtk standard style with custom settings
+      const volumeRenderer = volumeViewer.getRenderer();
+      volumeRenderer.resetCamera();
+      volumeRenderer.getActiveCamera().setViewUp(0, 0, 1);
+      let bounds = vtkVolumeActors[0].getBounds();
+      let center = [ (bounds[0] + bounds[1]) / 2.,
+                     (bounds[2] + bounds[3]) / 2.,
+                     (bounds[4] + bounds[5]) / 2.];
+      let position = center.slice();
+      position[1] -= 4.25 * (-bounds[2] - center[1]);
+      volumeRenderer.getActiveCamera().setPosition(...position);
+      volumeRenderer.getActiveCamera().setFocalPoint(...center);
+      volumeRenderer.updateLightsGeometryToFollowCamera();
+      const istyle = vtk.Interaction.Style.vtkInteractorStyleTrackballCamera.newInstance();
+      istyle.get().autoAdjustCameraClippingRange = false;
+      volumeViewer.getRenderWindow().getInteractor().setInteractorStyle(istyle);
+      console.warn('Hard coding clipping range');
+      volumeViewer.getRenderer().getActiveCamera().setClippingRange([645, 647]);
+      status('Click and drag the left mouse button to rotate rotate the slice plane');
+    } else {
+      console.error(`setVTKInteractorStyle: bad style '${style}'`);
+    }
+    volumeViewer.getRenderWindow().render();
   }
 
 </script>
