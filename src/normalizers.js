@@ -220,12 +220,22 @@ class ImageNormalizer extends Normalizer {
       ReferencedInstanceSequence : [],
     };
 
+    // per-frame
+    ds.PerFrameFunctionalGroupsSequence = [];
+    distanceDatasetPairs.forEach(function(pair) {
+      ds.PerFrameFunctionalGroupsSequence.push({
+        PlanePositionSequence : {
+          ImagePositionPatient: pair[1].ImagePositionPatient,
+        },
+      });
+    });
+    
     // copy over each datasets window/level into the per-frame groups
     // and set the referenced series uid
     this.datasets.forEach(function(dataset, datasetIndex) {
       ds.PerFrameFunctionalGroupsSequence.push({
         PlanePositionSequence: {
-          ImagePositionPatient: distanceDatasetPairs[datsetIndex][1].ImagePositionPatient,
+          ImagePositionPatient: distanceDatasetPairs[datasetIndex][1].ImagePositionPatient,
         },
         FrameVOILUTSequence: {
           WindowCenter: dataset.WindowCenter,

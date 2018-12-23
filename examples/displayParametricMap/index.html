@@ -137,7 +137,7 @@
         dc0.handleDataTransferFileAsDataset(evt.dataTransfer.files[0], {
           doneCallback: function (dataset) {
             console.log("callback " + dataset.SOPClassUID)
-            if (dataset.SOPClassUID == DCMJS.data.DicomMetaDictionary.sopClassUIDsByName['ParametricMapStorage']) {
+            if (dataset.SOPClassUID == dcmjs.data.DicomMetaDictionary.sopClassUIDsByName['ParametricMapStorage']) {
               console.log("add call paramatric map to viewer...")
               dc0.viewer.addParametricMap(dataset, "colorbar");
               console.log("add call to viewer successfull")
@@ -181,7 +181,7 @@
     }
 
     function frameCount() {
-      if (DCMJS.normalizers.Normalizer.isMultiframe(dc0.datasets[0])) {
+      if (dcmjs.normalizers.Normalizer.isMultiframeDataset(dc0.datasets[0])) {
         return (dc0.datasets[0].NumberOfFrames);
       } else {
         return (dc0.datasets.length);
