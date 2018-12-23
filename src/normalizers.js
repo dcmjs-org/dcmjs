@@ -45,10 +45,9 @@ class Normalizer {
     return(sopClassUIDMap[sopClassUID]);
   }
 
-  static isMultiframe(ds=this.dataset) {
-    let sopClassUID = ds.SOPClassUID.replace(/[^0-9.]/g,''); // TODO: clean all VRs as part of normalizing
-    let toUID = DicomMetaDictionary.sopClassUIDsByName;
-    let multiframeSOPClasses = [
+  static isMultiframeSOPClassUID(sopClassUID) {
+    const toUID = DicomMetaDictionary.sopClassUIDsByName;
+    const multiframeSOPClasses = [
       toUID.EnhancedMRImage,
       toUID.LegacyConvertedEnhancedMRImage,
       toUID.EnhancedCTImage,
@@ -60,6 +59,11 @@ class Normalizer {
       toUID.ParametricMapStorage,
     ];
     return (multiframeSOPClasses.indexOf(sopClassUID) !== -1);
+  }
+
+  static isMultiframeDataset(ds=this.dataset) {
+    const sopClassUID = ds.SOPClassUID.replace(/[^0-9.]/g,''); // TODO: clean all VRs as part of normalizing
+    return Normalizer.isMultiframeSOPClassUID(sopClassUID);
   }
 
   normalize() {
@@ -108,7 +112,7 @@ class ImageNormalizer extends Normalizer {
   }
 
   convertToMultiframe() {
-    if (this.datasets.length === 1 && Normalizer.isMultiframe(this.datasets[0])) {
+    if (this.datasets.length === 1 && Normalizer.isMultiframeDataset(this.datasets[0])) {
       // already a multiframe, so just use it
       this.dataset = this.datasets[0];
       return;
@@ -197,8 +201,8 @@ class ImageNormalizer extends Normalizer {
     //
     // make the functional groups
     //
-
     // shared
+    const SpacingBetweenSlices = Math.abs(distance1 - distance0);
 
     ds.SharedFunctionalGroupsSequence = {
       PlaneOrientationSequence : {
@@ -206,39 +210,33 @@ class ImageNormalizer extends Normalizer {
       },
       PixelMeasuresSequence : {
         PixelSpacing : dataset0.PixelSpacing,
-        SpacingBetweenSlices : Math.abs(distance1 - distance0),
+        SpacingBetweenSlices: SpacingBetweenSlices,
+        SliceThickness: SpacingBetweenSlices,
       },
     };
 
-    // per-frame
-
-    ds.PerFrameFunctionalGroupsSequence = [];
-    distanceDatasetPairs.forEach(function(pair) {
-      ds.PerFrameFunctionalGroupsSequence.push({
-        PlanePositionSequence : {
-          ImagePositionPatient: pair[1].ImagePositionPatient,
-        },
-      });
-    });
-
     ds.ReferencedSeriesSequence = {
-      SeriesInstanceUID : dataset0.SeriesInstanceUID,
-      ReferencedInstance : new Array(this.datasets.length),
+      SeriesInstanceUID: dataset0.SeriesInstanceUID,
+      ReferencedInstanceSequence : [],
     };
 
     // copy over each datasets window/level into the per-frame groups
     // and set the referenced series uid
-    let datasetIndex = 0;
-    this.datasets.forEach(function(dataset) {
-      ds.PerFrameFunctionalGroupsSequence[datasetIndex].FrameVOILUTSequence = {
-        WindowCenter: dataset.WindowCenter,
-        WindowWidth: dataset.WindowWidth,
-      };
-      ds.ReferencedSeriesSequence.ReferencedInstance[datasetIndex] = {
+    this.datasets.forEach(function(dataset, datasetIndex) {
+      ds.PerFrameFunctionalGroupsSequence.push({
+        PlanePositionSequence: {
+          ImagePositionPatient: distanceDatasetPairs[datsetIndex][1].ImagePositionPatient,
+        },
+        FrameVOILUTSequence: {
+          WindowCenter: dataset.WindowCenter,
+          WindowWidth: dataset.WindowWidth,
+        }
+      });
+
+      ds.ReferencedSeriesSequence.ReferencedInstanceSequence.push({
         ReferencedSOPClass: dataset.SOPClassUID,
         ReferencedSOPInstanceUID: dataset.SOPInstanceUID,
-      };
-      datasetIndex++;
+      });
     });
 
     let dimensionUID = DicomMetaDictionary.uid();

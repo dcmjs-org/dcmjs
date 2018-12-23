@@ -1,4 +1,13 @@
 /* eslint no-bitwise: 0 */
+
+const BitArray = {
+  getBytesForBinaryFrame,
+  pack,
+  unpack
+};
+
+export { BitArray }
+
 function getBytesForBinaryFrame (numPixels) {
   // Check whether the 1-bit pixels exactly fit into bytes
   const remainder = numPixels % 8;
@@ -14,7 +23,7 @@ function getBytesForBinaryFrame (numPixels) {
   return bytesRequired;
 }
 
-function packBitArray (pixelData) {
+function pack (pixelData) {
   const numPixels = pixelData.length;
   console.log('numPixels: ' + numPixels);
 
@@ -47,4 +56,17 @@ function packBitArray (pixelData) {
   return bitPixelData;
 }
 
-export { packBitArray };
+// convert a packed bitwise pixel array into a byte-per-pixel
+// array with 255 corresponding to each set bit in the bit array
+function unpack(bitPixelArray) {
+  const bitArray = new Uint8Array(bitPixelArray);
+  const byteArray = new Uint8Array(8*bitArray.length);
+
+  for (let byteIndex = 0; byteIndex < byteArray.length; byteIndex++) {
+    const bitIndex = byteIndex%8;
+    const bitByteIndex = Math.floor(byteIndex/8);
+    byteArray[byteIndex] = 255 * ( (bitArray[bitByteIndex] & (1<<bitIndex)) >> bitIndex );
+  }
+
+  return byteArray;
+}

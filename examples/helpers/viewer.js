@@ -153,6 +153,10 @@ class Viewer {
       let [wc,ww] = [dataset.WindowCenter,dataset.WindowWidth];
       if (Array.isArray(wc)) { wc = wc[0]; }
       if (Array.isArray(ww)) { ww = ww[0]; }
+      if (wc === undefined || ww === undefined) {
+        wc = (max+min) / 2.;
+        ww = (max-min);
+      }
       image = {
         imageId: imageId,
         minPixelValue: min,
@@ -378,7 +382,7 @@ class Viewer {
     cornerstone.registerImageLoader(`dcmjsPM${this.id}`, this.dcmjsPMImageloader.bind(this));
     cornerstone.metaData.addProvider(this.metaDataProvider.bind(this));
 
-    if (dcmjs.normalizers.Normalizer.isMultiframe(this.datasets[0])) {
+    if (dcmjs.normalizers.Normalizer.isMultiframeDataset(this.datasets[0])) {
       this.baseStack = this.addMultiframe(this.datasets[0]);
     } else {
       this.baseStack = this.addSingleframes(this.datasets);
@@ -457,9 +461,9 @@ class Viewer {
       imageIds.push(imageId);
       this.addMetaData('imagePlane', imageId, {
         imagePositionPatient: {
-          x: this.datasets[index].ImagePositionPatient[0],
-          y: this.datasets[index].ImagePositionPatient[1],
-          z: this.datasets[index].ImagePositionPatient[2],
+          x: Number(this.datasets[index].ImagePositionPatient[0]),
+          y: Number(this.datasets[index].ImagePositionPatient[1]),
+          z: Number(this.datasets[index].ImagePositionPatient[2]),
         }
       });
     }
@@ -505,7 +509,7 @@ class Viewer {
       const imageId = baseImageId + frameIndex;
       imageIds.push(imageId);
 
-      let imagePositionPatient = perFrameGroup.PlanePositionSequence.ImagePositionPatient;
+      let imagePositionPatient = perFrameGroup.PlanePositionSequence.ImagePositionPatient.map(Number);
       this.addMetaData('imagePlane', imageId, {
         imagePositionPatient: {
           x: imagePositionPatient[0],
@@ -681,7 +685,7 @@ class Viewer {
           const imageId = baseImageId + frameIndex;
           imageIds.push(imageId);
 
-          let imagePositionPatient = perFrameGroup.PlanePositionSequence.ImagePositionPatient;
+          let imagePositionPatient = perFrameGroup.PlanePositionSequence.ImagePositionPatient.map(Number);
           this.addMetaData('imagePlane', imageId, {
             imagePositionPatient: {
               x: imagePositionPatient[0],
