@@ -264,7 +264,8 @@
       let imagesCount = 45;
       for (let i = 45; i < 89; i++) {
         let url = baseImageURL + "0000" + i + ".dcm";
-        client._httpGetApplicationOctetStream(url).then(arrayBuffer => {
+        let options = { "BulkDataURI" : url };
+        client.retrieveBulkData(options).then(arrayBuffer => {
           let dataset = dc0.datasetFromArrayBuffer(arrayBuffer);
           dc0.datasets.push(dataset);
           if (i == 88) {
@@ -275,7 +276,8 @@
       }
 
       let basePMURL = "https://s3.amazonaws.com/IsomicsPublic/SampleData/dicomPM/ldMap_axial_cap.dcm";
-      client._httpGetApplicationOctetStream(basePMURL).then(arrayBuffer => {
+      let options = { "BulkDataURI" : basePMURL };
+      client.retrieveBulkData(options).then(arrayBuffer => {
         let dataset = dc0paraMap.datasetFromArrayBuffer(arrayBuffer);
         dc0paraMap.datasets.push(dataset);
         dc0.viewer.addParametricMap(dataset, "colorbar");
