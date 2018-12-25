@@ -2,7 +2,7 @@
 <html>
 
 <head>
-  <title>DCMJS Display</title>
+  <title>DCMJS Display 2</title>
   <meta charset="utf-8">
   <meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1, maximum-scale=1">
 
@@ -38,14 +38,13 @@
         DICOM Data Display
       </h1>
       <p>
-        This example demonstrates display of DICOM images and Parametric Map overlays.
+        This example demonstrates display a Parametric Map, for example an ADC map.
       </p>
       <a href="../index.html">Go back to the Examples page</a>
     </div>
 
     <div class="row" id="mainDisplay" style="border: 1px solid black;">
       <ul>
-        <li>Drag and drop a multiframe image file or a set of single frame images.</li>
         <li>Drag and drop a parametric map object in the space of those images.</li>
       </ul>
       <p id='status'>Ready for images...</p>
@@ -62,11 +61,6 @@
           <canvas id="colorbar" width="512px" height="20px"></canvas>
         </div>
       </div>
-      <div class='col-md-4'>
-        <h2>Controls</h2>
-        <div id='controlPanel' class='qiicrStepUIPanel'></div>
-      </div>
-
     </div>
 
   </div>
@@ -106,8 +100,7 @@
     $('#status').text(statusMessage);
   }
 
-  // containers for managing background and parametric map data
-  var dc0 = new DICOMZero({ status });
+  // container for managing parametric map data
   var dc0paraMap = new DICOMZero({ status });
 
   $(document).ready(function () {
@@ -127,36 +120,15 @@
       evt.stopPropagation();
       evt.preventDefault();
 
-      //
-      // if one file dropped, and we already have a viewer,
-      // check if it's a parametric map and overlay.
-      // Also special case for two files that might be a multiframe and parametric map.
-      // Otherwise reset and load the dropped data.
-      //
-      if (dc0.viewer && evt.dataTransfer.files.length == 1) {
-        dc0.handleDataTransferFileAsDataset(evt.dataTransfer.files[0], {
-          doneCallback: function (dataset) {
-            console.log("callback " + dataset.SOPClassUID)
-            if (dataset.SOPClassUID == dcmjs.data.DicomMetaDictionary.sopClassUIDsByName['ParametricMapStorage']) {
-              console.log("add call paramatric map to viewer...")
-              dc0.viewer.addParametricMapOverlay(dataset, "colorbar");
-              console.log("add call to viewer successfull")
-              dc0paraMap.datasets = [dataset]
-              dc0.viewer.render();
-              setupControlPanel();
-            }
-          }
-        });
-      } else {
-        resetDICOMzero();
-        dc0.dataTransfer = { files: [] };
-        for (let fileIndex = 0; fileIndex < evt.dataTransfer.files.length; fileIndex++) {
-          dc0.dataTransfer.files[fileIndex] = evt.dataTransfer.files[fileIndex];
-        }
-        status(`Got ${dc0.dataTransfer.files.length} files...`);
-        dc0.readOneFile(displayDatasets, status);
+      resetDICOMzero();
+      dc0paraMap.dataTransfer = { files: [] };
+      for (let fileIndex = 0; fileIndex < evt.dataTransfer.files.length; fileIndex++) {
+        dc0paraMap.dataTransfer.files[fileIndex] = evt.dataTransfer.files[fileIndex];
       }
+      status(`Got ${dc0paraMap.dataTransfer.files.length} files...`);
+      dc0paraMap.readOneFile(displayDatasets, status);
     }
+    
     $('#dropZone').bind('drop', handleFileDrop);
 
     //
@@ -165,11 +137,11 @@
     $('.datasetControl').attr('disabled', true);
 
     function resetDICOMzero() {
-      if (dc0.viewer) {
-        dc0.viewer.reset();
-        dc0.viewer.removeElement();
+      if (dc0paraMap.viewer) {
+        dc0paraMap.viewer.reset();
+        dc0paraMap.viewer.removeElement();
       }
-      dc0.reset();
+      dc0paraMap.reset();
       $('#datasetSlider').val(0);
       $('#datasetSlider').attr('max', 0);
     }
@@ -177,20 +149,20 @@
     function setOffset(offset) {
       $('#frameOffset').text(offset);
       $('#datasetSlider').val(offset);
-      dc0.viewer.index = offset;
+      dc0paraMap.viewer.index = offset;
     }
 
     function frameCount() {
-      if (dcmjs.normalizers.Normalizer.isMultiframeDataset(dc0.datasets[0])) {
-        return (dc0.datasets[0].NumberOfFrames);
+      if (dcmjs.normalizers.Normalizer.isMultiframeDataset(dc0paraMap.datasets[0])) {
+        return (dc0paraMap.datasets[0].NumberOfFrames);
       } else {
-        return (dc0.datasets.length);
+        return (dc0paraMap.datasets.length);
       }
     }
 
     function displayDatasets() {
       status("Displaying...");
-      dc0.datasets.sort(function (a, b) {
+      dc0paraMap.datasets.sort(function (a, b) {
         return (Number(a.InstanceNumber) - Number(b.InstanceNumber));
       });
       $('#datasetSlider').attr('min', 0);
@@ -202,7 +174,7 @@
           // now add the parametric map
           status("Adding parametric map...");
           if (dc0paraMap.datasets.length > 0) {
-            dc0.viewer.addParametricMapOverlay(dc0paraMap.datasets[0], 'colorbar');
+            dc0paraMap.viewer.addParametricMap(dc0paraMap.datasets[0]);
             setupControlPanel();
           }
           togglePlayMode();
@@ -210,8 +182,8 @@
       }
 
       status("Setting up viewer...");
-      dc0.viewer = new Viewer(dc0.datasets);
-      dc0.viewer.display('#dicomImages', options);
+      dc0paraMap.viewer = new Viewer(dc0paraMap.datasets);
+      dc0paraMap.viewer.display('#dicomImages', options);
 
     }
 
@@ -260,28 +232,14 @@
     function drawSampleDatasets() {
       const client = new DICOMwebClient.api.DICOMwebClient({"url" : "noURL"});
 
-      let baseImageURL = "http://s3.amazonaws.com/IsomicsPublic/SampleData/dicomPM/";
-      let imagesCount = 45;
-      for (let i = 45; i < 89; i++) {
-        let url = baseImageURL + "0000" + i + ".dcm";
-        let options = { "BulkDataURI" : url };
-        client.retrieveBulkData(options).then(arrayBuffer => {
-          let dataset = dc0.datasetFromArrayBuffer(arrayBuffer);
-          dc0.datasets.push(dataset);
-          if (i == 88) {
-            displayDatasets();
-            status("waiting for parametric map...")
-          }
-        });
-      }
-
+      // TODO: change URL to ADC map example
       let basePMURL = "http://s3.amazonaws.com/IsomicsPublic/SampleData/dicomPM/ldMap_axial_cap.dcm";
       let options = { "BulkDataURI" : basePMURL };
       client.retrieveBulkData(options).then(arrayBuffer => {
         let dataset = dc0paraMap.datasetFromArrayBuffer(arrayBuffer);
         dc0paraMap.datasets.push(dataset);
-        dc0.viewer.addParametricMap(dataset, "colorbar");
-        dc0.viewer.render();
+        dc0paraMap.viewer.addParametricMap(dataset, "colorbar");
+        dc0paraMap.viewer.render();
         setupControlPanel();
         status("Done loading.")
       });
