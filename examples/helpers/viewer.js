@@ -493,8 +493,13 @@ class Viewer {
     cornerstone.registerImageLoader(`dcmjsPMOverlay${this.id}`, this.dcmjsPMOverlayLoader.bind(this));
     cornerstone.metaData.addProvider(this.metaDataProvider.bind(this));
 
+    
     if (dcmjs.normalizers.Normalizer.isMultiframeDataset(this.datasets[0])) {
-      this.baseStack = this.addMultiframe(this.datasets[0]);
+      if (options.multiframeIsPM){
+        this.baseStack = this.addParametricMap(this.datasets[0]);
+      } else{
+        this.baseStack = this.addMultiframe(this.datasets[0]);
+      }
     } else {
       this.baseStack = this.addSingleframes(this.datasets);
     }
@@ -747,11 +752,13 @@ class Viewer {
       }
     }
     // then add the stack to cornerstone
-    cornerstoneTools.addToolState(this.element, 'stack', parametricMapStack);
+    //cornerstoneTools.addToolState(this.element, 'stack', parametricMapStack);
 
     if (colorbarId){
       this.updateColorbar(colormap, colorbarId)
     }
+
+    return parametricMapStack;
   }
 
   /**

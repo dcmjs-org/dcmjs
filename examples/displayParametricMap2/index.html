@@ -171,12 +171,9 @@
 
       options = {
         callback: function(){
-          if (dc0paraMap.datasets.length > 0) {
-            dc0paraMap.viewer.addParametricMap(dc0paraMap.datasets[0]);
-            setupControlPanel();
-          }
            togglePlayMode();
-        }
+        },
+        multiframeIsPM : true
       }
 
       status("Setting up viewer...");
