@@ -180,7 +180,7 @@ class Viewer {
   dcmjsImageLoader(imageId) {
     let index = Number(imageId.slice(imageId.lastIndexOf('/')+1));
     let image;
-    if (index >= 0 && index < this.datasets.length-1) {
+    if (index >= 0 && index < this.datasets.length) {
       let dataset = this.datasets[index];
       // only handle BitsAllocated == 16, signed BitsStored for now
       let pixelData = new Int16Array(dataset.PixelData);
@@ -306,7 +306,7 @@ class Viewer {
     let dataset = this.parametricMapDataset;
     let index = Number(imageId.slice(imageId.lastIndexOf('/')+1));
     let image;
-    if (index >= 0 && index < dataset.NumberOfFrames-1) {
+    if (index >= 0 && index < dataset.NumberOfFrames) {
 
       let framePixels = dataset.Rows * dataset.Columns;
       let startIndex = dataset.Rows * dataset.Columns * index;
@@ -361,11 +361,10 @@ class Viewer {
    * @param {*} imageId 
    */
   dcmjsPMImageLoader(imageId){
-    console.log(imageId);
     let dataset = this.parametricMapDataset;
     let index = Number(imageId.slice(imageId.lastIndexOf('/')+1));
     let image;
-    if (index >= 0 && index < dataset.NumberOfFrames-1) {
+    if (index >= 0 && index < dataset.NumberOfFrames) {
 
       let framePixels = dataset.Rows * dataset.Columns;
       let startIndex = framePixels * index;
@@ -430,7 +429,7 @@ class Viewer {
     let dataset = this.multiframeDataset
     let index = Number(imageId.slice(imageId.lastIndexOf('/')+1));
     let image;
-    if (index >= 0 && index < dataset.NumberOfFrames-1) {
+    if (index >= 0 && index < dataset.NumberOfFrames) {
       // only handle BitsAllocated == 16, signed BitsStored for now
       let frameBytes = dataset.Rows * dataset.Columns * 2;
       let frameOffset = frameBytes * index;

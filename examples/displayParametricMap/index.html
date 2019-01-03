@@ -197,15 +197,9 @@
       $('#datasetSlider').attr('max', frameCount() - 1);
       $('.datasetControl').attr('disabled', false);
 
-      var options = {
-        callback: function () {
-          // now add the parametric map
-          status("Adding parametric map...");
-          if (dc0paraMap.datasets.length > 0) {
-            dc0.viewer.addParametricMapOverlay(dc0paraMap.datasets[0], 'colorbar');
-            setupControlPanel();
-          }
-          togglePlayMode();
+      options = {
+        callback: function(){
+           togglePlayMode();
         }
       }
 
@@ -259,14 +253,13 @@
      */
     function drawSampleDatasets() {
       const client = new DICOMwebClient.api.DICOMwebClient({"url" : "noURL"});
-
-      let baseImageURL = "http://s3.amazonaws.com/IsomicsPublic/SampleData/dicomPM/";
+      status("Downloading data...")
+      let baseImageURL = "https://s3.amazonaws.com/IsomicsPublic/SampleData/dicomPM/";
       let imagesCount = 45;
       for (let i = 45; i < 89; i++) {
         let url = baseImageURL + "0000" + i + ".dcm";
-        let options = { "BulkDataURI" : url };
-        client.retrieveBulkData(options).then(arrayBuffer => {
-          let dataset = dc0.datasetFromArrayBuffer(arrayBuffer);
+        client._httpGet(url, {}, "arraybuffer").then(arrayBuffer => {
+          let dataset = DICOMZero.datasetFromArrayBuffer(arrayBuffer);
           dc0.datasets.push(dataset);
           if (i == 88) {
             displayDatasets();
@@ -275,12 +268,13 @@
         });
       }
 
-      let basePMURL = "http://s3.amazonaws.com/IsomicsPublic/SampleData/dicomPM/ldMap_axial_cap.dcm";
+      let basePMURL = "https://s3.amazonaws.com/IsomicsPublic/SampleData/dicomPM/ldMap_axial_cap.dcm";
       let options = { "BulkDataURI" : basePMURL };
-      client.retrieveBulkData(options).then(arrayBuffer => {
-        let dataset = dc0paraMap.datasetFromArrayBuffer(arrayBuffer);
+      client._httpGet(basePMURL, {}, "arraybuffer").then(arrayBuffer => {
+        let dataset = DICOMZero.datasetFromArrayBuffer(arrayBuffer);
         dc0paraMap.datasets.push(dataset);
-        dc0.viewer.addParametricMap(dataset, "colorbar");
+        console.log("parametric map downloaded")
+        dc0.viewer.addParametricMapOverlay(dataset, "colorbar");
         dc0.viewer.render();
         setupControlPanel();
         status("Done loading.")
