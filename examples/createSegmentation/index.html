@@ -52,6 +52,7 @@
 
     <script src="../js/jquery.min.js"></script>
     <script src="../js/jqueryFileDrop.js"></script>
+    <script src="../js/jszip.min.js"></script>
 
     <script src="https://unpkg.com/cornerstone-core@2.2.6/dist/cornerstone.js"></script>
     <script src="https://unpkg.com/cornerstone-math@0.1.6/dist/cornerstoneMath.js"></script>
@@ -92,11 +93,68 @@
       let metaData = {};
 
       function createSeg() {
-        console.log(
-          cornerstoneTools.globalImageIdSpecificToolStateManager.saveToolState()
-        );
+        const element = document.getElementsByClassName("viewport-element")[0];
+        const globalToolStateManager =
+          cornerstoneTools.globalImageIdSpecificToolStateManager;
 
-        console.log("test");
+        const stackToolState = cornerstoneTools.getToolState(element, "stack");
+        const imageIds = stackToolState.data[0].imageIds;
+
+        let imagePromises = [];
+        for (let i = 0; i < imageIds.length; i++) {
+          imagePromises.push(cornerstone.loadImage(imageIds[0]));
+        }
+
+        const RecommendedDisplayCIELabValue = dcmjs.data.Colors.rgb2DICOMLAB([
+          1,
+          0,
+          0
+        ]);
+
+        const brushData = {
+          toolState: globalToolStateManager.saveToolState(),
+          segments: [
+            {
+              SegmentedPropertyCategoryCodeSequence: {
+                CodeValue: "T-D0050",
+                CodingSchemeDesignator: "SRT",
+                CodeMeaning: "Tissue"
+              },
+              SegmentNumber: 1,
+              SegmentLabel: "Tissue",
+              SegmentAlgorithmType: "SEMIAUTOMATIC",
+              SegmentAlgorithmName: "Slicer Prototype",
+              RecommendedDisplayCIELabValue,
+              SegmentedPropertyTypeCodeSequence: {
+                CodeValue: "T-D0050",
+                CodingSchemeDesignator: "SRT",
+                CodeMeaning: "Tissue"
+              }
+            }
+          ]
+        };
+
+        Promise.all(imagePromises)
+          .then(images => {
+            const segBlob = dcmjs.adapters.Cornerstone.Segmentation.generateToolState(
+              imageIds,
+              images,
+              brushData
+            );
+
+            console.log(segBlob);
+            /*
+            let zip = new JSZip();
+            zip.file("segmentation.dcm", segBlob);
+            zip.generateAsync({ type: "blob" }).then(function(contents) {
+              saveAs(contents, "derivedDICOM.zip", true);
+              status(
+                `Finished, waiting for more DICOM files (drop them below).`
+              );
+            });
+            */
+          })
+          .catch(err => console.log(err));
       }
 
       function addMetaData(type, imageId, data) {
