@@ -132,8 +132,17 @@
           arrayBuffer
         );
 
+        cornerstoneTools.globalImageIdSpecificToolStateManager.restoreToolState(
+          toolState
+        );
+        const brushModule = cornerstoneTools.store.modules.brush;
+
         console.log(toolState);
         console.log(segMetadata);
+
+        for (let i = 0; i < segMetadata.length; i++) {
+          modules.brush.setters.metadata(seriesInstanceUid, i, segMetadata[i]);
+        }
       }
 
       function addMetaData(type, imageId, data) {

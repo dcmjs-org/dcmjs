@@ -3,16 +3,6 @@ export default class Segmentation {
 
   static generateToolState(stackOfImages, toolState) {}
 
-  static _setSegMetadata(segMetadata, idx, segment) {
-    segMetadata[idx] = segment;
-
-    modules.brush.setters.metadata(
-      this._seriesInfo.seriesInstanceUid,
-      idx,
-      segment
-    );
-  }
-
   static _addOneSegToCornerstoneToolState() {}
 
   static readToolState(imageIds, arrayBuffer) {
@@ -42,7 +32,10 @@ export default class Segmentation {
 
     //console.log(multiframe);
 
-    const segMetadata = [];
+    const segMetadata = {
+      seriesInstanceUid: multiframe.SeriesInstanceUid,
+      data: []
+    };
 
     const toolState = {};
 
@@ -70,7 +63,7 @@ export default class Segmentation {
       }
 
       for (let segIndex = 0; segIndex < segmentSequence.length; segIndex++) {
-        segMetadata.push(segmentSequence[segIndex]);
+        segMetadata.data.push(segmentSequence[segIndex]);
 
         for (let z = 0; z < imageIds.length; z++) {
           const imageId = imageIds[z];
@@ -86,7 +79,7 @@ export default class Segmentation {
       }
     } else {
       // Only one segment, will be stored as an object.
-      segMetadata.push(segmentSequence);
+      segMetadata.data.push(segmentSequence);
 
       const segIndex = 0;
 

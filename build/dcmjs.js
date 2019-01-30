@@ -74,7 +74,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /******/
 /******/ 	var hotApplyOnUpdate = true;
 /******/ 	// eslint-disable-next-line no-unused-vars
-/******/ 	var hotCurrentHash = "add9ddacc7a54146d773";
+/******/ 	var hotCurrentHash = "abb27062867219a6091b";
 /******/ 	var hotRequestTimeout = 10000;
 /******/ 	var hotCurrentModuleData = {};
 /******/ 	var hotCurrentChildModule;
@@ -3623,13 +3623,6 @@ var Segmentation = function () {
     key: "generateToolState",
     value: function generateToolState(stackOfImages, toolState) {}
   }, {
-    key: "_setSegMetadata",
-    value: function _setSegMetadata(segMetadata, idx, segment) {
-      segMetadata[idx] = segment;
-
-      modules.brush.setters.metadata(this._seriesInfo.seriesInstanceUid, idx, segment);
-    }
-  }, {
     key: "_addOneSegToCornerstoneToolState",
     value: function _addOneSegToCornerstoneToolState() {}
   }, {
@@ -3655,7 +3648,10 @@ var Segmentation = function () {
 
       //console.log(multiframe);
 
-      var segMetadata = [];
+      var segMetadata = {
+        seriesInstanceUid: multiframe.SeriesInstanceUid,
+        data: []
+      };
 
       var toolState = {};
 
@@ -3683,7 +3679,7 @@ var Segmentation = function () {
         }
 
         for (var segIndex = 0; segIndex < segmentSequence.length; segIndex++) {
-          segMetadata.push(segmentSequence[segIndex]);
+          segMetadata.data.push(segmentSequence[segIndex]);
 
           for (var _z = 0; _z < imageIds.length; _z++) {
             var _imageId = imageIds[_z];
@@ -3697,7 +3693,7 @@ var Segmentation = function () {
         }
       } else {
         // Only one segment, will be stored as an object.
-        segMetadata.push(segmentSequence);
+        segMetadata.data.push(segmentSequence);
 
         var _segIndex = 0;
 
