@@ -95,7 +95,7 @@
 
       function getAndLoadSeg() {
         var segURL =
-          "dicomweb:https://s3.amazonaws.com/IsomicsPublic/SampleData/rsna2017/seg/task2/SEG/tumor_User1_Manual_Trial1.dcm";
+          "https://s3.amazonaws.com/IsomicsPublic/SampleData/rsna2017/seg/task2/SEG/tumor_User1_Manual_Trial1.dcm";
 
         const xhr = new XMLHttpRequest();
 
@@ -105,14 +105,29 @@
           parseSeg(xhr.response);
         });
 
-        xhr.open("GET", url);
+        xhr.addEventListener("error", () => {
+          console.log(`Request returned, status: ${xhr.status}`);
+          console.log(xhr.message);
+        });
+
+        xhr.open("GET", segURL);
         xhr.responseType = "arraybuffer"; //Type of file
-        xhr.withCredentials = true;
-        xhr.setRequestHeader(
-          "Access-Control-Allow-Origin",
-          "http://localhost:3000"
-        );
+
+        console.log("...fetching seg");
+
         xhr.send();
+      }
+
+      function parseSeg(arrayBuffer) {
+        const element = document.getElementsByClassName("viewport-element")[0];
+
+        const stackToolState = cornerstoneTools.getToolState(element, "stack");
+        const imageIds = stackToolState.data[0].imageIds;
+
+        dcmjs.adapters.Cornerstone.Segmentation.readToolState(
+          imageIds,
+          arrayBuffer
+        );
       }
 
       function addMetaData(type, imageId, data) {
@@ -204,8 +219,6 @@
       var baseURL =
         "https://s3.amazonaws.com/IsomicsPublic/SampleData/rsna2017/seg/task2/";
       var baseImageId = "dicomweb:" + baseURL + "PT-multiframe.dcm";
-
-      console.log(baseImageId);
 
       loadMultiFrameAndPopulateMetadata(baseImageId)
         .then(value => {

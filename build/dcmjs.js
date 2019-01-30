@@ -74,7 +74,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /******/
 /******/ 	var hotApplyOnUpdate = true;
 /******/ 	// eslint-disable-next-line no-unused-vars
-/******/ 	var hotCurrentHash = "a57034d836292e4d537e";
+/******/ 	var hotCurrentHash = "1fd8edb48afbc5dd5f89";
 /******/ 	var hotRequestTimeout = 10000;
 /******/ 	var hotCurrentModuleData = {};
 /******/ 	var hotCurrentChildModule;
@@ -3623,39 +3623,71 @@ var Segmentation = function () {
     key: "generateToolState",
     value: function generateToolState(stackOfImages, toolState) {}
   }, {
+    key: "_setSegMetadata",
+    value: function _setSegMetadata(segIndex, metadata) {
+      modules.brush.setters.metadata(this._seriesInfo.seriesInstanceUid, segIndex, metadata);
+    }
+  }, {
     key: "readToolState",
-    value: function readToolState(dataset) {
-      // TODO: Check if the dataset is a seg.
-      /*
-      if (dataset) {
-        throw new Error("This package is only meant to ");
+    value: function readToolState(imageIds, arrayBuffer) {
+      dicomData = dcmjs.data.DicomMessage.readFile(arrayBuffer);
+      var dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(dicomData.dict);
+      dataset._meta = dcmjs.data.DicomMetaDictionary.namifyDataset(dicomData.meta);
+      multiframe = dcmjs.normalizers.Normalizer.normalizeToDataset([dataset]);
+
+      var segmentSequence = multiframe.SegmentSequence;
+
+      var segMetadata = {};
+
+      if (Array.isArray(segmentSequence)) {
+        for (var i = 0; i < segmentSequence.length; i++) {
+          var segment = segmentSequence[i];
+
+          this._setSegMetadata(segMetadata, i, segment);
+          /*
+          for (let j = 0; j < dimensions.cube; j++) {
+            mask[j] = pixelData[i * dimensions.cube + j];
+          }
+          */
+        }
+      } else {
+        // Only one segment, will be stored as an object.
+        var _segment = segmentSequence;
+
+        Segmentation._setSegMetadata(segMetadata, 0, _segment);
+        /*
+        for (let j = 0; j < dimensions.cube; j++) {
+          mask[j] = pixelData[j];
+        }
+        */
       }
-      */
 
-      var _cornerstoneTools = cornerstoneTools,
-          globalImageIdSpecificToolStateManager = _cornerstoneTools.globalImageIdSpecificToolStateManager;
+      // TODO -> return seg metadata and brush tool data.
 
-
-      for (var i = 0; i < imageIds.length; i++) {
-        var imageId = imageIds[i];
-        var byteOffset = width * height * i;
-        var length = width * height;
-        var slicePixelData = new Uint8ClampedArray(buffer, byteOffset, length);
-
-        var toolData = [];
+      /*
+      const { globalImageIdSpecificToolStateManager } = cornerstoneTools;
+       for (let i = 0; i < imageIds.length; i++) {
+        const imageId = imageIds[i];
+        const byteOffset = width * height * i;
+        const length = width * height;
+        const slicePixelData = new Uint8ClampedArray(buffer, byteOffset, length);
+         const toolData = [];
         toolData[segmentationIndex] = {
           pixelData: slicePixelData,
           invalidated: true
         };
-
-        var toolState = globalImageIdSpecificToolStateManager.saveImageIdToolState(imageId) || {};
-
-        toolState[toolType] = {
+         const toolState =
+          globalImageIdSpecificToolStateManager.saveImageIdToolState(imageId) ||
+          {};
+         toolState[toolType] = {
           data: toolData
         };
-
-        globalImageIdSpecificToolStateManager.restoreImageIdToolState(imageId, toolState);
+         globalImageIdSpecificToolStateManager.restoreImageIdToolState(
+          imageId,
+          toolState
+        );
       }
+      */
     }
   }]);
 
