@@ -124,10 +124,16 @@
         const stackToolState = cornerstoneTools.getToolState(element, "stack");
         const imageIds = stackToolState.data[0].imageIds;
 
-        dcmjs.adapters.Cornerstone.Segmentation.readToolState(
+        const {
+          toolState,
+          segMetadata
+        } = dcmjs.adapters.Cornerstone.Segmentation.readToolState(
           imageIds,
           arrayBuffer
         );
+
+        console.log(toolState);
+        console.log(segMetadata);
       }
 
       function addMetaData(type, imageId, data) {

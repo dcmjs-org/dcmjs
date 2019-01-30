@@ -3,13 +3,17 @@ export default class Segmentation {
 
   static generateToolState(stackOfImages, toolState) {}
 
-  static _setSegMetadata(segIndex, metadata) {
+  static _setSegMetadata(segMetadata, idx, segment) {
+    segMetadata[idx] = segment;
+
     modules.brush.setters.metadata(
       this._seriesInfo.seriesInstanceUid,
-      segIndex,
-      metadata
+      idx,
+      segment
     );
   }
+
+  static _addOneSegToCornerstoneToolState() {}
 
   static readToolState(imageIds, arrayBuffer) {
     dicomData = dcmjs.data.DicomMessage.readFile(arrayBuffer);
@@ -19,65 +23,100 @@ export default class Segmentation {
     dataset._meta = dcmjs.data.DicomMetaDictionary.namifyDataset(
       dicomData.meta
     );
-    multiframe = dcmjs.normalizers.Normalizer.normalizeToDataset([dataset]);
+    const multiframe = dcmjs.normalizers.Normalizer.normalizeToDataset([
+      dataset
+    ]);
+
+    const dims = {
+      x: multiframe.Columns,
+      y: multiframe.Rows,
+      z: imageIds.length,
+      xy: multiframe.Columns * multiframe.Rows,
+      xyz: multiframe.Columns * multiframe.Rows * imageIds.length
+    };
 
     const segmentSequence = multiframe.SegmentSequence;
+    const pixelData = dcmjs.data.BitArray.unpack(multiframe.PixelData);
 
-    const segMetadata = {};
+    //console.log(segmentSequence);
+
+    //console.log(multiframe);
+
+    const segMetadata = [];
+
+    const toolState = {};
 
     if (Array.isArray(segmentSequence)) {
-      for (let i = 0; i < segmentSequence.length; i++) {
-        const segment = segmentSequence[i];
+      const segCount = segmentSequence.length;
 
-        this._setSegMetadata(segMetadata, i, segment);
-        /*
-        for (let j = 0; j < dimensions.cube; j++) {
-          mask[j] = pixelData[i * dimensions.cube + j];
+      for (let z = 0; z < imageIds.length; z++) {
+        const imageId = imageIds[z];
+
+        const imageIdSpecificToolState = {};
+
+        imageIdSpecificToolState.brush = {};
+        imageIdSpecificToolState.brush.data = [];
+
+        const brushData = imageIdSpecificToolState.brush.data;
+
+        for (let i = 0; i < segCount; i++) {
+          brushData[i] = {
+            invalidated: true,
+            pixelData: new Uint8ClampedArray(dims.x * dims.y)
+          };
         }
-        */
+
+        toolState[imageId] = imageIdSpecificToolState;
+      }
+
+      for (let segIndex = 0; segIndex < segmentSequence.length; segIndex++) {
+        segMetadata.push(segmentSequence[segIndex]);
+
+        for (let z = 0; z < imageIds.length; z++) {
+          const imageId = imageIds[z];
+
+          const cToolsPixelData =
+            toolState[imageId].brush.data[segIndex].pixelData;
+
+          for (let p = 0; p < dims.xy; p++) {
+            cToolsPixelData[p] =
+              pixelData[segIndex * dims.xyz + z * dims.xy + p];
+          }
+        }
       }
     } else {
       // Only one segment, will be stored as an object.
-      const segment = segmentSequence;
+      segMetadata.push(segmentSequence);
 
-      Segmentation._setSegMetadata(segMetadata, 0, segment);
-      /*
-      for (let j = 0; j < dimensions.cube; j++) {
-        mask[j] = pixelData[j];
+      const segIndex = 0;
+
+      for (let z = 0; z < imageIds.length; z++) {
+        const imageId = imageIds[z];
+
+        const imageIdSpecificToolState = {};
+
+        imageIdSpecificToolState.brush = {};
+        imageIdSpecificToolState.brush.data = [];
+        imageIdSpecificToolState.brush.data[segIndex] = {
+          invalidated: true,
+          pixelData: new Uint8ClampedArray(dims.x * dims.y)
+        };
+
+        const cToolsPixelData =
+          imageIdSpecificToolState.brush.data[segIndex].pixelData;
+
+        for (let p = 0; p < dims.xy; p++) {
+          cToolsPixelData[p] = pixelData[z * dims.xy + p];
+        }
+
+        toolState[imageId] = imageIdSpecificToolState;
       }
-      */
     }
+
+    //console.log(toolState);
 
     // TODO -> return seg metadata and brush tool data.
 
-    /*
-    const { globalImageIdSpecificToolStateManager } = cornerstoneTools;
-
-    for (let i = 0; i < imageIds.length; i++) {
-      const imageId = imageIds[i];
-      const byteOffset = width * height * i;
-      const length = width * height;
-      const slicePixelData = new Uint8ClampedArray(buffer, byteOffset, length);
-
-      const toolData = [];
-      toolData[segmentationIndex] = {
-        pixelData: slicePixelData,
-        invalidated: true
-      };
-
-      const toolState =
-        globalImageIdSpecificToolStateManager.saveImageIdToolState(imageId) ||
-        {};
-
-      toolState[toolType] = {
-        data: toolData
-      };
-
-      globalImageIdSpecificToolStateManager.restoreImageIdToolState(
-        imageId,
-        toolState
-      );
-    }
-    */
+    return { toolState, segMetadata };
   }
 }
