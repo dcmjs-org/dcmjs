@@ -1,8 +1,8 @@
 import { BitArray } from "../../bitArray.js";
 
 const Segmentation = {
-  generateToolState,
-  readToolState
+  createSEG,
+  generateToolState
 };
 
 export default Segmentation;
@@ -16,14 +16,14 @@ export default Segmentation;
  */
 
 /**
- * generateToolState - Generates cornerstoneTools brush data, given a stack of
- * imageIds, images and the cornerstoneTools brushData.
+ * createSEG - Generates a DICOM SEG, given a stack of
+ * images and the cornerstoneTools brushData.
  *
  * @param  {object[]} images    An array of the cornerstone image objects.
  * @param  {BrushData} brushData and object containing the brushData.
  * @returns {type}           description
  */
-function generateToolState(images, brushData) {
+function createSEG(images, brushData) {
   // NOTE: here be dragons. Currently if a brush has been used and then erased,
   // This will flag up as a segmentation, even though its full of zeros.
   // Fixing this cleanly really requires an update of cornerstoneTools?
@@ -196,7 +196,7 @@ function _createSegFromImages(images, isMultiframe) {
 }
 
 /**
- * readToolState - Given a set of cornrstoneTools imageIds and a SEG, derive
+ * generateToolState - Given a set of cornrstoneTools imageIds and a SEG, derive
  * cornerstoneTools toolState and brush metadata.
  *
  * @param  {string[]} imageIds    An array of the imageIds.
@@ -204,7 +204,7 @@ function _createSegFromImages(images, isMultiframe) {
  * @returns {Object}  The toolState and an object from which the
  *                    segment metadata can be derived.
  */
-function readToolState(imageIds, arrayBuffer) {
+function generateToolState(imageIds, arrayBuffer) {
   dicomData = dcmjs.data.DicomMessage.readFile(arrayBuffer);
   let dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(
     dicomData.dict
