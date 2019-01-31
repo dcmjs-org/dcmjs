@@ -74,7 +74,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /******/
 /******/ 	var hotApplyOnUpdate = true;
 /******/ 	// eslint-disable-next-line no-unused-vars
-/******/ 	var hotCurrentHash = "05296546a7b36c05df36";
+/******/ 	var hotCurrentHash = "5319e2606d5150924657";
 /******/ 	var hotRequestTimeout = 10000;
 /******/ 	var hotCurrentModuleData = {};
 /******/ 	var hotCurrentChildModule;
@@ -3871,17 +3871,11 @@ function readToolState(imageIds, arrayBuffer) {
 
         var cToolsPixelData = toolState[_imageId].brush.data[segIdx].pixelData;
 
-        if (segType === "FRACTIONAL") {
-          for (var p = 0; p < dims.xy; p++) {
-            if (pixelData[segIdx * dims.xyz + _z * dims.xy + p]) {
-              cToolsPixelData[p] = 1;
-            } else {
-              cToolsPixelData[p] = 0;
-            }
-          }
-        } else {
-          for (var _p = 0; _p < dims.xy; _p++) {
-            cToolsPixelData[_p] = pixelData[segIdx * dims.xyz + _z * dims.xy + _p];
+        for (var p = 0; p < dims.xy; p++) {
+          if (pixelData[segIdx * dims.xyz + _z * dims.xy + p]) {
+            cToolsPixelData[p] = 1;
+          } else {
+            cToolsPixelData[p] = 0;
           }
         }
       }
@@ -3905,17 +3899,11 @@ function readToolState(imageIds, arrayBuffer) {
 
       var _cToolsPixelData = _imageIdSpecificToolState.brush.data[_segIdx].pixelData;
 
-      if (segType === "FRACTIONAL") {
-        for (var _p2 = 0; _p2 < dims.xy; _p2++) {
-          if (pixelData[_segIdx * dims.xyz + _z2 * dims.xy + _p2]) {
-            _cToolsPixelData[_p2] = 1;
-          } else {
-            _cToolsPixelData[_p2] = 0;
-          }
-        }
-      } else {
-        for (var _p3 = 0; _p3 < dims.xy; _p3++) {
-          _cToolsPixelData[_p3] = pixelData[_segIdx * dims.xyz + _z2 * dims.xy + _p3];
+      for (var _p = 0; _p < dims.xy; _p++) {
+        if (pixelData[_segIdx * dims.xyz + _z2 * dims.xy + _p]) {
+          _cToolsPixelData[_p] = 1;
+        } else {
+          _cToolsPixelData[_p] = 0;
         }
       }
 

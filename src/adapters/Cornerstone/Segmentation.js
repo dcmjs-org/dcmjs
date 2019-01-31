@@ -285,17 +285,11 @@ function readToolState(imageIds, arrayBuffer) {
 
         const cToolsPixelData = toolState[imageId].brush.data[segIdx].pixelData;
 
-        if (segType === "FRACTIONAL") {
-          for (let p = 0; p < dims.xy; p++) {
-            if (pixelData[segIdx * dims.xyz + z * dims.xy + p]) {
-              cToolsPixelData[p] = 1;
-            } else {
-              cToolsPixelData[p] = 0;
-            }
-          }
-        } else {
-          for (let p = 0; p < dims.xy; p++) {
-            cToolsPixelData[p] = pixelData[segIdx * dims.xyz + z * dims.xy + p];
+        for (let p = 0; p < dims.xy; p++) {
+          if (pixelData[segIdx * dims.xyz + z * dims.xy + p]) {
+            cToolsPixelData[p] = 1;
+          } else {
+            cToolsPixelData[p] = 0;
           }
         }
       }
@@ -320,17 +314,11 @@ function readToolState(imageIds, arrayBuffer) {
       const cToolsPixelData =
         imageIdSpecificToolState.brush.data[segIdx].pixelData;
 
-      if (segType === "FRACTIONAL") {
-        for (let p = 0; p < dims.xy; p++) {
-          if (pixelData[segIdx * dims.xyz + z * dims.xy + p]) {
-            cToolsPixelData[p] = 1;
-          } else {
-            cToolsPixelData[p] = 0;
-          }
-        }
-      } else {
-        for (let p = 0; p < dims.xy; p++) {
-          cToolsPixelData[p] = pixelData[segIdx * dims.xyz + z * dims.xy + p];
+      for (let p = 0; p < dims.xy; p++) {
+        if (pixelData[segIdx * dims.xyz + z * dims.xy + p]) {
+          cToolsPixelData[p] = 1;
+        } else {
+          cToolsPixelData[p] = 0;
         }
       }
 
