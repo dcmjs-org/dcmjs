@@ -53,35 +53,13 @@ function generateToolState(images, brushData) {
 
   // Create an array of ints as long as the number of
   // Voxels * the number of segments.
-  const cToolsPixelData = new Uint8ClampedArray(dims.xyz * numSegments);
-
-  let currentSeg = 0;
-
-  for (let segIdx = 0; segIdx < segments.length; segIdx++) {
-    if (!segments[segIdx]) {
-      continue;
-    }
-
-    for (let z = 0; z < images.length; z++) {
-      const imageId = images[z].imageId;
-      const imageIdSpecificToolState = toolState[imageId];
-
-      if (
-        imageIdSpecificToolState &&
-        imageIdSpecificToolState.brush &&
-        imageIdSpecificToolState.brush.data
-      ) {
-        const pixelData = imageIdSpecificToolState.brush.data[segIdx].pixelData;
-
-        for (let p = 0; p < dims.xy; p++) {
-          cToolsPixelData[currentSeg * dims.xyz + z * dims.xy + p] =
-            pixelData[p];
-        }
-      }
-    }
-
-    currentSeg++;
-  }
+  const cToolsPixelData = _parseCornerstoneToolsAndExtractSegs(
+    images,
+    toolState,
+    dims,
+    segments,
+    numSegments
+  );
 
   const dataSet = seg.dataset;
 
@@ -99,6 +77,63 @@ function generateToolState(images, brushData) {
   const segBlob = dcmjs.data.datasetToBlob(seg.dataset);
 
   return segBlob;
+}
+
+function _parseCornerstoneToolsAndExtractSegs(
+  images,
+  toolState,
+  dims,
+  segments,
+  numSegments
+) {
+  const cToolsPixelData = new Uint8ClampedArray(dims.xyz * numSegments);
+
+  let currentSeg = 0;
+
+  for (let segIdx = 0; segIdx < segments.length; segIdx++) {
+    if (!segments[segIdx]) {
+      continue;
+    }
+
+    _extractOneSeg(
+      segIdx,
+      images,
+      toolState,
+      cToolsPixelData,
+      currentSeg,
+      dims
+    );
+
+    currentSeg++;
+  }
+
+  return cToolsPixelData;
+}
+
+function _extractOneSeg(
+  segIdx,
+  images,
+  toolState,
+  cToolsPixelData,
+  currentSeg,
+  dims
+) {
+  for (let z = 0; z < images.length; z++) {
+    const imageId = images[z].imageId;
+    const imageIdSpecificToolState = toolState[imageId];
+
+    if (
+      imageIdSpecificToolState &&
+      imageIdSpecificToolState.brush &&
+      imageIdSpecificToolState.brush.data
+    ) {
+      const pixelData = imageIdSpecificToolState.brush.data[segIdx].pixelData;
+
+      for (let p = 0; p < dims.xy; p++) {
+        cToolsPixelData[currentSeg * dims.xyz + z * dims.xy + p] = pixelData[p];
+      }
+    }
+  }
 }
 
 function _addMetaDataToSegAndGetSegCount(seg, segments) {
