@@ -74,7 +74,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /******/
 /******/ 	var hotApplyOnUpdate = true;
 /******/ 	// eslint-disable-next-line no-unused-vars
-/******/ 	var hotCurrentHash = "0ae90b08548e603b2712";
+/******/ 	var hotCurrentHash = "79be3d0adb2e09e0b530";
 /******/ 	var hotRequestTimeout = 10000;
 /******/ 	var hotCurrentModuleData = {};
 /******/ 	var hotCurrentChildModule;
@@ -3612,6 +3612,8 @@ Object.defineProperty(exports, "__esModule", {
 
 var _bitArray = __webpack_require__(/*! ../../bitArray.js */ "./bitArray.js");
 
+var _helpers = __webpack_require__(/*! ../helpers.js */ "./adapters/helpers.js");
+
 var Segmentation = {
   createSEG: createSEG,
   generateToolState: generateToolState
@@ -3942,8 +3944,25 @@ var Segmentation = {
 
 exports.default = Segmentation;
 
+/**
+ * createSEG - creates a DICOM SEG using vtkjs labelmap data.
+ *
+ * @param  {Uint8ClampedArray} labelMap An array of voxel labels.
+ * @param  {object[]} images   An array of the images.
+ * @param  {object[]} segments An array of the segment metadata.
+ * @returns {ArrayBuffer}      The DICOM SEG.
+ */
 
-function createSEG() {}
+function createSEG(labelMap, images, segments) {
+  var dims = {
+    x: image0.columns,
+    y: image0.rows,
+    z: images.length
+  };
+
+  dims.xy = dims.x * dims.y;
+  dims.xyz = dims.xy * dims.z;
+}
 
 function generateImageData() {}
 
@@ -3986,8 +4005,46 @@ var codeMeaningEquals = function codeMeaningEquals(codeMeaningName) {
   };
 };
 
+/**
+ * createSegFromImages - description
+ *
+ * @param  {Object[]} images    An array of the cornerstone image objects.
+ * @param  {Boolean} isMultiframe Whether the images are multiframe.
+ * @returns {Object}              The Seg derived dataSet.
+ */
+function createSegFromImages(images, isMultiframe) {
+  var datasets = [];
+
+  if (isMultiframe) {
+    var image = images[0];
+    var arrayBuffer = image.data.byteArray.buffer;
+
+    var dicomData = dcmjs.data.DicomMessage.readFile(arrayBuffer);
+    var dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(dicomData.dict);
+
+    dataset._meta = dcmjs.data.DicomMetaDictionary.namifyDataset(dicomData.meta);
+
+    datasets.push(dataset);
+  } else {
+    for (var i = 0; i < images.length; i++) {
+      var _image = images[i];
+      var _arrayBuffer = _image.data.byteArray.buffer;
+      var _dicomData = dcmjs.data.DicomMessage.readFile(_arrayBuffer);
+      var _dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(_dicomData.dict);
+
+      _dataset._meta = dcmjs.data.DicomMetaDictionary.namifyDataset(_dicomData.meta);
+      datasets.push(_dataset);
+    }
+  }
+
+  var multiframe = dcmjs.normalizers.Normalizer.normalizeToDataset(datasets);
+
+  return new dcmjs.derivations.Segmentation([multiframe]);
+}
+
 exports.toArray = toArray;
 exports.codeMeaningEquals = codeMeaningEquals;
+exports.createSegFromImages = createSegFromImages;
 
 /***/ }),
 

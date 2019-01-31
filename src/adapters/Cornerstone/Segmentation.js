@@ -1,4 +1,5 @@
 import { BitArray } from "../../bitArray.js";
+import { createSegFromImages } from "../helpers.js";
 
 const Segmentation = {
   createSEG,
