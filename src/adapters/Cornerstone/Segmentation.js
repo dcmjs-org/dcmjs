@@ -153,9 +153,9 @@ function _addMetaDataToSegAndGetSegCount(seg, segments) {
 /**
  * _createSegFromImages - description
  *
- * @param  {object} images       description
- * @param  {Boolean} isMultiframe description
- * @returns {dataSet}              description
+ * @param  {Object[]} images    An array of the cornerstone image objects.
+ * @param  {Boolean} isMultiframe Whether the images are multiframe.
+ * @returns {Object}              The Seg derived dataSet.
  */
 function _createSegFromImages(images, isMultiframe) {
   const datasets = [];
@@ -195,6 +195,15 @@ function _createSegFromImages(images, isMultiframe) {
   return new dcmjs.derivations.Segmentation([multiframe]);
 }
 
+/**
+ * readToolState - Given a set of cornrstoneTools imageIds and a SEG, derive
+ * cornerstoneTools toolState and brush metadata.
+ *
+ * @param  {string[]} imageIds    An array of the imageIds.
+ * @param  {ArrayBuffer} arrayBuffer The SEG arrayBuffer.
+ * @returns {Object}  The toolState and an object from which the
+ *                    segment metadata can be derived.
+ */
 function readToolState(imageIds, arrayBuffer) {
   dicomData = dcmjs.data.DicomMessage.readFile(arrayBuffer);
   let dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(

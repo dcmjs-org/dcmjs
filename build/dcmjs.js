@@ -74,7 +74,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /******/
 /******/ 	var hotApplyOnUpdate = true;
 /******/ 	// eslint-disable-next-line no-unused-vars
-/******/ 	var hotCurrentHash = "7c0cff6579b510356739";
+/******/ 	var hotCurrentHash = "c86eccd8c47722d15921";
 /******/ 	var hotRequestTimeout = 10000;
 /******/ 	var hotCurrentModuleData = {};
 /******/ 	var hotCurrentChildModule;
@@ -3738,9 +3738,9 @@ function _addMetaDataToSegAndGetSegCount(seg, segments) {
 /**
  * _createSegFromImages - description
  *
- * @param  {object} images       description
- * @param  {Boolean} isMultiframe description
- * @returns {dataSet}              description
+ * @param  {Object[]} images    An array of the cornerstone image objects.
+ * @param  {Boolean} isMultiframe Whether the images are multiframe.
+ * @returns {Object}              The Seg derived dataSet.
  */
 function _createSegFromImages(images, isMultiframe) {
   var datasets = [];
@@ -3772,6 +3772,15 @@ function _createSegFromImages(images, isMultiframe) {
   return new dcmjs.derivations.Segmentation([multiframe]);
 }
 
+/**
+ * readToolState - Given a set of cornrstoneTools imageIds and a SEG, derive
+ * cornerstoneTools toolState and brush metadata.
+ *
+ * @param  {string[]} imageIds    An array of the imageIds.
+ * @param  {ArrayBuffer} arrayBuffer The SEG arrayBuffer.
+ * @returns {Object}  The toolState and an object from which the
+ *                    segment metadata can be derived.
+ */
 function readToolState(imageIds, arrayBuffer) {
   dicomData = dcmjs.data.DicomMessage.readFile(arrayBuffer);
   var dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(dicomData.dict);
