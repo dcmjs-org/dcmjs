@@ -136,7 +136,7 @@
 
         Promise.all(imagePromises)
           .then(images => {
-            const segBlob = dcmjs.adapters.Cornerstone.Segmentation.generateToolState(
+            const segBlob = dcmjs.adapters.Cornerstone.Segmentation.createSEG(
               images,
               brushData
             );

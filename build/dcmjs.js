@@ -74,7 +74,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /******/
 /******/ 	var hotApplyOnUpdate = true;
 /******/ 	// eslint-disable-next-line no-unused-vars
-/******/ 	var hotCurrentHash = "c86eccd8c47722d15921";
+/******/ 	var hotCurrentHash = "6e0806e9d778ca8f9d81";
 /******/ 	var hotRequestTimeout = 10000;
 /******/ 	var hotCurrentModuleData = {};
 /******/ 	var hotCurrentChildModule;
@@ -3613,8 +3613,8 @@ Object.defineProperty(exports, "__esModule", {
 var _bitArray = __webpack_require__(/*! ../../bitArray.js */ "./bitArray.js");
 
 var Segmentation = {
-  generateToolState: generateToolState,
-  readToolState: readToolState
+  createSEG: createSEG,
+  generateToolState: generateToolState
 };
 
 exports.default = Segmentation;
@@ -3628,15 +3628,15 @@ exports.default = Segmentation;
  */
 
 /**
- * generateToolState - Generates cornerstoneTools brush data, given a stack of
- * imageIds, images and the cornerstoneTools brushData.
+ * createSEG - Generates a DICOM SEG, given a stack of
+ * images and the cornerstoneTools brushData.
  *
  * @param  {object[]} images    An array of the cornerstone image objects.
  * @param  {BrushData} brushData and object containing the brushData.
  * @returns {type}           description
  */
 
-function generateToolState(images, brushData) {
+function createSEG(images, brushData) {
   // NOTE: here be dragons. Currently if a brush has been used and then erased,
   // This will flag up as a segmentation, even though its full of zeros.
   // Fixing this cleanly really requires an update of cornerstoneTools?
@@ -3773,7 +3773,7 @@ function _createSegFromImages(images, isMultiframe) {
 }
 
 /**
- * readToolState - Given a set of cornrstoneTools imageIds and a SEG, derive
+ * generateToolState - Given a set of cornrstoneTools imageIds and a SEG, derive
  * cornerstoneTools toolState and brush metadata.
  *
  * @param  {string[]} imageIds    An array of the imageIds.
@@ -3781,7 +3781,7 @@ function _createSegFromImages(images, isMultiframe) {
  * @returns {Object}  The toolState and an object from which the
  *                    segment metadata can be derived.
  */
-function readToolState(imageIds, arrayBuffer) {
+function generateToolState(imageIds, arrayBuffer) {
   dicomData = dcmjs.data.DicomMessage.readFile(arrayBuffer);
   var dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(dicomData.dict);
   dataset._meta = dcmjs.data.DicomMetaDictionary.namifyDataset(dicomData.meta);
@@ -3935,14 +3935,17 @@ exports.default = Cornerstone;
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-var Segmentation = function Segmentation() {
-  _classCallCheck(this, Segmentation);
+var Segmentation = {
+  createSEG: createSEG,
+  generateImageData: generateImageData
 };
 
 exports.default = Segmentation;
+
+
+function createSEG() {}
+
+function generateImageData() {}
 
 /***/ }),
 

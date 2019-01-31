@@ -1,5 +1,10 @@
-export default class Segmentation {
-  constructor() {
+const Segmentation = {
+  createSEG,
+  generateImageData
+};
 
-  }
-}
+export default Segmentation;
+
+function createSEG() {}
+
+function generateImageData() {}
