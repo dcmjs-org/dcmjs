@@ -96,12 +96,12 @@ export default class Polyline extends TID300Measurement {
           },
           NumericValue: perimeter,
         },
-        ContentSequence: use3DSpatialCoordinates ? undefined :{
+        ContentSequence: {
           RelationshipType: 'INFERRED FROM',
-          ValueType: 'SCOORD',
+          ValueType: use3DSpatialCoordinates ? 'SCOORD3D' : 'SCOORD',
           GraphicType: 'POLYLINE',
           GraphicData,
-          ContentSequence: {
+          ContentSequence: use3DSpatialCoordinates ? undefined : {
             RelationshipType: 'SELECTED FROM',
             ValueType: 'IMAGE',
             ReferencedSOPSequence
@@ -125,12 +125,12 @@ export default class Polyline extends TID300Measurement {
           },
           NumericValue: perimeter,
         },
-        ContentSequence: use3DSpatialCoordinates ? undefined : {
+        ContentSequence: {
           RelationshipType: 'INFERRED FROM',
-          ValueType: 'SCOORD',
+          ValueType: use3DSpatialCoordinates ? 'SCOORD3D' : 'SCOORD',
           GraphicType: 'POLYLINE',
           GraphicData,
-          ContentSequence: {
+          ContentSequence: use3DSpatialCoordinates ? undefined : {
             RelationshipType: 'SELECTED FROM',
             ValueType: 'IMAGE',
             ReferencedSOPSequence
