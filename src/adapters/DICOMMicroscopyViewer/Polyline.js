@@ -1,5 +1,5 @@
 import MeasurementReport from './MeasurementReport.js';
-import TID300Length from '../../utilities/TID300/Length.js';
+import TID300Polyline from '../../utilities/TID300/Polyline';
 
 class Polyline {
   constructor() {
@@ -33,11 +33,12 @@ class Polyline {
 
     const point1 = scoord.graphicData[0];
     const point2 = scoord.graphicData[1];
+    const point3 = scoord.graphicData[2];
     const distance = 1// scoord.distances[0];
 
     // FROM dicom-microscopy-viewer format TO dcmjs adapter format
 
-    return { point1, point2, distance };
+    return { point1, point2, point3, distance };
   }
 }
 
@@ -45,7 +46,7 @@ class Polyline {
 // Might make more sense to just use a polyline adapter instead of 'length' and 'polyline'
 Polyline.graphicType = 'POLYLINE';
 Polyline.utilityToolType = 'Length';
-Polyline.TID300Representation = TID300Length;
+Polyline.TID300Representation = TID300Polyline;
 
 MeasurementReport.registerTool(Polyline);
 
