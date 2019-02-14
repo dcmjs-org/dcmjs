@@ -43,10 +43,10 @@ class Polyline {
 
 // TODO: Using dicom-microscopy-viewer's graphic type may not work since both lines and polylines are both POLYLINES
 // Might make more sense to just use a polyline adapter instead of 'length' and 'polyline'
-Length.graphicType = 'POLYLINE';
-Length.utilityToolType = 'Length';
-Length.TID300Representation = TID300Length;
+Polyline.graphicType = 'POLYLINE';
+Polyline.utilityToolType = 'Length';
+Polyline.TID300Representation = TID300Length;
 
-MeasurementReport.registerTool(Length);
+MeasurementReport.registerTool(Polyline);
 
-export default Length;
+export default Polyline;
