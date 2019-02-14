@@ -1,7 +1,7 @@
 import MeasurementReport from './MeasurementReport.js';
 import TID300Length from '../../utilities/TID300/Length.js';
 
-class Length {
+class Polyline {
   constructor() {
   }
 
