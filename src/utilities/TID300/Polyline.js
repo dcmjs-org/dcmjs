@@ -5,8 +5,8 @@ import TID300Measurement from './TID300Measurement.js';
  * Expand an array of points stored as objects into
  * a flattened array of points
  *
- * @param points [{x: 0, y: 1}, {x: 1, y: 2}]
- * @return {Array} [point1x, point1y, point2x, point2y]
+ * @param points [{x: 0, y: 1}, {x: 1, y: 2}] or [{x: 0, y: 1, z: 0}, {x: 1, y: 2, z: 0}]
+ * @return {Array} [point1x, point1y, point2x, point2y] or [point1x, point1y, point1z, point2x, point2y, point2z]
  */
 function expandPoints(points) {
   const allPoints = [];
@@ -14,6 +14,9 @@ function expandPoints(points) {
   points.forEach(point => {
     allPoints.push(point.x);
     allPoints.push(point.y);
+    if(point.z){
+      allPoints.push(point.z)
+    }
   });
 
   return allPoints;
@@ -92,7 +95,7 @@ export default class Polyline extends TID300Measurement {
           },
           NumericValue: perimeter,
         },
-        ContentSequence: {
+        ContentSequence: use3DSpatialCoordinates ? undefined :{
           RelationshipType: 'INFERRED FROM',
           ValueType: 'SCOORD',
           GraphicType: 'POLYLINE',
@@ -121,7 +124,7 @@ export default class Polyline extends TID300Measurement {
           },
           NumericValue: perimeter,
         },
-        ContentSequence: {
+        ContentSequence: use3DSpatialCoordinates ? undefined : {
           RelationshipType: 'INFERRED FROM',
           ValueType: 'SCOORD',
           GraphicType: 'POLYLINE',
