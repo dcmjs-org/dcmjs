@@ -1,8 +1,8 @@
 import MeasurementReport from './MeasurementReport.js';
-import Length from './Length.js';
+import Polyline from './Polyline.js';
 
 const DICOMMicroscopyViewer = {
-  Length,
+  Polyline,
   MeasurementReport
 };
 
