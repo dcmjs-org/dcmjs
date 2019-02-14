@@ -19,18 +19,19 @@ function expandPoints(points) {
     return allPoints;
 }
 
-export default class Polygon extends TID300Measurement {
-    // Note: the last point should be equal to the first point to indicate that the polygon is closed.
-    constructor({ points, lengths, ReferencedSOPSequence }) {
-        super();
+export default class Polyline extends TID300Measurement {
+  // Note: the last point should be equal to the first point to indicate that the polyline is closed.
+  constructor({points, lengths, ReferencedSOPSequence, use3DSpatialCoordinates=false}) {
+    super();
 
-        this.points = points;
-        this.lengths = lengths; // Array of lengths between each point
-        this.ReferencedSOPSequence = ReferencedSOPSequence;
-    }
+    this.points = points;
+    this.lengths = lengths; // Array of lengths between each point
+    this.ReferencedSOPSequence = ReferencedSOPSequence;
+    this.use3DSpatialCoordinates = use3DSpatialCoordinates;
+  }
 
-    contentItem() {
-        const { points, lengths, ReferencedSOPSequence } = this;
+  contentItem() {
+    const { points, lengths, ReferencedSOPSequence, use3DSpatialCoordinates=false } = this;
 
         // Combine all lengths to save the perimeter
         const reducer = (accumulator, currentValue) =>
