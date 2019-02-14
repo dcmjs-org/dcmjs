@@ -1,5 +1,5 @@
 import MeasurementReport from "./MeasurementReport";
-import TID300Polygon from "../../utilities/TID300/Polygon";
+import TID300Polyline from "../../utilities/TID300/Polyline";
 
 class Freehand {
   constructor() {
@@ -33,8 +33,8 @@ class Freehand {
 }
 
 Freehand.toolType = 'Freehand';
-Freehand.utilityToolType = 'Polygon';
-Freehand.TID300Representation = TID300Polygon;
+Freehand.utilityToolType = 'Polyline';
+Freehand.TID300Representation = TID300Polyline;
 
 MeasurementReport.registerTool(Freehand);
 
