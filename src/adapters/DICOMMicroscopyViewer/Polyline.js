@@ -31,14 +31,12 @@ class Polyline {
       throw new Error('We expected a POLYLINE graphicType');
     }
 
-    const point1 = scoord.graphicData[0];
-    const point2 = scoord.graphicData[1];
-    const point3 = scoord.graphicData[2];
-    const distance = 1// scoord.distances[0];
+    const points = scoord.graphicData;
+    const lengths = 1// scoord.distances[0];
 
     // FROM dicom-microscopy-viewer format TO dcmjs adapter format
 
-    return { point1, point2, point3, distance };
+    return { points, lengths };
   }
 }
 

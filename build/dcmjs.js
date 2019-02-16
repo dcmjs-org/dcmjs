@@ -73,7 +73,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /******/
 /******/ 	var hotApplyOnUpdate = true;
 /******/ 	// eslint-disable-next-line no-unused-vars
-/******/ 	var hotCurrentHash = "0b068d9ef80f5c353a45";
+/******/ 	var hotCurrentHash = "973d8783acd532410be6";
 /******/ 	var hotRequestTimeout = 10000;
 /******/ 	var hotCurrentModuleData = {};
 /******/ 	var hotCurrentChildModule;
@@ -4303,17 +4303,13 @@ function () {
         throw new Error('We expected a POLYLINE graphicType');
       }
 
-      var point1 = scoord.graphicData[0];
-      var point2 = scoord.graphicData[1];
-      var point3 = scoord.graphicData[2];
-      var distance = 1; // scoord.distances[0];
+      var points = scoord.graphicData;
+      var lengths = 1; // scoord.distances[0];
       // FROM dicom-microscopy-viewer format TO dcmjs adapter format
 
       return {
-        point1: point1,
-        point2: point2,
-        point3: point3,
-        distance: distance
+        points: points,
+        lengths: lengths
       };
     }
   }]);
