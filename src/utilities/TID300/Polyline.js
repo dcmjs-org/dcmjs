@@ -36,11 +36,12 @@ export default class Polyline extends TID300Measurement {
   contentItem() {
     const { points, lengths, ReferencedSOPSequence, use3DSpatialCoordinates=false } = this;
 
-        // Combine all lengths to save the perimeter
-        const reducer = (accumulator, currentValue) =>
-            accumulator + currentValue;
-        const perimeter = lengths.reduce(reducer);
-        const GraphicData = expandPoints(points);
+    // Combine all lengths to save the perimeter
+    // @ToDO The permiter has to be implemented
+    // const reducer = (accumulator, currentValue) => accumulator + currentValue;
+    // const perimeter = lengths.reduce(reducer);
+    const perimeter = {};
+    const GraphicData = expandPoints(points);
 
         // TODO: Add Mean and STDev value of (modality?) pixels
 
