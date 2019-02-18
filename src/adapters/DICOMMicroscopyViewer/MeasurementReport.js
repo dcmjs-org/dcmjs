@@ -30,9 +30,8 @@ export default class MeasurementReport {
   }
 
   static generateReport(rois, metadataProvider, options) {
-    // Input is all ROIS returned via
-    // viewer.getALLROIs()
-
+    // Input is all ROIS returned via viewer.getALLROIs()
+    // let report = MeasurementReport.generateReport(viewer.getAllROIs());
 
     // Sort and split into arrays by scoord.graphicType
     const measurementsByGraphicType = {};

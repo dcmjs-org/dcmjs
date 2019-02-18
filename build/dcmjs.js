@@ -73,7 +73,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /******/
 /******/ 	var hotApplyOnUpdate = true;
 /******/ 	// eslint-disable-next-line no-unused-vars
-/******/ 	var hotCurrentHash = "973d8783acd532410be6";
+/******/ 	var hotCurrentHash = "eda25cab2337527e9189";
 /******/ 	var hotRequestTimeout = 10000;
 /******/ 	var hotCurrentModuleData = {};
 /******/ 	var hotCurrentChildModule;
@@ -4106,8 +4106,8 @@ function () {
   _createClass(MeasurementReport, null, [{
     key: "generateReport",
     value: function generateReport(rois, metadataProvider, options) {
-      // Input is all ROIS returned via
-      // viewer.getALLROIs()
+      // Input is all ROIS returned via viewer.getALLROIs()
+      // let report = MeasurementReport.generateReport(viewer.getAllROIs());
       // Sort and split into arrays by scoord.graphicType
       var measurementsByGraphicType = {};
       rois.forEach(function (roi) {
@@ -6805,12 +6805,11 @@ function (_TID300Measurement) {
           ReferencedSOPSequence = this.ReferencedSOPSequence,
           _this$use3DSpatialCoo = this.use3DSpatialCoordinates,
           use3DSpatialCoordinates = _this$use3DSpatialCoo === void 0 ? false : _this$use3DSpatialCoo; // Combine all lengths to save the perimeter
+      // @ToDO The permiter has to be implemented
+      // const reducer = (accumulator, currentValue) => accumulator + currentValue;
+      // const perimeter = lengths.reduce(reducer);
 
-      var reducer = function reducer(accumulator, currentValue) {
-        return accumulator + currentValue;
-      };
-
-      var perimeter = lengths.reduce(reducer);
+      var perimeter = {};
       var GraphicData = expandPoints(points); // TODO: Add Mean and STDev value of (modality?) pixels
 
       return [{
