@@ -73,7 +73,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /******/
 /******/ 	var hotApplyOnUpdate = true;
 /******/ 	// eslint-disable-next-line no-unused-vars
-/******/ 	var hotCurrentHash = "eda25cab2337527e9189";
+/******/ 	var hotCurrentHash = "c454b5d876b4196f27ea";
 /******/ 	var hotRequestTimeout = 10000;
 /******/ 	var hotCurrentModuleData = {};
 /******/ 	var hotCurrentChildModule;
@@ -6761,11 +6761,11 @@ function _setPrototypeOf(o, p) { _setPrototypeOf = Object.setPrototypeOf || func
 function expandPoints(points) {
   var allPoints = [];
   points.forEach(function (point) {
-    allPoints.push(point.x);
-    allPoints.push(point.y);
+    allPoints.push(point[0]);
+    allPoints.push(point[1]);
 
-    if (point.z) {
-      allPoints.push(point.z);
+    if (point[2]) {
+      allPoints.push(point[2]);
     }
   });
   return allPoints;
