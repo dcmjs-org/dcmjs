@@ -73,7 +73,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /******/
 /******/ 	var hotApplyOnUpdate = true;
 /******/ 	// eslint-disable-next-line no-unused-vars
-/******/ 	var hotCurrentHash = "c454b5d876b4196f27ea";
+/******/ 	var hotCurrentHash = "353a7cc92e0d4152c4bf";
 /******/ 	var hotRequestTimeout = 10000;
 /******/ 	var hotCurrentModuleData = {};
 /******/ 	var hotCurrentChildModule;
@@ -4083,6 +4083,7 @@ function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _d
 function getTID300ContentItem(tool, graphicType, ReferencedSOPSequence, toolClass) {
   var args = toolClass.getTID300RepresentationArguments(tool);
   args.ReferencedSOPSequence = ReferencedSOPSequence;
+  args.use3DSpatialCoordinates = true;
   return new toolClass.TID300Representation(args);
 }
 
@@ -6764,7 +6765,7 @@ function expandPoints(points) {
     allPoints.push(point[0]);
     allPoints.push(point[1]);
 
-    if (point[2]) {
+    if (point[2] !== undefined) {
       allPoints.push(point[2]);
     }
   });
