@@ -14,7 +14,7 @@ function expandPoints(points) {
   points.forEach(point => {
     allPoints.push(point[0]);
     allPoints.push(point[1]);
-    if(point[2]){
+    if(point[2] !== undefined){
       allPoints.push(point[2])
     }
   });

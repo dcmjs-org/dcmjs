@@ -9,7 +9,7 @@ import { toArray, codeMeaningEquals } from '../helpers.js';
 function getTID300ContentItem(tool, graphicType, ReferencedSOPSequence, toolClass) {
   const args = toolClass.getTID300RepresentationArguments(tool);
   args.ReferencedSOPSequence = ReferencedSOPSequence;
-
+  args.use3DSpatialCoordinates = true;
   return new toolClass.TID300Representation(args);
 }
 
