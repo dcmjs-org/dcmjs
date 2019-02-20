@@ -1,36 +1,22 @@
-import { Normalizer } from "../../normalizers.js";
 import { DicomMetaDictionary } from "../../DicomMetaDictionary.js";
 import { StructuredReport } from "../../derivations.js";
 import TID1500MeasurementReport from "../../utilities/TID1500/TID1500MeasurementReport.js";
 import TID1501MeasurementGroup from "../../utilities/TID1500/TID1501MeasurementGroup.js";
 
-import { toArray, codeMeaningEquals } from "../helpers.js";
-
-function getTID300ContentItem(
-    tool,
-    graphicType,
-    ReferencedSOPSequence,
-    toolClass
-) {
+function getTID300ContentItem(tool, toolClass) {
     const args = toolClass.getTID300RepresentationArguments(tool);
-    args.ReferencedSOPSequence = ReferencedSOPSequence;
     args.use3DSpatialCoordinates = true;
     return new toolClass.TID300Representation(args);
 }
 
-function getMeasurementGroup(graphicType, measurements, ReferencedSOPSequence) {
+function getMeasurementGroup(graphicType, measurements) {
     const toolClass =
         MeasurementReport.MICROSCOPY_TOOL_CLASSES_BY_TOOL_TYPE[graphicType];
 
     // Loop through the array of tool instances
     // for this tool
     const Measurements = measurements.map(tool => {
-        return getTID300ContentItem(
-            tool,
-            graphicType,
-            ReferencedSOPSequence,
-            toolClass
-        );
+        return getTID300ContentItem(tool, toolClass);
     });
 
     return new TID1501MeasurementGroup(Measurements);
@@ -60,22 +46,12 @@ export default class MeasurementReport {
         // Use TID1500MeasurementReport utility to create a single report from the created groups
         // return report;
 
-        // TODO: Find a way to get this from the measurement itself
-        const ReferencedSOPSequence = {
-            ReferencedSOPClassUID: "1.32.4.4",
-            ReferencedSOPInstanceUID: "1.32.4.21234"
-        };
-
         let allMeasurementGroups = [];
         const measurementGroups = [];
         Object.keys(measurementsByGraphicType).forEach(graphicType => {
             const measurements = measurementsByGraphicType[graphicType];
 
-            const group = getMeasurementGroup(
-                graphicType,
-                measurements,
-                ReferencedSOPSequence
-            );
+            const group = getMeasurementGroup(graphicType, measurements);
             if (group) {
                 measurementGroups.push(group);
             }
@@ -150,46 +126,6 @@ export default class MeasurementReport {
     //@ToDo
     static generateToolState(dataset) {
         throw new Error("not yet implemented");
-        // // For now, bail out if the dataset is not a TID1500 SR with length measurements
-        // if (dataset.ContentTemplateSequence.TemplateIdentifier !== "1500") {
-        //   throw new Error("This package can currently only interpret DICOM SR TID 1500");
-        // }
-
-        // const REPORT = "Imaging Measurements";
-        // const GROUP = "Measurement Group";
-
-        // // Identify the Imaging Measurements
-        // const imagingMeasurementContent = toArray(dataset.ContentSequence).find(codeMeaningEquals(REPORT));
-
-        // // Retrieve the Measurements themselves
-        // const measurementGroupContent = toArray(imagingMeasurementContent.ContentSequence).find(codeMeaningEquals(GROUP));
-
-        // // For each of the supported measurement types, compute the measurement data
-        // const measurementData = {};
-
-        // Object.keys(MeasurementReport.MICROSCOPY_TOOL_CLASSES_BY_UTILITY_TYPE).forEach(measurementType => {
-        //   // Filter to find supported measurement types in the Structured Report
-        //   const measurementGroups = toArray(measurementGroupContent.ContentSequence);
-        //   const measurementContent = measurementGroups.filter(codeMeaningEquals(measurementType));
-        //   if (!measurementContent) {
-        //     return;
-        //   }
-
-        //   const toolClass = MeasurementReport.MICROSCOPY_TOOL_CLASSES_BY_UTILITY_TYPE[measurementType];
-        //   const toolType = toolClass.toolType;
-
-        //   if (!toolClass.getMeasurementData) {
-        //     throw new Error('MICROSCOPY Tool Adapters must define a getMeasurementData static method.');
-        //   }
-
-        //   // Retrieve Length Measurement Data
-        //   measurementData[toolType] = toolClass.getMeasurementData(measurementContent);
-        // });
-
-        // // TODO: Find a way to define 'how' to get an imageId ?
-        // // Need to provide something to generate imageId from Study / Series / Sop Instance UID
-        // // combine / reorganize all the toolData into the expected toolState format for MICROSCOPY Tools
-        // return measurementData;
     }
 
     static registerTool(toolClass) {
