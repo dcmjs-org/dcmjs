@@ -24,7 +24,7 @@ class Polyline {
 
     // TODO: this function is required for all Cornerstone Tool Adapters, since it is called by MeasurementReport.
     static getMeasurementData(measurementContent) {
-        return measurementContent.map(Length.measurementContentToLengthState);
+        return measurementContent.map(Polyline.measurementContentToLengthState);
     }
 
     // Expects a Polyline scoord from dicom-microscopy-viewer? Check arguments?
