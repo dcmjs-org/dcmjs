@@ -2,7 +2,7 @@ import { DicomMetaDictionary } from "../../DicomMetaDictionary.js";
 import { StructuredReport } from "../../derivations.js";
 import TID1500MeasurementReport from "../../utilities/TID1500/TID1500MeasurementReport.js";
 import TID1501MeasurementGroup from "../../utilities/TID1500/TID1501MeasurementGroup.js";
-import { toArray, codeMeaningEquals } from "../helpers.js";
+import { toArray, codeMeaningEquals, graphicTypeEquals } from "../helpers.js";
 
 function getTID300ContentItem(tool, toolClass) {
     const args = toolClass.getTID300RepresentationArguments(tool);
@@ -30,18 +30,18 @@ export default class MeasurementReport {
         // Input is all ROIS returned via viewer.getALLROIs()
         // let report = MeasurementReport.generateReport(viewer.getAllROIs());
 
-        // Sort and split into arrays by scoord.graphicType
+        // Sort and split into arrays by scoord3d.graphicType
         const measurementsByGraphicType = {};
         rois.forEach(roi => {
-            const graphicType = roi.scoord.graphicType;
+            const graphicType = roi.scoord3d.graphicType;
             // adding z coord as 0
-            roi.scoord.coordinates.map(coord => coord.push(0));
+            roi.scoord3d.coordinates.map(coord => coord.push(0));
 
             if (!measurementsByGraphicType[graphicType]) {
                 measurementsByGraphicType[graphicType] = [];
             }
 
-            measurementsByGraphicType[graphicType].push(roi.scoord);
+            measurementsByGraphicType[graphicType].push(roi.scoord3d);
         });
 
         // For each measurement, get the utility arguments using the adapter, and create TID300 Measurement
@@ -138,7 +138,7 @@ export default class MeasurementReport {
         const REPORT = "Imaging Measurements";
         const GROUP = "Measurement Group";
 
-        // 1 - Split the imagingMeasurementContent into measurement groups by their code meaning
+        // Split the imagingMeasurementContent into measurement groups by their code meaning
         const imagingMeasurementContent = toArray(dataset.ContentSequence).find(
             codeMeaningEquals(REPORT)
         );
@@ -148,20 +148,18 @@ export default class MeasurementReport {
             imagingMeasurementContent.ContentSequence
         ).find(codeMeaningEquals(GROUP));
 
-        // 2 - Pass each group through the group-specific adapter’s generateToolState method
-
         // // For each of the supported measurement types, compute the measurement data
         const measurementData = {};
 
         Object.keys(
             MeasurementReport.MICROSCOPY_TOOL_CLASSES_BY_UTILITY_TYPE
         ).forEach(measurementType => {
-            // Filter to find supported measurement types in the Structured Report
+            // Find supported measurement types in the Structured Report
             const measurementGroups = toArray(
                 measurementGroupContent.ContentSequence
             );
-            const measurementContent = measurementGroups.filter(
-                codeMeaningEquals(measurementType)
+            const measurementContent = measurementGroups.find(
+                graphicTypeEquals(measurementType.toUpperCase())
             );
             if (!measurementContent) {
                 return;
@@ -185,9 +183,6 @@ export default class MeasurementReport {
             );
         });
 
-        // // TODO: Find a way to define 'how' to get an imageId ?
-        // // Need to provide something to generate imageId from Study / Series / Sop Instance UID
-        // // combine / reorganize all the toolData into the expected toolState format for MICROSCOPY Tools
         return measurementData;
     }
 
