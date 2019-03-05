@@ -99,7 +99,7 @@ export default class TID1500MeasurementReport {
                     },
                     PersonName: options.PersonName || "unknown^unknown"
                 },
-                {
+                /*{
                     RelationshipType: "HAS CONCEPT MOD",
                     ValueType: "CODE",
                     ConceptNameCodeSequence: {
@@ -112,7 +112,7 @@ export default class TID1500MeasurementReport {
                         CodingSchemeDesignator: "99dcmjs",
                         CodeMeaning: "Unknown procedure"
                     }
-                },
+                },*/
                 {
                     RelationshipType: "CONTAINS",
                     ValueType: "CONTAINER",

@@ -7,7 +7,9 @@ export default class Bidirectional extends TID300Measurement {
         shortAxis,
         longAxisLength,
         shortAxisLength,
-        ReferencedSOPSequence
+        ReferencedSOPSequence,
+        trackingIdentifier,
+        findingConceptCodeSequence
     }) {
         super();
 
@@ -16,6 +18,8 @@ export default class Bidirectional extends TID300Measurement {
         this.longAxisLength = longAxisLength;
         this.shortAxisLength = shortAxisLength;
         this.ReferencedSOPSequence = ReferencedSOPSequence;
+        this.trackingIdentifier = trackingIdentifier;
+        this.findingConceptCodeSequence = findingConceptCodeSequence;
     }
 
     contentItem() {
@@ -24,7 +28,9 @@ export default class Bidirectional extends TID300Measurement {
             shortAxis,
             longAxisLength,
             shortAxisLength,
-            ReferencedSOPSequence
+            ReferencedSOPSequence,
+            trackingIdentifier,
+            findingConceptCodeSequence
         } = this;
 
         return [
@@ -36,7 +42,7 @@ export default class Bidirectional extends TID300Measurement {
                     CodingSchemeDesignator: "DCM",
                     CodeMeaning: "Tracking Identifier"
                 },
-                TextValue: "web annotation"
+                TextValue: trackingIdentifier || "web annotation"
             },
             {
                 RelationshipType: "HAS OBS CONTEXT",
@@ -48,6 +54,8 @@ export default class Bidirectional extends TID300Measurement {
                 },
                 UID: DicomMetaDictionary.uid()
             },
+            /*
+            TODO: Move to TID300Measurement
             {
                 RelationshipType: "CONTAINS",
                 ValueType: "CODE",
@@ -56,12 +64,8 @@ export default class Bidirectional extends TID300Measurement {
                     CodingSchemeDesignator: "DCM",
                     CodeMeaning: "Finding"
                 },
-                ConceptCodeSequence: {
-                    CodeValue: "SAMPLEFINDING",
-                    CodingSchemeDesignator: "99dcmjs",
-                    CodeMeaning: "Sample Finding"
-                }
-            },
+                ConceptCodeSequence: findingConceptCodeSequence
+            },*/
             {
                 RelationshipType: "CONTAINS",
                 ValueType: "NUM",
