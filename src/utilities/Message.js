@@ -68,7 +68,7 @@ function containsToken(message, token, offset = 0) {
  * Finds a given token in a message at a given offset.
  * @param {Uint8Array} message message content
  * @param {Uint8Array} token substring that should be found
- * @param {String} offset message body offset from where search should start
+ * @param {Number} offset message body offset from where search should start
  * @returns {Boolean} whether message has a part at given offset or not
  */
 function findToken(message, token, offset = 0, maxSearchLength) {
@@ -209,9 +209,16 @@ function multipartDecode(response) {
         // Add the data to the array of results
         components.push(data);
 
-        // Move the offset to the end of the current section,
-        // plus the identified boundary
-        offset += length + spacingLength + boundaryLength;
+        // find the end of the boundary
+        var boundaryEnd = findToken(
+            message,
+            separator,
+            boundaryIndex + 1,
+            maxSearchLength
+        );
+        if (boundaryEnd === -1) break;
+        // Move the offset to the end of the identified boundary
+        offset = boundaryEnd + separator.length;
     }
 
     return components;
