@@ -25,7 +25,7 @@ function datasetToDict(dataset) {
 }
 
 function datasetToBuffer(dataset) {
-    return datasetToDict(dataset).write();
+    return Buffer.from(datasetToDict(dataset).write());
 }
 
 function datasetToBlob(dataset) {
