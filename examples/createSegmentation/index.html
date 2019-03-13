@@ -22,7 +22,7 @@
 
       <div class="row">
         <button id="sampleData" onclick="createSeg()">Create Seg</button>
-        <select id="switchBrush" onchange="changeBrush()">
+        <label for="switchBrush">Active Brush: </label><select id="switchBrush" onchange="changeBrush()">
           <option value="0">1</option>
           <option value="1">2</option>
           <option value="2">3</option>
@@ -104,8 +104,6 @@
         var value = document.getElementById("switchBrush").value;
 
         cornerstoneTools.store.modules.brush.state.drawColorId = value;
-
-        console.log(value);
       }
 
       function createSeg() {

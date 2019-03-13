@@ -93,7 +93,6 @@
       function getAndLoadSeg() {
         var segURL =
           "https://s3.amazonaws.com/IsomicsPublic/SampleData/QIN-H%2BN-0139/1-105-SEG.dcm";
-          // https://s3.amazonaws.com/IsomicsPublic/SampleData/rsna2017/seg/task2/SEG/tumor_User1_Manual_Trial1.dcm
 
         const xhr = new XMLHttpRequest();
 
@@ -151,28 +150,6 @@
       function addMetaData(type, imageId, data) {
         metaData[imageId] = metaData[imageId] || {};
         metaData[imageId][type] = data;
-      }
-
-      //
-      // creates an array of per-frame imageIds in the form needed for cornerstone processing.
-      //
-      function getImageIds(multiframe, baseImageId) {
-        const imageIds = [];
-        const numFrames = Number(multiframe.NumberOfFrames);
-        for (let i = 0; i < numFrames; i++) {
-          let segNum;
-          if (
-            multiframe.PerFrameFunctionalGroupsSequence[i]
-              .SegmentIdentificationSequence
-          ) {
-            segNum =
-              multiframe.PerFrameFunctionalGroupsSequence[i]
-                .SegmentIdentificationSequence.ReferencedSegmentNumber;
-          }
-          const imageId = baseImageId + "?frame=" + i;
-          imageIds.push(imageId);
-        }
-        return imageIds;
       }
 
     </script>
