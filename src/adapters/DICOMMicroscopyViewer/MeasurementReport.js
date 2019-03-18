@@ -34,8 +34,11 @@ export default class MeasurementReport {
         const measurementsByGraphicType = {};
         rois.forEach(roi => {
             const graphicType = roi.scoord3d.graphicType;
-            // adding z coord as 0
-            roi.scoord3d.coordinates.map(coord => coord.push(0));
+
+            if (graphicType !== "POINT") {
+                // adding z coord as 0
+                roi.scoord3d.graphicData.map(coord => coord.push(0));
+            }
 
             if (!measurementsByGraphicType[graphicType]) {
                 measurementsByGraphicType[graphicType] = [];
