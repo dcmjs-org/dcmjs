@@ -2,7 +2,6 @@ import { DicomMetaDictionary } from "../../DicomMetaDictionary.js";
 import TID300Measurement from "./TID300Measurement.js";
 
 export default class Point extends TID300Measurement {
-    // Note: the last point should be equal to the first point to indicate that the point is closed.
     constructor({
         points,
         lengths,
