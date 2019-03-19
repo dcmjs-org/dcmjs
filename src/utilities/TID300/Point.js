@@ -12,7 +12,7 @@ export default class Point extends TID300Measurement {
         super();
 
         this.points = points;
-        this.lengths = lengths; // Array of lengths between each point
+        this.lengths = lengths;
         this.ReferencedSOPSequence = ReferencedSOPSequence;
         this.use3DSpatialCoordinates = use3DSpatialCoordinates;
     }
@@ -25,14 +25,8 @@ export default class Point extends TID300Measurement {
             use3DSpatialCoordinates = false
         } = this;
 
-        // Combine all lengths to save the perimeter
-        // @ToDO The permiter has to be implemented
-        // const reducer = (accumulator, currentValue) => accumulator + currentValue;
-        // const perimeter = lengths.reduce(reducer);
         const perimeter = {};
         const GraphicData = points[0];
-
-        // TODO: Add Mean and STDev value of (modality?) pixels
 
         return [
             {
