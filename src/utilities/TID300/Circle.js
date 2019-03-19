@@ -14,16 +14,13 @@ function expandPoints(points) {
     points.forEach(point => {
         allPoints.push(point[0]);
         allPoints.push(point[1]);
-        if (point[2] !== undefined) {
-            allPoints.push(point[2]);
-        }
+        allPoints.push(point[2]);
     });
 
     return allPoints;
 }
 
 export default class Circle extends TID300Measurement {
-    // Note: the last point should be equal to the first point to indicate that the polyline is closed.
     constructor({
         points,
         lengths,
@@ -33,7 +30,7 @@ export default class Circle extends TID300Measurement {
         super();
 
         this.points = points;
-        this.lengths = lengths; // Array of lengths between each point
+        this.lengths = lengths;
         this.ReferencedSOPSequence = ReferencedSOPSequence;
         this.use3DSpatialCoordinates = use3DSpatialCoordinates;
     }
