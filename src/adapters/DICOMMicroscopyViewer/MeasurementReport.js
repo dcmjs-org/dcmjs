@@ -161,10 +161,10 @@ export default class MeasurementReport {
             const measurementGroups = toArray(
                 measurementGroupContent.ContentSequence
             );
-            const measurementContent = measurementGroups.find(
+            let measurementContent = measurementGroups.filter(
                 graphicTypeEquals(measurementType.toUpperCase())
             );
-            if (!measurementContent) {
+            if (!measurementContent || measurementContent.length === 0) {
                 return;
             }
 
@@ -180,10 +180,18 @@ export default class MeasurementReport {
                 );
             }
 
-            // Retrieve Length Measurement Data
+            // measurementContent = measurementContent.map(item => item.ContentSequence.GraphicData)
+            //     .filter((graphicData, index, self) => self.indexOf(graphicData) === index)
+
+            // measurementData[toolType] = new Array()
             measurementData[toolType] = toolClass.getMeasurementData(
                 measurementContent
             );
+
+            // measurementContent.forEach(measurement =>{
+            // })
+
+            // Retrieve Length Measurement Data
         });
 
         return measurementData;

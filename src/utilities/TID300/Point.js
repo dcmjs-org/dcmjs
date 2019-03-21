@@ -100,7 +100,7 @@ export default class Point extends TID300Measurement {
                 ConceptNameCodeSequence: {
                     CodeValue: "G-A166",
                     CodingSchemeDesignator: "SRT",
-                    CodeMeaning: "Area" // TODO: Look this up from a Code Meaning dictionary
+                    CodeMeaning: "Area"
                 },
                 MeasuredValueSequence: {
                     MeasurementUnitsCodeSequence: {

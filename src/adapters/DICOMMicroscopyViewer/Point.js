@@ -5,7 +5,14 @@ class Point {
     constructor() {}
 
     static getMeasurementData(measurementContent) {
-        return measurementContent.ContentSequence.GraphicData;
+        const measurement = measurementContent.map(
+            item => item.ContentSequence.GraphicData
+        );
+        return measurement.filter(
+            (s => a => (j => !s.has(j) && s.add(j))(JSON.stringify(a)))(
+                new Set()
+            )
+        );
     }
 
     static getTID300RepresentationArguments(scoord3d) {

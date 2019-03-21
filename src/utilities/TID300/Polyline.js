@@ -23,7 +23,6 @@ function expandPoints(points) {
 }
 
 export default class Polyline extends TID300Measurement {
-    // Note: the last point should be equal to the first point to indicate that the polyline is closed.
     constructor({
         points,
         lengths,
@@ -33,7 +32,7 @@ export default class Polyline extends TID300Measurement {
         super();
 
         this.points = points;
-        this.lengths = lengths; // Array of lengths between each point
+        this.lengths = lengths;
         this.ReferencedSOPSequence = ReferencedSOPSequence;
         this.use3DSpatialCoordinates = use3DSpatialCoordinates;
     }

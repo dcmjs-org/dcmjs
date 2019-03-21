@@ -23,7 +23,6 @@ function expandPoints(points) {
 }
 
 export default class Polygon extends TID300Measurement {
-    // Note: the last point should be equal to the first point to indicate that the polygon is closed.
     constructor({
         points,
         lengths,
@@ -33,7 +32,7 @@ export default class Polygon extends TID300Measurement {
         super();
 
         this.points = points;
-        this.lengths = lengths; // Array of lengths between each point
+        this.lengths = lengths;
         this.ReferencedSOPSequence = ReferencedSOPSequence;
         this.use3DSpatialCoordinates = use3DSpatialCoordinates;
     }
@@ -46,14 +45,8 @@ export default class Polygon extends TID300Measurement {
             use3DSpatialCoordinates = false
         } = this;
 
-        // Combine all lengths to save the perimeter
-        // @ToDO The permiter has to be implemented
-        // const reducer = (accumulator, currentValue) => accumulator + currentValue;
-        // const perimeter = lengths.reduce(reducer);
         const perimeter = {};
         const GraphicData = expandPoints(points);
-
-        // TODO: Add Mean and STDev value of (modality?) pixels
 
         return [
             {
@@ -96,7 +89,7 @@ export default class Polygon extends TID300Measurement {
                 ConceptNameCodeSequence: {
                     CodeValue: "G-A197",
                     CodingSchemeDesignator: "SRT",
-                    CodeMeaning: "Perimeter" // TODO: Look this up from a Code Meaning dictionary
+                    CodeMeaning: "Perimeter"
                 },
                 MeasuredValueSequence: {
                     MeasurementUnitsCodeSequence: {
@@ -122,13 +115,12 @@ export default class Polygon extends TID300Measurement {
                 }
             },
             {
-                // TODO: This feels weird to repeat the GraphicData
                 RelationshipType: "CONTAINS",
                 ValueType: "NUM",
                 ConceptNameCodeSequence: {
                     CodeValue: "G-A166",
                     CodingSchemeDesignator: "SRT",
-                    CodeMeaning: "Area" // TODO: Look this up from a Code Meaning dictionary
+                    CodeMeaning: "Area"
                 },
                 MeasuredValueSequence: {
                     MeasurementUnitsCodeSequence: {
