@@ -6,34 +6,61 @@ export default class TID1500MeasurementReport {
     validate() {}
 
     contentItem(derivationSourceDataset, options = {}) {
-        // Add the Measurement Groups to the Measurement Report
-        let ContentSequence = [];
-        this.TID1501MeasurementGroups.forEach(child => {
-            ContentSequence = ContentSequence.concat(child.contentItem());
-        });
-
         // For each measurement that is referenced, add a link to the
         // Image Library Group and the Current Requested Procedure Evidence
         // with the proper ReferencedSOPSequence
         let ImageLibraryContentSequence = [];
         let CurrentRequestedProcedureEvidenceSequence = [];
         this.TID1501MeasurementGroups.forEach(measurementGroup => {
-            measurementGroup.TID300Measurements.forEach(measurement => {
-                ImageLibraryContentSequence.push({
-                    RelationshipType: "CONTAINS",
-                    ValueType: "IMAGE",
-                    ReferencedSOPSequence: measurement.ReferencedSOPSequence
-                });
+            measurementGroup.TID300MeasurementContentSequences.forEach(
+                measurement => {
+                    //console.warn('ADDING IMAGE LIBRARY!');
+                    //console.warn(measurement);
 
-                CurrentRequestedProcedureEvidenceSequence.push({
-                    StudyInstanceUID: derivationSourceDataset.StudyInstanceUID,
-                    ReferencedSeriesSequence: {
-                        SeriesInstanceUID:
-                            derivationSourceDataset.SeriesInstanceUID,
-                        ReferencedSOPSequence: measurement.ReferencedSOPSequence
-                    }
-                });
-            });
+                    const entry = measurement.find(a => {
+                        return (
+                            a.ContentSequence &&
+                            a.ContentSequence.ContentSequence &&
+                            a.ContentSequence.ContentSequence
+                                .ReferencedSOPSequence
+                        );
+                    });
+
+                    //console.warn(entry);
+
+                    const ReferencedSOPSequence = entry
+                        ? entry.ContentSequence.ContentSequence
+                              .ReferencedSOPSequence
+                        : undefined;
+
+                    //console.warn(ReferencedSOPSequence);
+
+                    ImageLibraryContentSequence.push({
+                        RelationshipType: "CONTAINS",
+                        ValueType: "IMAGE",
+                        ReferencedSOPSequence
+                    });
+
+                    CurrentRequestedProcedureEvidenceSequence.push({
+                        StudyInstanceUID:
+                            derivationSourceDataset.StudyInstanceUID,
+                        ReferencedSeriesSequence: {
+                            SeriesInstanceUID:
+                                derivationSourceDataset.SeriesInstanceUID,
+                            ReferencedSOPSequence
+                        }
+                    });
+                }
+            );
+        });
+
+        // Add the Measurement Groups to the Measurement Report
+        let ContentSequence = [];
+
+        this.TID1501MeasurementGroups.forEach(child => {
+            ContentSequence = ContentSequence.concat(
+                child.generateContentSequence()
+            );
         });
 
         return {
@@ -49,13 +76,15 @@ export default class TID1500MeasurementReport {
             ReferencedPerformedProcedureStepSequence: [],
             InstanceNumber: 1,
             CurrentRequestedProcedureEvidenceSequence,
-            CodingSchemeIdentificationSequence: {
-                CodingSchemeDesignator: "99dcmjs",
-                CodingSchemeName: "Codes used for dcmjs",
-                CodingSchemeVersion: "0",
-                CodingSchemeResponsibleOrganization:
-                    "https://github.com/dcmjs-org/dcmjs"
-            },
+            CodingSchemeIdentificationSequence: [
+                {
+                    CodingSchemeDesignator: "99dcmjs",
+                    CodingSchemeName: "Codes used for dcmjs",
+                    CodingSchemeVersion: "0",
+                    CodingSchemeResponsibleOrganization:
+                        "https://github.com/dcmjs-org/dcmjs"
+                }
+            ],
             ContentTemplateSequence: {
                 MappingResource: "DCMR",
                 TemplateIdentifier: "1500"
@@ -99,7 +128,7 @@ export default class TID1500MeasurementReport {
                     },
                     PersonName: options.PersonName || "unknown^unknown"
                 },
-                {
+                /*{
                     RelationshipType: "HAS CONCEPT MOD",
                     ValueType: "CODE",
                     ConceptNameCodeSequence: {
@@ -112,7 +141,7 @@ export default class TID1500MeasurementReport {
                         CodingSchemeDesignator: "99dcmjs",
                         CodeMeaning: "Unknown procedure"
                     }
-                },
+                },*/
                 {
                     RelationshipType: "CONTAINS",
                     ValueType: "CONTAINER",
@@ -143,17 +172,7 @@ export default class TID1500MeasurementReport {
                         CodeMeaning: "Imaging Measurements" // TODO: would be nice to abstract the code sequences (in a dictionary? a service?)
                     },
                     ContinuityOfContent: "SEPARATE",
-                    ContentSequence: {
-                        RelationshipType: "CONTAINS",
-                        ValueType: "CONTAINER",
-                        ConceptNameCodeSequence: {
-                            CodeValue: "125007",
-                            CodingSchemeDesignator: "DCM",
-                            CodeMeaning: "Measurement Group"
-                        },
-                        ContinuityOfContent: "SEPARATE",
-                        ContentSequence
-                    }
+                    ContentSequence
                 }
             ]
         };

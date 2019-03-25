@@ -18,7 +18,7 @@ export default class Bidirectional extends TID300Measurement {
         this.ReferencedSOPSequence = ReferencedSOPSequence;
     }
 
-    contentItem() {
+    generateContentSequence() {
         const {
             longAxis,
             shortAxis,
@@ -26,42 +26,9 @@ export default class Bidirectional extends TID300Measurement {
             shortAxisLength,
             ReferencedSOPSequence
         } = this;
+        const parentContentSequence = super.generateContentSequence();
 
-        return [
-            {
-                RelationshipType: "HAS OBS CONTEXT",
-                ValueType: "TEXT",
-                ConceptNameCodeSequence: {
-                    CodeValue: "112039",
-                    CodingSchemeDesignator: "DCM",
-                    CodeMeaning: "Tracking Identifier"
-                },
-                TextValue: "web annotation"
-            },
-            {
-                RelationshipType: "HAS OBS CONTEXT",
-                ValueType: "UIDREF",
-                ConceptNameCodeSequence: {
-                    CodeValue: "112040",
-                    CodingSchemeDesignator: "DCM",
-                    CodeMeaning: "Tracking Unique Identifier"
-                },
-                UID: DicomMetaDictionary.uid()
-            },
-            {
-                RelationshipType: "CONTAINS",
-                ValueType: "CODE",
-                ConceptNameCodeSequence: {
-                    CodeValue: "121071",
-                    CodingSchemeDesignator: "DCM",
-                    CodeMeaning: "Finding"
-                },
-                ConceptCodeSequence: {
-                    CodeValue: "SAMPLEFINDING",
-                    CodingSchemeDesignator: "99dcmjs",
-                    CodeMeaning: "Sample Finding"
-                }
-            },
+        const measurementContentSequence = [
             {
                 RelationshipType: "CONTAINS",
                 ValueType: "NUM",
@@ -131,5 +98,7 @@ export default class Bidirectional extends TID300Measurement {
                 }
             }
         ];
+
+        return parentContentSequence.concat(measurementContentSequence);
     }
 }

@@ -1,21 +1,27 @@
 export default class TID1501MeasurementGroup {
-    constructor(TID300Measurements) {
-        this.TID300Measurements = TID300Measurements;
+    constructor(TID300MeasurementContentSequences) {
+        this.TID300MeasurementContentSequences = TID300MeasurementContentSequences;
     }
 
-    contentItem() {
-        const { TID300Measurements } = this;
+    generateContentSequence() {
+        const { TID300MeasurementContentSequences } = this;
 
-        // TODO: Is there nothing else in this group?
-        let contentItem = [];
+        const contentSequence = TID300MeasurementContentSequences.map(
+            TID300MeasurementContentSequence => {
+                return {
+                    RelationshipType: "CONTAINS",
+                    ValueType: "CONTAINER",
+                    ConceptNameCodeSequence: {
+                        CodeValue: "125007",
+                        CodingSchemeDesignator: "DCM",
+                        CodeMeaning: "Measurement Group"
+                    },
+                    ContinuityOfContent: "SEPARATE",
+                    ContentSequence: TID300MeasurementContentSequence
+                };
+            }
+        );
 
-        let measurements = [];
-        TID300Measurements.forEach(TID300Measurement => {
-            measurements = measurements.concat(TID300Measurement.contentItem());
-        });
-
-        contentItem = contentItem.concat(measurements);
-
-        return contentItem;
+        return contentSequence;
     }
 }

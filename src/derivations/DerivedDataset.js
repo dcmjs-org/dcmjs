@@ -31,7 +31,7 @@ export default class DerivedDataset {
             options.ClinicalTrialCoordinatingCenterName || "";
         o.ClinicalTrialSeriesID = options.ClinicalTrialSeriesID || "";
 
-        o.ImageComments = options.ImageComments || "NOT FOR CLINICAL USE";
+        o.ImageComments = options.ImageComments || "";
         o.ContentQualification = "RESEARCH";
 
         this.referencedDatasets = datasets; // list of one or more dicom-like object instances
@@ -82,7 +82,7 @@ export default class DerivedDataset {
             "ManufacturerModelName",
             "SeriesDescription",
             "SeriesNumber",
-            "ImageComments",
+            //"ImageComments",
             "SeriesDate",
             "SeriesTime",
             "ContentDate",
