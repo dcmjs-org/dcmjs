@@ -32,8 +32,8 @@ program
       // read the file and convert from json to a dataset buffer (part10)
       const json = fs.readFileSync(fileName).toString();
       const dataset = JSON.parse(json);
-      const dicomDict = new dcmjs.data.DicomDict(dataset);
-      const buffer = Buffer.from(dicomDict.write());
+      const dicomDict = dcmjs.data.datasetToDict(dataset);
+      const buffer = new Buffer(dicomDict.write());
 
       // write buffer to file or stdout
       if (cmd.output) {
