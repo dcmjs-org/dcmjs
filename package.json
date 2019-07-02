@@ -7,6 +7,9 @@
   "directories": {
     "example": "examples"
   },
+  "bin": {
+    "dcmjs": "bin/dcmjs"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "rollup -c",
@@ -45,10 +48,10 @@
     "@babel/runtime": "^7.4.5",
     "acorn": "^6.1.1",
     "bl": "^3.0.0",
+    "commander": "^2.20.0",
     "loglevelnext": "^3.0.1",
     "ndarray": "^1.0.18",
-    "semver": "^6.2.0",
-    "yargs": "^13.2.4"
+    "semver": "^6.2.0"
   },
   "husky": {
     "hooks": {
