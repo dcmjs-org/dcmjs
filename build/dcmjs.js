@@ -1391,12 +1391,6 @@
 	        return frames;
 	      } else {
 	        var bytes;
-	        /*if (this.type == 'OW') {
-	            bytes = stream.readUint16Array(length);
-	        } else if (this.type == 'OB') {
-	            bytes = stream.readUint8Array(length);
-	        }*/
-
 	        bytes = stream.more(length).buffer;
 	        return [bytes];
 	      }
