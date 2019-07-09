@@ -114,14 +114,14 @@ export default class Segmentation extends DerivedPixels {
     bitPackPixelData() {
         if (this.isBitpacked) {
             console.warn(
-                `This.bitPackPixelData has already been called, it should only be called once all frames have been added. Exiting.`
+                `This.bitPackPixelData has already been called, it should only be called once, when all frames have been added. Exiting.`
             );
         }
 
         const dataset = this.dataset;
-        const unpackPixelData = dataset.PixelData;
+        const unpackedPixelData = dataset.PixelData;
 
-        const bitPackedPixelData = BitArray.pack(unpackPixelData);
+        const bitPackedPixelData = BitArray.pack(unpackedPixelData);
 
         dataset.PixelData = bitPackedPixelData;
 
