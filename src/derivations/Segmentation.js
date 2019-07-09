@@ -125,6 +125,8 @@ export default class Segmentation extends DerivedPixels {
 
         dataset.PixelData = bitPackedPixelData.buffer;
 
+        console.log("BIT PACKING PIXEL DATA!");
+
         this.isBitpacked = true;
     }
 

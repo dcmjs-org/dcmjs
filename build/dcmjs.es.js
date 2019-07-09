@@ -6243,6 +6243,7 @@ function (_DerivedPixels) {
       var uInt8ViewUnpackedPixelData = new Uint8Array(unpackedPixelData);
       var bitPackedPixelData = BitArray.pack(uInt8ViewUnpackedPixelData);
       dataset.PixelData = bitPackedPixelData.buffer;
+      console.log("BIT PACKING PIXEL DATA!");
       this.isBitpacked = true;
     }
     /**
