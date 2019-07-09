@@ -100,6 +100,7 @@ export default class Segmentation extends DerivedPixels {
     setNumberOfFrames(NumberOfFrames) {
         const dataset = this.dataset;
         dataset.NumberOfFrames = NumberOfFrames;
+
         dataset.PixelData = new ArrayBuffer(
             dataset.Rows * dataset.Columns * NumberOfFrames
         );
@@ -124,8 +125,6 @@ export default class Segmentation extends DerivedPixels {
         const bitPackedPixelData = BitArray.pack(uInt8ViewUnpackedPixelData);
 
         dataset.PixelData = bitPackedPixelData.buffer;
-
-        console.log("BIT PACKING PIXEL DATA!");
 
         this.isBitpacked = true;
     }
@@ -165,7 +164,7 @@ export default class Segmentation extends DerivedPixels {
         const pixelDataUInt8View = new Uint8Array(
             dataset.PixelData,
             byteOffset,
-            sliceLength
+            pixelData.length
         );
 
         for (let i = 0; i < pixelData.length; i++) {

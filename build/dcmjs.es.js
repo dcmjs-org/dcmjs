@@ -6243,7 +6243,6 @@ function (_DerivedPixels) {
       var uInt8ViewUnpackedPixelData = new Uint8Array(unpackedPixelData);
       var bitPackedPixelData = BitArray.pack(uInt8ViewUnpackedPixelData);
       dataset.PixelData = bitPackedPixelData.buffer;
-      console.log("BIT PACKING PIXEL DATA!");
       this.isBitpacked = true;
     }
     /**
@@ -6277,7 +6276,7 @@ function (_DerivedPixels) {
       var existingFrames = dataset.PerFrameFunctionalGroupsSequence.length;
       var sliceLength = dataset.Rows * dataset.Columns;
       var byteOffset = existingFrames * sliceLength;
-      var pixelDataUInt8View = new Uint8Array(dataset.PixelData, byteOffset, sliceLength);
+      var pixelDataUInt8View = new Uint8Array(dataset.PixelData, byteOffset, pixelData.length);
 
       for (var i = 0; i < pixelData.length; i++) {
         pixelDataUInt8View[i] = pixelData[i];
