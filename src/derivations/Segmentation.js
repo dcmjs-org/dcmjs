@@ -120,10 +120,10 @@ export default class Segmentation extends DerivedPixels {
 
         const dataset = this.dataset;
         const unpackedPixelData = dataset.PixelData;
+        const uInt8ViewUnpackedPixelData = new Uint8Array(unpackedPixelData);
+        const bitPackedPixelData = BitArray.pack(uInt8ViewUnpackedPixelData);
 
-        const bitPackedPixelData = BitArray.pack(unpackedPixelData);
-
-        dataset.PixelData = bitPackedPixelData;
+        dataset.PixelData = bitPackedPixelData.buffer;
 
         this.isBitpacked = true;
     }
@@ -145,7 +145,7 @@ export default class Segmentation extends DerivedPixels {
             );
         }
 
-        this._addSegmentPixelData(bitPackedPixelData, isBitPacked);
+        this._addSegmentPixelData(pixelData);
         const ReferencedSegmentNumber = this._addSegmentMetadata(Segment);
         this._addPerFrameFunctionalGroups(
             ReferencedSegmentNumber,
