@@ -8678,6 +8678,7 @@ b"+i+"*=d\
 	  dataset._meta = DicomMetaDictionary.namifyDataset(dicomData.meta);
 	  var multiframe = Normalizer.normalizeToDataset([dataset]);
 	  var imagePlaneModule = metadataProvider.get("imagePlaneModule", imageIds[0]);
+	  console.warn("Note the cornerstoneTools 4.0 currently assumes the labelmaps are non-overlapping. Overlapping segments will allocate incorrectly. Feel free to submit a PR to improve this behaviour!");
 
 	  if (!imagePlaneModule) {
 	    console.warn("Insufficient metadata, imagePlaneModule missing.");
