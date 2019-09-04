@@ -1,6 +1,6 @@
 {
   "name": "dcmjs",
-  "version": "0.5.2",
+  "version": "0.6.0-cst4-beta",
   "description": "Javascript implementation of DICOM manipulation",
   "main": "build/dcmjs.js",
   "module": "build/dcmjs.es.js",
