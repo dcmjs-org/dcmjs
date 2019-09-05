@@ -8491,6 +8491,125 @@ b"+i+"*=d\
 	  };
 	}
 
+	/**
+	 * Encodes a non-bitpacked frame which has one sample per pixel.
+	 *
+	 * @param {*} buffer
+	 * @param {*} numberOfFrames
+	 * @param {*} rows
+	 * @param {*} cols
+	 */
+	function encode(buffer, numberOfFrames, rows, cols) {
+	  var frameLength = rows * cols;
+	  var header = createHeader();
+	  var encodedFrames = [];
+
+	  for (var frame = 0; frame < numberOfFrames; frame++) {
+	    var frameOffset = frameLength * frame;
+	    encodedFrames.push(encodeFrame(buffer, frameOffset, rows, cols, header));
+	  }
+
+	  return encodedFrames;
+	}
+
+	function encodeFrame(buffer, frameOffset, rows, cols, header) {
+	  // Add header to frame:
+	  var rleArray = [];
+
+	  for (var r = 0; r < rows; r++) {
+	    var rowOffset = r * cols;
+	    var uint8Row = new Uint8Array(buffer, frameOffset + rowOffset, cols);
+	    var i = 0;
+
+	    while (i < uint8Row.length) {
+	      var literalRunLength = getLiteralRunLength(uint8Row, i);
+
+	      if (literalRunLength) {
+	        // State how many in litteral run
+	        rleArray.push(literalRunLength - 1); // Append litteral run.
+
+	        rleArray.concat.apply(rleArray, _toConsumableArray(uint8Row.slice(i, i + literalRunLength)));
+	        i += literalRunLength;
+	      }
+
+	      if (i >= uint8Row.length) {
+	        break;
+	      } // Next must be a replicate run.
+
+
+	      var replicateRunLength = getReplicateRunLength(uint8Row, i);
+
+	      if (replicateRunLength) {
+	        // State how many in replicate run
+	        rleArray.push(257 - replicateRunLength);
+	        rleArray.push(uint8Row[i]);
+	        i += replicateRunLength;
+	      }
+	    }
+	  }
+
+	  var encodedFrameBuffer = new ArrayBuffer(64 + rleArray.length); // Copy header into encodedFrameBuffer.
+
+	  var headerView = new Uint32Array(encodedFrameBuffer, 0, 16);
+
+	  for (var _i = 0; _i < headerView.length; _i++) {
+	    headerView[_i] = header[_i];
+	  }
+
+	  for (var _i2 = 0; _i2 < header.length; _i2++) {
+	    rleArray.push(header[_i2]);
+	  } // Copy rle data into encodedFrameBuffer.
+
+
+	  var bodyView = new Uint8Array(encodedFrameBuffer, 64);
+
+	  for (var _i3 = 0; _i3 < rleArray; _i3++) {
+	    bodyView[_i3] = rleArray[_i3];
+	  }
+
+	  return encodedFrameBuffer;
+	}
+
+	function createHeader() {
+	  var headerUint32 = new Uint32Array(16);
+	  headerUint32[0] = 1; // 1 Segment.
+
+	  headerUint32[1] = 64; // Data offset is 64 bytes.
+	  // Return byte-array version of header:
+
+	  return headerUint32;
+	}
+
+	function getLiteralRunLength(uint8Row, i) {
+	  for (var l = 0; l < uint8Row.length - i; l++) {
+	    if (uint8Row[i + l] === uint8Row[i + l + 1] && uint8Row[i + l + 1] === uint8Row[i + l + 2]) {
+	      return l;
+	    }
+
+	    if (l === 128) {
+	      return l;
+	    }
+	  }
+
+	  return uint8Row.length - i;
+	}
+
+	function getReplicateRunLength(uint8Row, i) {
+	  var first = uint8Row[i];
+
+	  for (var l = 1; l < uint8Row.length - i; l++) {
+	    if (uint8Row[i + l] !== first) {
+	      return l;
+	    }
+
+	    if (l === 128) {
+	      return l;
+	    }
+	  }
+
+	  return uint8Row.length - i;
+	}
+
 	var Segmentation$2 = {
 	  generateSegmentation: generateSegmentation$1,
 	  generateToolState: generateToolState$1
@@ -8606,9 +8725,19 @@ b"+i+"*=d\
 	        seg.addSegmentFromLabelmap(segmentMetadata, labelmaps, segmentIndex, referencedFrameNumbers);
 	      }
 	    }
-	  }
+	  } // TEMP -- Everything to the end of this function is a bit of noodling around:
 
-	  seg.bitPackPixelData();
+
+	  var rleEncodedFrames = encode(seg.dataset.PixelData, numberOfFrames, image0.columns, image0.rows);
+	  console.log("rleEncodedFrames:");
+	  console.log(rleEncodedFrames); //
+	  //seg.bitPackPixelData();
+
+	  console.log(seg.dataset); //TODO : Is the the right way to do this?
+
+	  seg.dataset._meta.TransferSyntaxUID = "1.2.840.10008.1.2.5";
+	  seg.dataset._vrMap.PixelData = "SQ";
+	  seg.dataset.PixelData = rleEncodedFrames;
 	  var segBlob = datasetToBlob(seg.dataset);
 	  return segBlob;
 	}
@@ -8816,6 +8945,7 @@ b"+i+"*=d\
 
 
 	function getImageIdOfReferencedSingleFramedSOPInstance$1(sopInstanceUid, imageIds, metadataProvider) {
+	  console.log("target sopInstanceUid: ".concat(sopInstanceUid));
 	  return imageIds.find(function (imageId) {
 	    var sopCommonModule = metadataProvider.get("sopCommonModule", imageId);
 
@@ -8823,6 +8953,7 @@ b"+i+"*=d\
 	      return;
 	    }
 
+	    console.log(sopCommonModule.sopInstanceUID);
 	    return sopCommonModule.sopInstanceUID === sopInstanceUid;
 	  });
 	}

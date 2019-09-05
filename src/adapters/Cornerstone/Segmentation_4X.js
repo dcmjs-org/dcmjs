@@ -12,6 +12,7 @@ import {
     flipMatrix2D,
     rotateMatrix902D
 } from "../../utilities/orientation/index.js";
+import { encode } from "../../utilities/compression/rleSingleSamplePerPixel";
 
 const Segmentation = {
     generateSegmentation,
@@ -154,7 +155,27 @@ function generateSegmentation(
         }
     }
 
-    seg.bitPackPixelData();
+    // TEMP -- Everything to the end of this function is a bit of noodling around:
+    const rleEncodedFrames = encode(
+        seg.dataset.PixelData,
+        numberOfFrames,
+        image0.columns,
+        image0.rows
+    );
+
+    console.log("rleEncodedFrames:");
+    console.log(rleEncodedFrames);
+    //
+
+    //seg.bitPackPixelData();
+
+    console.log(seg.dataset);
+
+    //TODO : Is the the right way to do this?
+    seg.dataset._meta.TransferSyntaxUID = "1.2.840.10008.1.2.5";
+    seg.dataset._vrMap.PixelData = "SQ";
+
+    seg.dataset.PixelData = rleEncodedFrames;
 
     const segBlob = datasetToBlob(seg.dataset);
 
@@ -447,6 +468,8 @@ function getImageIdOfReferencedSingleFramedSOPInstance(
     imageIds,
     metadataProvider
 ) {
+    console.log(`target sopInstanceUid: ${sopInstanceUid}`);
+
     return imageIds.find(imageId => {
         const sopCommonModule = metadataProvider.get(
             "sopCommonModule",
@@ -456,6 +479,7 @@ function getImageIdOfReferencedSingleFramedSOPInstance(
             return;
         }
 
+        console.log(sopCommonModule.sopInstanceUID);
         return sopCommonModule.sopInstanceUID === sopInstanceUid;
     });
 }
