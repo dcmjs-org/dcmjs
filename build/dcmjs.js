@@ -600,6 +600,10 @@
 	  return _get(target, property, receiver || target);
 	}
 
+	function _readOnlyError(name) {
+	  throw new Error("\"" + name + "\" is read-only");
+	}
+
 	function _slicedToArray(arr, i) {
 	  return _arrayWithHoles(arr) || _iterableToArrayLimit(arr, i) || _nonIterableRest();
 	}
@@ -8499,6 +8503,7 @@ b"+i+"*=d\
 	 * @param {*} rows
 	 * @param {*} cols
 	 */
+
 	function encode(buffer, numberOfFrames, rows, cols) {
 	  var frameLength = rows * cols;
 	  var header = createHeader();
@@ -8608,6 +8613,74 @@ b"+i+"*=d\
 	  }
 
 	  return uint8Row.length - i;
+	}
+
+	function decode(rleEncodedFrames, rows, cols) {
+	  var pixelData = new Uint8Array(rows * cols * framrleEncodedFrames.length);
+	  var buffer = pixelData.buffer;
+	  var frameLength = rows * cols;
+
+	  for (var i = 0; i < rleEncodedFrames.length; i++) {
+	    var rleEncodedFrame = rleEncodedFrames[i];
+	    var uint8FrameView = new Uint8Array(buffer, i * frameLength, frameLength);
+	    decodeFrame(rleEncodedFrame, uint8FrameView);
+	  }
+
+	  return pixelData;
+	}
+
+	function decodeFrame(rleEncodedFrame, pixelData) {
+	  // Check HEADER:
+	  var header = Uint32Array(rleEncodedFrame, 0, 16);
+
+	  if (header[0] !== 1) {
+	    lib.error("rleSingleSamplePerPixel only supports fragments with single Byte Segments (for rle encoded segmentation data) at the current time. This rleEncodedFrame has ".concat(header[0], " Byte Segments."));
+	    return;
+	  }
+
+	  if (headerUint32[1] !== 64) {
+	    lib.error("Data offset of Byte Segment 1 should be 64 bytes, this rle fragment is encoded incorrectly.");
+	    return;
+	  }
+
+	  var uInt8Frame = Uint8Array(rleEncodedFrame, 64);
+	  var pixelDataIndex = 0;
+	  var i = 0;
+
+	  while (pixelDataIndex < pixelData.length) {
+	    var byteValue = uInt8Frame[i];
+
+	    if (byteValue <= 127) {
+	      // TODO -> Interpret the next N+1 bytes literally.
+	      var N = byteValue + 1;
+	      var next = i + 1; // Read the next N bytes literally.
+
+	      for (var p = next; p < next + N; p++) {
+	        pixelData[pixelDataIndex] = uInt8Frame[p];
+	        _readOnlyError("pixelDataIndex"), pixelDataIndex++;
+	      }
+
+	      i += N + 1;
+	    }
+
+	    if (byteValue >= 129) {
+	      var _N = 257 - byteValue;
+
+	      var _next = i + 1; // Repeat the next byte N times.
+
+
+	      for (var _p = 0; _p < _N; _p++) {
+	        pixelData[pixelDataIndex] = uInt8Frame[_next];
+	        _readOnlyError("pixelDataIndex"), pixelDataIndex++;
+	      }
+
+	      i += 2;
+	    }
+
+	    if (i === uInt8Frame.length) {
+	      break;
+	    }
+	  }
 	}
 
 	var Segmentation$2 = {
@@ -8731,7 +8804,9 @@ b"+i+"*=d\
 	  var rleEncodedFrames = encode(seg.dataset.PixelData, numberOfFrames, image0.columns, image0.rows);
 	  console.log("rleEncodedFrames:");
 	  console.log(rleEncodedFrames); //
-	  //seg.bitPackPixelData();
+
+	  var decodedPixelData = decode(rleEncodedFrames, rows, cols);
+	  console.log(decodedPixelData); //seg.bitPackPixelData();
 
 	  console.log(seg.dataset); //TODO : Is the the right way to do this?
 

@@ -1,3 +1,5 @@
+import log from "loglevelnext";
+
 /**
  * Encodes a non-bitpacked frame which has one sample per pixel.
  *
@@ -126,9 +128,85 @@ function getReplicateRunLength(uint8Row, i) {
     return uint8Row.length - i;
 }
 
-function decode(buffer) {
-    // READ Header
-    // Loop through segments
+function decode(rleEncodedFrames, rows, cols) {
+    const pixelData = new Uint8Array(rows * cols * framrleEncodedFrames.length);
+    const buffer = pixelData.buffer;
+    const frameLength = rows * cols;
+
+    for (let i = 0; i < rleEncodedFrames.length; i++) {
+        const rleEncodedFrame = rleEncodedFrames[i];
+
+        const uint8FrameView = new Uint8Array(
+            buffer,
+            i * frameLength,
+            frameLength
+        );
+
+        decodeFrame(rleEncodedFrame, uint8FrameView);
+    }
+
+    return pixelData;
+}
+
+function decodeFrame(rleEncodedFrame, pixelData) {
+    // Check HEADER:
+    const header = Uint32Array(rleEncodedFrame, 0, 16);
+
+    if (header[0] !== 1) {
+        log.error(
+            `rleSingleSamplePerPixel only supports fragments with single Byte Segments (for rle encoded segmentation data) at the current time. This rleEncodedFrame has ${
+                header[0]
+            } Byte Segments.`
+        );
+
+        return;
+    }
+
+    if (headerUint32[1] !== 64) {
+        log.error(
+            "Data offset of Byte Segment 1 should be 64 bytes, this rle fragment is encoded incorrectly."
+        );
+
+        return;
+    }
+
+    const uInt8Frame = Uint8Array(rleEncodedFrame, 64);
+    const pixelDataIndex = 0;
+    let i = 0;
+
+    while (pixelDataIndex < pixelData.length) {
+        const byteValue = uInt8Frame[i];
+
+        if (byteValue <= 127) {
+            // TODO -> Interpret the next N+1 bytes literally.
+            const N = byteValue + 1;
+            const next = i + 1;
+
+            // Read the next N bytes literally.
+            for (let p = next; p < next + N; p++) {
+                pixelData[pixelDataIndex] = uInt8Frame[p];
+                pixelDataIndex++;
+            }
+            i += N + 1;
+        }
+
+        if (byteValue >= 129) {
+            const N = 257 - byteValue;
+            const next = i + 1;
+
+            // Repeat the next byte N times.
+            for (let p = 0; p < N; p++) {
+                pixelData[pixelDataIndex] = uInt8Frame[next];
+                pixelDataIndex++;
+            }
+
+            i += 2;
+        }
+
+        if (i === uInt8Frame.length) {
+            break;
+        }
+    }
 }
 
 export { encode, decode };

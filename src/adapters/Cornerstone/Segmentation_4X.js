@@ -12,7 +12,10 @@ import {
     flipMatrix2D,
     rotateMatrix902D
 } from "../../utilities/orientation/index.js";
-import { encode } from "../../utilities/compression/rleSingleSamplePerPixel";
+import {
+    encode,
+    decode
+} from "../../utilities/compression/rleSingleSamplePerPixel";
 
 const Segmentation = {
     generateSegmentation,
@@ -166,6 +169,10 @@ function generateSegmentation(
     console.log("rleEncodedFrames:");
     console.log(rleEncodedFrames);
     //
+
+    const decodedPixelData = decode(rleEncodedFrames, rows, cols);
+
+    console.log(decodedPixelData);
 
     //seg.bitPackPixelData();
 
