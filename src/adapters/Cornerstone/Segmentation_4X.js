@@ -334,6 +334,11 @@ function generateToolState(imageIds, arrayBuffer, metadataProvider) {
             metadataProvider
         );
 
+        if (!imageId) {
+            // Image not present in stack, can't import this frame.
+            continue;
+        }
+
         const imageIdIndex = imageIds.findIndex(element => element === imageId);
         const byteOffset = sliceLength * 2 * imageIdIndex; // 2 bytes/pixel
 
