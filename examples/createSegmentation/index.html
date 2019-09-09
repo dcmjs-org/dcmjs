@@ -179,12 +179,52 @@
 
             console.log(segBlob);
 
+            new Response(segBlob).arrayBuffer().then(arrayBuffer => {
+              console.log(arrayBuffer)
+
+              parseSeg(arrayBuffer);
+            });
+
             // Create a URL for the binary.
             var objectUrl = URL.createObjectURL(segBlob);
             window.open(objectUrl);
           })
           .catch(err => console.log(err));
       }
+
+      // TEMP TEST
+      function parseSeg(arrayBuffer) {
+        const element = document.getElementsByClassName("viewport-element")[0];
+
+        const stackToolState = cornerstoneTools.getToolState(element, "stack");
+        const imageIds = stackToolState.data[0].imageIds;
+
+        const t0 = performance.now();
+
+        const {
+          labelmapBuffer,
+          segMetadata,
+          segmentsOnFrame
+        } = dcmjs.adapters.Cornerstone.Segmentation.generateToolState(
+          imageIds,
+          arrayBuffer,
+          cornerstone.metaData
+        );
+
+        const t1 = performance.now();
+
+        const { setters, state } = cornerstoneTools.getModule("segmentation");
+
+        setters.labelmap3DByFirstImageId(
+          imageIds[0],
+          labelmapBuffer,
+          0,
+          segMetadata,
+          imageIds.length,
+          segmentsOnFrame
+        );
+      }
+      // TEMP TEST
 
       function generateMockMetadata(segmentIndex) {
         // TODO -> Use colors from the cornerstoneTools LUT.

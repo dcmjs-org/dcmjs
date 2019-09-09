@@ -158,6 +158,9 @@ function generateSegmentation(
         }
     }
 
+    // TODO -> Optional encoding.
+    // Read encoded DICOM SEG.
+
     // TEMP -- Everything to the end of this function is a bit of noodling around:
     const rleEncodedFrames = encode(
         seg.dataset.PixelData,
@@ -166,29 +169,13 @@ function generateSegmentation(
         image0.columns
     );
 
-    console.log(new Uint8Array(rleEncodedFrames[0]));
-
-    const decodedPixelData = decode(
-        rleEncodedFrames,
-        image0.rows,
-        image0.columns
-    );
-
     const PixelData = seg.dataset.PixelData;
-
-    console.log(decodedPixelData);
-
-    for (let i = 0; i < PixelData.length; i++) {
-        if (PixelData[i] !== decodedPixelData[i]) {
-            console.log(
-                ` decoded not same: ${PixelData[i]}, ${decodedPixelData[i]}`
-            );
-        }
-    }
 
     //TODO : Is the the right way to do this?
     seg.dataset._meta.TransferSyntaxUID = "1.2.840.10008.1.2.5";
-    seg.dataset._vrMap.PixelData = "SQ";
+    seg.dataset._vrMap.PixelData = "OB";
+
+    console.log(seg);
 
     seg.dataset.PixelData = rleEncodedFrames;
 
