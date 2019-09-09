@@ -162,21 +162,29 @@ function generateSegmentation(
     const rleEncodedFrames = encode(
         seg.dataset.PixelData,
         numberOfFrames,
-        image0.columns,
-        image0.rows
+        image0.rows,
+        image0.columns
     );
 
-    console.log("rleEncodedFrames:");
-    console.log(rleEncodedFrames);
-    //
+    console.log(new Uint8Array(rleEncodedFrames[0]));
 
-    const decodedPixelData = decode(rleEncodedFrames, rows, cols);
+    const decodedPixelData = decode(
+        rleEncodedFrames,
+        image0.rows,
+        image0.columns
+    );
+
+    const PixelData = seg.dataset.PixelData;
 
     console.log(decodedPixelData);
 
-    //seg.bitPackPixelData();
-
-    console.log(seg.dataset);
+    for (let i = 0; i < PixelData.length; i++) {
+        if (PixelData[i] !== decodedPixelData[i]) {
+            console.log(
+                ` decoded not same: ${PixelData[i]}, ${decodedPixelData[i]}`
+            );
+        }
+    }
 
     //TODO : Is the the right way to do this?
     seg.dataset._meta.TransferSyntaxUID = "1.2.840.10008.1.2.5";

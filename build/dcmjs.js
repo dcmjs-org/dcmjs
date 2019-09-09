@@ -600,10 +600,6 @@
 	  return _get(target, property, receiver || target);
 	}
 
-	function _readOnlyError(name) {
-	  throw new Error("\"" + name + "\" is read-only");
-	}
-
 	function _slicedToArray(arr, i) {
 	  return _arrayWithHoles(arr) || _iterableToArrayLimit(arr, i) || _nonIterableRest();
 	}
@@ -8514,6 +8510,7 @@ b"+i+"*=d\
 	    encodedFrames.push(encodeFrame(buffer, frameOffset, rows, cols, header));
 	  }
 
+	  console.log(encodedFrames);
 	  return encodedFrames;
 	}
 
@@ -8561,14 +8558,14 @@ b"+i+"*=d\
 	    headerView[_i] = header[_i];
 	  }
 
-	  for (var _i2 = 0; _i2 < header.length; _i2++) {
-	    rleArray.push(header[_i2]);
+	  for (var _i2 = 0; _i2 < headerView.length; _i2++) {
+	    rleArray.push(headerView[_i2]);
 	  } // Copy rle data into encodedFrameBuffer.
 
 
 	  var bodyView = new Uint8Array(encodedFrameBuffer, 64);
 
-	  for (var _i3 = 0; _i3 < rleArray; _i3++) {
+	  for (var _i3 = 0; _i3 < rleArray.length; _i3++) {
 	    bodyView[_i3] = rleArray[_i3];
 	  }
 
@@ -8616,7 +8613,7 @@ b"+i+"*=d\
 	}
 
 	function decode(rleEncodedFrames, rows, cols) {
-	  var pixelData = new Uint8Array(rows * cols * framrleEncodedFrames.length);
+	  var pixelData = new Uint8Array(rows * cols * rleEncodedFrames.length);
 	  var buffer = pixelData.buffer;
 	  var frameLength = rows * cols;
 
@@ -8631,19 +8628,19 @@ b"+i+"*=d\
 
 	function decodeFrame(rleEncodedFrame, pixelData) {
 	  // Check HEADER:
-	  var header = Uint32Array(rleEncodedFrame, 0, 16);
+	  var header = new Uint32Array(rleEncodedFrame, 0, 16);
 
 	  if (header[0] !== 1) {
 	    lib.error("rleSingleSamplePerPixel only supports fragments with single Byte Segments (for rle encoded segmentation data) at the current time. This rleEncodedFrame has ".concat(header[0], " Byte Segments."));
 	    return;
 	  }
 
-	  if (headerUint32[1] !== 64) {
+	  if (header[1] !== 64) {
 	    lib.error("Data offset of Byte Segment 1 should be 64 bytes, this rle fragment is encoded incorrectly.");
 	    return;
 	  }
 
-	  var uInt8Frame = Uint8Array(rleEncodedFrame, 64);
+	  var uInt8Frame = new Uint8Array(rleEncodedFrame, 64);
 	  var pixelDataIndex = 0;
 	  var i = 0;
 
@@ -8657,7 +8654,7 @@ b"+i+"*=d\
 
 	      for (var p = next; p < next + N; p++) {
 	        pixelData[pixelDataIndex] = uInt8Frame[p];
-	        _readOnlyError("pixelDataIndex"), pixelDataIndex++;
+	        pixelDataIndex++;
 	      }
 
 	      i += N + 1;
@@ -8671,7 +8668,7 @@ b"+i+"*=d\
 
 	      for (var _p = 0; _p < _N; _p++) {
 	        pixelData[pixelDataIndex] = uInt8Frame[_next];
-	        _readOnlyError("pixelDataIndex"), pixelDataIndex++;
+	        pixelDataIndex++;
 	      }
 
 	      i += 2;
@@ -8731,28 +8728,28 @@ b"+i+"*=d\
 	        metadata = labelmap3D.metadata;
 	    var referencedFramesPerSegment = [];
 
-	    for (var i = 1; i < metadata.length; i++) {
-	      if (metadata[i]) {
-	        referencedFramesPerSegment[i] = [];
+	    for (var _i = 1; _i < metadata.length; _i++) {
+	      if (metadata[_i]) {
+	        referencedFramesPerSegment[_i] = [];
 	      }
 	    }
 
-	    var _loop2 = function _loop2(_i) {
-	      var labelmap2D = labelmaps2D[_i];
+	    var _loop2 = function _loop2(_i2) {
+	      var labelmap2D = labelmaps2D[_i2];
 
-	      if (labelmaps2D[_i]) {
+	      if (labelmaps2D[_i2]) {
 	        var segmentsOnLabelmap = labelmap2D.segmentsOnLabelmap;
 	        segmentsOnLabelmap.forEach(function (segmentIndex) {
 	          if (segmentIndex !== 0) {
-	            referencedFramesPerSegment[segmentIndex].push(_i);
+	            referencedFramesPerSegment[segmentIndex].push(_i2);
 	            numberOfFrames++;
 	          }
 	        });
 	      }
 	    };
 
-	    for (var _i = 0; _i < labelmaps2D.length; _i++) {
-	      _loop2(_i);
+	    for (var _i2 = 0; _i2 < labelmaps2D.length; _i2++) {
+	      _loop2(_i2);
 	    }
 
 	    referencedFramesPerLabelmap[labelmapIndex] = referencedFramesPerSegment;
@@ -8801,14 +8798,18 @@ b"+i+"*=d\
 	  } // TEMP -- Everything to the end of this function is a bit of noodling around:
 
 
-	  var rleEncodedFrames = encode(seg.dataset.PixelData, numberOfFrames, image0.columns, image0.rows);
-	  console.log("rleEncodedFrames:");
-	  console.log(rleEncodedFrames); //
+	  var rleEncodedFrames = encode(seg.dataset.PixelData, numberOfFrames, image0.rows, image0.columns);
+	  console.log(new Uint8Array(rleEncodedFrames[0]));
+	  var decodedPixelData = decode(rleEncodedFrames, image0.rows, image0.columns);
+	  var PixelData = seg.dataset.PixelData;
+	  console.log(decodedPixelData);
 
-	  var decodedPixelData = decode(rleEncodedFrames, rows, cols);
-	  console.log(decodedPixelData); //seg.bitPackPixelData();
+	  for (var i = 0; i < PixelData.length; i++) {
+	    if (PixelData[i] !== decodedPixelData[i]) {
+	      console.log(" decoded not same: ".concat(PixelData[i], ", ").concat(decodedPixelData[i]));
+	    }
+	  } //TODO : Is the the right way to do this?
 
-	  console.log(seg.dataset); //TODO : Is the the right way to do this?
 
 	  seg.dataset._meta.TransferSyntaxUID = "1.2.840.10008.1.2.5";
 	  seg.dataset._vrMap.PixelData = "SQ";

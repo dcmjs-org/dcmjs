@@ -22,6 +22,8 @@ function encode(buffer, numberOfFrames, rows, cols) {
         );
     }
 
+    console.log(encodedFrames);
+
     return encodedFrames;
 }
 
@@ -73,14 +75,14 @@ function encodeFrame(buffer, frameOffset, rows, cols, header) {
         headerView[i] = header[i];
     }
 
-    for (let i = 0; i < header.length; i++) {
-        rleArray.push(header[i]);
+    for (let i = 0; i < headerView.length; i++) {
+        rleArray.push(headerView[i]);
     }
 
     // Copy rle data into encodedFrameBuffer.
     const bodyView = new Uint8Array(encodedFrameBuffer, 64);
 
-    for (let i = 0; i < rleArray; i++) {
+    for (let i = 0; i < rleArray.length; i++) {
         bodyView[i] = rleArray[i];
     }
 
@@ -129,7 +131,7 @@ function getReplicateRunLength(uint8Row, i) {
 }
 
 function decode(rleEncodedFrames, rows, cols) {
-    const pixelData = new Uint8Array(rows * cols * framrleEncodedFrames.length);
+    const pixelData = new Uint8Array(rows * cols * rleEncodedFrames.length);
     const buffer = pixelData.buffer;
     const frameLength = rows * cols;
 
@@ -150,7 +152,7 @@ function decode(rleEncodedFrames, rows, cols) {
 
 function decodeFrame(rleEncodedFrame, pixelData) {
     // Check HEADER:
-    const header = Uint32Array(rleEncodedFrame, 0, 16);
+    const header = new Uint32Array(rleEncodedFrame, 0, 16);
 
     if (header[0] !== 1) {
         log.error(
@@ -162,7 +164,7 @@ function decodeFrame(rleEncodedFrame, pixelData) {
         return;
     }
 
-    if (headerUint32[1] !== 64) {
+    if (header[1] !== 64) {
         log.error(
             "Data offset of Byte Segment 1 should be 64 bytes, this rle fragment is encoded incorrectly."
         );
@@ -170,8 +172,9 @@ function decodeFrame(rleEncodedFrame, pixelData) {
         return;
     }
 
-    const uInt8Frame = Uint8Array(rleEncodedFrame, 64);
-    const pixelDataIndex = 0;
+    const uInt8Frame = new Uint8Array(rleEncodedFrame, 64);
+
+    let pixelDataIndex = 0;
     let i = 0;
 
     while (pixelDataIndex < pixelData.length) {
