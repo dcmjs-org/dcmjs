@@ -1351,37 +1351,20 @@
 	            offsets = [0];
 	          }
 
-	          var nextTag = Tag.readTag(stream),
-	              fragmentStream = null,
-	              start = 4,
-	              frameOffset = offsets.shift();
+	          for (var _i = 0; _i < offsets.length; _i++) {
+	            var nextTag = Tag.readTag(stream);
 
-	          while (nextTag.is(0xfffee000)) {
-	            if (frameOffset == start) {
-	              frameOffset = offsets.shift();
-
-	              if (fragmentStream !== null) {
-	                frames.push(fragmentStream.buffer);
-	                fragmentStream = null;
-	              }
+	            if (!nextTag.is(0xfffee000)) {
+	              break;
 	            }
 
-	            var frameItemLength = stream.readUint32(),
-	                thisStream = stream.more(frameItemLength);
-
-	            if (fragmentStream === null) {
-	              fragmentStream = thisStream;
-	            } else {
-	              fragmentStream.concat(thisStream);
-	            }
-
-	            nextTag = Tag.readTag(stream);
-	            start += 4 + frameItemLength;
-	          }
-
-	          if (fragmentStream !== null) {
+	            var frameItemLength = stream.readUint32();
+	            var fragmentStream = stream.more(frameItemLength);
 	            frames.push(fragmentStream.buffer);
-	          }
+	          } // Read SequenceDelimitationItem Tag
+
+
+	          stream.readUint32(); // Read SequenceDelimitationItem value.
 
 	          stream.readUint32();
 	        } else {
@@ -1392,10 +1375,10 @@
 	      } else {
 	        var bytes;
 	        /*if (this.type == 'OW') {
-	            bytes = stream.readUint16Array(length);
-	        } else if (this.type == 'OB') {
-	            bytes = stream.readUint8Array(length);
-	        }*/
+	                  bytes = stream.readUint16Array(length);
+	              } else if (this.type == 'OB') {
+	                  bytes = stream.readUint8Array(length);
+	              }*/
 
 	        bytes = stream.more(length).buffer;
 	        return [bytes];
@@ -2938,6 +2921,10 @@
 	        } else {
 	          length = stream.readUint16();
 	        }
+	      }
+
+	      if (tag.isPixelDataTag()) {
+	        console.log("ISPIXELDATATAG");
 	      }
 
 	      var values = [];
@@ -8623,6 +8610,83 @@ b"+i+"*=d\
 	  return uint8Row.length - i;
 	}
 
+	function decode(rleEncodedFrames, rows, cols) {
+	  var pixelData = new Uint8Array(rows * cols * rleEncodedFrames.length);
+	  var buffer = pixelData.buffer;
+	  var frameLength = rows * cols;
+	  console.log(pixelData);
+
+	  for (var i = 0; i < rleEncodedFrames.length; i++) {
+	    var rleEncodedFrame = rleEncodedFrames[i];
+	    var uint8FrameView = new Uint8Array(buffer, i * frameLength, frameLength);
+	    decodeFrame(rleEncodedFrame, uint8FrameView);
+	  }
+
+	  return pixelData;
+	}
+
+	function decodeFrame(rleEncodedFrame, pixelData) {
+	  // Check HEADER:
+	  var header = new Uint32Array(rleEncodedFrame, 0, 16);
+	  console.log(header);
+
+	  if (header[0] !== 1) {
+	    lib.error("rleSingleSamplePerPixel only supports fragments with single Byte Segments (for rle encoded segmentation data) at the current time. This rleEncodedFrame has ".concat(header[0], " Byte Segments."));
+	    return;
+	  }
+
+	  if (header[1] !== 64) {
+	    lib.error("Data offset of Byte Segment 1 should be 64 bytes, this rle fragment is encoded incorrectly.");
+	    return;
+	  }
+
+	  var uInt8Frame = new Uint8Array(rleEncodedFrame, 64);
+	  var pixelDataIndex = 0;
+	  var i = 0;
+
+	  while (pixelDataIndex < pixelData.length) {
+	    var byteValue = uInt8Frame[i];
+	    console.log(byteValue);
+
+	    if (byteValue === undefined) {
+	      break;
+	    }
+
+	    if (byteValue <= 127) {
+	      // TODO -> Interpret the next N+1 bytes literally.
+	      var N = byteValue + 1;
+	      var next = i + 1; // Read the next N bytes literally.
+
+	      for (var p = next; p < next + N; p++) {
+	        pixelData[pixelDataIndex] = uInt8Frame[p];
+	        pixelDataIndex++;
+	      }
+
+	      i += N + 1;
+	    }
+
+	    if (byteValue >= 129) {
+	      var _N = 257 - byteValue;
+
+	      var _next = i + 1; // Repeat the next byte N times.
+
+
+	      for (var _p = 0; _p < _N; _p++) {
+	        pixelData[pixelDataIndex] = uInt8Frame[_next];
+	        pixelDataIndex++;
+	      }
+
+	      i += 2;
+	    }
+
+	    console.log(i, pixelDataIndex);
+
+	    if (i === uInt8Frame.length) {
+	      break;
+	    }
+	  }
+	}
+
 	var Segmentation$2 = {
 	  generateSegmentation: generateSegmentation$1,
 	  generateToolState: generateToolState$1
@@ -8812,7 +8876,6 @@ b"+i+"*=d\
 	  var dataset = DicomMetaDictionary.naturalizeDataset(dicomData.dict);
 	  dataset._meta = DicomMetaDictionary.namifyDataset(dicomData.meta);
 	  var multiframe = Normalizer.normalizeToDataset([dataset]);
-	  console.log(multiframe);
 	  var imagePlaneModule = metadataProvider.get("imagePlaneModule", imageIds[0]);
 	  console.warn("Note the cornerstoneTools 4.0 currently assumes the labelmaps are non-overlapping. Overlapping segments will allocate incorrectly. Feel free to submit a PR to improve this behaviour!");
 
@@ -8828,12 +8891,21 @@ b"+i+"*=d\
 	  var sliceLength = multiframe.Columns * multiframe.Rows;
 	  var segMetadata = getSegmentMetadata$1(multiframe);
 	  var TransferSyntaxUID = multiframe._meta.TransferSyntaxUID.Value[0];
-	  console.log(TransferSyntaxUID);
 	  var pixelData;
 
 	  if (TransferSyntaxUID === "1.2.840.10008.1.2.5") {
-	    // TODO RLE ENCODE
-	    console.log("implement rle encoding");
+	    // TODO RLE DECODE
+	    console.log("TODO: implement rle decoding");
+	    console.log(multiframe);
+	    var rleEncodedFrames = Array.isArray(multiframe.PixelData) ? multiframe.PixelData : [multiframe.PixelData];
+	    console.log(rleEncodedFrames);
+	    var decodedFrames = decode(rleEncodedFrames, multiframe.Rows, multiframe.Columns);
+	    console.log(decodedFrames);
+
+	    if (multiframe.BitsStored === 1) {
+	      console.log("Need to implement bitpack + rle combination.");
+	    }
+
 	    return;
 	  } else {
 	    pixelData = unpackPixelData$1(multiframe);

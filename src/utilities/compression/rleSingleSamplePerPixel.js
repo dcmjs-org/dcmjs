@@ -140,6 +140,8 @@ function decode(rleEncodedFrames, rows, cols) {
     const buffer = pixelData.buffer;
     const frameLength = rows * cols;
 
+    console.log(pixelData);
+
     for (let i = 0; i < rleEncodedFrames.length; i++) {
         const rleEncodedFrame = rleEncodedFrames[i];
 
@@ -158,6 +160,8 @@ function decode(rleEncodedFrames, rows, cols) {
 function decodeFrame(rleEncodedFrame, pixelData) {
     // Check HEADER:
     const header = new Uint32Array(rleEncodedFrame, 0, 16);
+
+    console.log(header);
 
     if (header[0] !== 1) {
         log.error(
@@ -185,6 +189,12 @@ function decodeFrame(rleEncodedFrame, pixelData) {
     while (pixelDataIndex < pixelData.length) {
         const byteValue = uInt8Frame[i];
 
+        console.log(byteValue);
+
+        if (byteValue === undefined) {
+            break;
+        }
+
         if (byteValue <= 127) {
             // TODO -> Interpret the next N+1 bytes literally.
             const N = byteValue + 1;
@@ -210,6 +220,8 @@ function decodeFrame(rleEncodedFrame, pixelData) {
 
             i += 2;
         }
+
+        console.log(i, pixelDataIndex);
 
         if (i === uInt8Frame.length) {
             break;

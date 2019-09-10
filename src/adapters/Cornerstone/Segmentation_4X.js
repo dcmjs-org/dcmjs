@@ -247,8 +247,6 @@ function generateToolState(imageIds, arrayBuffer, metadataProvider) {
     dataset._meta = DicomMetaDictionary.namifyDataset(dicomData.meta);
     const multiframe = Normalizer.normalizeToDataset([dataset]);
 
-    console.log(multiframe);
-
     const imagePlaneModule = metadataProvider.get(
         "imagePlaneModule",
         imageIds[0]
@@ -289,13 +287,31 @@ function generateToolState(imageIds, arrayBuffer, metadataProvider) {
 
     const TransferSyntaxUID = multiframe._meta.TransferSyntaxUID.Value[0];
 
-    console.log(TransferSyntaxUID);
-
     let pixelData;
 
     if (TransferSyntaxUID === "1.2.840.10008.1.2.5") {
-        // TODO RLE ENCODE
-        console.log("implement rle encoding");
+        // TODO RLE DECODE
+        console.log("TODO: implement rle decoding");
+
+        console.log(multiframe);
+
+        const rleEncodedFrames = Array.isArray(multiframe.PixelData)
+            ? multiframe.PixelData
+            : [multiframe.PixelData];
+
+        console.log(rleEncodedFrames);
+
+        const decodedFrames = decode(
+            rleEncodedFrames,
+            multiframe.Rows,
+            multiframe.Columns
+        );
+
+        console.log(decodedFrames);
+
+        if (multiframe.BitsStored === 1) {
+            console.log("Need to implement bitpack + rle combination.");
+        }
 
         return;
     } else {
