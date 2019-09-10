@@ -2857,7 +2857,7 @@
 	      stream.reset();
 	      stream.increment(128);
 
-	      if (stream.readString(4) != "DICM") {
+	      if (stream.readString(4) !== "DICM") {
 	        throw new Error("Invalid a dicom file");
 	      }
 
@@ -5294,7 +5294,8 @@
 	function datasetToDict(dataset) {
 	  var fileMetaInformationVersionArray = new Uint8Array(2);
 	  fileMetaInformationVersionArray[1] = 1;
-	  var TransferSyntaxUID = dataset._meta.TransferSyntaxUID ? dataset._meta.TransferSyntaxUID : "1.2.840.10008.1.2.1";
+	  var TransferSyntaxUID = dataset._meta.TransferSyntaxUID.Value[0] ? dataset._meta.TransferSyntaxUID.Value[0] : "1.2.840.10008.1.2.1";
+	  console.log(TransferSyntaxUID);
 	  dataset._meta = {
 	    MediaStorageSOPClassUID: dataset.SOPClassUID,
 	    MediaStorageSOPInstanceUID: dataset.SOPInstanceUID,
@@ -6169,9 +6170,9 @@
 	        Modality: "SEG",
 	        SamplesPerPixel: "1",
 	        PhotometricInterpretation: "MONOCHROME2",
-	        BitsAllocated: "1",
-	        BitsStored: "1",
-	        HighBit: "0",
+	        BitsAllocated: "8",
+	        BitsStored: "8",
+	        HighBit: "7",
 	        PixelRepresentation: "0",
 	        LossyImageCompression: "00",
 	        SegmentationType: "BINARY",
@@ -6223,9 +6224,12 @@
 	      if (!this.options.includeSliceSpacing) {
 	        // per dciodvfy this should not be included, but dcmqi/Slicer requires it
 	        delete this.dataset.SharedFunctionalGroupsSequence.PixelMeasuresSequence.SpacingBetweenSlices;
-	      } // make an array of zeros for the pixels assuming bit packing (one bit per short)
-	      // TODO: handle different packing and non-multiple of 8/16 rows and columns
-	      // The pixelData array needs to be defined once you know how many frames you'll have.
+	      }
+
+	      if (this.dataset.SharedFunctionalGroupsSequence.PixelValueTransformationSequence) {
+	        // If derived from a CT, this shouldn't be left in the SEG.
+	        delete this.dataset.SharedFunctionalGroupsSequence.PixelValueTransformationSequence;
+	      } // The pixelData array needs to be defined once you know how many frames you'll have.
 
 
 	      this.dataset.PixelData = undefined;
@@ -6265,6 +6269,11 @@
 	      var uInt8ViewUnpackedPixelData = new Uint8Array(unpackedPixelData);
 	      var bitPackedPixelData = BitArray.pack(uInt8ViewUnpackedPixelData);
 	      dataset.PixelData = bitPackedPixelData.buffer;
+	      this.assignToDataset({
+	        BitsAllocated: "1",
+	        BitsStored: "1",
+	        HighBit: "0"
+	      });
 	      this.isBitpacked = true;
 	    }
 	    /**
@@ -8624,6 +8633,10 @@ b"+i+"*=d\
 	 *                                 seriesInstanceUid.
 	 */
 
+	var generateSegmentationDefaultOptions = {
+	  includeSliceSpacing: true,
+	  rleEncode: true
+	};
 	/**
 	 * generateSegmentation - Generates cornerstoneTools brush data, given a stack of
 	 * imageIds, images and the cornerstoneTools brushData.
@@ -8634,11 +8647,10 @@ b"+i+"*=d\
 	 */
 
 	function generateSegmentation$1(images, labelmaps3D) {
-	  var options = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {
-	    includeSliceSpacing: true
-	  };
+	  var userOptions = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
+	  var options = Object.assign({}, generateSegmentationDefaultOptions, userOptions);
+	  console.log(options); // If one Labelmap3D, convert to Labelmap3D array of length 1.
 
-	  // If one Labelmap3D, convert to Labelmap3D array of length 1.
 	  if (!Array.isArray(labelmaps3D)) {
 	    labelmaps3D = [labelmaps3D];
 	  } // Calculate the dimensions of the data cube.
@@ -8689,23 +8701,13 @@ b"+i+"*=d\
 
 	  for (var labelmapIndex = 0; labelmapIndex < labelmaps3D.length; labelmapIndex++) {
 	    _loop(labelmapIndex);
-	  } // - For each labelmap:
-	  // -- Get number of segments DING
-	  // -- Get frames per segment. DING
-	  //
-	  // - Allocate enough memory. DING
-	  // - Set metadata per segment:
-	  // -- Segment Index - increment from 1 to N through labelmap 0..N.
-	  // - Per frame:
-	  // -- Set perFrameFunctionalGroupSequence for each segment (frame any labelmap) on this frame.
-	  // - Boom done.
-
+	  }
 
 	  var isMultiframe = image0.imageId.includes("?frame");
 
 	  var seg = _createSegFromImages$1(images, isMultiframe, options);
 
-	  seg.setNumberOfFrames(numberOfFrames); // TODO -> Rewrite adding each segment at a time.
+	  seg.setNumberOfFrames(numberOfFrames);
 
 	  for (var labelmapIndex = 0; labelmapIndex < labelmaps3D.length; labelmapIndex++) {
 	    var referencedFramesPerSegment = referencedFramesPerLabelmap[labelmapIndex];
@@ -8727,18 +8729,19 @@ b"+i+"*=d\
 	        seg.addSegmentFromLabelmap(segmentMetadata, labelmaps, segmentIndex, referencedFrameNumbers);
 	      }
 	    }
-	  } // TODO -> Optional encoding.
-	  // Read encoded DICOM SEG.
-	  // TEMP -- Everything to the end of this function is a bit of noodling around:
+	  }
 
+	  if (options.rleEncode) {
+	    console.log("rleEncode");
+	    var rleEncodedFrames = encode(seg.dataset.PixelData, numberOfFrames, image0.rows, image0.columns);
+	    seg.dataset._meta.TransferSyntaxUID.Value[0] = "1.2.840.10008.1.2.5";
+	    seg.dataset._vrMap.PixelData = "OB";
+	    seg.dataset.PixelData = rleEncodedFrames;
+	  } else {
+	    // If no rleEncoding, at least bitpack the data.
+	    seg.bitPackPixelData();
+	  }
 
-	  var rleEncodedFrames = encode(seg.dataset.PixelData, numberOfFrames, image0.rows, image0.columns);
-	  var PixelData = seg.dataset.PixelData; //TODO : Is the the right way to do this?
-
-	  seg.dataset._meta.TransferSyntaxUID = "1.2.840.10008.1.2.5";
-	  seg.dataset._vrMap.PixelData = "OB";
-	  console.log(seg);
-	  seg.dataset.PixelData = rleEncodedFrames;
 	  var segBlob = datasetToBlob(seg.dataset);
 	  return segBlob;
 	}
@@ -8807,6 +8810,7 @@ b"+i+"*=d\
 	  var dataset = DicomMetaDictionary.naturalizeDataset(dicomData.dict);
 	  dataset._meta = DicomMetaDictionary.namifyDataset(dicomData.meta);
 	  var multiframe = Normalizer.normalizeToDataset([dataset]);
+	  console.log(multiframe);
 	  var imagePlaneModule = metadataProvider.get("imagePlaneModule", imageIds[0]);
 	  console.warn("Note the cornerstoneTools 4.0 currently assumes the labelmaps are non-overlapping. Overlapping segments will allocate incorrectly. Feel free to submit a PR to improve this behaviour!");
 
@@ -8821,7 +8825,18 @@ b"+i+"*=d\
 	  var sharedImageOrientationPatient = SharedFunctionalGroupsSequence.PlaneOrientationSequence ? SharedFunctionalGroupsSequence.PlaneOrientationSequence.ImageOrientationPatient : undefined;
 	  var sliceLength = multiframe.Columns * multiframe.Rows;
 	  var segMetadata = getSegmentMetadata$1(multiframe);
-	  var pixelData = unpackPixelData$1(multiframe);
+	  var TransferSyntaxUID = multiframe._meta.TransferSyntaxUID.Value[0];
+	  console.log(TransferSyntaxUID);
+	  var pixelData;
+
+	  if (TransferSyntaxUID === "1.2.840.10008.1.2.5") {
+	    // TODO RLE ENCODE
+	    console.log("implement rle encoding");
+	    return;
+	  } else {
+	    pixelData = unpackPixelData$1(multiframe);
+	  }
+
 	  var arrayBufferLength = sliceLength * imageIds.length * 2; // 2 bytes per label voxel in cst4.
 
 	  var labelmapBuffer = new ArrayBuffer(arrayBufferLength);

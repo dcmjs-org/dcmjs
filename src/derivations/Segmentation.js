@@ -17,9 +17,9 @@ export default class Segmentation extends DerivedPixels {
             Modality: "SEG",
             SamplesPerPixel: "1",
             PhotometricInterpretation: "MONOCHROME2",
-            BitsAllocated: "1",
-            BitsStored: "1",
-            HighBit: "0",
+            BitsAllocated: "8",
+            BitsStored: "8",
+            HighBit: "7",
             PixelRepresentation: "0",
             LossyImageCompression: "00",
             SegmentationType: "BINARY",
@@ -82,8 +82,15 @@ export default class Segmentation extends DerivedPixels {
                 .PixelMeasuresSequence.SpacingBetweenSlices;
         }
 
-        // make an array of zeros for the pixels assuming bit packing (one bit per short)
-        // TODO: handle different packing and non-multiple of 8/16 rows and columns
+        if (
+            this.dataset.SharedFunctionalGroupsSequence
+                .PixelValueTransformationSequence
+        ) {
+            // If derived from a CT, this shouldn't be left in the SEG.
+            delete this.dataset.SharedFunctionalGroupsSequence
+                .PixelValueTransformationSequence;
+        }
+
         // The pixelData array needs to be defined once you know how many frames you'll have.
         this.dataset.PixelData = undefined;
         this.dataset.NumberOfFrames = 0;
@@ -125,6 +132,12 @@ export default class Segmentation extends DerivedPixels {
         const bitPackedPixelData = BitArray.pack(uInt8ViewUnpackedPixelData);
 
         dataset.PixelData = bitPackedPixelData.buffer;
+
+        this.assignToDataset({
+            BitsAllocated: "1",
+            BitsStored: "1",
+            HighBit: "0"
+        });
 
         this.isBitpacked = true;
     }

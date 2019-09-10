@@ -32,6 +32,11 @@ export default Segmentation;
  *                                 seriesInstanceUid.
  */
 
+const generateSegmentationDefaultOptions = {
+    includeSliceSpacing: true,
+    rleEncode: true
+};
+
 /**
  * generateSegmentation - Generates cornerstoneTools brush data, given a stack of
  * imageIds, images and the cornerstoneTools brushData.
@@ -40,11 +45,14 @@ export default Segmentation;
  * @param  {Object|Object[]} labelmaps3D The cornerstone `Labelmap3D` object, or an array of objects.
  * @returns {type}           description
  */
-function generateSegmentation(
-    images,
-    labelmaps3D,
-    options = { includeSliceSpacing: true }
-) {
+function generateSegmentation(images, labelmaps3D, userOptions = {}) {
+    const options = Object.assign(
+        {},
+        generateSegmentationDefaultOptions,
+        userOptions
+    );
+    console.log(options);
+
     // If one Labelmap3D, convert to Labelmap3D array of length 1.
     if (!Array.isArray(labelmaps3D)) {
         labelmaps3D = [labelmaps3D];
@@ -98,23 +106,10 @@ function generateSegmentation(
         referencedFramesPerLabelmap[labelmapIndex] = referencedFramesPerSegment;
     }
 
-    // - For each labelmap:
-    // -- Get number of segments DING
-    // -- Get frames per segment. DING
-    //
-    // - Allocate enough memory. DING
-    // - Set metadata per segment:
-    // -- Segment Index - increment from 1 to N through labelmap 0..N.
-    // - Per frame:
-    // -- Set perFrameFunctionalGroupSequence for each segment (frame any labelmap) on this frame.
-    // - Boom done.
-
     const isMultiframe = image0.imageId.includes("?frame");
     const seg = _createSegFromImages(images, isMultiframe, options);
 
     seg.setNumberOfFrames(numberOfFrames);
-
-    // TODO -> Rewrite adding each segment at a time.
 
     for (
         let labelmapIndex = 0;
@@ -158,26 +153,22 @@ function generateSegmentation(
         }
     }
 
-    // TODO -> Optional encoding.
-    // Read encoded DICOM SEG.
+    if (options.rleEncode) {
+        console.log("rleEncode");
+        const rleEncodedFrames = encode(
+            seg.dataset.PixelData,
+            numberOfFrames,
+            image0.rows,
+            image0.columns
+        );
 
-    // TEMP -- Everything to the end of this function is a bit of noodling around:
-    const rleEncodedFrames = encode(
-        seg.dataset.PixelData,
-        numberOfFrames,
-        image0.rows,
-        image0.columns
-    );
-
-    const PixelData = seg.dataset.PixelData;
-
-    //TODO : Is the the right way to do this?
-    seg.dataset._meta.TransferSyntaxUID = "1.2.840.10008.1.2.5";
-    seg.dataset._vrMap.PixelData = "OB";
-
-    console.log(seg);
-
-    seg.dataset.PixelData = rleEncodedFrames;
+        seg.dataset._meta.TransferSyntaxUID.Value[0] = "1.2.840.10008.1.2.5";
+        seg.dataset._vrMap.PixelData = "OB";
+        seg.dataset.PixelData = rleEncodedFrames;
+    } else {
+        // If no rleEncoding, at least bitpack the data.
+        seg.bitPackPixelData();
+    }
 
     const segBlob = datasetToBlob(seg.dataset);
 
@@ -256,6 +247,8 @@ function generateToolState(imageIds, arrayBuffer, metadataProvider) {
     dataset._meta = DicomMetaDictionary.namifyDataset(dicomData.meta);
     const multiframe = Normalizer.normalizeToDataset([dataset]);
 
+    console.log(multiframe);
+
     const imagePlaneModule = metadataProvider.get(
         "imagePlaneModule",
         imageIds[0]
@@ -293,7 +286,21 @@ function generateToolState(imageIds, arrayBuffer, metadataProvider) {
 
     const sliceLength = multiframe.Columns * multiframe.Rows;
     const segMetadata = getSegmentMetadata(multiframe);
-    const pixelData = unpackPixelData(multiframe);
+
+    const TransferSyntaxUID = multiframe._meta.TransferSyntaxUID.Value[0];
+
+    console.log(TransferSyntaxUID);
+
+    let pixelData;
+
+    if (TransferSyntaxUID === "1.2.840.10008.1.2.5") {
+        // TODO RLE ENCODE
+        console.log("implement rle encoding");
+
+        return;
+    } else {
+        pixelData = unpackPixelData(multiframe);
+    }
 
     const arrayBufferLength = sliceLength * imageIds.length * 2; // 2 bytes per label voxel in cst4.
     const labelmapBuffer = new ArrayBuffer(arrayBufferLength);
