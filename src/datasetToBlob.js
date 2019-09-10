@@ -5,8 +5,8 @@ function datasetToDict(dataset) {
     const fileMetaInformationVersionArray = new Uint8Array(2);
     fileMetaInformationVersionArray[1] = 1;
 
-    const TransferSyntaxUID = dataset._meta.TransferSyntaxUID.Value[0]
-        ? dataset._meta.TransferSyntaxUID.Value[0]
+    const TransferSyntaxUID = dataset._meta.TransferSyntaxUID
+        ? dataset._meta.TransferSyntaxUID
         : "1.2.840.10008.1.2.1";
 
     console.log(TransferSyntaxUID);

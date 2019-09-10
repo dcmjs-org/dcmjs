@@ -66,7 +66,12 @@ function encodeFrame(buffer, frameOffset, rows, cols, header) {
         }
     }
 
-    const encodedFrameBuffer = new ArrayBuffer(64 + rleArray.length);
+    const headerLength = 64;
+
+    const bodyLength =
+        rleArray.length % 2 === 0 ? rleArray.length : rleArray.length + 1;
+
+    const encodedFrameBuffer = new ArrayBuffer(headerLength + bodyLength);
 
     // Copy header into encodedFrameBuffer.
     const headerView = new Uint32Array(encodedFrameBuffer, 0, 16);

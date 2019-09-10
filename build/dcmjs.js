@@ -5294,7 +5294,7 @@
 	function datasetToDict(dataset) {
 	  var fileMetaInformationVersionArray = new Uint8Array(2);
 	  fileMetaInformationVersionArray[1] = 1;
-	  var TransferSyntaxUID = dataset._meta.TransferSyntaxUID.Value[0] ? dataset._meta.TransferSyntaxUID.Value[0] : "1.2.840.10008.1.2.1";
+	  var TransferSyntaxUID = dataset._meta.TransferSyntaxUID ? dataset._meta.TransferSyntaxUID : "1.2.840.10008.1.2.1";
 	  console.log(TransferSyntaxUID);
 	  dataset._meta = {
 	    MediaStorageSOPClassUID: dataset.SOPClassUID,
@@ -8559,7 +8559,9 @@ b"+i+"*=d\
 	    }
 	  }
 
-	  var encodedFrameBuffer = new ArrayBuffer(64 + rleArray.length); // Copy header into encodedFrameBuffer.
+	  var headerLength = 64;
+	  var bodyLength = rleArray.length % 2 === 0 ? rleArray.length : rleArray.length + 1;
+	  var encodedFrameBuffer = new ArrayBuffer(headerLength + bodyLength); // Copy header into encodedFrameBuffer.
 
 	  var headerView = new Uint32Array(encodedFrameBuffer, 0, 16);
 
@@ -8734,7 +8736,7 @@ b"+i+"*=d\
 	  if (options.rleEncode) {
 	    console.log("rleEncode");
 	    var rleEncodedFrames = encode(seg.dataset.PixelData, numberOfFrames, image0.rows, image0.columns);
-	    seg.dataset._meta.TransferSyntaxUID.Value[0] = "1.2.840.10008.1.2.5";
+	    seg.dataset._meta.TransferSyntaxUID = "1.2.840.10008.1.2.5";
 	    seg.dataset._vrMap.PixelData = "OB";
 	    seg.dataset.PixelData = rleEncodedFrames;
 	  } else {

@@ -162,7 +162,7 @@ function generateSegmentation(images, labelmaps3D, userOptions = {}) {
             image0.columns
         );
 
-        seg.dataset._meta.TransferSyntaxUID.Value[0] = "1.2.840.10008.1.2.5";
+        seg.dataset._meta.TransferSyntaxUID = "1.2.840.10008.1.2.5";
         seg.dataset._vrMap.PixelData = "OB";
         seg.dataset.PixelData = rleEncodedFrames;
     } else {
