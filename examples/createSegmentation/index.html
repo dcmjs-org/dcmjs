@@ -179,18 +179,16 @@
 
             console.log(segBlob);
 
-            /*
             new Response(segBlob).arrayBuffer().then(arrayBuffer => {
               console.log(arrayBuffer)
 
               parseSeg(arrayBuffer);
             });
-            */
             
 
             // Create a URL for the binary.
-            var objectUrl = URL.createObjectURL(segBlob);
-            window.open(objectUrl);
+            //var objectUrl = URL.createObjectURL(segBlob);
+            //window.open(objectUrl);
           })
           .catch(err => console.log(err));
       }

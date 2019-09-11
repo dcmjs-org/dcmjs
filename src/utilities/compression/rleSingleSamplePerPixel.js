@@ -22,14 +22,12 @@ function encode(buffer, numberOfFrames, rows, cols) {
         );
     }
 
-    console.log(encodedFrames);
-
     return encodedFrames;
 }
 
 function encodeFrame(buffer, frameOffset, rows, cols, header) {
     // Add header to frame:
-    const rleArray = [];
+    let rleArray = [];
 
     for (let r = 0; r < rows; r++) {
         const rowOffset = r * cols;
@@ -44,7 +42,9 @@ function encodeFrame(buffer, frameOffset, rows, cols, header) {
                 // State how many in litteral run
                 rleArray.push(literalRunLength - 1);
                 // Append litteral run.
-                rleArray.concat(...uint8Row.slice(i, i + literalRunLength));
+                const literalRun = uint8Row.slice(i, i + literalRunLength);
+
+                rleArray = [...rleArray, ...literalRun];
 
                 i += literalRunLength;
             }
@@ -140,8 +140,6 @@ function decode(rleEncodedFrames, rows, cols) {
     const buffer = pixelData.buffer;
     const frameLength = rows * cols;
 
-    console.log(pixelData);
-
     for (let i = 0; i < rleEncodedFrames.length; i++) {
         const rleEncodedFrame = rleEncodedFrames[i];
 
@@ -160,8 +158,6 @@ function decode(rleEncodedFrames, rows, cols) {
 function decodeFrame(rleEncodedFrame, pixelData) {
     // Check HEADER:
     const header = new Uint32Array(rleEncodedFrame, 0, 16);
-
-    console.log(header);
 
     if (header[0] !== 1) {
         log.error(
@@ -188,8 +184,6 @@ function decodeFrame(rleEncodedFrame, pixelData) {
 
     while (pixelDataIndex < pixelData.length) {
         const byteValue = uInt8Frame[i];
-
-        console.log(byteValue);
 
         if (byteValue === undefined) {
             break;
@@ -220,8 +214,6 @@ function decodeFrame(rleEncodedFrame, pixelData) {
 
             i += 2;
         }
-
-        console.log(i, pixelDataIndex);
 
         if (i === uInt8Frame.length) {
             break;

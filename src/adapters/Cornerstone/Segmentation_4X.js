@@ -51,7 +51,6 @@ function generateSegmentation(images, labelmaps3D, userOptions = {}) {
         generateSegmentationDefaultOptions,
         userOptions
     );
-    console.log(options);
 
     // If one Labelmap3D, convert to Labelmap3D array of length 1.
     if (!Array.isArray(labelmaps3D)) {
@@ -161,6 +160,16 @@ function generateSegmentation(images, labelmaps3D, userOptions = {}) {
             image0.rows,
             image0.columns
         );
+
+        seg.assignToDataset({
+            BitsAllocated: "8",
+            BitsStored: "8",
+            HighBit: "7"
+        });
+
+        // Must use fractional now to RLE encode, as the DICOM standard only allows BitStored && BitsAllocated
+        // to be 1 for BINARY.
+        seg.dataset.SegmentationType = "FRACTIONAL";
 
         seg.dataset._meta.TransferSyntaxUID = "1.2.840.10008.1.2.5";
         seg.dataset._vrMap.PixelData = "OB";

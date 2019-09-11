@@ -17,9 +17,9 @@ export default class Segmentation extends DerivedPixels {
             Modality: "SEG",
             SamplesPerPixel: "1",
             PhotometricInterpretation: "MONOCHROME2",
-            BitsAllocated: "8",
-            BitsStored: "8",
-            HighBit: "7",
+            BitsAllocated: "1",
+            BitsStored: "1",
+            HighBit: "0",
             PixelRepresentation: "0",
             LossyImageCompression: "00",
             SegmentationType: "BINARY",
@@ -133,12 +133,6 @@ export default class Segmentation extends DerivedPixels {
 
         dataset.PixelData = bitPackedPixelData.buffer;
 
-        this.assignToDataset({
-            BitsAllocated: "1",
-            BitsStored: "1",
-            HighBit: "0"
-        });
-
         this.isBitpacked = true;
     }
 
@@ -189,15 +183,25 @@ export default class Segmentation extends DerivedPixels {
             labelmaps.length * sliceLength
         );
 
+        const occupiedValue = this._getOccupiedValue();
+
         for (let l = 0; l < labelmaps.length; l++) {
             const labelmap = labelmaps[l];
 
             for (let i = 0; i < labelmap.length; i++) {
                 if (labelmap[i] === segmentIndex) {
-                    pixelDataUInt8View[l * sliceLength + i] = labelmap[i];
+                    pixelDataUInt8View[l * sliceLength + i] = occupiedValue;
                 }
             }
         }
+    }
+
+    _getOccupiedValue() {
+        if (this.dataset.SegmentationType === "FRACTIONAL") {
+            return 255;
+        }
+
+        return 1;
     }
 
     /**

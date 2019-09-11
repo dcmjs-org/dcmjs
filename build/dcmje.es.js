@@ -1369,10 +1369,10 @@ function (_ValueRepresentation2) {
       } else {
         var bytes;
         /*if (this.type == 'OW') {
-                  bytes = stream.readUint16Array(length);
-              } else if (this.type == 'OB') {
-                  bytes = stream.readUint8Array(length);
-              }*/
+            bytes = stream.readUint16Array(length);
+        } else if (this.type == 'OB') {
+            bytes = stream.readUint8Array(length);
+        }*/
 
         bytes = stream.more(length).buffer;
         return [bytes];
@@ -6151,9 +6151,9 @@ function (_DerivedPixels) {
         Modality: "SEG",
         SamplesPerPixel: "1",
         PhotometricInterpretation: "MONOCHROME2",
-        BitsAllocated: "8",
-        BitsStored: "8",
-        HighBit: "7",
+        BitsAllocated: "1",
+        BitsStored: "1",
+        HighBit: "0",
         PixelRepresentation: "0",
         LossyImageCompression: "00",
         SegmentationType: "BINARY",
@@ -6250,11 +6250,6 @@ function (_DerivedPixels) {
       var uInt8ViewUnpackedPixelData = new Uint8Array(unpackedPixelData);
       var bitPackedPixelData = BitArray.pack(uInt8ViewUnpackedPixelData);
       dataset.PixelData = bitPackedPixelData.buffer;
-      this.assignToDataset({
-        BitsAllocated: "1",
-        BitsStored: "1",
-        HighBit: "0"
-      });
       this.isBitpacked = true;
     }
     /**
@@ -6292,15 +6287,26 @@ function (_DerivedPixels) {
       var byteOffset = existingFrames * sliceLength;
       var pixelDataUInt8View = new Uint8Array(dataset.PixelData, byteOffset, labelmaps.length * sliceLength);
 
+      var occupiedValue = this._getOccupiedValue();
+
       for (var l = 0; l < labelmaps.length; l++) {
         var labelmap = labelmaps[l];
 
         for (var i = 0; i < labelmap.length; i++) {
           if (labelmap[i] === segmentIndex) {
-            pixelDataUInt8View[l * sliceLength + i] = labelmap[i];
+            pixelDataUInt8View[l * sliceLength + i] = occupiedValue;
           }
         }
       }
+    }
+  }, {
+    key: "_getOccupiedValue",
+    value: function _getOccupiedValue() {
+      if (this.dataset.SegmentationType === "FRACTIONAL") {
+        return 255;
+      }
+
+      return 1;
     }
     /**
      * addSegment - Adds a segment to the dataset.
@@ -8500,7 +8506,6 @@ function encode(buffer, numberOfFrames, rows, cols) {
     encodedFrames.push(encodeFrame(buffer, frameOffset, rows, cols, header));
   }
 
-  console.log(encodedFrames);
   return encodedFrames;
 }
 
@@ -8520,7 +8525,8 @@ function encodeFrame(buffer, frameOffset, rows, cols, header) {
         // State how many in litteral run
         rleArray.push(literalRunLength - 1); // Append litteral run.
 
-        rleArray.concat.apply(rleArray, _toConsumableArray(uint8Row.slice(i, i + literalRunLength)));
+        var literalRun = uint8Row.slice(i, i + literalRunLength);
+        rleArray = [].concat(_toConsumableArray(rleArray), _toConsumableArray(literalRun));
         i += literalRunLength;
       }
 
@@ -8608,7 +8614,6 @@ function decode(rleEncodedFrames, rows, cols) {
   var pixelData = new Uint8Array(rows * cols * rleEncodedFrames.length);
   var buffer = pixelData.buffer;
   var frameLength = rows * cols;
-  console.log(pixelData);
 
   for (var i = 0; i < rleEncodedFrames.length; i++) {
     var rleEncodedFrame = rleEncodedFrames[i];
@@ -8622,7 +8627,6 @@ function decode(rleEncodedFrames, rows, cols) {
 function decodeFrame(rleEncodedFrame, pixelData) {
   // Check HEADER:
   var header = new Uint32Array(rleEncodedFrame, 0, 16);
-  console.log(header);
 
   if (header[0] !== 1) {
     lib.error("rleSingleSamplePerPixel only supports fragments with single Byte Segments (for rle encoded segmentation data) at the current time. This rleEncodedFrame has ".concat(header[0], " Byte Segments."));
@@ -8640,7 +8644,6 @@ function decodeFrame(rleEncodedFrame, pixelData) {
 
   while (pixelDataIndex < pixelData.length) {
     var byteValue = uInt8Frame[i];
-    console.log(byteValue);
 
     if (byteValue === undefined) {
       break;
@@ -8672,8 +8675,6 @@ function decodeFrame(rleEncodedFrame, pixelData) {
 
       i += 2;
     }
-
-    console.log(i, pixelDataIndex);
 
     if (i === uInt8Frame.length) {
       break;
@@ -8708,8 +8709,7 @@ var generateSegmentationDefaultOptions = {
 
 function generateSegmentation$1(images, labelmaps3D) {
   var userOptions = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
-  var options = Object.assign({}, generateSegmentationDefaultOptions, userOptions);
-  console.log(options); // If one Labelmap3D, convert to Labelmap3D array of length 1.
+  var options = Object.assign({}, generateSegmentationDefaultOptions, userOptions); // If one Labelmap3D, convert to Labelmap3D array of length 1.
 
   if (!Array.isArray(labelmaps3D)) {
     labelmaps3D = [labelmaps3D];
@@ -8794,6 +8794,14 @@ function generateSegmentation$1(images, labelmaps3D) {
   if (options.rleEncode) {
     console.log("rleEncode");
     var rleEncodedFrames = encode(seg.dataset.PixelData, numberOfFrames, image0.rows, image0.columns);
+    seg.assignToDataset({
+      BitsAllocated: "8",
+      BitsStored: "8",
+      HighBit: "7"
+    }); // Must use fractional now to RLE encode, as the DICOM standard only allows BitStored && BitsAllocated
+    // to be 1 for BINARY.
+
+    seg.dataset.SegmentationType = "FRACTIONAL";
     seg.dataset._meta.TransferSyntaxUID = "1.2.840.10008.1.2.5";
     seg.dataset._vrMap.PixelData = "OB";
     seg.dataset.PixelData = rleEncodedFrames;
