@@ -153,7 +153,6 @@ function generateSegmentation(images, labelmaps3D, userOptions = {}) {
     }
 
     if (options.rleEncode) {
-        console.log("rleEncode");
         const rleEncodedFrames = encode(
             seg.dataset.PixelData,
             numberOfFrames,
@@ -299,30 +298,21 @@ function generateToolState(imageIds, arrayBuffer, metadataProvider) {
     let pixelData;
 
     if (TransferSyntaxUID === "1.2.840.10008.1.2.5") {
-        // TODO RLE DECODE
-        console.log("TODO: implement rle decoding");
-
-        console.log(multiframe);
-
         const rleEncodedFrames = Array.isArray(multiframe.PixelData)
             ? multiframe.PixelData
             : [multiframe.PixelData];
 
-        console.log(rleEncodedFrames);
-
-        const decodedFrames = decode(
+        pixelData = decode(
             rleEncodedFrames,
             multiframe.Rows,
             multiframe.Columns
         );
 
-        console.log(decodedFrames);
-
         if (multiframe.BitsStored === 1) {
-            console.log("Need to implement bitpack + rle combination.");
-        }
+            console.warn("No implementation for rle + bitbacking.");
 
-        return;
+            return;
+        }
     } else {
         pixelData = unpackPixelData(multiframe);
     }
@@ -502,8 +492,6 @@ function getImageIdOfReferencedSingleFramedSOPInstance(
     imageIds,
     metadataProvider
 ) {
-    console.log(`target sopInstanceUid: ${sopInstanceUid}`);
-
     return imageIds.find(imageId => {
         const sopCommonModule = metadataProvider.get(
             "sopCommonModule",
@@ -513,7 +501,6 @@ function getImageIdOfReferencedSingleFramedSOPInstance(
             return;
         }
 
-        console.log(sopCommonModule.sopInstanceUID);
         return sopCommonModule.sopInstanceUID === sopInstanceUid;
     });
 }

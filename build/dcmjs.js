@@ -2923,10 +2923,6 @@
 	        }
 	      }
 
-	      if (tag.isPixelDataTag()) {
-	        console.log("ISPIXELDATATAG");
-	      }
-
 	      var values = [];
 
 	      if (vr.isBinary() && length > vr.maxLength && !vr.noMultiple) {
@@ -5282,7 +5278,6 @@
 	  var fileMetaInformationVersionArray = new Uint8Array(2);
 	  fileMetaInformationVersionArray[1] = 1;
 	  var TransferSyntaxUID = dataset._meta.TransferSyntaxUID ? dataset._meta.TransferSyntaxUID : "1.2.840.10008.1.2.1";
-	  console.log(TransferSyntaxUID);
 	  dataset._meta = {
 	    MediaStorageSOPClassUID: dataset.SOPClassUID,
 	    MediaStorageSOPInstanceUID: dataset.SOPInstanceUID,
@@ -8798,7 +8793,6 @@ b"+i+"*=d\
 	  }
 
 	  if (options.rleEncode) {
-	    console.log("rleEncode");
 	    var rleEncodedFrames = encode(seg.dataset.PixelData, numberOfFrames, image0.rows, image0.columns);
 	    seg.assignToDataset({
 	      BitsAllocated: "8",
@@ -8902,19 +8896,13 @@ b"+i+"*=d\
 	  var pixelData;
 
 	  if (TransferSyntaxUID === "1.2.840.10008.1.2.5") {
-	    // TODO RLE DECODE
-	    console.log("TODO: implement rle decoding");
-	    console.log(multiframe);
 	    var rleEncodedFrames = Array.isArray(multiframe.PixelData) ? multiframe.PixelData : [multiframe.PixelData];
-	    console.log(rleEncodedFrames);
-	    var decodedFrames = decode(rleEncodedFrames, multiframe.Rows, multiframe.Columns);
-	    console.log(decodedFrames);
+	    pixelData = decode(rleEncodedFrames, multiframe.Rows, multiframe.Columns);
 
 	    if (multiframe.BitsStored === 1) {
-	      console.log("Need to implement bitpack + rle combination.");
+	      console.warn("No implementation for rle + bitbacking.");
+	      return;
 	    }
-
-	    return;
 	  } else {
 	    pixelData = unpackPixelData$1(multiframe);
 	  }
@@ -9043,7 +9031,6 @@ b"+i+"*=d\
 
 
 	function getImageIdOfReferencedSingleFramedSOPInstance$1(sopInstanceUid, imageIds, metadataProvider) {
-	  console.log("target sopInstanceUid: ".concat(sopInstanceUid));
 	  return imageIds.find(function (imageId) {
 	    var sopCommonModule = metadataProvider.get("sopCommonModule", imageId);
 
@@ -9051,7 +9038,6 @@ b"+i+"*=d\
 	      return;
 	    }
 
-	    console.log(sopCommonModule.sopInstanceUID);
 	    return sopCommonModule.sopInstanceUID === sopInstanceUid;
 	  });
 	}

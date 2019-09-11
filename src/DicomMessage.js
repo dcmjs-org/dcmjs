@@ -163,10 +163,6 @@ class DicomMessage {
             }
         }
 
-        if (tag.isPixelDataTag()) {
-            console.log("ISPIXELDATATAG");
-        }
-
         var values = [];
         if (vr.isBinary() && length > vr.maxLength && !vr.noMultiple) {
             var times = length / vr.maxLength,

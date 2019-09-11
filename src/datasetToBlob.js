@@ -9,8 +9,6 @@ function datasetToDict(dataset) {
         ? dataset._meta.TransferSyntaxUID
         : "1.2.840.10008.1.2.1";
 
-    console.log(TransferSyntaxUID);
-
     dataset._meta = {
         MediaStorageSOPClassUID: dataset.SOPClassUID,
         MediaStorageSOPInstanceUID: dataset.SOPInstanceUID,
