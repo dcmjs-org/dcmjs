@@ -8908,7 +8908,7 @@ function generateToolState$1(imageIds, arrayBuffer, metadataProvider) {
   var segmentsOnFrame = [];
   var inPlane = true;
 
-  var _loop3 = function _loop3(i) {
+  var _loop4 = function _loop4(i) {
     var PerFrameFunctionalGroups = PerFrameFunctionalGroupsSequence[i];
     var ImageOrientationPatientI = sharedImageOrientationPatient || PerFrameFunctionalGroups.PlaneOrientationSequence.ImageOrientationPatient;
     var pixelDataI2D = ndarray(new Uint8Array(pixelData.buffer, i * sliceLength, sliceLength), [multiframe.Rows, multiframe.Columns]);
@@ -8930,6 +8930,12 @@ function generateToolState$1(imageIds, arrayBuffer, metadataProvider) {
     }
 
     var imageId = getImageIdOfSourceImage$1(SourceImageSequence, imageIds, metadataProvider);
+
+    if (!imageId) {
+      // Image not present in stack, can't import this frame.
+      return "continue";
+    }
+
     var imageIdIndex = imageIds.findIndex(function (element) {
       return element === imageId;
     });
@@ -8951,10 +8957,16 @@ function generateToolState$1(imageIds, arrayBuffer, metadataProvider) {
     segmentsOnFrame[imageIdIndex].push(segmentIndex);
   };
 
-  for (var i = 0; i < PerFrameFunctionalGroupsSequence.length; i++) {
-    var _ret = _loop3(i);
+  _loop3: for (var i = 0; i < PerFrameFunctionalGroupsSequence.length; i++) {
+    var _ret = _loop4(i);
 
-    if (_ret === "break") break;
+    switch (_ret) {
+      case "break":
+        break _loop3;
+
+      case "continue":
+        continue;
+    }
   }
 
   if (!inPlane) {
