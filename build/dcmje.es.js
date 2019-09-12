@@ -8702,14 +8702,11 @@ var generateSegmentationDefaultOptions = {
  * @returns {type}           description
  */
 
-function generateSegmentation$1(images, labelmaps3D) {
+function generateSegmentation$1(images, inputLabelmaps3D) {
   var userOptions = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
-  var options = Object.assign({}, generateSegmentationDefaultOptions, userOptions); // If one Labelmap3D, convert to Labelmap3D array of length 1.
+  var options = Object.assign({}, generateSegmentationDefaultOptions, userOptions); // Use another variable so we don't redefine labelmaps3D.
 
-  if (!Array.isArray(labelmaps3D)) {
-    labelmaps3D = [labelmaps3D];
-  } // Calculate the dimensions of the data cube.
-
+  var labelmaps3D = Array.isArray(inputLabelmaps3D) ? inputLabelmaps3D : [inputLabelmaps3D]; // Calculate the dimensions of the data cube.
 
   var image0 = images[0];
   var dims = {
@@ -8787,15 +8784,18 @@ function generateSegmentation$1(images, labelmaps3D) {
   }
 
   if (options.rleEncode) {
-    var rleEncodedFrames = encode(seg.dataset.PixelData, numberOfFrames, image0.rows, image0.columns);
+    var rleEncodedFrames = encode(seg.dataset.PixelData, numberOfFrames, image0.rows, image0.columns); // Must use fractional now to RLE encode, as the DICOM standard only allows BitStored && BitsAllocated
+    // to be 1 for BINARY. This is not ideal and there should be a better format for compression in this manner
+    // added to the standard.
+
     seg.assignToDataset({
       BitsAllocated: "8",
       BitsStored: "8",
-      HighBit: "7"
-    }); // Must use fractional now to RLE encode, as the DICOM standard only allows BitStored && BitsAllocated
-    // to be 1 for BINARY.
-
-    seg.dataset.SegmentationType = "FRACTIONAL";
+      HighBit: "7",
+      SegmentationType: "FRACTIONAL",
+      SegmentationFractionalType: "PROBABILITY",
+      MaximumFractionalValue: "255"
+    });
     seg.dataset._meta.TransferSyntaxUID = "1.2.840.10008.1.2.5";
     seg.dataset._vrMap.PixelData = "OB";
     seg.dataset.PixelData = rleEncodedFrames;

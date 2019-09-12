@@ -45,17 +45,17 @@ const generateSegmentationDefaultOptions = {
  * @param  {Object|Object[]} labelmaps3D The cornerstone `Labelmap3D` object, or an array of objects.
  * @returns {type}           description
  */
-function generateSegmentation(images, labelmaps3D, userOptions = {}) {
+function generateSegmentation(images, inputLabelmaps3D, userOptions = {}) {
     const options = Object.assign(
         {},
         generateSegmentationDefaultOptions,
         userOptions
     );
 
-    // If one Labelmap3D, convert to Labelmap3D array of length 1.
-    if (!Array.isArray(labelmaps3D)) {
-        labelmaps3D = [labelmaps3D];
-    }
+    // Use another variable so we don't redefine labelmaps3D.
+    const labelmaps3D = Array.isArray(inputLabelmaps3D)
+        ? inputLabelmaps3D
+        : [inputLabelmaps3D];
 
     // Calculate the dimensions of the data cube.
     const image0 = images[0];
@@ -160,15 +160,17 @@ function generateSegmentation(images, labelmaps3D, userOptions = {}) {
             image0.columns
         );
 
+        // Must use fractional now to RLE encode, as the DICOM standard only allows BitStored && BitsAllocated
+        // to be 1 for BINARY. This is not ideal and there should be a better format for compression in this manner
+        // added to the standard.
         seg.assignToDataset({
             BitsAllocated: "8",
             BitsStored: "8",
-            HighBit: "7"
+            HighBit: "7",
+            SegmentationType: "FRACTIONAL",
+            SegmentationFractionalType: "PROBABILITY",
+            MaximumFractionalValue: "255"
         });
-
-        // Must use fractional now to RLE encode, as the DICOM standard only allows BitStored && BitsAllocated
-        // to be 1 for BINARY.
-        seg.dataset.SegmentationType = "FRACTIONAL";
 
         seg.dataset._meta.TransferSyntaxUID = "1.2.840.10008.1.2.5";
         seg.dataset._vrMap.PixelData = "OB";
