@@ -515,7 +515,7 @@ class IntegerString extends StringRepresentation {
 
         is = is.replace(/[^0-9.\\\-+e]/gi, "");
 
-        if (ds.indexOf(BACKSLASH) !== -1) {
+        if (is.indexOf(BACKSLASH) !== -1) {
             // handle decimal string with multiplicity
             const dsArray = is.split(BACKSLASH);
             is = dsArray.map(is => Number(is));
