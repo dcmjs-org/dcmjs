@@ -517,8 +517,8 @@ class IntegerString extends StringRepresentation {
 
         if (is.indexOf(BACKSLASH) !== -1) {
             // handle decimal string with multiplicity
-            const dsArray = is.split(BACKSLASH);
-            is = dsArray.map(is => Number(is));
+            const integerStringArray = is.split(BACKSLASH);
+            is = integerStringArray.map(is => Number(is));
         } else {
             is = Number(is);
         }
