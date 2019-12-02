@@ -510,8 +510,20 @@ class IntegerString extends StringRepresentation {
     }
 
     readBytes(stream, length) {
-        //return this.readNullPaddedString(stream, length);
-        return Number(stream.readString(length).trim());
+        const BACKSLASH = String.fromCharCode(0x5c);
+        let is = stream.readString(length).trim();
+
+        is = is.replace(/[^0-9.\\\-+e]/gi, "");
+
+        if (ds.indexOf(BACKSLASH) !== -1) {
+            // handle decimal string with multiplicity
+            const dsArray = is.split(BACKSLASH);
+            is = dsArray.map(is => Number(is));
+        } else {
+            is = Number(is);
+        }
+
+        return is;
     }
 }
 
