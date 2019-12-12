@@ -443,7 +443,7 @@ class DecimalString extends StringRepresentation {
             const dsArray = ds.split(BACKSLASH);
             ds = dsArray.map(ds => Number(ds));
         } else {
-            ds = Number(ds);
+            ds = [Number(ds)];
         }
 
         return ds;
@@ -520,7 +520,7 @@ class IntegerString extends StringRepresentation {
             const integerStringArray = is.split(BACKSLASH);
             is = integerStringArray.map(is => Number(is));
         } else {
-            is = Number(is);
+            is = [Number(is)];
         }
 
         return is;
