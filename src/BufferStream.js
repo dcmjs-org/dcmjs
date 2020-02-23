@@ -289,7 +289,9 @@ class BufferStream {
 
         var newBuf = this.buffer.slice(this.offset, this.offset + length);
         this.increment(length);
-        return new ReadBufferStream(newBuf);
+        let newstream = new ReadBufferStream(newBuf);
+        newstream.setEncoding(this.characterset);
+        return newstream;
     }
 
     reset() {
