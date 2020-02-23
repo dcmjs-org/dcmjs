@@ -62,6 +62,23 @@ class BufferStream {
         this.offset = 0;
         this.isLittleEndian = littleEndian || false;
         this.size = 0;
+
+        this.setEncoding("iso-ir-100");
+    }
+
+    setEncoding(characterset) {
+        this.characterset = characterset;
+        if (typeof TextDecoder == "function") {
+            // for browser
+            this.decoder = new TextDecoder(characterset);
+        } else {
+            // for node.js
+            try {
+                this.decoder = new (require("util")).TextDecoder(characterset);
+            } catch (e) {
+                this.decoder = new (require("util")).TextDecoder("utf-8");
+            }
+        }
     }
 
     setEndian(isLittle) {
@@ -212,16 +229,8 @@ class BufferStream {
     }
 
     readString(length) {
-        var string = "";
-
-        var numOfMulti = length,
-            index = 0;
-        while (index++ < numOfMulti) {
-            var charCode = this.readUint8();
-            string += String.fromCharCode(charCode);
-        }
-
-        return string;
+        var arr = this.readUint8Array(length);
+        return this.decoder.decode(arr);
     }
 
     readHex(length) {
