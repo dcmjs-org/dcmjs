@@ -89,11 +89,6 @@ class DicomMetaDictionary {
         Object.keys(dataset).forEach(tag => {
             var data = dataset[tag];
 
-            if (data.Value === undefined) {
-                // In the case of type 2, don't add this tag.
-                return;
-            }
-
             if (data.vr === "SQ") {
                 // convert sequence to list of values
                 var naturalValues = [];
@@ -114,10 +109,17 @@ class DicomMetaDictionary {
                     naturalDataset._vrMap[naturalName] = data.vr;
                 }
             }
-            naturalDataset[naturalName] = data.Value;
-            if (naturalDataset[naturalName].length == 1) {
-                // only one value is not a list
-                naturalDataset[naturalName] = naturalDataset[naturalName][0];
+
+            if (data.Value === undefined) {
+                // In the case of type 2, add this tag but explictly set it null to indicate its empty.
+                naturalDataset[naturalName] = null;
+            } else {
+                naturalDataset[naturalName] = data.Value;
+                if (naturalDataset[naturalName].length == 1) {
+                    // only one value is not a list
+                    naturalDataset[naturalName] =
+                        naturalDataset[naturalName][0];
+                }
             }
         });
         return naturalDataset;
