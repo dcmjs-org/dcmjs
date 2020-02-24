@@ -85,9 +85,16 @@ class DicomMetaDictionary {
         var naturalDataset = {
             _vrMap: {}
         };
+
         Object.keys(dataset).forEach(tag => {
             var data = dataset[tag];
-            if (data.vr == "SQ") {
+
+            if (data.Value === undefined) {
+                // In the case of type 2, don't add this tag.
+                return;
+            }
+
+            if (data.vr === "SQ") {
                 // convert sequence to list of values
                 var naturalValues = [];
                 Object.keys(data.Value).forEach(index => {
