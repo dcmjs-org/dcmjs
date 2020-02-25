@@ -82,7 +82,7 @@ class DicomMetaDictionary {
     // - single element lists are replaced by their first element
     // - object member names are dictionary, not group/element tag
     static naturalizeDataset(dataset) {
-        var naturalDataset = {
+        const naturalDataset = {
             _vrMap: {}
         };
 
@@ -104,22 +104,28 @@ class DicomMetaDictionary {
             if (data.Value === undefined) {
                 // In the case of type 2, add this tag but explictly set it null to indicate its empty.
                 naturalDataset[naturalName] = null;
-            } else if (data.vr === "SQ") {
-                // convert sequence to list of values
-                const naturalValues = [];
-
-                Object.keys(data.Value).forEach(index => {
-                    naturalValues.push(
-                        DicomMetaDictionary.naturalizeDataset(data.Value[index])
-                    );
-                });
-
-                naturalDataset[naturalName] =
-                    naturalValues.length === 1
-                        ? naturalValues[0]
-                        : naturalValues;
             } else {
-                naturalDataset[naturalName] = data.Value;
+                if (data.vr === "SQ") {
+                    // convert sequence to list of values
+                    const naturalValues = [];
+
+                    Object.keys(data.Value).forEach(index => {
+                        naturalValues.push(
+                            DicomMetaDictionary.naturalizeDataset(
+                                data.Value[index]
+                            )
+                        );
+                    });
+
+                    naturalDataset[naturalName] = naturalValues;
+                } else {
+                    naturalDataset[naturalName] = data.Value;
+                }
+
+                if (naturalDataset[naturalName].length === 1) {
+                    naturalDataset[naturalName] =
+                        naturalDataset[naturalName][0];
+                }
             }
         });
         return naturalDataset;
