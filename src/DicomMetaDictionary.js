@@ -24,11 +24,11 @@ class DicomMetaDictionary {
     // TODO: if this gets longer it could go in ValueRepresentation.js
     // or in a dedicated class
     static cleanDataset(dataset) {
-        var cleanedDataset = {};
+        const cleanedDataset = {};
         Object.keys(dataset).forEach(tag => {
-            var data = dataset[tag];
+            const data = Object.assign({}, dataset[tag]);
             if (data.vr == "SQ") {
-                var cleanedValues = [];
+                const cleanedValues = [];
                 Object.keys(data.Value).forEach(index => {
                     cleanedValues.push(
                         DicomMetaDictionary.cleanDataset(data.Value[index])
@@ -37,11 +37,12 @@ class DicomMetaDictionary {
                 data.Value = cleanedValues;
             } else {
                 // remove null characters from strings
-                Object.keys(data.Value).forEach(index => {
-                    let dataItem = data.Value[index];
-                    if (dataItem.constructor.name == "String") {
-                        data.Value[index] = dataItem.replace(/\0/, "");
+                data.Value = Object.keys(data.Value).map(index => {
+                    const item = data.Value[index];
+                    if (item.constructor.name == "String") {
+                        return item.replace(/\0/, "");
                     }
+                    return item;
                 });
             }
             cleanedDataset[tag] = data;
@@ -55,7 +56,7 @@ class DicomMetaDictionary {
     static namifyDataset(dataset) {
         var namedDataset = {};
         Object.keys(dataset).forEach(tag => {
-            var data = dataset[tag];
+            const data = Object.assign({}, dataset[tag]);
             if (data.vr == "SQ") {
                 var namedValues = [];
                 Object.keys(data.Value).forEach(index => {
