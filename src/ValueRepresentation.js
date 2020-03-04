@@ -228,8 +228,8 @@ class StringRepresentation extends ValueRepresentation {
     }
 
     writeBytes(stream, value) {
+        value = value.map(String);
         var written = super.write(stream, "String", value);
-
         return super.writeBytes(stream, value, written);
     }
 }
