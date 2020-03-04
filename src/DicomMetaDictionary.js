@@ -104,6 +104,16 @@ class DicomMetaDictionary {
             if (data.Value === undefined) {
                 // In the case of type 2, add this tag but explictly set it null to indicate its empty.
                 naturalDataset[naturalName] = null;
+
+                if (data.InlineBinary) {
+                    naturalDataset[naturalName] = {
+                        InlineBinary: data.InlineBinary
+                    };
+                } else if (data.BulkDataURI) {
+                    naturalDataset[naturalName] = {
+                        BulkDataURI: data.BulkDataURI
+                    };
+                }
             } else {
                 if (data.vr === "SQ") {
                     // convert sequence to list of values
