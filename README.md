@@ -72,7 +72,7 @@ npm test
 
 Publish new version:
 
-Use the following "Commit Message Format" when drafting commit messages. If you're merging a 3rd party's PR, the merge commit's message will be used instead:
+Use the following "Commit Message Format" when drafting commit messages. If you're merging a 3rd party's PR, you have the ability to override the supplied commit messages by doing a "Squash & Merge":
 
 - [Commit Message Format](https://semantic-release.gitbook.io/semantic-release/#commit-message-format)
 
