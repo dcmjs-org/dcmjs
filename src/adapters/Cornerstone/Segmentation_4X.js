@@ -408,8 +408,10 @@ function generateToolState(imageIds, arrayBuffer, metadataProvider) {
 
         const data = alignedPixelDataI.data;
 
+        let frameHasSegments = false;
         for (let j = 0; j < alignedPixelDataI.data.length; j++) {
             if (data[j]) {
+                frameHasSegments = true;
                 labelmap2DView[j] = segmentIndex;
             }
         }
@@ -418,7 +420,9 @@ function generateToolState(imageIds, arrayBuffer, metadataProvider) {
             segmentsOnFrame[imageIdIndex] = [];
         }
 
-        segmentsOnFrame[imageIdIndex].push(segmentIndex);
+        if (frameHasSegments) {
+            segmentsOnFrame[imageIdIndex].push(segmentIndex);
+        }
     }
 
     if (!inPlane) {
