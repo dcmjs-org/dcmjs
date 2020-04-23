@@ -340,7 +340,11 @@ function generateToolState(imageIds, arrayBuffer, metadataProvider) {
 
     let inPlane = true;
 
-    for (let i = 0; i < PerFrameFunctionalGroupsSequence.length; i++) {
+    for (
+        let i = 0, groupsLen = PerFrameFunctionalGroupsSequence.length;
+        i < groupsLen;
+        ++i
+    ) {
         const PerFrameFunctionalGroups = PerFrameFunctionalGroupsSequence[i];
 
         const ImageOrientationPatientI =
@@ -408,17 +412,24 @@ function generateToolState(imageIds, arrayBuffer, metadataProvider) {
 
         const data = alignedPixelDataI.data;
 
-        for (let j = 0; j < alignedPixelDataI.data.length; j++) {
+       //
+        for (let j = 0, len = alignedPixelDataI.data.length; j < len; ++j) {
             if (data[j]) {
-                labelmap2DView[j] = segmentIndex;
+                for (let x = j + 1; x < len; ++x) {
+                    if (data[x]) {
+                        labelmap2DView[x] = segmentIndex;
+                    }
+                }
+
+                if (!segmentsOnFrame[imageIdIndex]) {
+                    segmentsOnFrame[imageIdIndex] = [];
+                }
+
+                segmentsOnFrame[imageIdIndex].push(segmentIndex);
+
+                break;
             }
         }
-
-        if (!segmentsOnFrame[imageIdIndex]) {
-            segmentsOnFrame[imageIdIndex] = [];
-        }
-
-        segmentsOnFrame[imageIdIndex].push(segmentIndex);
     }
 
     if (!inPlane) {
