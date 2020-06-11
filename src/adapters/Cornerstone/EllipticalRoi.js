@@ -1,6 +1,7 @@
 import MeasurementReport from "./MeasurementReport";
 import TID300Ellipse from "../../utilities/TID300/Ellipse";
 import CORNERSTONE_4_TAG from "./cornerstone4Tag";
+import { toArray } from "../helpers.js";
 
 const ELLIPTICALROI = "EllipticalRoi";
 
@@ -9,7 +10,8 @@ class EllipticalRoi {
 
     // TODO: this function is required for all Cornerstone Tool Adapters, since it is called by MeasurementReport.
     static getMeasurementData(MeasurementGroup) {
-        debugger;
+        const { ContentSequence } = MeasurementGroup;
+
         const NUMGroup = toArray(ContentSequence).find(
             group => group.ValueType === "NUM"
         );
@@ -54,9 +56,7 @@ class EllipticalRoi {
             x: majorAxis[1].x - minorAxisDirection.x * halfMinorAxisLength,
             y: majorAxis[1].y - minorAxisDirection.y * halfMinorAxisLength
         };
-        debugger;
-        const content = groupItemContent.ContentSequence;
-        const { ReferencedSOPSequence } = content.ContentSequence;
+        const { ReferencedSOPSequence } = SCOORDGroup.ContentSequence;
         const {
             ReferencedSOPInstanceUID,
             ReferencedFrameNumber
@@ -84,11 +84,11 @@ class EllipticalRoi {
                     active: false
                 },
                 textBox: {
-                    active: false,
                     hasMoved: false,
                     movesIndependently: false,
                     drawnIndependently: true,
-                    allowedOutsideImage: true
+                    allowedOutsideImage: true,
+                    hasBoundingBox: true
                 }
             },
             invalidated: true,

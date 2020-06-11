@@ -86,7 +86,7 @@ class Bidirectional {
                     movesIndependently: false,
                     drawnIndependently: true,
                     allowedOutsideImage: true,
-                    hasBoundingBox: true
+                    hasBoundingBox: false
                 }
             },
             invalidated: false,
