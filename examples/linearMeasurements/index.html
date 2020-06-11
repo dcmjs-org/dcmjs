@@ -27,6 +27,32 @@
                 <button id="sampleData" onclick="createStructuredReport()">
                     Create Structured Report
                 </button>
+                <button id="sampleData" onclick="loadStructuredReport()">
+                    Load Structured Report
+                </button>
+            </div>
+            <div class="row">
+                <button id="activateTool" onclick="setToolActive('Length')">
+                    Length
+                </button>
+                <button
+                    id="activateTool"
+                    onclick="setToolActive('Bidirectional')"
+                >
+                    Bidirectional
+                </button>
+                <button
+                    id="activateTool"
+                    onclick="setToolActive('EllipticalRoi')"
+                >
+                    Ellipse
+                </button>
+                <button
+                    id="activateTool"
+                    onclick="setToolActive('ArrowAnnotate')"
+                >
+                    Arrow
+                </button>
                 <p id="statusLine"></p>
                 <div class="col-xs-9">
                     <div
@@ -62,9 +88,9 @@
         <script src="https://unpkg.com/cornerstone-wado-image-loader@3.0.2/dist/cornerstoneWADOImageLoader.min.js"></script>
         <script src="https://unpkg.com/hammerjs/hammer.min.js"></script>
 
-        <script src="/js/initCornerstone.js"></script>
+        <script src="../js/initCornerstone.js"></script>
 
-        <script src="/js/dcmjs.js"></script>
+        <script src="../../build/dcmjs.js"></script>
 
         <script
             src="https://unpkg.com/react@16/umd/react.development.js"
@@ -108,6 +134,49 @@
                 window.location.assign(objectUrl);
             }
 
+            function loadStructuredReport() {
+                const url =
+                    window.location.origin +
+                    "/examples/data/structured_report.dcm";
+
+                const xhr = new XMLHttpRequest();
+
+                xhr.addEventListener("load", () => {
+                    const part10SRArrayBuffer = xhr.response;
+
+                    const dicomData = dcmjs.data.DicomMessage.readFile(
+                        part10SRArrayBuffer
+                    );
+                    const dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(
+                        dicomData.dict
+                    );
+
+                    const { MeasurementReport } = dcmjs.adapters.Cornerstone;
+
+                    const storedMeasurementByToolType = MeasurementReport.generateToolState(
+                        dataset
+                    );
+
+                    debugger;
+                });
+
+                xhr.addEventListener("error", () => {
+                    console.log(`Request returned, status: ${xhr.status}`);
+                    console.log(xhr.message);
+                });
+
+                xhr.open("GET", url);
+                xhr.responseType = "arraybuffer"; //Type of file
+
+                xhr.send();
+            }
+
+            function setToolActive(toolName) {
+                cornerstoneTools.setToolActive(toolName, {
+                    mouseButtonMask: 1
+                });
+            }
+
             function addMetaData(type, imageId, data) {
                 metaData[imageId] = metaData[imageId] || {};
                 metaData[imageId][type] = data;
@@ -135,60 +204,6 @@
                 }
                 return imageIds;
             }
-
-            //
-            // uses cornerstone caching to access a bytearray of the
-            // part10 dicom, then uses dcmjs to parse this
-            // into javascript object and populates the
-            // metadata for the per-frame imageIDs.
-            //
-            function loadMultiFrameAndPopulateMetadata(baseImageId) {
-                return new Promise(function(resolve, reject) {
-                    var multiframe;
-                    cornerstone
-                        .loadAndCacheImage(baseImageId)
-                        .then(function(image) {
-                            var arrayBuffer = image.data.byteArray.buffer;
-
-                            dicomData = dcmjs.data.DicomMessage.readFile(
-                                arrayBuffer
-                            );
-                            let dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(
-                                dicomData.dict
-                            );
-                            dataset._meta = dcmjs.data.DicomMetaDictionary.namifyDataset(
-                                dicomData.meta
-                            );
-
-                            multiframe = dcmjs.normalizers.Normalizer.normalizeToDataset(
-                                [dataset]
-                            );
-
-                            const numFrames = Number(multiframe.NumberOfFrames);
-                            for (let i = 0; i < numFrames; i++) {
-                                const imageId = baseImageId + "?frame=" + i;
-
-                                var functionalGroup =
-                                    multiframe.PerFrameFunctionalGroupsSequence[
-                                        i
-                                    ];
-                                var imagePositionArray =
-                                    functionalGroup.PlanePositionSequence
-                                        .ImagePositionPatient;
-
-                                addMetaData("imagePlane", imageId, {
-                                    imagePositionPatient: {
-                                        x: imagePositionArray[0],
-                                        y: imagePositionArray[1],
-                                        z: imagePositionArray[2]
-                                    }
-                                });
-                            }
-
-                            resolve(multiframe);
-                        });
-                });
-            }
         </script>
 
         <script>
@@ -209,7 +224,36 @@
                 viewportData: exampleData,
                 cornerstone,
                 cornerstoneTools,
-                activeTool: "Length"
+                activeTool: "Length",
+                availableTools: [
+                    // Mouse
+                    {
+                        name: "Length",
+                        mouseButtonMasks: [1]
+                    },
+                    {
+                        name: "Zoom",
+                        mouseButtonMasks: [2]
+                    },
+                    {
+                        name: "Pan",
+                        mouseButtonMask: [4]
+                    },
+                    {
+                        name: "Bidirectional",
+                        mouseButtonMasks: [1]
+                    },
+                    {
+                        name: "EllipticalRoi",
+                        mouseButtonMasks: [1]
+                    },
+                    {
+                        name: "ArrowAnnotate",
+                        mouseButtonMasks: [1]
+                    },
+                    // Scroll
+                    { name: "StackScrollMouseWheel" }
+                ]
             };
 
             var app = React.createElement(CornerstoneViewport, props, null);
