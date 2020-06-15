@@ -14,13 +14,11 @@ class Bidirectional {
     static getMeasurementData(MeasurementGroup) {
         const { ContentSequence } = MeasurementGroup;
 
-        const NUMGroups = toArray(ContentSequence).filter(
-            group => group.ValueType === "NUM"
-        );
-
         const longAxisNUMGroup = toArray(ContentSequence).find(
             group => group.ConceptNameCodeSequence.CodeMeaning === LONG_AXIS
         );
+
+        debugger;
 
         const longAxisSCOORDGroup = toArray(
             longAxisNUMGroup.ContentSequence
@@ -60,25 +58,29 @@ class Bidirectional {
                     x: longAxisSCOORDGroup.GraphicData[0],
                     y: longAxisSCOORDGroup.GraphicData[1],
                     drawnIndependently: false,
-                    allowedOutsideImage: false
+                    allowedOutsideImage: false,
+                    index: 0
                 },
                 end: {
                     x: longAxisSCOORDGroup.GraphicData[2],
                     y: longAxisSCOORDGroup.GraphicData[3],
                     drawnIndependently: false,
-                    allowedOutsideImage: false
+                    allowedOutsideImage: false,
+                    index: 1
                 },
                 perpendicularStart: {
                     x: shortAxisSCOORDGroup.GraphicData[0],
                     y: shortAxisSCOORDGroup.GraphicData[1],
                     drawnIndependently: false,
-                    allowedOutsideImage: false
+                    allowedOutsideImage: false,
+                    index: 2
                 },
                 perpendicularEnd: {
                     x: shortAxisSCOORDGroup.GraphicData[2],
                     y: shortAxisSCOORDGroup.GraphicData[3],
                     drawnIndependently: false,
-                    allowedOutsideImage: false
+                    allowedOutsideImage: false,
+                    index: 3
                 },
 
                 textBox: {
