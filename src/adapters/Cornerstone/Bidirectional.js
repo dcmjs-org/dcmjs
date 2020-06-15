@@ -18,8 +18,6 @@ class Bidirectional {
             group => group.ConceptNameCodeSequence.CodeMeaning === LONG_AXIS
         );
 
-        debugger;
-
         const longAxisSCOORDGroup = toArray(
             longAxisNUMGroup.ContentSequence
         ).find(group => group.ValueType === "SCOORD");

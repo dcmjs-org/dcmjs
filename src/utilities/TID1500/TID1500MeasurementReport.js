@@ -143,22 +143,6 @@ export default class TID1500MeasurementReport {
             ContentSequence = ContentSequence.concat(child.contentItem());
         });
 
-        const ReferencedSOPSequence = [];
-
-        ImageLibraryContentSequence.push({
-            RelationshipType: "CONTAINS",
-            ValueType: "IMAGE",
-            ReferencedSOPSequence
-        });
-
-        CurrentRequestedProcedureEvidenceSequence.push({
-            StudyInstanceUID: derivationSourceDataset.StudyInstanceUID,
-            ReferencedSeriesSequence: {
-                SeriesInstanceUID: derivationSourceDataset.SeriesInstanceUID,
-                ReferencedSOPSequence
-            }
-        });
-
         const parsedSOPInstances = [];
 
         // For each measurement that is referenced, add a link to the
