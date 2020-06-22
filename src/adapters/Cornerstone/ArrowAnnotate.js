@@ -4,8 +4,7 @@ import CORNERSTONE_4_TAG from "./cornerstone4Tag";
 import { toArray } from "../helpers.js";
 
 const ARROW_ANNOTATE = "ArrowAnnotate";
-
-const TRACKING_IDENTIFIER = "Tracking Identifier";
+const FINDING = "Finding";
 
 class ArrowAnnotate {
     constructor() {}
@@ -18,18 +17,17 @@ class ArrowAnnotate {
             group => group.ValueType === "NUM"
         );
 
-        const TrackingIdentifierGroup = toArray(ContentSequence).find(
-            group =>
-                group.ConceptNameCodeSequence.CodeMeaning ===
-                TRACKING_IDENTIFIER
-        );
-
         const SCOORDGroup = toArray(NUMGroup.ContentSequence).find(
             group => group.ValueType === "SCOORD"
         );
 
+        const findingsGroup = toArray(ContentSequence).find(
+            group => group.ConceptNameCodeSequence.CodeMeaning === FINDING
+        );
+
+        const text = findingsGroup.ConceptCodeSequence.CodeMeaning;
+
         const { GraphicData } = SCOORDGroup;
-        const text = TrackingIdentifierGroup.TextValue.split(":")[2];
 
         const { ReferencedSOPSequence } = SCOORDGroup.ContentSequence;
         const {
@@ -74,11 +72,17 @@ class ArrowAnnotate {
 
     static getTID300RepresentationArguments(tool) {
         const points = [tool.handles.start];
-        const HumanReadableTrackingIdentifier = tool.text;
+        const trackingIdentifierTextValue = `cornerstoneTools@^4.0.0:ArrowAnnotate`;
 
-        const trackingIdentifierTextValue = `cornerstoneTools@^4.0.0:ArrowAnnotate:${HumanReadableTrackingIdentifier}`;
+        const findings = [
+            {
+                CodeValue: "CORNERSTONEFREETEXT",
+                CodingSchemeDesignator: "CST4",
+                CodeMeaning: tool.text
+            }
+        ];
 
-        return { points, trackingIdentifierTextValue };
+        return { points, trackingIdentifierTextValue, findings };
     }
 }
 

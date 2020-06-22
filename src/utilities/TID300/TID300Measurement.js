@@ -7,7 +7,11 @@ export default class TID300Measurement {
     }
 
     getMeasurement(contentSequenceEntries) {
-        return [...this.getTrackingGroups(), ...contentSequenceEntries];
+        return [
+            ...this.getTrackingGroups(),
+            ...this.getFindingGroups(),
+            ...contentSequenceEntries
+        ];
     }
 
     getTrackingGroups() {
@@ -37,23 +41,25 @@ export default class TID300Measurement {
         ];
     }
 
-    // getFindingGroup(findingValue) {
-    //     const {Cod}
-    //     {
-    //         RelationshipType: "CONTAINS",
-    //         ValueType: "CODE",
-    //         ConceptNameCodeSequence: {
-    //             CodeValue: "121071",
-    //             CodingSchemeDesignator: "DCM",
-    //             CodeMeaning: "Finding"
-    //         },
-    //         ConceptCodeSequence: {
+    getFindingGroups() {
+        let findings = this.props.findings || [];
 
-    //             CodeValue: "SAMPLE FINDING",
-    //             CodingSchemeDesignator: "99dcmjs",
-    //             CodeMeaning: "Sample Finding"
-
-    //         }
-    //     },
-    // }
+        return findings.map(finding => {
+            const { CodeValue, CodingSchemeDesignator, CodeMeaning } = finding;
+            return {
+                RelationshipType: "CONTAINS",
+                ValueType: "CODE",
+                ConceptNameCodeSequence: {
+                    CodeValue: "121071",
+                    CodingSchemeDesignator: "DCM",
+                    CodeMeaning: "Finding"
+                },
+                ConceptCodeSequence: {
+                    CodeValue, //: "SAMPLE FINDING",
+                    CodingSchemeDesignator, //: "99dcmjs",
+                    CodeMeaning //: "Sample Finding"
+                }
+            };
+        });
+    }
 }

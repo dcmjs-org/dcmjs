@@ -46,6 +46,21 @@ class Bidirectional {
             shortAxisNUMGroup.MeasuredValueSequence.NumericValue
         );
 
+        const bottomRight = {
+            x: Math.max(
+                longAxisSCOORDGroup.GraphicData[0],
+                longAxisSCOORDGroup.GraphicData[2],
+                shortAxisSCOORDGroup.GraphicData[0],
+                shortAxisSCOORDGroup.GraphicData[2]
+            ),
+            y: Math.max(
+                longAxisSCOORDGroup.GraphicData[1],
+                longAxisSCOORDGroup.GraphicData[3],
+                shortAxisSCOORDGroup.GraphicData[1],
+                shortAxisSCOORDGroup.GraphicData[3]
+            )
+        };
+
         const state = {
             sopInstanceUid: ReferencedSOPInstanceUID,
             frameIndex: ReferencedFrameNumber || 1,
@@ -80,13 +95,16 @@ class Bidirectional {
                     allowedOutsideImage: false,
                     index: 3
                 },
-
                 textBox: {
-                    hasMoved: false,
+                    highlight: false,
+                    hasMoved: true,
+                    active: false,
                     movesIndependently: false,
                     drawnIndependently: true,
                     allowedOutsideImage: true,
-                    hasBoundingBox: false
+                    hasBoundingBox: true,
+                    x: bottomRight.x + 10,
+                    y: bottomRight.y + 10
                 }
             },
             invalidated: false,
