@@ -1,5 +1,5 @@
 const toArray = function(x) {
-    return Array.isArray(x) ? x : [x];
+    return x.constructor.name === "Array" ? x : [x];
 };
 
 const codeMeaningEquals = codeMeaningName => {

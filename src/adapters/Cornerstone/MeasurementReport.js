@@ -180,7 +180,6 @@ export default class MeasurementReport {
 
         const REPORT = "Imaging Measurements";
         const GROUP = "Measurement Group";
-        const TRACKING_IDENTIFIER = "Tracking Identifier";
 
         // Identify the Imaging Measurements
         const imagingMeasurementContent = toArray(dataset.ContentSequence).find(
@@ -188,54 +187,48 @@ export default class MeasurementReport {
         );
 
         // Retrieve the Measurements themselves
-        const measurementGroups = toArray(
+        const measurementGroupContent = toArray(
             imagingMeasurementContent.ContentSequence
-        ).filter(codeMeaningEquals(GROUP));
+        ).find(codeMeaningEquals(GROUP));
 
         // For each of the supported measurement types, compute the measurement data
         const measurementData = {};
 
-        const cornerstoneToolClasses =
-            MeasurementReport.CORNERSTONE_TOOL_CLASSES_BY_UTILITY_TYPE;
-
-        const registeredToolClasses = [];
-
-        Object.keys(cornerstoneToolClasses).forEach(key => {
-            registeredToolClasses.push(cornerstoneToolClasses[key]);
-            measurementData[key] = [];
-        });
-
-        measurementGroups.forEach(measurementGroup => {
-            const measurementGroupContentSequence = toArray(
-                measurementGroup.ContentSequence
+        Object.keys(
+            MeasurementReport.CORNERSTONE_TOOL_CLASSES_BY_UTILITY_TYPE
+        ).forEach(measurementType => {
+            // Filter to find supported measurement types in the Structured Report
+            const measurementGroups = toArray(
+                measurementGroupContent.ContentSequence
             );
-
-            const TrackingIdentifierGroup = measurementGroupContentSequence.find(
-                contentItem =>
-                    contentItem.ConceptNameCodeSequence.CodeMeaning ===
-                    TRACKING_IDENTIFIER
+            const measurementContent = measurementGroups.filter(
+                codeMeaningEquals(measurementType)
             );
-
-            const TrackingIdentifierValue = TrackingIdentifierGroup.TextValue;
-
-            const toolClass = registeredToolClasses.find(tc =>
-                tc.isValidCornerstoneTrackingIdentifier(TrackingIdentifierValue)
-            );
-
-            if (toolClass) {
-                const measurement = toolClass.getMeasurementData(
-                    measurementGroup
-                );
-
-                console.log(`=== ${toolClass.toolType} ===`);
-                console.log(measurement);
-
-                measurementData[toolClass.toolType].push(measurement);
+            if (!measurementContent) {
+                return;
             }
+
+            const toolClass =
+                MeasurementReport.CORNERSTONE_TOOL_CLASSES_BY_UTILITY_TYPE[
+                    measurementType
+                ];
+            const toolType = toolClass.toolType;
+
+            if (!toolClass.getMeasurementData) {
+                throw new Error(
+                    "Cornerstone Tool Adapters must define a getMeasurementData static method."
+                );
+            }
+
+            // Retrieve Length Measurement Data
+            measurementData[toolType] = toolClass.getMeasurementData(
+                measurementContent
+            );
         });
 
-        // NOTE: There is no way of knowing the cornerstone imageIds as that could be anything.
-        // That is up to the consumer to derive from the SOPInstanceUIDs.
+        // TODO: Find a way to define 'how' to get an imageId ?
+        // Need to provide something to generate imageId from Study / Series / Sop Instance UID
+        // combine / reorganize all the toolData into the expected toolState format for Cornerstone Tools
         return measurementData;
     }
 
