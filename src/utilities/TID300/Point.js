@@ -3,9 +3,15 @@ import TID300Measurement from "./TID300Measurement.js";
 
 export default class Point extends TID300Measurement {
     contentItem() {
-        const { points, ReferencedSOPSequence } = this.props;
+        const {
+            points,
+            ReferencedSOPSequence,
+            use3DSpatialCoordinates = false
+        } = this.props;
 
-        const GraphicData = [points[0].x, points[0].y];
+        const GraphicData = use3DSpatialCoordinates
+            ? [points[0].x, points[0].y, points[0].z]
+            : [points[0].x, points[0].y];
 
         return this.getMeasurement([
             {
@@ -19,14 +25,16 @@ export default class Point extends TID300Measurement {
                 //MeasuredValueSequence: ,
                 ContentSequence: {
                     RelationshipType: "INFERRED FROM",
-                    ValueType: "SCOORD",
+                    ValueType: use3DSpatialCoordinates ? "SCOORD3D" : "SCOORD",
                     GraphicType: "POINT",
                     GraphicData,
-                    ContentSequence: {
-                        RelationshipType: "SELECTED FROM",
-                        ValueType: "IMAGE",
-                        ReferencedSOPSequence
-                    }
+                    ContentSequence: use3DSpatialCoordinates
+                        ? undefined
+                        : {
+                              RelationshipType: "SELECTED FROM",
+                              ValueType: "IMAGE",
+                              ReferencedSOPSequence
+                          }
                 }
             }
         ]);
