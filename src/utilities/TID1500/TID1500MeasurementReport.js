@@ -143,37 +143,25 @@ export default class TID1500MeasurementReport {
             ContentSequence = ContentSequence.concat(child.contentItem());
         });
 
-        const parsedSOPInstances = [];
-
         // For each measurement that is referenced, add a link to the
         // Image Library Group and the Current Requested Procedure Evidence
         // with the proper ReferencedSOPSequence
         TID1501MeasurementGroups.forEach(measurementGroup => {
             measurementGroup.TID300Measurements.forEach(measurement => {
-                const {
-                    ReferencedSOPInstanceUID
-                } = measurement.ReferencedSOPSequence;
+                ImageLibraryContentSequence.push({
+                    RelationshipType: "CONTAINS",
+                    ValueType: "IMAGE",
+                    ReferencedSOPSequence: measurement.ReferencedSOPSequence
+                });
 
-                if (!parsedSOPInstances.includes(ReferencedSOPInstanceUID)) {
-                    ImageLibraryContentSequence.push({
-                        RelationshipType: "CONTAINS",
-                        ValueType: "IMAGE",
+                CurrentRequestedProcedureEvidenceSequence.push({
+                    StudyInstanceUID: derivationSourceDataset.StudyInstanceUID,
+                    ReferencedSeriesSequence: {
+                        SeriesInstanceUID:
+                            derivationSourceDataset.SeriesInstanceUID,
                         ReferencedSOPSequence: measurement.ReferencedSOPSequence
-                    });
-
-                    CurrentRequestedProcedureEvidenceSequence.push({
-                        StudyInstanceUID:
-                            derivationSourceDataset.StudyInstanceUID,
-                        ReferencedSeriesSequence: {
-                            SeriesInstanceUID:
-                                derivationSourceDataset.SeriesInstanceUID,
-                            ReferencedSOPSequence:
-                                measurement.ReferencedSOPSequence
-                        }
-                    });
-
-                    parsedSOPInstances.push(ReferencedSOPInstanceUID);
-                }
+                    }
+                });
             });
         });
 
@@ -186,7 +174,17 @@ export default class TID1500MeasurementReport {
                 CodeMeaning: "Imaging Measurements" // TODO: would be nice to abstract the code sequences (in a dictionary? a service?)
             },
             ContinuityOfContent: "SEPARATE",
-            ContentSequence
+            ContentSequence: {
+                RelationshipType: "CONTAINS",
+                ValueType: "CONTAINER",
+                ConceptNameCodeSequence: {
+                    CodeValue: "125007",
+                    CodingSchemeDesignator: "DCM",
+                    CodeMeaning: "Measurement Group"
+                },
+                ContinuityOfContent: "SEPARATE",
+                ContentSequence
+            }
         };
 
         this.tid1500.ContentSequence.push(ImagingMeasurments);

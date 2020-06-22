@@ -2,10 +2,53 @@ import { DicomMetaDictionary } from "../../DicomMetaDictionary.js";
 import TID300Measurement from "./TID300Measurement.js";
 
 export default class Length extends TID300Measurement {
-    contentItem() {
-        const { point1, point2, distance, ReferencedSOPSequence } = this.props;
+    constructor({ point1, point2, distance, ReferencedSOPSequence }) {
+        super();
 
-        return this.getMeasurement([
+        this.point1 = point1;
+        this.point2 = point2;
+        this.distance = distance;
+        this.ReferencedSOPSequence = ReferencedSOPSequence;
+    }
+
+    contentItem() {
+        const { point1, point2, distance, ReferencedSOPSequence } = this;
+
+        return [
+            {
+                RelationshipType: "HAS OBS CONTEXT",
+                ValueType: "TEXT",
+                ConceptNameCodeSequence: {
+                    CodeValue: "112039",
+                    CodingSchemeDesignator: "DCM",
+                    CodeMeaning: "Tracking Identifier"
+                },
+                TextValue: "web annotation"
+            },
+            {
+                RelationshipType: "HAS OBS CONTEXT",
+                ValueType: "UIDREF",
+                ConceptNameCodeSequence: {
+                    CodeValue: "112040",
+                    CodingSchemeDesignator: "DCM",
+                    CodeMeaning: "Tracking Unique Identifier"
+                },
+                UID: DicomMetaDictionary.uid()
+            },
+            {
+                RelationshipType: "CONTAINS",
+                ValueType: "CODE",
+                ConceptNameCodeSequence: {
+                    CodeValue: "121071",
+                    CodingSchemeDesignator: "DCM",
+                    CodeMeaning: "Finding"
+                },
+                ConceptCodeSequence: {
+                    CodeValue: "SAMPLEFINDING",
+                    CodingSchemeDesignator: "99dcmjs",
+                    CodeMeaning: "Sample Finding"
+                }
+            },
             {
                 RelationshipType: "CONTAINS",
                 ValueType: "NUM",
@@ -35,6 +78,6 @@ export default class Length extends TID300Measurement {
                     }
                 }
             }
-        ]);
+        ];
     }
 }
