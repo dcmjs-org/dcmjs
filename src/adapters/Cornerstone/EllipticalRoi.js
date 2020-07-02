@@ -34,8 +34,8 @@ class EllipticalRoi {
         // Calculate two opposite corners of box defined by two axes.
 
         const minorAxisLength = Math.sqrt(
-            Math.pow(Math.abs(minorAxis[0].x - minorAxis[1].x), 2) +
-                Math.pow(Math.abs(minorAxis[0].y - minorAxis[1].y), 2)
+            Math.pow(minorAxis[0].x - minorAxis[1].x, 2) +
+                Math.pow(minorAxis[0].y - minorAxis[1].y, 2)
         );
 
         const minorAxisDirection = {
