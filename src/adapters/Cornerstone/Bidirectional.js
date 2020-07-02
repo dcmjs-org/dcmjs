@@ -72,6 +72,8 @@ class Bidirectional {
                     y: longAxisSCOORDGroup.GraphicData[1],
                     drawnIndependently: false,
                     allowedOutsideImage: false,
+                    active: false,
+                    highlight: false,
                     index: 0
                 },
                 end: {
@@ -79,6 +81,8 @@ class Bidirectional {
                     y: longAxisSCOORDGroup.GraphicData[3],
                     drawnIndependently: false,
                     allowedOutsideImage: false,
+                    active: false,
+                    highlight: false,
                     index: 1
                 },
                 perpendicularStart: {
@@ -86,6 +90,8 @@ class Bidirectional {
                     y: shortAxisSCOORDGroup.GraphicData[1],
                     drawnIndependently: false,
                     allowedOutsideImage: false,
+                    active: false,
+                    highlight: false,
                     index: 2
                 },
                 perpendicularEnd: {
@@ -93,6 +99,8 @@ class Bidirectional {
                     y: shortAxisSCOORDGroup.GraphicData[3],
                     drawnIndependently: false,
                     allowedOutsideImage: false,
+                    active: false,
+                    highlight: false,
                     index: 3
                 },
                 textBox: {
@@ -112,6 +120,7 @@ class Bidirectional {
             longestDiameter,
             shortestDiameter,
             toolType: "Bidirectional",
+            toolName: "Bidirectional",
             visible: true
         };
 
