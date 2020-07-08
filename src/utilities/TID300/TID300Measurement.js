@@ -10,6 +10,7 @@ export default class TID300Measurement {
         return [
             ...this.getTrackingGroups(),
             ...this.getFindingGroups(),
+            ...this.getFindingSiteGroups(),
             ...contentSequenceEntries
         ];
     }
@@ -58,6 +59,32 @@ export default class TID300Measurement {
                     CodeValue, //: "SAMPLE FINDING",
                     CodingSchemeDesignator, //: "99dcmjs",
                     CodeMeaning //: "Sample Finding"
+                }
+            };
+        });
+    }
+
+    getFindingSiteGroups() {
+        let findingSites = this.props.findingSites || [];
+
+        return findingSites.map(findingSite => {
+            const {
+                CodeValue,
+                CodingSchemeDesignator,
+                CodeMeaning
+            } = findingSite;
+            return {
+                RelationshipType: "CONTAINS",
+                ValueType: "CODE",
+                ConceptNameCodeSequence: {
+                    CodeValue: "G-C0E3",
+                    CodingSchemeDesignator: "SRT",
+                    CodeMeaning: "Finding Site"
+                },
+                ConceptCodeSequence: {
+                    CodeValue, //: "SAMPLE FINDING SITE",
+                    CodingSchemeDesignator, //: "99dcmjs",
+                    CodeMeaning //: "Sample Finding Site"
                 }
             };
         });

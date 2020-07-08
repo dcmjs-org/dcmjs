@@ -6,6 +6,8 @@ import { toArray } from "../helpers.js";
 const BIDIRECTIONAL = "Bidirectional";
 const LONG_AXIS = "Long Axis";
 const SHORT_AXIS = "Short Axis";
+const FINDING = "121071";
+const FINDING_SITE = "G-C0E3";
 
 class Bidirectional {
     constructor() {}
@@ -13,6 +15,14 @@ class Bidirectional {
     // TODO: this function is required for all Cornerstone Tool Adapters, since it is called by MeasurementReport.
     static getMeasurementData(MeasurementGroup) {
         const { ContentSequence } = MeasurementGroup;
+
+        const findingGroups = toArray(ContentSequence).filter(
+            group => group.ConceptNameCodeSequence.CodeValue === FINDING
+        );
+
+        const findingSiteGroups = toArray(ContentSequence).filter(
+            group => group.ConceptNameCodeSequence.CodeValue === FINDING_SITE
+        );
 
         const longAxisNUMGroup = toArray(ContentSequence).find(
             group => group.ConceptNameCodeSequence.CodeMeaning === LONG_AXIS
@@ -121,11 +131,14 @@ class Bidirectional {
             shortestDiameter,
             toolType: "Bidirectional",
             toolName: "Bidirectional",
-            visible: true
+            visible: true,
+            findings: findingGroups.map(fg => {
+                return { ...fg.ConceptCodeSequence };
+            }),
+            findingSites: findingSiteGroups.map(fsg => {
+                return { ...fsg.ConceptCodeSequence };
+            })
         };
-
-        // TODO: To be implemented!
-        // Needs to add longAxis, shortAxis, longAxisLength, shortAxisLength
 
         return state;
     }
@@ -137,7 +150,12 @@ class Bidirectional {
             perpendicularStart,
             perpendicularEnd
         } = tool.handles;
-        const { shortestDiameter, longestDiameter } = tool;
+        const {
+            shortestDiameter,
+            longestDiameter,
+            findings,
+            findingSites
+        } = tool;
 
         const trackingIdentifierTextValue =
             "cornerstoneTools@^4.0.0:Bidirectional";
@@ -153,7 +171,9 @@ class Bidirectional {
             },
             longAxisLength: longestDiameter,
             shortAxisLength: shortestDiameter,
-            trackingIdentifierTextValue
+            trackingIdentifierTextValue,
+            findings: findings || [],
+            findingSites: findingSites || []
         };
     }
 }

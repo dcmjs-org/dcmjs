@@ -4,7 +4,9 @@ import CORNERSTONE_4_TAG from "./cornerstone4Tag";
 import { toArray } from "../helpers.js";
 
 const ARROW_ANNOTATE = "ArrowAnnotate";
-const FINDING = "Finding";
+const FINDING = "121071";
+const FINDING_SITE = "G-C0E3";
+const CORNERSTONEFREETEXT = "CORNERSTONEFREETEXT";
 
 class ArrowAnnotate {
     constructor() {}
@@ -21,11 +23,19 @@ class ArrowAnnotate {
             group => group.ValueType === "SCOORD"
         );
 
-        const findingsGroup = toArray(ContentSequence).find(
-            group => group.ConceptNameCodeSequence.CodeMeaning === FINDING
+        const findingGroups = toArray(ContentSequence).filter(
+            group => group.ConceptNameCodeSequence.CodeValue === FINDING
         );
 
-        const text = findingsGroup.ConceptCodeSequence.CodeMeaning;
+        const findingSiteGroups = toArray(ContentSequence).filter(
+            group => group.ConceptNameCodeSequence.CodeValue === FINDING_SITE
+        );
+
+        const cornerstoneFreeTextGroup = findingGroups.find(
+            group => group.ConceptCodeSequence.CodeValue === CORNERSTONEFREETEXT
+        );
+
+        const text = cornerstoneFreeTextGroup.ConceptCodeSequence.CodeMeaning;
 
         const { GraphicData } = SCOORDGroup;
 
@@ -64,7 +74,13 @@ class ArrowAnnotate {
             },
             invalidated: true,
             text,
-            visible: true
+            visible: true,
+            findings: findingGroups.map(fg => {
+                return { ...fg.ConceptCodeSequence };
+            }),
+            findingSites: findingSiteGroups.map(fsg => {
+                return { ...fsg.ConceptCodeSequence };
+            })
         };
 
         return state;
@@ -72,17 +88,35 @@ class ArrowAnnotate {
 
     static getTID300RepresentationArguments(tool) {
         const points = [tool.handles.start];
-        const trackingIdentifierTextValue = `cornerstoneTools@^4.0.0:ArrowAnnotate`;
 
-        const findings = [
-            {
-                CodeValue: "CORNERSTONEFREETEXT",
+        let { findings, findingSites } = tool;
+
+        const TID300RepresentationArguments = {
+            points,
+            trackingIdentifierTextValue: `cornerstoneTools@^4.0.0:ArrowAnnotate`
+        };
+
+        // If freetext isn't present in the findings, add it from the tool text.
+        if (!findings || !findings.length) {
+            findings = [
+                {
+                    CodeValue: CORNERSTONEFREETEXT,
+                    CodingSchemeDesignator: "CST4",
+                    CodeMeaning: tool.text
+                }
+            ];
+        } else if (!findings.some(f => f.CodeValue === CORNERSTONEFREETEXT)) {
+            findings.push({
+                CodeValue: CORNERSTONEFREETEXT,
                 CodingSchemeDesignator: "CST4",
                 CodeMeaning: tool.text
-            }
-        ];
+            });
+        }
 
-        return { points, trackingIdentifierTextValue, findings };
+        TID300RepresentationArguments.findings = findings || [];
+        TID300RepresentationArguments.findingSites = findingSites || [];
+
+        return TID300RepresentationArguments;
     }
 }
 

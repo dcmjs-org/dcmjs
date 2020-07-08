@@ -4,6 +4,8 @@ import CORNERSTONE_4_TAG from "./cornerstone4Tag";
 import { toArray } from "../helpers.js";
 
 const ELLIPTICALROI = "EllipticalRoi";
+const FINDING = "121071";
+const FINDING_SITE = "G-C0E3";
 
 class EllipticalRoi {
     constructor() {}
@@ -11,6 +13,14 @@ class EllipticalRoi {
     // TODO: this function is required for all Cornerstone Tool Adapters, since it is called by MeasurementReport.
     static getMeasurementData(MeasurementGroup) {
         const { ContentSequence } = MeasurementGroup;
+
+        const findingGroups = toArray(ContentSequence).filter(
+            group => group.ConceptNameCodeSequence.CodeValue === FINDING
+        );
+
+        const findingSiteGroups = toArray(ContentSequence).filter(
+            group => group.ConceptNameCodeSequence.CodeValue === FINDING_SITE
+        );
 
         const NUMGroup = toArray(ContentSequence).find(
             group => group.ValueType === "NUM"
@@ -92,14 +102,20 @@ class EllipticalRoi {
                 }
             },
             invalidated: true,
-            visible: true
+            visible: true,
+            findings: findingGroups.map(fg => {
+                return { ...fg.ConceptCodeSequence };
+            }),
+            findingSites: findingSiteGroups.map(fsg => {
+                return { ...fsg.ConceptCodeSequence };
+            })
         };
 
         return state;
     }
 
     static getTID300RepresentationArguments(tool) {
-        const { cachedStats, handles } = tool;
+        const { cachedStats, handles, findings, findingSites } = tool;
         const { start, end } = handles;
         const { area } = cachedStats;
 
@@ -134,7 +150,9 @@ class EllipticalRoi {
         return {
             area,
             points,
-            trackingIdentifierTextValue
+            trackingIdentifierTextValue,
+            findings: findings || [],
+            findingSites: findingSites || []
         };
     }
 }
