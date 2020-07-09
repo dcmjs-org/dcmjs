@@ -9,7 +9,7 @@ export default class TID300Measurement {
     getMeasurement(contentSequenceEntries) {
         return [
             ...this.getTrackingGroups(),
-            ...this.getFindingGroups(),
+            ...this.getFindingGroup(),
             ...this.getFindingSiteGroups(),
             ...contentSequenceEntries
         ];
@@ -42,12 +42,17 @@ export default class TID300Measurement {
         ];
     }
 
-    getFindingGroups() {
-        let findings = this.props.findings || [];
+    getFindingGroup() {
+        let finding = this.props.finding;
 
-        return findings.map(finding => {
-            const { CodeValue, CodingSchemeDesignator, CodeMeaning } = finding;
-            return {
+        if (!finding) {
+            return [];
+        }
+
+        const { CodeValue, CodingSchemeDesignator, CodeMeaning } = finding;
+
+        return [
+            {
                 RelationshipType: "CONTAINS",
                 ValueType: "CODE",
                 ConceptNameCodeSequence: {
@@ -60,8 +65,8 @@ export default class TID300Measurement {
                     CodingSchemeDesignator, //: "99dcmjs",
                     CodeMeaning //: "Sample Finding"
                 }
-            };
-        });
+            }
+        ];
     }
 
     getFindingSiteGroups() {

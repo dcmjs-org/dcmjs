@@ -23,7 +23,7 @@ class ArrowAnnotate {
             group => group.ValueType === "SCOORD"
         );
 
-        const findingGroups = toArray(ContentSequence).filter(
+        const findingGroup = toArray(ContentSequence).find(
             group => group.ConceptNameCodeSequence.CodeValue === FINDING
         );
 
@@ -31,11 +31,7 @@ class ArrowAnnotate {
             group => group.ConceptNameCodeSequence.CodeValue === FINDING_SITE
         );
 
-        const cornerstoneFreeTextGroup = findingGroups.find(
-            group => group.ConceptCodeSequence.CodeValue === CORNERSTONEFREETEXT
-        );
-
-        const text = cornerstoneFreeTextGroup.ConceptCodeSequence.CodeMeaning;
+        const text = findingGroup.ConceptCodeSequence.CodeMeaning;
 
         const { GraphicData } = SCOORDGroup;
 
@@ -75,9 +71,9 @@ class ArrowAnnotate {
             invalidated: true,
             text,
             visible: true,
-            findings: findingGroups.map(fg => {
-                return { ...fg.ConceptCodeSequence };
-            }),
+            finding: findingGroup
+                ? findingGroup.ConceptCodeSequence
+                : undefined,
             findingSites: findingSiteGroups.map(fsg => {
                 return { ...fsg.ConceptCodeSequence };
             })
@@ -89,32 +85,24 @@ class ArrowAnnotate {
     static getTID300RepresentationArguments(tool) {
         const points = [tool.handles.start];
 
-        let { findings, findingSites } = tool;
+        let { finding, findingSites } = tool;
 
         const TID300RepresentationArguments = {
             points,
-            trackingIdentifierTextValue: `cornerstoneTools@^4.0.0:ArrowAnnotate`
+            trackingIdentifierTextValue: `cornerstoneTools@^4.0.0:ArrowAnnotate`,
+            findingSites: findingSites || []
         };
 
-        // If freetext isn't present in the findings, add it from the tool text.
-        if (!findings || !findings.length) {
-            findings = [
-                {
-                    CodeValue: CORNERSTONEFREETEXT,
-                    CodingSchemeDesignator: "CST4",
-                    CodeMeaning: tool.text
-                }
-            ];
-        } else if (!findings.some(f => f.CodeValue === CORNERSTONEFREETEXT)) {
-            findings.push({
+        // If freetext finding isn't present, add it from the tool text.
+        if (!finding || f.CodeValue !== CORNERSTONEFREETEXT) {
+            finding = {
                 CodeValue: CORNERSTONEFREETEXT,
                 CodingSchemeDesignator: "CST4",
                 CodeMeaning: tool.text
-            });
+            };
         }
 
-        TID300RepresentationArguments.findings = findings || [];
-        TID300RepresentationArguments.findingSites = findingSites || [];
+        TID300RepresentationArguments.finding = finding;
 
         return TID300RepresentationArguments;
     }

@@ -14,7 +14,7 @@ class EllipticalRoi {
     static getMeasurementData(MeasurementGroup) {
         const { ContentSequence } = MeasurementGroup;
 
-        const findingGroups = toArray(ContentSequence).filter(
+        const findingGroup = toArray(ContentSequence).find(
             group => group.ConceptNameCodeSequence.CodeValue === FINDING
         );
 
@@ -103,9 +103,9 @@ class EllipticalRoi {
             },
             invalidated: true,
             visible: true,
-            findings: findingGroups.map(fg => {
-                return { ...fg.ConceptCodeSequence };
-            }),
+            finding: findingGroup
+                ? findingGroup.ConceptCodeSequence
+                : undefined,
             findingSites: findingSiteGroups.map(fsg => {
                 return { ...fsg.ConceptCodeSequence };
             })
@@ -115,7 +115,7 @@ class EllipticalRoi {
     }
 
     static getTID300RepresentationArguments(tool) {
-        const { cachedStats, handles, findings, findingSites } = tool;
+        const { cachedStats, handles, finding, findingSites } = tool;
         const { start, end } = handles;
         const { area } = cachedStats;
 
@@ -151,7 +151,7 @@ class EllipticalRoi {
             area,
             points,
             trackingIdentifierTextValue,
-            findings: findings || [],
+            finding,
             findingSites: findingSites || []
         };
     }

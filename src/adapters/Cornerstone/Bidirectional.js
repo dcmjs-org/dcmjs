@@ -16,7 +16,7 @@ class Bidirectional {
     static getMeasurementData(MeasurementGroup) {
         const { ContentSequence } = MeasurementGroup;
 
-        const findingGroups = toArray(ContentSequence).filter(
+        const findingGroup = toArray(ContentSequence).find(
             group => group.ConceptNameCodeSequence.CodeValue === FINDING
         );
 
@@ -132,9 +132,9 @@ class Bidirectional {
             toolType: "Bidirectional",
             toolName: "Bidirectional",
             visible: true,
-            findings: findingGroups.map(fg => {
-                return { ...fg.ConceptCodeSequence };
-            }),
+            finding: findingGroup
+                ? findingGroup.ConceptCodeSequence
+                : undefined,
             findingSites: findingSiteGroups.map(fsg => {
                 return { ...fsg.ConceptCodeSequence };
             })
@@ -153,7 +153,7 @@ class Bidirectional {
         const {
             shortestDiameter,
             longestDiameter,
-            findings,
+            finding,
             findingSites
         } = tool;
 
@@ -172,7 +172,7 @@ class Bidirectional {
             longAxisLength: longestDiameter,
             shortAxisLength: shortestDiameter,
             trackingIdentifierTextValue,
-            findings: findings || [],
+            finding: finding,
             findingSites: findingSites || []
         };
     }

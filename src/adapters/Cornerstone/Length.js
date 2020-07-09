@@ -14,7 +14,7 @@ class Length {
     static getMeasurementData(MeasurementGroup) {
         const { ContentSequence } = MeasurementGroup;
 
-        const findingGroups = toArray(ContentSequence).filter(
+        const findingGroup = toArray(ContentSequence).find(
             group => group.ConceptNameCodeSequence.CodeValue === FINDING
         );
 
@@ -51,9 +51,9 @@ class Length {
                     hasBoundingBox: true
                 }
             },
-            findings: findingGroups.map(fg => {
-                return { ...fg.ConceptCodeSequence };
-            }),
+            finding: findingGroup
+                ? findingGroup.ConceptCodeSequence
+                : undefined,
             findingSites: findingSiteGroups.map(fsg => {
                 return { ...fsg.ConceptCodeSequence };
             })
@@ -70,7 +70,7 @@ class Length {
     }
 
     static getTID300RepresentationArguments(tool) {
-        const { handles, findings, findingSites } = tool;
+        const { handles, finding, findingSites } = tool;
         const point1 = handles.start;
         const point2 = handles.end;
         const distance = tool.length;
@@ -82,7 +82,7 @@ class Length {
             point2,
             distance,
             trackingIdentifierTextValue,
-            findings: findings || [],
+            finding,
             findingSites: findingSites || []
         };
     }
