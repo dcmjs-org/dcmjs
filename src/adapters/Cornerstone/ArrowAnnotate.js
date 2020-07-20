@@ -94,7 +94,7 @@ class ArrowAnnotate {
         };
 
         // If freetext finding isn't present, add it from the tool text.
-        if (!finding || f.CodeValue !== CORNERSTONEFREETEXT) {
+        if (!finding || finding.CodeValue !== CORNERSTONEFREETEXT) {
             finding = {
                 CodeValue: CORNERSTONEFREETEXT,
                 CodingSchemeDesignator: "CST4",

@@ -32,8 +32,12 @@ const encapsulatedSyntaxes = [
 class DicomMessage {
     static read(bufferStream, syntax, ignoreErrors) {
         var dict = {};
+        debugger;
         try {
             while (!bufferStream.end()) {
+                if (bufferStream.size === bufferStream.offset) {
+                    debugger;
+                }
                 var readInfo = DicomMessage.readTag(bufferStream, syntax);
 
                 dict[readInfo.tag.toCleanString()] = {
