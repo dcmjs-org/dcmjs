@@ -858,35 +858,27 @@ function getValidOrientations(iop) {
 function alignPixelDataWithSourceData(pixelData2D, iop, orientations) {
     if (compareIOP(iop, orientations[0])) {
         //Same orientation.
-        console.log("Same orientation.");
         return pixelData2D;
     } else if (compareIOP(iop, orientations[1])) {
         //Flipped vertically.
-        console.log("Flipped vertically.");
         return flipMatrix2D.v(pixelData2D);
     } else if (compareIOP(iop, orientations[2])) {
         //Flipped horizontally.
-        console.log("Flipped horizontally.");
         return flipMatrix2D.h(pixelData2D);
     } else if (compareIOP(iop, orientations[3])) {
         //Rotated 90 degrees.
-        console.log("Rotated 90 degrees.");
         return rotateMatrix902D(pixelData2D);
     } else if (compareIOP(iop, orientations[4])) {
         //Rotated 90 degrees and fliped horizontally.
-        console.log("Rotated 90 degrees and fliped horizontally.");
         return flipMatrix2D.h(rotateMatrix902D(pixelData2D));
     } else if (compareIOP(iop, orientations[5])) {
         //Rotated 90 degrees and fliped vertically.
-        console.log("Rotated 90 degrees and fliped vertically.");
         return flipMatrix2D.v(rotateMatrix902D(pixelData2D));
     } else if (compareIOP(iop, orientations[6])) {
         //Rotated 180 degrees. // TODO -> Do this more effeciently, there is a 1:1 mapping like 90 degree rotation.
-        console.log("Rotated 180 degrees.");
         return rotateMatrix902D(rotateMatrix902D(pixelData2D));
     } else if (compareIOP(iop, orientations[7])) {
         //Rotated 270 degrees.  // TODO -> Do this more effeciently, there is a 1:1 mapping like 90 degree rotation.
-        console.log("Rotated 270 degrees.");
         return rotateMatrix902D(
             rotateMatrix902D(rotateMatrix902D(pixelData2D))
         );
