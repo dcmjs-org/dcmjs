@@ -575,11 +575,6 @@ function insertPixelDataPlanar(
 
         let SourceImageSequence;
 
-        console.log(multiframe);
-        console.log(SharedFunctionalGroupsSequence);
-        console.log(PerFrameFunctionalGroups);
-        debugger;
-
         if (multiframe.SourceImageSequence) {
             SourceImageSequence = multiframe.SourceImageSequence[i];
         } else {
@@ -587,10 +582,6 @@ function insertPixelDataPlanar(
                 PerFrameFunctionalGroups.DerivationImageSequence
                     .SourceImageSequence;
         }
-
-        console.log(SourceImageSequence);
-
-        debugger;
 
         const imageId = getImageIdOfSourceImage(
             SourceImageSequence,
