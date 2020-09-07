@@ -2,7 +2,7 @@ const expect = require('chai').expect;
 const dcmjs = require('../build/dcmjs');
 
 const fs = require("fs");
-const {http, https} = require("follow-redirects");
+const { http, https } = require("follow-redirects");
 const os = require("os");
 const path = require("path");
 const unzipper = require("unzipper");
@@ -14,34 +14,34 @@ fileMetaInformationVersionArray[1] = 1;
 
 const metadata = {
   "00020001": {
-      "Value": [
-        fileMetaInformationVersionArray.buffer
-      ],
-      "vr": "OB"
+    "Value": [
+      fileMetaInformationVersionArray.buffer
+    ],
+    "vr": "OB"
   },
   "00020012": {
-      "Value": [
-          "1.2.840.113819.7.1.1997.1.0"
-      ],
-      "vr": "UI"
+    "Value": [
+      "1.2.840.113819.7.1.1997.1.0"
+    ],
+    "vr": "UI"
   },
   "00020002": {
-      "Value": [
-          "1.2.840.10008.5.1.4.1.1.4"
-      ],
-      "vr": "UI"
+    "Value": [
+      "1.2.840.10008.5.1.4.1.1.4"
+    ],
+    "vr": "UI"
   },
   "00020003": {
-      "Value": [
-          DicomMetaDictionary.uid()
-      ],
-      "vr": "UI"
+    "Value": [
+      DicomMetaDictionary.uid()
+    ],
+    "vr": "UI"
   },
   "00020010": {
-      "Value": [
-          "1.2.840.10008.1.2"
-      ],
-      "vr": "UI"
+    "Value": [
+      "1.2.840.10008.1.2"
+    ],
+    "vr": "UI"
   }
 };
 
@@ -74,7 +74,7 @@ const sequenceMetadata = {
 }
 
 function downloadToFile(url, filePath) {
-  return new Promise( (resolve,reject) => {
+  return new Promise((resolve, reject) => {
     const fileStream = fs.createWriteStream(filePath);
     const request = https.get(url, (response) => {
       response.pipe(fileStream);
@@ -152,9 +152,9 @@ const tests = {
     const unzipPath = path.join(os.tmpdir(), "test_multiframe_1");
 
     downloadToFile(url, zipFilePath)
-      .then( () => {
+      .then(() => {
         fs.createReadStream(zipFilePath)
-          .pipe(unzipper.Extract( {path: unzipPath} )
+          .pipe(unzipper.Extract({ path: unzipPath })
             .on('close', () => {
               const mrHeadPath = path.join(unzipPath, "MRHead");
               fs.readdir(mrHeadPath, (err, fileNames) => {
@@ -188,9 +188,9 @@ const tests = {
     const segFilePath = path.join(os.tmpdir(), "Lesion1_onesliceSEG.dcm");
 
     downloadToFile(ctPelvisURL, zipFilePath)
-      .then( () => {
+      .then(() => {
         fs.createReadStream(zipFilePath)
-          .pipe(unzipper.Extract( {path: unzipPath} )
+          .pipe(unzipper.Extract({ path: unzipPath })
             .on('close', () => {
               const ctPelvisPath = path.join(unzipPath, "Series-1.2.840.113704.1.111.1916.1223562191.15");
               fs.readdir(ctPelvisPath, (err, fileNames) => {
@@ -211,7 +211,7 @@ const tests = {
                 expect(roundedSpacing).to.equal(5);
 
                 downloadToFile(segURL, segFilePath)
-                  .then( () => {
+                  .then(() => {
                     const arrayBuffer = fs.readFileSync(segFilePath).buffer;
                     const dicomDict = DicomMessage.readFile(arrayBuffer);
                     const dataset = DicomMetaDictionary.naturalizeDataset(dicomDict.dict);
@@ -225,6 +225,81 @@ const tests = {
           );
       });
   },
+
+  test_untilTag: () => {
+    const dicomJSON = `
+      [
+        {
+          "00100010": {
+            "vr": "PN",
+            "Value": [ "Fake Patient 1" ]
+          },
+          "0020000D": {
+            "vr": "UI",
+            "Value": [ "1.2.392.200036.9116.2.2.2.1762893313.1029997326.945873" ]
+          }
+        }
+    ]`;
+    const dicomDict = new DicomDict(metadata);
+    const datasets = JSON.parse(dicomJSON)[0];
+    dicomDict.dict = datasets;
+    const part10Buffer = dicomDict.write();
+
+    let dicomData;
+    let natural;
+
+    dicomData = dcmjs.data.DicomMessage.readFile(part10Buffer);
+    natural = DicomMetaDictionary.naturalizeDataset(dicomData.dict);
+    expect(natural.PatientName).to.equal('Fake Patient 1');
+    expect(natural.StudyInstanceUID).to.equal('1.2.392.200036.9116.2.2.2.1762893313.1029997326.945873');
+
+    dicomData = dcmjs.data.DicomMessage.readFile(part10Buffer, {
+      untilTag: '00100010'
+    });
+    natural = DicomMetaDictionary.naturalizeDataset(dicomData.dict);
+    expect(natural).to.not.have.property('PatientName');
+    expect(natural).to.not.have.property('StudyInstanceUID');
+
+
+    dicomData = dcmjs.data.DicomMessage.readFile(part10Buffer, {
+      stopAfterTag: '0010,0010'
+    });
+    natural = DicomMetaDictionary.naturalizeDataset(dicomData.dict);
+    expect(natural.PatientName).to.equal('Fake Patient 1');
+    expect(natural).to.not.have.property('StudyInstanceUID');
+
+    dicomData = dcmjs.data.DicomMessage.readFile(part10Buffer, {
+      untilTag: '(0020,000D)'
+    });
+    natural = DicomMetaDictionary.naturalizeDataset(dicomData.dict);
+    expect(natural.PatientName).to.equal('Fake Patient 1');
+    expect(natural).to.not.have.property('StudyInstanceUID');
+
+
+    dicomData = dcmjs.data.DicomMessage.readFile(part10Buffer, {
+      stopAfterTag: 'x0020000D'
+    });
+    natural = DicomMetaDictionary.naturalizeDataset(dicomData.dict);
+    expect(natural.PatientName).to.equal('Fake Patient 1');
+    expect(natural.StudyInstanceUID).to.equal('1.2.392.200036.9116.2.2.2.1762893313.1029997326.945873');
+
+    dicomData = dcmjs.data.DicomMessage.readFile(part10Buffer, {
+      untilTag: 'StudyInstanceUID'
+    });
+    natural = DicomMetaDictionary.naturalizeDataset(dicomData.dict);
+    expect(natural.PatientName).to.equal('Fake Patient 1');
+    expect(natural).to.not.have.property('StudyInstanceUID');
+
+
+    dicomData = dcmjs.data.DicomMessage.readFile(part10Buffer, {
+      stopAfterTag: 'PatientName'
+    });
+    natural = DicomMetaDictionary.naturalizeDataset(dicomData.dict);
+    expect(natural.PatientName).to.equal('Fake Patient 1');
+    expect(natural).to.not.have.property('StudyInstanceUID');
+
+    console.log("Finished test_untilTag")
+  }
 }
 
 
