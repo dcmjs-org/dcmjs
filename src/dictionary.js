@@ -48060,3 +48060,12 @@ const dictionary = {
 };
 
 export default dictionary;
+export function findByName(tagName) {
+    const keys = Object.keys(dictionary);
+    for (let i = 0; i < keys.length; i += 1) {
+        if (dictionary[keys[i]].name === tagName) {
+            return dictionary[keys[i]];
+        }
+    }
+    return null;
+}
