@@ -15,10 +15,12 @@ export default function(iop, theta) {
     const rxc = crossProduct3D(r, c);
 
     const rRot = rotateVectorAroundUnitVector(r, rxc, theta);
-    const cRot = crossProduct3D(rxc, rRot);
+    const cRot = rotateVectorAroundUnitVector(c, rxc, theta);
+
+    const cRotTest = crossProduct3D(rxc, rRot);
 
     for (let i = 0; i < 2; i++) {
-        cRot[i] *= -1.0;
+        cRotTest[i] *= -1.0;
     }
 
     return [...rRot, ...cRot];
