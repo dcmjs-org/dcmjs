@@ -343,8 +343,6 @@ function generateToolState(imageIds, arrayBuffer, metadataProvider) {
 
     let insertFunction;
 
-    // TEMP -> Always used perpendicular and build up a transformation matrix.
-
     switch (orientation) {
         case "Planar":
             insertFunction = insertPixelDataPlanar;
