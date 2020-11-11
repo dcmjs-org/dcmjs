@@ -270,6 +270,11 @@ function generateToolState(imageIds, arrayBuffer, metadataProvider) {
               .ImageOrientationPatient
         : undefined;
 
+    const sharedReferencedSegmentNumber = SharedFunctionalGroupsSequence.SegmentIdentificationSequence
+        ? SharedFunctionalGroupsSequence.SegmentIdentificationSequence
+              .ReferencedSegmentNumber - 1
+        : undefined;
+
     const sliceLength = multiframe.Columns * multiframe.Rows;
     const segMetadata = getSegmentMetadata(multiframe);
     const pixelData = unpackPixelData(multiframe);
@@ -309,9 +314,9 @@ function generateToolState(imageIds, arrayBuffer, metadataProvider) {
         }
 
         const segmentIndex =
+            sharedReferencedSegmentNumber ||
             PerFrameFunctionalGroups.SegmentIdentificationSequence
                 .ReferencedSegmentNumber - 1;
-
         let SourceImageSequence;
         if (
             SharedFunctionalGroupsSequence.DerivationImageSequence &&
@@ -320,7 +325,9 @@ function generateToolState(imageIds, arrayBuffer, metadataProvider) {
         ) {
             SourceImageSequence =
                 SharedFunctionalGroupsSequence.DerivationImageSequence
-                    .SourceImageSequence[i];
+                    .SourceImageSequence[i] ||
+                SharedFunctionalGroupsSequence.DerivationImageSequence
+                    .SourceImageSequence;
         } else {
             SourceImageSequence =
                 PerFrameFunctionalGroups.DerivationImageSequence
