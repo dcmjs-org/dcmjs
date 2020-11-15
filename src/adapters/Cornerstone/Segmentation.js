@@ -108,3 +108,30 @@ function fillSegmentation(
         `No generateSegmentation adapater for cornerstone version ${cornerstoneToolsVersion}, exiting.`
     );
 }
+
+/**
+ * generateSegmentationWithDataset - Fills a derived segmentation dataset with cornerstoneTools `LabelMap3D` data from Dataset instead of images
+ *
+ * @param  {object[]} dataset An empty segmentation derived dataset.
+ * @param  {Object|Object[]} inputLabelmaps3D The cornerstone `Labelmap3D` object, or an array of objects.
+ * @param  {Object} userOptions Options object to override default options.
+ * @returns {Blob}           description
+ */
+function generateSegmentationWithDataset(
+    dataset,
+    inputLabelmaps3D,
+    options = { includeSliceSpacing: true },
+    cornerstoneToolsVersion = 4
+) {
+    if (cornerstoneToolsVersion === 4) {
+        return Segmentation_4X.generateSegmentationWithDataset(
+            dataset,
+            inputLabelmaps3D,
+            options
+        );
+    }
+
+    console.warn(
+        `No generateSegmentationWithDataset adapater for cornerstone version ${cornerstoneToolsVersion}, exiting.`
+    );
+}
