@@ -22,7 +22,7 @@ const Segmentation = {
     generateSegmentation,
     generateToolState,
     fillSegmentation,
-    generateSegmentationWithDataset
+    generateSegmentationFromDatasets
 };
 
 export default Segmentation;
@@ -41,7 +41,7 @@ const generateSegmentationDefaultOptions = {
 };
 
 /**
- * generateSegmentationWithDataset - Generates cornerstoneTools brush data, given a stack of
+ * generateSegmentationFromDatasets - Generates cornerstoneTools brush data, given a stack of
  * imageIds, images and the cornerstoneTools brushData.
  *
  * @param  {object[]} datasets An array of cornerstone image dataset that contain the metadata for each instance
@@ -52,7 +52,7 @@ const generateSegmentationDefaultOptions = {
  * @param  {Object} userOptions Options to pass to the segmentation derivation and `fillSegmentation`.
  * @returns {Blob}
  */
-function generateSegmentationWithDataset(
+function generateSegmentationFromDatasets(
     datasets,
     inputLabelmaps3D,
     userOptions = {}
