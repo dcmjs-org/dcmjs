@@ -57,7 +57,8 @@ function generateSegmentationFromDatasets(
     inputLabelmaps3D,
     userOptions = {}
 ) {
-    //on multiframe images, datasets array contains only 1 element but should work as well
+    //make sure _meta property is present in every element of datasets with at least an empty array
+    datasets = datasets.map(ds => ({ ...ds, _meta: ds._meta || [] }));
     const multiframe = Normalizer.normalizeToDataset(datasets);
     const segmentation = new SegmentationDerivation([multiframe], userOptions);
     return fillSegmentation(segmentation, inputLabelmaps3D, userOptions);

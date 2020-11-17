@@ -119,14 +119,14 @@ function fillSegmentation(
  * @returns {Blob}           description
  */
 function generateSegmentationFromDatasets(
-    dataset,
+    datasets,
     inputLabelmaps3D,
     options = { includeSliceSpacing: true },
     cornerstoneToolsVersion = 4
 ) {
     if (cornerstoneToolsVersion === 4) {
         return Segmentation_4X.generateSegmentationFromDatasets(
-            dataset,
+            datasets,
             inputLabelmaps3D,
             options
         );
