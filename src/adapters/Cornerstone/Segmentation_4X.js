@@ -44,10 +44,9 @@ const generateSegmentationDefaultOptions = {
  * generateSegmentationFromDatasets - Generates cornerstoneTools brush data, given a stack of
  * imageIds, images and the cornerstoneTools brushData.
  *
- * @param  {object[]} datasets An array of cornerstone image dataset that contain the metadata for each instance
+ * @param  {object[]} datasets An array of cornerstone image datasets that contain the metadata for each instance
  *                             and a property _meta with empty array (required for compatibility with other dcmjs functions)
- *                             The dataset for each instance of image can be generated with `cornerstone.metaData.get('instance', imageId)``
- *                             but prop _meta = [] needs to be added to each element other
+ *                             The dataset for each instance of image can be generated with `cornerstone.metaData.get('instance', imageId)`
  * @param  {Object|Object[]} inputLabelmaps3D The cornerstone `Labelmap3D` object, or an array of objects.
  * @param  {Object} userOptions Options to pass to the segmentation derivation and `fillSegmentation`.
  * @returns {Blob}
@@ -57,8 +56,6 @@ function generateSegmentationFromDatasets(
     inputLabelmaps3D,
     userOptions = {}
 ) {
-    //make sure _meta property is present in every element of datasets with at least an empty array
-    datasets = datasets.map(ds => ({ ...ds, _meta: ds._meta || [] }));
     const multiframe = Normalizer.normalizeToDataset(datasets);
     const segmentation = new SegmentationDerivation([multiframe], userOptions);
     return fillSegmentation(segmentation, inputLabelmaps3D, userOptions);

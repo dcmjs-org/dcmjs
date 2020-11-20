@@ -38,7 +38,7 @@ export default class DerivedDataset {
         this.referencedDataset = this.referencedDatasets[0];
         this.dataset = {
             _vrMap: this.referencedDataset._vrMap,
-            _meta: this.referencedDataset._meta
+            _meta: this.referencedDataset._meta || []
         };
 
         this.derive();
