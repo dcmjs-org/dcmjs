@@ -262,9 +262,8 @@ class ImageNormalizer extends Normalizer {
 
         // copy over each datasets window/level into the per-frame groups
         // and set the referenced series uid
-        distanceDatasetPairs.forEach(function(pair) {
-            const dataset = pair[1];
-
+        // use unsorted dataset to maitain ordering sequence of ReferencedInstanceSequence with other sources (ex: segmentation labelmaps)
+        this.datasets.forEach(function(dataset) {
             ds.PerFrameFunctionalGroupsSequence.push({
                 PlanePositionSequence: {
                     ImagePositionPatient: dataset.ImagePositionPatient
