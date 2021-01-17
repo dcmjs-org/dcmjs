@@ -250,8 +250,22 @@ class BinaryRepresentation extends ValueRepresentation {
                 frames = value.length,
                 startOffset = [];
 
+            // Calculate a total length for storing binary stream
+            var bufferLength = 0;
+            for (i = 0; i < frames; i++) {
+                bufferLength += value[i].byteLength;
+                let fragmentsLength = 1;
+                if (fragmentMultiframe) {
+                    fragmentsLength = Math.ceil(
+                        value[i].byteLength / fragmentSize
+                    );
+                }
+                // 8 bytes per fragment are needed to store 0xffff (2 bytes), 0xe000 (2 bytes), and frageStream size (4 bytes)
+                bufferLength += fragmentsLength * 8;
+            }
+
             binaryStream = new WriteBufferStream(
-                1024 * 1024 * 20,
+                bufferLength,
                 stream.isLittleEndian
             );
 
