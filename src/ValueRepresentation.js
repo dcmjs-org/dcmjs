@@ -778,7 +778,7 @@ class SequenceOfItems extends ValueRepresentation {
         }
     }
 
-    writeBytes(stream, value, syntax) {
+    writeBytes(stream, value, syntax, writeOptions) {
         let written = 0;
 
         if (value) {
@@ -788,7 +788,12 @@ class SequenceOfItems extends ValueRepresentation {
                 super.write(stream, "Uint16", 0xe000);
                 super.write(stream, "Uint32", 0xffffffff);
 
-                written += DicomMessage.write(item, stream, syntax);
+                written += DicomMessage.write(
+                    item,
+                    stream,
+                    syntax,
+                    writeOptions
+                );
 
                 super.write(stream, "Uint16", 0xfffe);
                 super.write(stream, "Uint16", 0xe00d);
