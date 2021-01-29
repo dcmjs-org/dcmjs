@@ -683,7 +683,6 @@ function checkSEGsOverlapping(
                 PerFrameFunctionalGroups.DerivationImageSequence
                     .SourceImageSequence;
         }
-        console.warn(SourceImageSequence);
 
         const imageId = getImageIdOfSourceImage(
             SourceImageSequence,
