@@ -661,13 +661,23 @@ function checkSEGsOverlapping(
         }
 
         const segmentIndex =
+            sharedReferencedSegmentNumber ||
             PerFrameFunctionalGroups.SegmentIdentificationSequence
                 .ReferencedSegmentNumber;
-
         let SourceImageSequence;
 
         if (multiframe.SourceImageSequence) {
             SourceImageSequence = multiframe.SourceImageSequence[i];
+        } else if (
+            SharedFunctionalGroupsSequence.DerivationImageSequence &&
+            SharedFunctionalGroupsSequence.DerivationImageSequence
+                .SourceImageSequence
+        ) {
+            SourceImageSequence =
+                SharedFunctionalGroupsSequence.DerivationImageSequence
+                    .SourceImageSequence[i] ||
+                SharedFunctionalGroupsSequence.DerivationImageSequence
+                    .SourceImageSequence;
         } else {
             SourceImageSequence =
                 PerFrameFunctionalGroups.DerivationImageSequence
@@ -919,6 +929,11 @@ function insertPixelDataPlanar(
         : undefined;
     const sliceLength = Columns * Rows;
 
+    const sharedReferencedSegmentNumber = SharedFunctionalGroupsSequence.SegmentIdentificationSequence
+        ? SharedFunctionalGroupsSequence.SegmentIdentificationSequence
+              .ReferencedSegmentNumber
+        : undefined;
+
     for (
         let i = 0, groupsLen = PerFrameFunctionalGroupsSequence.length;
         i < groupsLen;
@@ -952,13 +967,23 @@ function insertPixelDataPlanar(
         }
 
         const segmentIndex =
+            sharedReferencedSegmentNumber ||
             PerFrameFunctionalGroups.SegmentIdentificationSequence
                 .ReferencedSegmentNumber;
-
         let SourceImageSequence;
 
         if (multiframe.SourceImageSequence) {
             SourceImageSequence = multiframe.SourceImageSequence[i];
+        } else if (
+            SharedFunctionalGroupsSequence.DerivationImageSequence &&
+            SharedFunctionalGroupsSequence.DerivationImageSequence
+                .SourceImageSequence
+        ) {
+            SourceImageSequence =
+                SharedFunctionalGroupsSequence.DerivationImageSequence
+                    .SourceImageSequence[i] ||
+                SharedFunctionalGroupsSequence.DerivationImageSequence
+                    .SourceImageSequence;
         } else {
             SourceImageSequence =
                 PerFrameFunctionalGroups.DerivationImageSequence
