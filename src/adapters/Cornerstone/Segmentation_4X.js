@@ -967,13 +967,23 @@ function insertPixelDataPlanar(
         }
 
         const segmentIndex =
+            sharedReferencedSegmentNumber ||
             PerFrameFunctionalGroups.SegmentIdentificationSequence
                 .ReferencedSegmentNumber;
-
         let SourceImageSequence;
 
         if (multiframe.SourceImageSequence) {
             SourceImageSequence = multiframe.SourceImageSequence[i];
+        } else if (
+            SharedFunctionalGroupsSequence.DerivationImageSequence &&
+            SharedFunctionalGroupsSequence.DerivationImageSequence
+                .SourceImageSequence
+        ) {
+            SourceImageSequence =
+                SharedFunctionalGroupsSequence.DerivationImageSequence
+                    .SourceImageSequence[i] ||
+                SharedFunctionalGroupsSequence.DerivationImageSequence
+                    .SourceImageSequence;
         } else {
             SourceImageSequence =
                 PerFrameFunctionalGroups.DerivationImageSequence
