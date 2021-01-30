@@ -20,7 +20,7 @@
   },
   "author": "Steve Pieper",
   "license": "MIT",
-  "types": "./index.d.ts",
+  "types": "./src/index.d.ts",
   "bugs": {
     "url": "https://github.com/dcmjs-org/dcmjs/issues"
   },
