@@ -36,10 +36,17 @@ class DicomMessage {
             while (!bufferStream.end()) {
                 var readInfo = DicomMessage.readTag(bufferStream, syntax);
 
-                dict[readInfo.tag.toCleanString()] = {
+                var cleantag = readInfo.tag.toCleanString();
+                dict[cleantag] = {
                     vr: readInfo.vr.type,
                     Value: readInfo.values
                 };
+                if (cleantag == "00080005") {
+                    // character encoding
+                    if (readInfo.values[0] == "ISO_IR 192") {
+                        bufferStream.setEncoding("utf-8");
+                    }
+                }
             }
             return dict;
         } catch (err) {
