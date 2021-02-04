@@ -72,22 +72,22 @@ declare namespace sr {
   declare namespace contentItems {
 
     export interface FindingSiteOptions {
-      anatomicLocation: dcmjs.sr.coding.CodedConcept
-      lateratlity?: dcmjs.sr.coding.CodedConcept
-      topographicalModifier?: dcmjs.sr.coding.CodedConcept
+      anatomicLocation: sr.coding.CodedConcept
+      lateratlity?: sr.coding.CodedConcept
+      topographicalModifier?: sr.coding.CodedConcept
     }
 
-    export class FindingSite extends dcmjs.sr.valueTypes.CodeContentItem {
+    export class FindingSite extends sr.valueTypes.CodeContentItem {
       constructor (options: FindingSiteOptions)
     }
 
     export interface LongitudinalTemporalOffsetFromEventOptions {
       value: number
-      unit: dcmjs.sr.coding.CodedConcept
-      eventType: dcmjs.sr.coding.CodedConcept
+      unit: sr.coding.CodedConcept
+      eventType: sr.coding.CodedConcept
     }
 
-    export class LongitudinalTemporalOffsetFromEvent extends dcmjs.sr.valueTypes.NumContentItem {
+    export class LongitudinalTemporalOffsetFromEvent extends sr.valueTypes.NumContentItem {
       constructor (options: LongitudinalTemporalOffsetFromEventOptions)
     }
 
@@ -98,7 +98,7 @@ declare namespace sr {
       sourceImage: SourceImageForRegion
     }
 
-    export class ImageRegion extends dcmjs.sr.valueTypes.ScoordContentItem {
+    export class ImageRegion extends sr.valueTypes.ScoordContentItem {
       constructor (options: ImageRegionOptions)
     }
 
@@ -108,8 +108,8 @@ declare namespace sr {
       frameOfReferenceUID: string
     }
 
-    export class ImageRegion3D extends dcmjs.sr.valueTypes.Scoord3DContentItem {
-      constructor (options: ImageRegion3DOptionsOptions)
+    export class ImageRegion3D extends sr.valueTypes.Scoord3DContentItem {
+      constructor (options: ImageRegion3DOptions)
     }
 
     export interface ReferencedRealWorldValueMapOptions {
@@ -117,7 +117,7 @@ declare namespace sr {
       referencedSOPInstanceUID: string
     }
 
-    export class ReferencedRealWorldValueMap extends dcmjs.sr.valueTypes.CompositeContentItem {
+    export class ReferencedRealWorldValueMap extends sr.valueTypes.CompositeContentItem {
       constructor (options: ReferencedRealWorldValueMapOptions)
     }
 
@@ -129,7 +129,7 @@ declare namespace sr {
       sourceImages?: SourceImageForSegmentation[]
     }
 
-    export class ReferencedSegmentation extends dcmjs.sr.valueTypes.ContentSequence {
+    export class ReferencedSegmentation extends sr.valueTypes.ContentSequence {
       constructor (options: ReferencedSegmentationOptions)
     }
 
@@ -141,20 +141,8 @@ declare namespace sr {
       sourceImage?: SourceImageForSegmentation
     }
 
-    export class ReferencedSegmentationFrame extends dcmjs.sr.valueTypes.ContentSequence {
+    export class ReferencedSegmentationFrame extends sr.valueTypes.ContentSequence {
       constructor (options: ReferencedSegmentationFrameOptions)
-    }
-
-    export interface VolumeSurfaceOptions {
-      graphicType: string
-      graphicData: number[][]  // TODO
-      frameOfReferenceUID: string
-      sourceImages?: SourceImageForRegion[]
-      sourceSeries?: SourceSeriesForRegion
-    }
-
-    export class VolumeSurface extends dcmjs.sr.valueTypes.Scoord3DContentItem {
-      constructor (options: VolumeSurfaceOptions)
     }
 
     export interface SourceImageForRegionOptions {
@@ -218,7 +206,7 @@ declare namespace sr {
 
   declare namespace templates {
 
-    export abstract class Template extends Array<dcmjs.sr.valueTypes.ContentItem> {}
+    export abstract class Template extends Array<sr.valueTypes.ContentItem> {}
 
     export interface TrackingIdentifierOptions {
       uid: string
@@ -240,25 +228,25 @@ declare namespace sr {
     }
 
     export interface MeasurmentOptions {
-      name: dcmjs.sr.coding.CodedConcept
+      name: sr.coding.CodedConcept
       value: number
-      uint: dcmjs.sr.coding.CodedConcept
+      uint: sr.coding.CodedConcept
       trackingIdentifier: TrackingIdentifier
-      qualifier?: dcmjs.sr.coding.CodedConcept
-      method?: dcmjs.sr.coding.CodedConcept
-      derivation?: dcmjs.sr.coding.CodedConcept
-      findingSites?: dmjs.sr.contentItems.FindingSite[]
-      properties?: MeasurmentProperties
+      qualifier?: sr.coding.CodedConcept
+      method?: sr.coding.CodedConcept
+      derivation?: sr.coding.CodedConcept
+      findingSites?: sr.contentItems.FindingSite[]
+      properties?: MeasurementProperties
       referencedRegions?: (
-        dmjs.sr.contentItems.ImageRegion[] |
-        dmjs.sr.contentItems.ImageRegion3D[]
+        sr.contentItems.ImageRegion[] |
+        sr.contentItems.ImageRegion3D[]
       )
-      referencedVolume?: dmjs.sr.contentItems.VolumeSurface
+      referencedVolume?: sr.contentItems.VolumeSurface
       referencedSegmentation?: (
-        dmjs.sr.contentItems.ReferencedSegmentation |
-        dmjs.sr.contentItems.ReferencedSegmentationFrame
+        sr.contentItems.ReferencedSegmentation |
+        sr.contentItems.ReferencedSegmentationFrame
       )
-      referencedRealWorldValueMap?: dmjs.sr.contentItems.ReferencedRealWorldValueMap
+      referencedRealWorldValueMap?: sr.contentItems.ReferencedRealWorldValueMap
       algorithmId?: AlgorithmIdentification
     }
 
@@ -267,13 +255,13 @@ declare namespace sr {
     }
 
     export interface MeasurementPropertiesOptions {
-      normality?: dcmjs.sr.coding.CodedConcept
-      levelOfSignificance?: dcmjs.sr.coding.CodedConcept
+      normality?: sr.coding.CodedConcept
+      levelOfSignificance?: sr.coding.CodedConcept
       measurementStatisticalProperties?: MeasurementStatisticalProperties
       normalRangeProperties?: NormalRangeProperties
-      selectionStatus?: dcmjs.sr.coding.CodedConcept
-      lowerMeasurementUncertainty?: dcmjs.sr.coding.CodedConcept
-      upperMeasurementUncertainty?: dcmjs.sr.coding.CodedConcept
+      selectionStatus?: sr.coding.CodedConcept
+      lowerMeasurementUncertainty?: sr.coding.CodedConcept
+      upperMeasurementUncertainty?: sr.coding.CodedConcept
     }
 
     export class MeasurementProperties extends Template {
@@ -281,7 +269,7 @@ declare namespace sr {
     }
 
     export interface MeasurementStatisticalPropertiesOptions {
-      values: dcmjs.sr.valueTypes.NumContentItem[]
+      values: sr.valueTypes.NumContentItem[]
       description?: string
       authority?: string
     }
@@ -291,7 +279,7 @@ declare namespace sr {
     }
 
     export interface NormalRangePropertiesOptions {
-      values: dcmjs.sr.valueTypes.NumContentItem[]
+      values: sr.valueTypes.NumContentItem[]
       description?: string
       authority?: string
     }
@@ -311,7 +299,7 @@ declare namespace sr {
     }
 
     export interface ObserverContextOptions {
-      observerType: dcmjs.sr.coding.CodedConcept | dcmjs.sr.coding.Code
+      observerType: sr.coding.CodedConcept | sr.coding.Code
       observerIdentifyingAttributes: (
         PersonObserverIdentifyingAttributes |
         DeviceObserverIdentifyingAttributes
@@ -326,8 +314,8 @@ declare namespace sr {
       name: string
       loginName?: string
       organizationName?: string
-      roleInOrganization?: dcmjs.sr.coding.CodedConcept
-      roleInProcedure?: dcmjs.sr.coding.CodedConcept
+      roleInOrganization?: sr.coding.CodedConcept
+      roleInProcedure?: sr.coding.CodedConcept
     }
 
     export class PersonObserverIdentifyingAttributes extends Template {
@@ -340,7 +328,7 @@ declare namespace sr {
       modelName?: string
       serialNumber?: string
       physicalLocation?: string
-      roleInProcedure?: dcmjs.sr.coding.CodedConcept
+      roleInProcedure?: sr.coding.CodedConcept
     }
 
     export class DeviceObserverIdentifyingAttributes extends Template {
@@ -348,7 +336,7 @@ declare namespace sr {
     }
 
     export interface SubjectContextOptions {
-      subjectClass: dcmjs.sr.coding.CodedConcept
+      subjectClass: sr.coding.CodedConcept
       subjectClassSpecificContext: (
         SubjectContextFetus |
         SubjectContextSpecimen |
@@ -372,7 +360,7 @@ declare namespace sr {
       uid: string
       identifier?: string
       containerIdentifier?: string
-      specimenType?: dcmjs.sr.coding.CodedConcept
+      specimenType?: sr.coding.CodedConcept
     }
 
     export class SubjectContextSpecimen extends Template {
@@ -393,7 +381,7 @@ declare namespace sr {
     }
 
     export interface LanguageOfContentItemAndDescendantsOptions {
-      language?: dcmjs.sr.coding.CodedConcept
+      language?: sr.coding.CodedConcept
     }
 
     export class LanguageOfContentItemAndDescendants extends Template {
@@ -403,19 +391,19 @@ declare namespace sr {
     export interface PlanarROIMeasurementsAndQualitativeEvaluationsOptions {
       trackingIdentifier: TrackingIdentifier
       session?: string
-      findingType?: dcmjs.sr.coding.CodedConcept
+      findingType?: sr.coding.CodedConcept
       referencedRegion?: (
-        dcmjs.sr.contentItems.ImageRegion |
-        dcmjs.sr.contentItems.ImageRegion3D
+        sr.contentItems.ImageRegion |
+        sr.contentItems.ImageRegion3D
       )
       referencedSegmentation?: (
-        dcmjs.sr.contentItems.ReferencedSegmentation |
-        dcmjs.sr.contentItems.ReferencedSegmentationFrame
+        sr.contentItems.ReferencedSegmentation |
+        sr.contentItems.ReferencedSegmentationFrame
       )
-      referencedRealWorldValueMap?: dcmjs.sr.contentItems.ReferencedRealWorldValueMap
+      referencedRealWorldValueMap?: sr.contentItems.ReferencedRealWorldValueMap
       timePointContext?: TimePointContext
       measurements?: Measurement[]
-      qualitativeEvaluations?: dcmjs.sr.valueTypes.CodeContentItem[]
+      qualitativeEvaluations?: sr.valueTypes.CodeContentItem[]
     }
 
     export class PlanarROIMeasurementsAndQualitativeEvaluations extends Template {
@@ -425,19 +413,19 @@ declare namespace sr {
     export interface VolumetricROIMeasurementsAndQualitativeEvaluationsOptions {
       trackingIdentifier: TrackingIdentifier
       session?: string
-      findingType?: dcmjs.sr.coding.CodedConcept
+      findingType?: sr.coding.CodedConcept
       referencedRegions?: (
-        dcmjs.sr.contentItems.ImageRegion[] |
-        dcmjs.sr.contentItems.ImageRegion3D[]
+        sr.contentItems.ImageRegion[] |
+        sr.contentItems.ImageRegion3D[]
       )
       referencedSegmentation?: (
-        dcmjs.sr.contentItems.ReferencedSegmentation |
-        dcmjs.sr.contentItems.ReferencedSegmentationFrame
+        sr.contentItems.ReferencedSegmentation |
+        sr.contentItems.ReferencedSegmentationFrame
       )
-      referencedRealWorldValueMap?: dcmjs.sr.contentItems.ReferencedRealWorldValueMap
+      referencedRealWorldValueMap?: sr.contentItems.ReferencedRealWorldValueMap
       timePointContext?: TimePointContext
       measurements?: Measurement[]
-      qualitativeEvaluations?: dcmjs.sr.valueTypes.CodeContentItem[]
+      qualitativeEvaluations?: sr.valueTypes.CodeContentItem[]
     }
 
     export class VolumetricROIMeasurementsAndQualitativeEvaluations extends Template {
@@ -445,7 +433,7 @@ declare namespace sr {
     }
 
     export interface MeasurementsDerivedFromMultipleROIMeasurementsOptions {
-      derivation: dcmjs.sr.coding.CodedConcept
+      derivation: sr.coding.CodedConcept
       measurementGroup: (
         PlanarROIMeasurementsAndQualitativeEvaluations |
         VolumetricROIMeasurementsAndQualitativeEvaluations
@@ -460,11 +448,11 @@ declare namespace sr {
     export interface MeasurementAndQualitativeEvaluationGroupOptions {
       trackingIdentifier: TrackingIdentifier
       session?: string
-      findingType?: dcmjs.sr.coding.CodedConcept
-      referencedRealWorldValueMap?: dcmjs.sr.contentItems.ReferencedRealWorldValueMap
+      findingType?: sr.coding.CodedConcept
+      referencedRealWorldValueMap?: sr.contentItems.ReferencedRealWorldValueMap
       timePointContext?: TimePointContext
       measurements?: Measurement[]
-      qualitativeEvaluations?: dcmjs.sr.valueTypes.CodeContentItem[]
+      qualitativeEvaluations?: sr.valueTypes.CodeContentItem[]
     }
 
     export class MeasurementAndQualitativeEvaluationGroup {
@@ -472,8 +460,8 @@ declare namespace sr {
     }
 
     export interface ROIMeasurementsOptions {
-      method?: dcmjs.sr.coding.CodedConcept
-      findingSites?: dcmjs.sr.contentItem.FindingSite[]
+      method?: sr.coding.CodedConcept
+      findingSites?: sr.contentItems.FindingSite[]
       measurements?: Measurement[]
     }
 
@@ -483,11 +471,11 @@ declare namespace sr {
 
     export interface MeasurementReportOptions {
       observationContext: ObservationContext
-      procedureReported: dcmjs.sr.coding.CodedConcept
+      procedureReported: sr.coding.CodedConcept
       languageOfContentItemAndDescendants?: LanguageOfContentItemAndDescendants
       imagingMeasurements?: Measurement[]  // TODO
       derivedImagingMeasurements?: Measurement[]
-      qualitativeEvaluations?: dcmjs.sr.valueTypes.CodeContentItem[]
+      qualitativeEvaluations?: sr.valueTypes.CodeContentItem[]
     }
 
     export class MeasurementReport extends Template {
@@ -496,11 +484,11 @@ declare namespace sr {
 
     export interface TimePointContextOptions {
       timePoint: string
-      timePointType?: dcmjs.sr.coding.CodedConcept
+      timePointType?: sr.coding.CodedConcept
       timePointOrder?: number
       subjectTimePointIdentifier?: number
       protocolTimePointIdentifier?: number
-      temporalOffsetFromEvent?: dcmjs.sr.contentItems.LongitudinalTemporalOffsetFromEventContentItem
+      temporalOffsetFromEvent?: sr.contentItems.LongitudinalTemporalOffsetFromEvent
     }
 
     export class TimePointContext extends Template {
@@ -512,33 +500,33 @@ declare namespace sr {
   declare namespace valueTypes {
 
     export interface MeasuredValue {
-      MeasurementUnitsCodeSequence: dcmjs.sr.coding.CodedConcept[]
+      MeasurementUnitsCodeSequence: sr.coding.CodedConcept[]
       NumericValue: number
       FloatingPointValue?: number
     }
 
     export class ContentItem {
-      ConceptNameCodeSequence: dcmjs.sr.coding.CodedConcept[]
+      ConceptNameCodeSequence: sr.coding.CodedConcept[]
       RelationshipType: string
       ValueType: string
     }
 
     export interface NumContentItemOptions {
-      name: dcmjs.sr.coding.CodedConcept
+      name: sr.coding.CodedConcept
       relationshipType: string
       value: number
-      unit: dcmjs.sr.coding.CodedConcept
-      qualifier?: dcmjs.sr.coding.CodedConcept
+      unit: sr.coding.CodedConcept
+      qualifier?: sr.coding.CodedConcept
     }
 
     export class NumContentItem extends ContentItem {
       constructor (options: NumContentItemOptions)
       MeasuredValueSequence: MeasuredValue[]
-      NumericValueQualifierCodeSequence?: dcmjs.sr.coding.CodedConcept[]
+      NumericValueQualifierCodeSequence?: sr.coding.CodedConcept[]
     }
 
     export interface ContainerContentItemOptions {
-      name: dcmjs.sr.coding.CodedConcept
+      name: sr.coding.CodedConcept
       relationshipType: string
       templateID?: string
       isContentContinuous?: boolean
@@ -550,7 +538,7 @@ declare namespace sr {
     }
 
     export interface UIDRefContentItemOptions {
-      name: dcmjs.sr.coding.CodedConcept
+      name: sr.coding.CodedConcept
       relationshipType: string
       value: string
     }
@@ -561,18 +549,18 @@ declare namespace sr {
     }
 
     export interface CodeContentItemOptions {
-      name: dcmjs.sr.coding.CodedConcept
+      name: sr.coding.CodedConcept
       relationshipType: string
-      value: dcmjs.sr.coding.CodedConcept
+      value: sr.coding.CodedConcept
     }
 
     export class CodeContentItem extends ContentItem {
       constructor (options: CodeContentItemOptions)
-      ConceptCodeSequence: dcmjs.sr.coding.CodedConcept[]
+      ConceptCodeSequence: sr.coding.CodedConcept[]
     }
 
     export interface TextContentItemOptions {
-      name: dcmjs.sr.coding.CodedConcept
+      name: sr.coding.CodedConcept
       relationshipType: string
       value: string
     }
@@ -583,7 +571,7 @@ declare namespace sr {
     }
 
     export interface PNameContentItemOptions {
-      name: dcmjs.sr.coding.CodedConcept
+      name: sr.coding.CodedConcept
       relationshipType: string
       value: string
     }
@@ -594,7 +582,7 @@ declare namespace sr {
     }
 
     export interface DateTimeContentItemOptions {
-      name: dcmjs.sr.coding.CodedConcept
+      name: sr.coding.CodedConcept
       relationshipType: string
       value: string
     }
@@ -604,8 +592,25 @@ declare namespace sr {
       DateTime: string
     }
 
+    export interface ScoordContentItemOptions {
+      name: sr.coding.CodedConcept
+      relationshipType: string
+      graphicType: string
+      graphicData: number[][] | number[]
+      pixelOriginInterpretation?: string
+      fiducialUID?: string
+    }
+
+    export class ScoordContentItem extends ContentItem {
+      constructor (options: ScoordContentItemOptions)
+      GraphicType: string
+      GraphicData: number[]
+      PixelOriginInterpretation: string
+      FiducialUID?: string
+    }
+
     export interface Scoord3DContentItemOptions {
-      name: dcmjs.sr.coding.CodedConcept
+      name: sr.coding.CodedConcept
       relationshipType: string
       graphicType: string
       graphicData: number[][] | number[]
@@ -621,5 +626,7 @@ declare namespace sr {
     export class ContentSequence extends Array<ContentItem> {}
 
   }
+
+}
 
 }
