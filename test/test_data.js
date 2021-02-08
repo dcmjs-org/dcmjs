@@ -275,9 +275,37 @@ const tests = {
                 expect(JSON.stringify(elem1)).to.equal(JSON.stringify(elem2));
             })
         }
+    },
+
+    test_performance: async () => {
+        const file = fs.readFileSync(path.join(__dirname, 'cine-test.dcm'));
+        let buffer = file.buffer;
+        let json;
+        const start = Date.now();
+
+        for (let i = 0; i < 100; ++i) {
+            let old = json;
+            json = DicomMessage.readFile(buffer);
+            buffer = json.write();
+
+            if (i > 0) {
+                check_equality(old.meta, json.meta);
+                check_equality(old.dict, json.dict);
+            }
+        }
+
+        function check_equality(dict1, dict2) {
+            Object.keys(dict1).forEach(key => {
+                const elem1 = dict1[key];
+                const elem2 = dict2[key]
+
+                expect(JSON.stringify(elem1)).to.equal(JSON.stringify(elem2));
+            })
+        }
+
+        console.log(`Finished. Total Time elapsed: ${Date.now() - start} ms`)
     }
 }
-
 
 exports.test = async (testToRun) => {
     Object.keys(tests).forEach(testName => {

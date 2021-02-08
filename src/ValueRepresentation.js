@@ -962,10 +962,6 @@ class UnknownValue extends BinaryRepresentation {
         this.padByte = "00";
         this.noMultiple = true;
     }
-
-    // readBytes(stream, length) {
-    //     return stream.readString(length);
-    // }
 }
 
 class OtherWordString extends BinaryRepresentation {
