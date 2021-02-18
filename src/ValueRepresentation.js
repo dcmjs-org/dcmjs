@@ -497,8 +497,18 @@ class DecimalString extends StringRepresentation {
         return ds;
     }
 
+    formatValue(value) {
+        const str = String(value);
+        if (str.length > this.maxLength) {
+            return value.toExponential();
+        }
+        return str;
+    }
+
     writeBytes(stream, value) {
-        const val = Array.isArray(value) ? value.map(String) : [value];
+        const val = Array.isArray(value)
+            ? value.map(ds => this.formatValue(ds))
+            : [this.formatValue(value)];
         return super.writeBytes(stream, val);
     }
 }
