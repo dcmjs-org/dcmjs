@@ -49,7 +49,7 @@ async function main() {
     return {
       tag: getCellData(row.td[0]),
       vr: getCellData(row.td[3]),
-      name: getCellData(row.td[2]),
+      name: `RETIRED_${getCellData(row.td[2])}`,
       vm: getCellData(row.td[4]),
       version: 'DICOM/retired',
     }
@@ -118,7 +118,7 @@ function getCellData(td) {
     return undefined;
   }
   const text = para.emphasis ? para.emphasis[0]._ : para._;
-  return text?.trim().replace(/\u200b/g, '');
+  return text?.trim().replace(/[\u200b\uffff]/g, '');
 }
 
 function getUrl(url) {
