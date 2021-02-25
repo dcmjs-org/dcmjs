@@ -122,7 +122,7 @@ class DicomMessage {
         return written;
     }
 
-    static readTag(stream, syntax) {
+    static readTag(stream, syntax, ignorePixelData = false) {
         var implicit = syntax == IMPLICIT_LITTLE_ENDIAN ? true : false,
             isLittleEndian =
                 syntax == IMPLICIT_LITTLE_ENDIAN ||
@@ -135,6 +135,10 @@ class DicomMessage {
         var group = stream.readUint16(),
             element = stream.readUint16(),
             tag = tagFromNumbers(group, element);
+
+        if (ignorePixelData && tag.isPixelDataTag()) {
+            return { tag: tag, vr: null, values: null };
+        }
 
         var length = null,
             vr = null,
