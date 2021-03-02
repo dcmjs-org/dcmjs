@@ -43,6 +43,8 @@ import sr from "./sr/index.js";
 
 import { cleanTags } from "./anonymizer.js";
 
+import PixelModifier from "./pixelModifier/index.js";
+
 let data = {
     BitArray,
     ReadBufferStream,
@@ -55,7 +57,8 @@ let data = {
     Colors,
     datasetToDict,
     datasetToBuffer,
-    datasetToBlob
+    datasetToBlob,
+    PixelModifier
 };
 
 let derivations = {
