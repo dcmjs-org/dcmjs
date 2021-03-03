@@ -61,9 +61,9 @@
         <script src="https://unpkg.com/cornerstone-wado-image-loader/dist/cornerstoneWADOImageLoader.min.js"></script>
         <script src="https://unpkg.com/hammerjs/hammer.min.js"></script>
 
-        <script src="/js/initCornerstone.js"></script>
+        <script src="../js/initCornerstone.js"></script>
 
-        <script src="/js/dcmjs.js"></script>
+        <script src="../js/dcmjs.js"></script>
 
         <script
             src="https://unpkg.com/react@16/umd/react.development.js"
@@ -123,13 +123,14 @@
                 const t0 = performance.now();
 
                 const {
-                    labelmapBuffer,
+                    labelmapBufferArray,
                     segMetadata,
                     segmentsOnFrame
                 } = dcmjs.adapters.Cornerstone.Segmentation.generateToolState(
                     imageIds,
                     arrayBuffer,
-                    cornerstone.metaData
+                    cornerstone.metaData,
+                    true
                 );
 
                 const t1 = performance.now();
@@ -140,7 +141,7 @@
 
                 setters.labelmap3DByFirstImageId(
                     imageIds[0],
-                    labelmapBuffer,
+                    labelmapBufferArray[0],
                     0,
                     segMetadata,
                     imageIds.length,

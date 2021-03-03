@@ -893,10 +893,10 @@ function insertOverlappingPixelDataPlanar(
 
 const getSegmentIndex = (multiframe, frame) => {
     const {
-        PerFrameFunctionalGroups,
-        SharedFunctionalGroupsSequence,
-        PerFrameFunctionalGroupsSequence
+        PerFrameFunctionalGroupsSequence,
+        SharedFunctionalGroupsSequence
     } = multiframe;
+    const PerFrameFunctionalGroups = PerFrameFunctionalGroupsSequence[frame];
     return PerFrameFunctionalGroups.SegmentIdentificationSequence
         ? PerFrameFunctionalGroups.SegmentIdentificationSequence
               .ReferencedSegmentNumber
