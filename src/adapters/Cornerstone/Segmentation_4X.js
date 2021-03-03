@@ -897,11 +897,9 @@ const getSegmentIndex = (multiframe, frame) => {
         SharedFunctionalGroupsSequence
     } = multiframe;
     const PerFrameFunctionalGroups = PerFrameFunctionalGroupsSequence[frame];
-    return PerFrameFunctionalGroups.SegmentIdentificationSequence
+    return PerFrameFunctionalGroups &&
+        PerFrameFunctionalGroups.SegmentIdentificationSequence
         ? PerFrameFunctionalGroups.SegmentIdentificationSequence
-              .ReferencedSegmentNumber
-        : PerFrameFunctionalGroupsSequence[frame].SegmentIdentificationSequence
-        ? PerFrameFunctionalGroupsSequence[frame].SegmentIdentificationSequence
               .ReferencedSegmentNumber
         : SharedFunctionalGroupsSequence.SegmentIdentificationSequence
               .ReferencedSegmentNumber;
