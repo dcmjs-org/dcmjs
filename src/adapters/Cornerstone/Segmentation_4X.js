@@ -629,6 +629,42 @@ function checkSEGsOverlapping(
     var groupsLen = PerFrameFunctionalGroupsSequence.length;
     var numberOfSegs = multiframe.SegmentSequence.length;
     var numberOfFrames = imageIds.length;
+    // NOTE:
+    // Assumption1 : numberOfSegs * numberOfFrames = groupsLen,
+    // i.e. for each frame we have a N PerFrameFunctionalGroupsSequence, where N is the numberOfSegs.
+    // Assumption2 : the order of the group sequence is = numberOfFrames of segemtation 1 +  numberOfFrames of segemtation 2 + ... + numberOfFrames of segemtation numberOfSegs
+    // We could check the ImagePositionPatient and working in 3D coordinates (instead of indexes) and remove the assumptions,
+    // but this would greatly increase the computation time (i.e. we would have to sort the data before running checkSEGsOverlapping).
+
+    if (numberOfSegs * numberOfFrames !== groupsLen) {
+        console.warn(
+            "checkSEGsOverlapping: it not possible performing the overlapping segments check since PerFrameFunctionalGroupsSequence has missing data."
+        );
+        return false;
+    }
+
+    const refSegFrame0 =
+        PerFrameFunctionalGroupsSequence[0] &&
+        PerFrameFunctionalGroupsSequence[0].SegmentIdentificationSequence
+            ? PerFrameFunctionalGroupsSequence[0].SegmentIdentificationSequence
+                  .ReferencedSegmentNumber
+            : undefined;
+    const refSegFrame1 =
+        PerFrameFunctionalGroupsSequence[1] &&
+        PerFrameFunctionalGroupsSequence[1].SegmentIdentificationSequence
+            ? PerFrameFunctionalGroupsSequence[1].SegmentIdentificationSequence
+                  .ReferencedSegmentNumber
+            : undefined;
+    if (
+        refSegFrame0 === undefined ||
+        refSegFrame1 === undefined ||
+        refSegFrame0 !== refSegFrame1
+    ) {
+        console.warn(
+            "checkSEGsOverlapping: it not possible performing the overlapping segments check since the frames in PerFrameFunctionalGroupsSequence are not sorted."
+        );
+        return false;
+    }
 
     var i = 0;
     while (i < groupsLen) {
@@ -651,15 +687,35 @@ function checkSEGsOverlapping(
         );
 
         if (!alignedPixelDataI) {
-            console.warn(
-                "Individual SEG frames are out of plane with respect to the first SEG frame, this is not yet supported, skipping this frame."
-            );
+            // Individual SEG frames are out of plane with respect to the first SEG frame, this is not yet supported
+            i = i + numberOfFrames;
+            if (i >= groupsLen) {
+                i = i - numberOfFrames * numberOfSegs + 1;
+                if (i >= numberOfFrames) {
+                    break;
+                }
+            }
 
-            inPlane = false;
-            break;
+            continue;
         }
 
         const segmentIndex = getSegmentIndex(multiframe, i);
+
+        if (segmentIndex === undefined) {
+            console.warn(
+                "Could not retrieve the segment index, skipping this frame. "
+            );
+
+            i = i + numberOfFrames;
+            if (i >= groupsLen) {
+                i = i - numberOfFrames * numberOfSegs + 1;
+                if (i >= numberOfFrames) {
+                    break;
+                }
+            }
+
+            continue;
+        }
 
         let SourceImageSequence;
 
@@ -679,6 +735,15 @@ function checkSEGsOverlapping(
 
         if (!imageId) {
             // Image not present in stack, can't import this frame.
+
+            i = i + numberOfFrames;
+            if (i >= groupsLen) {
+                i = i - numberOfFrames * numberOfSegs + 1;
+                if (i >= numberOfFrames) {
+                    break;
+                }
+            }
+
             continue;
         }
 
@@ -776,6 +841,12 @@ function insertOverlappingPixelDataPlanar(
                 PerFrameFunctionalGroupsSequence[i];
 
             const segmentIndex = getSegmentIndex(multiframe, i);
+            if (segmentIndex === undefined) {
+                console.warn(
+                    "Could not retrieve the segment index, skipping this frame. "
+                );
+                continue;
+            }
 
             if (segmentIndex !== segmentIndexToProcess) {
                 continue;
@@ -902,7 +973,9 @@ const getSegmentIndex = (multiframe, frame) => {
         ? PerFrameFunctionalGroups.SegmentIdentificationSequence
               .ReferencedSegmentNumber
         : SharedFunctionalGroupsSequence.SegmentIdentificationSequence
-              .ReferencedSegmentNumber;
+        ? SharedFunctionalGroupsSequence.SegmentIdentificationSequence
+              .ReferencedSegmentNumber
+        : undefined;
 };
 
 function insertPixelDataPlanar(
@@ -961,6 +1034,12 @@ function insertPixelDataPlanar(
         }
 
         const segmentIndex = getSegmentIndex(multiframe, i);
+        if (segmentIndex === undefined) {
+            console.warn(
+                "Could not retrieve the segment index, skipping this frame. "
+            );
+            break;
+        }
 
         let SourceImageSequence;
 
