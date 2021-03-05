@@ -391,7 +391,9 @@ const tests = {
                             ((samplesPerPixel * bitsAllocated) / 8)
                     ]
             );
-            
+        }
+    },
+
     test_invalid_vr_length: () => {
         const file = fs.readFileSync(
             path.join(__dirname, "invalid-vr-length-test.dcm")
