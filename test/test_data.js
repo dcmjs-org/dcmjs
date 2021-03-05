@@ -391,6 +391,22 @@ const tests = {
                             ((samplesPerPixel * bitsAllocated) / 8)
                     ]
             );
+            
+    test_invalid_vr_length: () => {
+        const file = fs.readFileSync(
+            path.join(__dirname, "invalid-vr-length-test.dcm")
+        );
+        const dicomDict = dcmjs.data.DicomMessage.readFile(file.buffer);
+
+        expect(() =>
+            writeToBuffer(dicomDict, { allowInvalidVRLength: false })
+        ).to.throw();
+        expect(() =>
+            writeToBuffer(dicomDict, { allowInvalidVRLength: true })
+        ).not.to.throw();
+
+        function writeToBuffer(dicomDict, options) {
+            return dicomDict.write(options);
         }
     }
 };
