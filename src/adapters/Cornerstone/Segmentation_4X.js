@@ -601,7 +601,20 @@ function getCorners(imagePlaneModule) {
     return [topLeft, topRight, bottomLeft, bottomRight];
 }
 
-/* return a flag if there is any seg overlapping. The check is performed frame by frame. */
+/**
+ * Checks if there is any overlapping segmentations. The check is performed frame by frame.
+ *  Two assumptions are used in the loop:
+ *  1) numberOfSegs * numberOfFrames = groupsLen,
+ *     i.e. for each frame we have a N PerFrameFunctionalGroupsSequence, where N is the number of segmentations (numberOfSegs).
+ *  2) the order of the group sequence is = numberOfFrames of segmentation 1 +  numberOfFrames of segmentation 2 + ... + numberOfFrames of segmentation numberOfSegs
+ *
+ *  -------------------
+ *
+ *  TO DO: We could check the ImagePositionPatient and working in 3D coordinates (instead of indexes) and remove the assumptions,
+ *  but this would greatly increase the computation time (i.e. we would have to sort the data before running checkSEGsOverlapping).
+ *
+ *  @returns {boolean} Returns a flag if segmentations overlapping
+ */
 
 function checkSEGsOverlapping(
     pixelData,
@@ -629,40 +642,23 @@ function checkSEGsOverlapping(
     var groupsLen = PerFrameFunctionalGroupsSequence.length;
     var numberOfSegs = multiframe.SegmentSequence.length;
     var numberOfFrames = imageIds.length;
-    // NOTE:
-    // Assumption1 : numberOfSegs * numberOfFrames = groupsLen,
-    // i.e. for each frame we have a N PerFrameFunctionalGroupsSequence, where N is the numberOfSegs.
-    // Assumption2 : the order of the group sequence is = numberOfFrames of segmentation 1 +  numberOfFrames of segmentation 2 + ... + numberOfFrames of segmentation numberOfSegs
-    // -------------------
-    // We could check the ImagePositionPatient and working in 3D coordinates (instead of indexes) and remove the assumptions,
-    // but this would greatly increase the computation time (i.e. we would have to sort the data before running checkSEGsOverlapping).
 
     if (numberOfSegs * numberOfFrames !== groupsLen) {
         console.warn(
-            "checkSEGsOverlapping: it not possible performing the overlapping segments check since PerFrameFunctionalGroupsSequence has missing data."
+            "Failed to check for overlap of segments: missing frames in PerFrameFunctionalGroupsSequence."
         );
         return false;
     }
 
-    const refSegFrame0 =
-        PerFrameFunctionalGroupsSequence[0] &&
-        PerFrameFunctionalGroupsSequence[0].SegmentIdentificationSequence
-            ? PerFrameFunctionalGroupsSequence[0].SegmentIdentificationSequence
-                  .ReferencedSegmentNumber
-            : undefined;
-    const refSegFrame1 =
-        PerFrameFunctionalGroupsSequence[1] &&
-        PerFrameFunctionalGroupsSequence[1].SegmentIdentificationSequence
-            ? PerFrameFunctionalGroupsSequence[1].SegmentIdentificationSequence
-                  .ReferencedSegmentNumber
-            : undefined;
+    const refSegFrame0 = getSegmentIndex(multiframe, 0);
+    const refSegFrame1 = getSegmentIndex(multiframe, 1);
     if (
         refSegFrame0 === undefined ||
         refSegFrame1 === undefined ||
         refSegFrame0 !== refSegFrame1
     ) {
         console.warn(
-            "checkSEGsOverlapping: it not possible performing the overlapping segments check since the frames in PerFrameFunctionalGroupsSequence are not sorted."
+            "Failed to check for overlap of segments: frames in PerFrameFunctionalGroupsSequence are not sorted."
         );
         return false;
     }
