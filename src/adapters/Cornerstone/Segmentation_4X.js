@@ -632,7 +632,8 @@ function checkSEGsOverlapping(
     // NOTE:
     // Assumption1 : numberOfSegs * numberOfFrames = groupsLen,
     // i.e. for each frame we have a N PerFrameFunctionalGroupsSequence, where N is the numberOfSegs.
-    // Assumption2 : the order of the group sequence is = numberOfFrames of segemtation 1 +  numberOfFrames of segemtation 2 + ... + numberOfFrames of segemtation numberOfSegs
+    // Assumption2 : the order of the group sequence is = numberOfFrames of segmentation 1 +  numberOfFrames of segmentation 2 + ... + numberOfFrames of segmentation numberOfSegs
+    // -------------------
     // We could check the ImagePositionPatient and working in 3D coordinates (instead of indexes) and remove the assumptions,
     // but this would greatly increase the computation time (i.e. we would have to sort the data before running checkSEGsOverlapping).
 
