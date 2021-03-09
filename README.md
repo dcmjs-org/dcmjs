@@ -89,7 +89,7 @@ npm install -g git-cz
 - how to commit
 
 ```
-git-cz --non-interactive --type=fix --subject="commit messagge"
+git-cz --non-interactive --type=fix --subject="commit message"
 ```
 
 More info at [git-cz](https://www.npmjs.com/package/git-cz).
