@@ -30,13 +30,18 @@ const encapsulatedSyntaxes = [
 ];
 
 class DicomMessage {
-    static read(bufferStream, syntax, ignoreErrors) {
+    static read(bufferStream, syntax, ignoreErrors, untilTag) {
         var dict = {};
         try {
             while (!bufferStream.end()) {
-                var readInfo = DicomMessage.readTag(bufferStream, syntax);
+                const readInfo = DicomMessage.readTag(bufferStream, syntax);
+                const cleanTagString = readInfo.tag.toCleanString();
 
-                dict[readInfo.tag.toCleanString()] = {
+                if (untilTag && untilTag === cleanTagString) {
+                    break;
+                }
+
+                dict[cleanTagString] = {
                     vr: readInfo.vr.type,
                     Value: readInfo.values
                 };
@@ -67,8 +72,8 @@ class DicomMessage {
         return encapsulatedSyntaxes.indexOf(syntax) != -1;
     }
 
-    static readFile(buffer, options = { ignoreErrors: false }) {
-        const { ignoreErrors } = options;
+    static readFile(buffer, options = { ignoreErrors: false, untilTag: null }) {
+        const { ignoreErrors, untilTag } = options;
         var stream = new ReadBufferStream(buffer),
             useSyntax = EXPLICIT_LITTLE_ENDIAN;
         stream.reset();
@@ -86,7 +91,12 @@ class DicomMessage {
         //get the syntax
         var mainSyntax = metaHeader["00020010"].Value[0];
         mainSyntax = DicomMessage._normalizeSyntax(mainSyntax);
-        var objects = DicomMessage.read(stream, mainSyntax, ignoreErrors);
+        var objects = DicomMessage.read(
+            stream,
+            mainSyntax,
+            ignoreErrors,
+            untilTag
+        );
 
         var dicomDict = new DicomDict(metaHeader);
         dicomDict.dict = objects;
