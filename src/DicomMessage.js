@@ -30,18 +30,29 @@ const encapsulatedSyntaxes = [
 ];
 
 class DicomMessage {
-    static read(bufferStream, syntax, ignoreErrors, untilTag=null, includeUntilTagValue=false) {
+    static read(
+        bufferStream,
+        syntax,
+        ignoreErrors,
+        untilTag = null,
+        includeUntilTagValue = false
+    ) {
         var dict = {};
         try {
             while (!bufferStream.end()) {
-                const readInfo = DicomMessage.readTag(bufferStream, syntax, untilTag, includeUntilTagValue);
+                const readInfo = DicomMessage.readTag(
+                    bufferStream,
+                    syntax,
+                    untilTag,
+                    includeUntilTagValue
+                );
                 const cleanTagString = readInfo.tag.toCleanString();
 
                 dict[cleanTagString] = {
                     vr: readInfo.vr.type,
                     Value: readInfo.values
                 };
-                
+
                 if (untilTag && untilTag === cleanTagString) {
                     break;
                 }
@@ -72,7 +83,14 @@ class DicomMessage {
         return encapsulatedSyntaxes.indexOf(syntax) != -1;
     }
 
-    static readFile(buffer, options = { ignoreErrors: false, untilTag: null , includeUntilTagValue: false}) {
+    static readFile(
+        buffer,
+        options = {
+            ignoreErrors: false,
+            untilTag: null,
+            includeUntilTagValue: false
+        }
+    ) {
         const { ignoreErrors, untilTag, includeUntilTagValue } = options;
         var stream = new ReadBufferStream(buffer),
             useSyntax = EXPLICIT_LITTLE_ENDIAN;
@@ -133,7 +151,12 @@ class DicomMessage {
         return written;
     }
 
-    static readTag(stream, syntax, untilTag=null, includeUntilTagValue=false) {
+    static readTag(
+        stream,
+        syntax,
+        untilTag = null,
+        includeUntilTagValue = false
+    ) {
         var implicit = syntax == IMPLICIT_LITTLE_ENDIAN ? true : false,
             isLittleEndian =
                 syntax == IMPLICIT_LITTLE_ENDIAN ||
@@ -147,9 +170,9 @@ class DicomMessage {
             element = stream.readUint16(),
             tag = tagFromNumbers(group, element);
 
-        if (untilTag === tag && untilTag !== null) {
-            if(!includeUntilTagValue) {
-                return { tag: tag, vr: null, values: null };
+        if (untilTag === tag.toCleanString() && untilTag !== null) {
+            if (!includeUntilTagValue) {
+                return { tag: tag, vr: 0, values: 0 };
             }
         }
 
