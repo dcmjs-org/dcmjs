@@ -1,5 +1,5 @@
 const fs = require('fs');
-const dcmjs = require('C:/Users/DHDESK/Desktop/dcmjs/dcmjs/build/dcmjs.js')
+const dcmjs = require('../build/dcmjs.js')
 const buffer = fs.readFileSync('sample-dicom.dcm');
 
 const { DicomMessage, DicomMetaDictionary } = dcmjs.data;
