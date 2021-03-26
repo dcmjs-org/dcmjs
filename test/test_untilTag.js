@@ -1,8 +1,11 @@
+const expect = require("chai").expect;
 const fs = require('fs');
+const path = require("path")
 const dcmjs = require('../build/dcmjs.js')
 const buffer = fs.readFileSync('sample-dicom.dcm');
 
 const { DicomMessage, DicomMetaDictionary } = dcmjs.data;
+
 console.time('readFile');
 const fullData = DicomMessage.readFile(buffer.buffer)
 console.timeEnd('readFile');
@@ -18,14 +21,17 @@ console.timeEnd('readFile with untilTag');
 const full_dataset = DicomMetaDictionary.naturalizeDataset(fullData.dict);
 full_dataset._meta = DicomMetaDictionary.namifyDataset(fullData.meta);
 
-console.log(full_dataset.PixelData);
+// console.log(full_dataset.PixelData);
 
 const dataset = DicomMetaDictionary.naturalizeDataset(dicomData.dict);
 dataset._meta = DicomMetaDictionary.namifyDataset(dicomData.meta);
 
-console.log(dataset.PixelData);
+// console.log(dataset.PixelData);
 
 const dataset2 = DicomMetaDictionary.naturalizeDataset(dicomData2.dict);
 dataset2._meta = DicomMetaDictionary.namifyDataset(dicomData2.meta);
 
-console.log(dataset2.PixelData);
+// console.log(dataset2.PixelData);
+
+expect(full_dataset.PixelData).to.deep.equal(dataset2.PixelData);
+expect(dataset.PixelData).to.deep.equal(0);
