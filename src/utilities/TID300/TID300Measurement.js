@@ -16,8 +16,10 @@ export default class TID300Measurement {
     }
 
     getTrackingGroups() {
-        let { trackingIdentifierTextValue } = this.props;
-
+        let {
+            trackingIdentifierTextValue,
+            trackingUniqueIdentifier
+        } = this.props;
         return [
             {
                 RelationshipType: "HAS OBS CONTEXT",
@@ -37,7 +39,7 @@ export default class TID300Measurement {
                     CodingSchemeDesignator: "DCM",
                     CodeMeaning: "Tracking Unique Identifier"
                 },
-                UID: DicomMetaDictionary.uid()
+                UID: trackingUniqueIdentifier || DicomMetaDictionary.uid()
             }
         ];
     }
