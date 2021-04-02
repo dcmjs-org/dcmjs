@@ -190,5 +190,20 @@ export default class TID1500MeasurementReport {
         };
 
         this.tid1500.ContentSequence.push(ImagingMeasurments);
+
+        if (options.quantitativeEvaluations) {
+            const quantitativeEvaluations = {
+                RelationshipType: "CONTAINS",
+                ValueType: "CONTAINER",
+                ConceptNameCodeSequence: {
+                    CodeValue: "C0034375",
+                    CodingSchemeDesignator: "UMLS",
+                    CodeMeaning: "Qualitative Evaluations"
+                },
+                ContinuityOfContent: "SEPARATE",
+                ContentSequence: options.quantitativeEvaluations
+            };
+            this.tid1500.ContentSequence.push(quantitativeEvaluations);
+        }
     }
 }
