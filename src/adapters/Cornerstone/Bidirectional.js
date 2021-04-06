@@ -129,7 +129,6 @@ class Bidirectional {
             isCreating: false,
             longestDiameter,
             shortestDiameter,
-            toolType: "Bidirectional",
             toolName: "Bidirectional",
             visible: true,
             finding: findingGroup
