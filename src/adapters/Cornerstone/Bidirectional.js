@@ -8,6 +8,7 @@ const LONG_AXIS = "Long Axis";
 const SHORT_AXIS = "Short Axis";
 const FINDING = "121071";
 const FINDING_SITE = "G-C0E3";
+const COMMENT = "121106";
 
 class Bidirectional {
     constructor() {}
@@ -22,6 +23,10 @@ class Bidirectional {
 
         const findingSiteGroups = toArray(ContentSequence).filter(
             group => group.ConceptNameCodeSequence.CodeValue === FINDING_SITE
+        );
+
+        const comment = toArray(ContentSequence).find(
+            group => group.ConceptNameCodeSequence.CodeValue === COMMENT
         );
 
         const longAxisNUMGroup = toArray(ContentSequence).find(
@@ -136,7 +141,8 @@ class Bidirectional {
                 : undefined,
             findingSites: findingSiteGroups.map(fsg => {
                 return { ...fsg.ConceptCodeSequence };
-            })
+            }),
+            comment: comment ? comment.TextValue : undefined
         };
 
         return state;
@@ -153,7 +159,8 @@ class Bidirectional {
             shortestDiameter,
             longestDiameter,
             finding,
-            findingSites
+            findingSites,
+            comment
         } = tool;
 
         const trackingIdentifierTextValue =
@@ -172,7 +179,8 @@ class Bidirectional {
             shortAxisLength: shortestDiameter,
             trackingIdentifierTextValue,
             finding: finding,
-            findingSites: findingSites || []
+            findingSites: findingSites || [],
+            comment: comment
         };
     }
 }
