@@ -11,8 +11,27 @@ export default class TID300Measurement {
             ...this.getTrackingGroups(),
             ...this.getFindingGroup(),
             ...this.getFindingSiteGroups(),
+            ...this.getComment(),
             ...contentSequenceEntries
         ];
+    }
+
+    getComment() {
+        let { comment } = this.props;
+        return comment
+            ? [
+                  {
+                      RelationshipType: "CONTAINS",
+                      ValueType: "TEXT",
+                      ConceptNameCodeSequence: {
+                          CodeValue: "121106",
+                          CodingSchemeDesignator: "DCM",
+                          CodeMeaning: "Comment"
+                      },
+                      TextValue: comment
+                  }
+              ]
+            : [];
     }
 
     getTrackingGroups() {
