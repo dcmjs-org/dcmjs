@@ -69,8 +69,18 @@ export default class MeasurementReport {
             "generalSeriesModule",
             firstImageId
         );
+        const patientModule = metadataProvider.get(
+            "patientModule",
+            firstImageId
+        );
         //const sopCommonModule = metadataProvider.get('sopCommonModule', firstImageId);
         const { studyInstanceUID, seriesInstanceUID } = generalSeriesModule;
+        const {
+            patientID,
+            patientName,
+            patientBirthDate,
+            patientSex
+        } = patientModule;
 
         // Loop through each image in the toolData
         Object.keys(toolState).forEach(imageId => {
@@ -125,9 +135,13 @@ export default class MeasurementReport {
 
         const derivationSourceDataset = {
             StudyInstanceUID: studyInstanceUID,
-            SeriesInstanceUID: seriesInstanceUID
+            SeriesInstanceUID: seriesInstanceUID,
             //SOPInstanceUID: sopInstanceUID, // TODO: Necessary?
             //SOPClassUID: sopClassUID,
+            PatientID: patientID,
+            PatientName: patientName,
+            PatientBirthDate: patientBirthDate,
+            PatientSex: patientSex
         };
 
         const _meta = {
