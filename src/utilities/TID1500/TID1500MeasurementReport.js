@@ -197,8 +197,8 @@ export default class TID1500MeasurementReport {
 
         this.tid1500.ContentSequence.push(ImagingMeasurments);
 
-        if (options.quantitativeEvaluations) {
-            const quantitativeEvaluations = {
+        if (options.qualitativeEvaluations) {
+            const qualitativeEvaluations = {
                 RelationshipType: "CONTAINS",
                 ValueType: "CONTAINER",
                 ConceptNameCodeSequence: {
@@ -207,9 +207,9 @@ export default class TID1500MeasurementReport {
                     CodeMeaning: "Qualitative Evaluations"
                 },
                 ContinuityOfContent: "SEPARATE",
-                ContentSequence: options.quantitativeEvaluations
+                ContentSequence: options.qualitativeEvaluations
             };
-            this.tid1500.ContentSequence.push(quantitativeEvaluations);
+            this.tid1500.ContentSequence.push(qualitativeEvaluations);
         }
     }
 }
