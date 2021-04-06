@@ -160,7 +160,8 @@ export default class MeasurementReport {
 
         const report = new StructuredReport([derivationSourceDataset]);
         const contentItem = MeasurementReport.contentItem(
-            derivationSourceDataset
+            derivationSourceDataset,
+            options
         );
 
         // Merge the derived dataset with the content from the Measurement Report
