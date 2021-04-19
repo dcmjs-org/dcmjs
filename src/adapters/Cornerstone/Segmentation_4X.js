@@ -258,9 +258,10 @@ function _createSegFromImages(images, isMultiframe, options) {
  * generateToolState - Given a set of cornrstoneTools imageIds and a Segmentation buffer,
  * derive cornerstoneTools toolState and brush metadata.
  *
- * @param  {string[]} imageIds    An array of the imageIds.
- * @param  {ArrayBuffer} arrayBuffer The SEG arrayBuffer.
- * @param  {*} metadataProvider
+ * @param  {string[]} imageIds - An array of the imageIds.
+ * @param  {ArrayBuffer} arrayBuffer - The SEG arrayBuffer.
+ * @param  {*} metadataProvider.
+ * @param  {number} tollerance - checks tollerance, default value 1.e-3.
  *
  * @return {[]ArrayBuffer}a list of array buffer for each labelMap
  * @return {Object} an object from which the segment metadata can be derived
@@ -272,7 +273,8 @@ function generateToolState(
     imageIds,
     arrayBuffer,
     metadataProvider,
-    skipOverlapping = false
+    skipOverlapping = false,
+    tollerance = 1e-3
 ) {
     const dicomData = DicomMessage.readFile(arrayBuffer);
     const dataset = DicomMetaDictionary.naturalizeDataset(dicomData.dict);
@@ -340,11 +342,12 @@ function generateToolState(
         }
     }
 
-    const orientation = checkOrientation(multiframe, validOrientations, [
-        imagePlaneModule.rows,
-        imagePlaneModule.columns,
-        imageIds.length
-    ]);
+    const orientation = checkOrientation(
+        multiframe,
+        validOrientations,
+        [imagePlaneModule.rows, imagePlaneModule.columns, imageIds.length],
+        tollerance
+    );
 
     let overlapping = false;
     if (!skipOverlapping) {
@@ -353,7 +356,8 @@ function generateToolState(
             multiframe,
             imageIds,
             validOrientations,
-            metadataProvider
+            metadataProvider,
+            tollerance
         );
     }
 
@@ -401,7 +405,8 @@ function generateToolState(
         multiframe,
         imageIds,
         validOrientations,
-        metadataProvider
+        metadataProvider,
+        tollerance
     );
 
     return {
@@ -617,7 +622,8 @@ function checkSEGsOverlapping(
     multiframe,
     imageIds,
     validOrientations,
-    metadataProvider
+    metadataProvider,
+    tollerance
 ) {
     const {
         SharedFunctionalGroupsSequence,
@@ -678,7 +684,8 @@ function checkSEGsOverlapping(
         const alignedPixelDataI = alignPixelDataWithSourceData(
             pixelDataI2D,
             ImageOrientationPatientI,
-            validOrientations
+            validOrientations,
+            tollerance
         );
 
         if (!alignedPixelDataI) {
@@ -777,7 +784,8 @@ function insertOverlappingPixelDataPlanar(
     multiframe,
     imageIds,
     validOrientations,
-    metadataProvider
+    metadataProvider,
+    tollerance
 ) {
     const {
         SharedFunctionalGroupsSequence,
@@ -850,7 +858,8 @@ function insertOverlappingPixelDataPlanar(
             const alignedPixelDataI = alignPixelDataWithSourceData(
                 pixelDataI2D,
                 ImageOrientationPatientI,
-                validOrientations
+                validOrientations,
+                tollerance
             );
 
             if (!alignedPixelDataI) {
@@ -992,7 +1001,8 @@ function insertPixelDataPlanar(
     multiframe,
     imageIds,
     validOrientations,
-    metadataProvider
+    metadataProvider,
+    tollerance
 ) {
     const {
         SharedFunctionalGroupsSequence,
@@ -1027,7 +1037,8 @@ function insertPixelDataPlanar(
         const alignedPixelDataI = alignPixelDataWithSourceData(
             pixelDataI2D,
             ImageOrientationPatientI,
-            validOrientations
+            validOrientations,
+            tollerance
         );
 
         if (!alignedPixelDataI) {
@@ -1119,7 +1130,12 @@ function insertPixelDataPlanar(
     }
 }
 
-function checkOrientation(multiframe, validOrientations, sourceDataDimensions) {
+function checkOrientation(
+    multiframe,
+    validOrientations,
+    sourceDataDimensions,
+    tollerance
+) {
     const {
         SharedFunctionalGroupsSequence,
         PerFrameFunctionalGroupsSequence
@@ -1139,7 +1155,7 @@ function checkOrientation(multiframe, validOrientations, sourceDataDimensions) {
             .ImageOrientationPatient;
 
     const inPlane = validOrientations.some(operation =>
-        compareIOP(iop, operation)
+        compareIOP(iop, operation, tollerance)
     );
 
     if (inPlane) {
@@ -1147,7 +1163,7 @@ function checkOrientation(multiframe, validOrientations, sourceDataDimensions) {
     }
 
     if (
-        checkIfPerpendicular(iop, validOrientations[0]) &&
+        checkIfPerpendicular(iop, validOrientations[0], tollerance) &&
         sourceDataDimensions.includes(multiframe.Rows) &&
         sourceDataDimensions.includes(multiframe.Rows)
     ) {
@@ -1159,14 +1175,15 @@ function checkOrientation(multiframe, validOrientations, sourceDataDimensions) {
 }
 
 /**
- * compareIOP - Returns true if iop1 and iop2 are equal
- * within a tollerance, dx.
+ * checkIfPerpendicular - Returns true if iop1 and iop2 are perpendicular
+ * within a tollerance.
  *
  * @param  {Number[6]} iop1 An ImageOrientationPatient array.
  * @param  {Number[6]} iop2 An ImageOrientationPatient array.
- * @return {Boolean}      True if iop1 and iop2 are equal.
+ * @param  {Number} tollerance.
+ * @return {Boolean} True if iop1 and iop2 are equal.
  */
-function checkIfPerpendicular(iop1, iop2) {
+function checkIfPerpendicular(iop1, iop2, tollerance) {
     const absDotColumnCosines = Math.abs(
         iop1[0] * iop2[0] + iop1[1] * iop2[1] + iop1[2] * iop2[2]
     );
@@ -1175,8 +1192,10 @@ function checkIfPerpendicular(iop1, iop2) {
     );
 
     return (
-        (absDotColumnCosines < dx || Math.abs(absDotColumnCosines - 1) < dx) &&
-        (absDotRowCosines < dx || Math.abs(absDotRowCosines - 1) < dx)
+        (absDotColumnCosines < tollerance ||
+            Math.abs(absDotColumnCosines - 1) < tollerance) &&
+        (absDotRowCosines < tollerance ||
+            Math.abs(absDotRowCosines - 1) < tollerance)
     );
 }
 
@@ -1343,44 +1362,50 @@ function getValidOrientations(iop) {
 /**
  * alignPixelDataWithSourceData -
  *
- * @param {Ndarray} pixelData2D The data to align.
- * @param  {Number[6]} iop The orientation of the image slice.
- * @param  {Number[8][6]} orientations   An array of valid imageOrientationPatient values.
- * @return {Ndarray}                         The aligned pixelData.
+ * @param {Ndarray} pixelData2D - The data to align.
+ * @param {Number[6]} iop - The orientation of the image slice.
+ * @param {Number[8][6]} orientations - An array of valid imageOrientationPatient values.
+ * @param {Number} tollerance.
+ * @return {Ndarray} The aligned pixelData.
  */
-function alignPixelDataWithSourceData(pixelData2D, iop, orientations) {
-    if (compareIOP(iop, orientations[0])) {
+function alignPixelDataWithSourceData(
+    pixelData2D,
+    iop,
+    orientations,
+    tollerance
+) {
+    if (compareIOP(iop, orientations[0], tollerance)) {
         return pixelData2D;
-    } else if (compareIOP(iop, orientations[1])) {
+    } else if (compareIOP(iop, orientations[1], tollerance)) {
         // Flipped vertically.
 
         // Undo Flip
         return flipMatrix2D.v(pixelData2D);
-    } else if (compareIOP(iop, orientations[2])) {
+    } else if (compareIOP(iop, orientations[2], tollerance)) {
         // Flipped horizontally.
 
         // Unfo flip
         return flipMatrix2D.h(pixelData2D);
-    } else if (compareIOP(iop, orientations[3])) {
+    } else if (compareIOP(iop, orientations[3], tollerance)) {
         //Rotated 90 degrees
 
         // Rotate back
         return rotateMatrix902D(pixelData2D);
-    } else if (compareIOP(iop, orientations[4])) {
+    } else if (compareIOP(iop, orientations[4], tollerance)) {
         //Rotated 90 degrees and fliped horizontally.
 
         // Undo flip and rotate back.
         return rotateMatrix902D(flipMatrix2D.h(pixelData2D));
-    } else if (compareIOP(iop, orientations[5])) {
+    } else if (compareIOP(iop, orientations[5], tollerance)) {
         // Rotated 90 degrees and fliped vertically
 
         // Unfo flip and rotate back.
         return rotateMatrix902D(flipMatrix2D.v(pixelData2D));
-    } else if (compareIOP(iop, orientations[6])) {
+    } else if (compareIOP(iop, orientations[6], tollerance)) {
         // Rotated 180 degrees. // TODO -> Do this more effeciently, there is a 1:1 mapping like 90 degree rotation.
 
         return rotateMatrix902D(rotateMatrix902D(pixelData2D));
-    } else if (compareIOP(iop, orientations[7])) {
+    } else if (compareIOP(iop, orientations[7], tollerance)) {
         // Rotated 270 degrees
 
         // Rotate back.
@@ -1396,18 +1421,19 @@ const dx = 1e-5;
  * compareIOP - Returns true if iop1 and iop2 are equal
  * within a tollerance, dx.
  *
- * @param  {Number[6]} iop1 An ImageOrientationPatient array.
- * @param  {Number[6]} iop2 An ImageOrientationPatient array.
- * @return {Boolean}      True if iop1 and iop2 are equal.
+ * @param  {Number[6]} iop1 - An ImageOrientationPatient array.
+ * @param  {Number[6]} iop2 - An ImageOrientationPatient array.
+ * @param {Number} tollerance.
+ * @return {Boolean} True if iop1 and iop2 are equal.
  */
-function compareIOP(iop1, iop2) {
+function compareIOP(iop1, iop2, tollerance) {
     return (
-        Math.abs(iop1[0] - iop2[0]) < dx &&
-        Math.abs(iop1[1] - iop2[1]) < dx &&
-        Math.abs(iop1[2] - iop2[2]) < dx &&
-        Math.abs(iop1[3] - iop2[3]) < dx &&
-        Math.abs(iop1[4] - iop2[4]) < dx &&
-        Math.abs(iop1[5] - iop2[5]) < dx
+        Math.abs(iop1[0] - iop2[0]) < tollerance &&
+        Math.abs(iop1[1] - iop2[1]) < tollerance &&
+        Math.abs(iop1[2] - iop2[2]) < tollerance &&
+        Math.abs(iop1[3] - iop2[3]) < tollerance &&
+        Math.abs(iop1[4] - iop2[4]) < tollerance &&
+        Math.abs(iop1[5] - iop2[5]) < tollerance
     );
 }
 
