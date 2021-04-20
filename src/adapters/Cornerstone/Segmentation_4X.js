@@ -1415,11 +1415,9 @@ function alignPixelDataWithSourceData(
     }
 }
 
-const dx = 1e-5;
-
 /**
  * compareIOP - Returns true if iop1 and iop2 are equal
- * within a tollerance, dx.
+ * within a tollerance.
  *
  * @param  {Number[6]} iop1 - An ImageOrientationPatient array.
  * @param  {Number[6]} iop2 - An ImageOrientationPatient array.
@@ -1428,13 +1426,42 @@ const dx = 1e-5;
  */
 function compareIOP(iop1, iop2, tollerance) {
     return (
-        Math.abs(iop1[0] - iop2[0]) < tollerance &&
-        Math.abs(iop1[1] - iop2[1]) < tollerance &&
-        Math.abs(iop1[2] - iop2[2]) < tollerance &&
-        Math.abs(iop1[3] - iop2[3]) < tollerance &&
-        Math.abs(iop1[4] - iop2[4]) < tollerance &&
-        Math.abs(iop1[5] - iop2[5]) < tollerance
+        nearlyEqual(iop1[0], iop2[0], tollerance) &&
+        nearlyEqual(iop1[1], iop2[1], tollerance) &&
+        nearlyEqual(iop1[2], iop2[2], tollerance) &&
+        nearlyEqual(iop1[3], iop2[3], tollerance) &&
+        nearlyEqual(iop1[4], iop2[4], tollerance) &&
+        nearlyEqual(iop1[5], iop2[5], tollerance)
     );
+}
+
+/**
+ * nearlyEqual - Returns true if a and b are nearly equal
+ * within a tollerance.
+ *
+ * https://floating-point-gui.de/errors/comparison/
+ *
+ * @param  {Number} a
+ * @param  {Number} b
+ * @param {Number} tollerance.
+ * @return {Boolean} True if a and b are nearly equal.
+ */
+function nearlyEqual(a, b, epsilon) {
+    const absA = Math.abs(a);
+    const absB = Math.abs(b);
+    const diff = Math.abs(a - b);
+
+    if (a == b) {
+        // shortcut, handles infinities
+        return true;
+    } else if (a == 0 || b == 0 || absA + absB < Number.EPSILON) {
+        // a or b is zero or both are extremely close to it
+        // relative error is less meaningful here
+        return diff < epsilon * Number.EPSILON;
+    } else {
+        // use relative error
+        return diff / Math.min(absA + absB, Number.MAX_VALUE) < epsilon;
+    }
 }
 
 function getSegmentMetadata(multiframe, seriesInstanceUid) {
