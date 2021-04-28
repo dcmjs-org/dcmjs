@@ -270,6 +270,22 @@ const tests = {
         console.log("Finished test_multiframe_us");
     },
 
+    test_fragment_multiframe: () => {
+        const file = fs.readFileSync(path.join(__dirname, "fragment-multiframe-test.dcm"));
+        const dicomData = dcmjs.data.DicomMessage.readFile(file.buffer, {
+            // ignoreErrors: true,
+        });
+        const dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(
+            dicomData.dict
+        );
+        // eslint-disable-next-line no-underscore-dangle
+        dataset._meta = dcmjs.data.DicomMetaDictionary.namifyDataset(
+            dicomData.meta
+        );
+        expect(dataset.NumberOfFrames).to.equal(2);
+        console.log("Finished test_fragment_multiframe_us");
+    },
+
     test_null_number_vrs: () => {
         const dicomDict = new DicomDict({
             TransferSynxtaxUID: "1.2.840.10008.1.2.1"
