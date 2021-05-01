@@ -410,71 +410,77 @@ const tests = {
         expect(dataset.PixelData).to.deep.equal(0);
     },
     test_encapsulation: () => {
-        // given
-        const arrayBuffer = fs.readFileSync(path.resolve(__dirname, "encapsulation-test.dcm")).buffer;
-        const dicomDict = DicomMessage.readFile(arrayBuffer);
+        const url =
+            "https://github.com/dcmjs-org/data/releases/download/encapsulation/encapsulation.dcm";
+        const dcmPath = path.join(os.tmpdir(), "encapsulation.dcm");
 
-        dicomDict.upsertTag('60000010', 'US', 30); // Overlay Rows
-        dicomDict.upsertTag('60000011', 'US', 30); // Overlay Columns
-        dicomDict.upsertTag('60000040', 'CS', 'G'); // Overlay Type
-        dicomDict.upsertTag('60000045', 'LO', 'AUTOMATED'); // Overlay Subtype
-        dicomDict.upsertTag('60000050', 'SS', [1 + 50, 1 + 50]); // Overlay Origin
+        downloadToFile(url, dcmPath).then(() => {
+            // given
+            const arrayBuffer = fs.readFileSync(dcmPath).buffer;
+            const dicomDict = DicomMessage.readFile(arrayBuffer);
 
-        let overlay = dcmjs.data.BitArray.pack(makeOverlayBitmap({ width: 30, height: 30 }));
+            dicomDict.upsertTag('60000010', 'US', 30); // Overlay Rows
+            dicomDict.upsertTag('60000011', 'US', 30); // Overlay Columns
+            dicomDict.upsertTag('60000040', 'CS', 'G'); // Overlay Type
+            dicomDict.upsertTag('60000045', 'LO', 'AUTOMATED'); // Overlay Subtype
+            dicomDict.upsertTag('60000050', 'SS', [1 + 50, 1 + 50]); // Overlay Origin
 
-        if (overlay.length % 2 !== 0) {
-            const newOverlay = new Uint8Array(overlay.length + 1);
+            let overlay = dcmjs.data.BitArray.pack(makeOverlayBitmap({ width: 30, height: 30 }));
 
-            newOverlay.set(overlay);
-            newOverlay.set([0], overlay.length);
+            if (overlay.length % 2 !== 0) {
+                const newOverlay = new Uint8Array(overlay.length + 1);
 
-            overlay = newOverlay;
-        }
+                newOverlay.set(overlay);
+                newOverlay.set([0], overlay.length);
 
-        dicomDict.upsertTag('60003000', 'OB', [overlay.buffer]);
-
-        // when
-        const lengths = [];
-        const stream = new ReadBufferStream(dicomDict.write({ fragmentMultiframe: false })), useSyntax = EXPLICIT_LITTLE_ENDIAN;
-
-        stream.reset();
-        stream.increment(128);
-
-        if (stream.readString(4) !== "DICM") {
-            throw new Error("Invalid a dicom file");
-        }
-
-        const el = DicomMessage.readTag(stream, useSyntax), metaLength = el.values[0]; //read header buffer
-        const metaStream = stream.more(metaLength);
-        const metaHeader = DicomMessage.read(metaStream, useSyntax, false); //get the syntax
-        let mainSyntax = metaHeader["00020010"].Value[0];
-
-        mainSyntax = DicomMessage._normalizeSyntax(mainSyntax);
-
-        while (!stream.end()) {
-            const group = new Uint16Array(stream.buffer, stream.offset, 1)[0].toString(16).padStart(4, '0');
-            const element = new Uint16Array(stream.buffer, stream.offset + 2, 1)[0].toString(16).padStart(4, '0');
-
-            if (group.concat(element) === '60003000') { // Overlay Data
-                const length = Buffer.from(new Uint8Array(stream.buffer, stream.offset + 8, 4)).readUInt32LE(0);
-
-                lengths.push(length);
+                overlay = newOverlay;
             }
 
-            if (group.concat(element) === '7fe00010') { // Pixel Data
-                const length = Buffer.from(new Uint8Array(stream.buffer, stream.offset + 8, 4)).readUInt32LE(0);
+            dicomDict.upsertTag('60003000', 'OB', [overlay.buffer]);
 
-                lengths.push(length);
+            // when
+            const lengths = [];
+            const stream = new ReadBufferStream(dicomDict.write({ fragmentMultiframe: false })), useSyntax = EXPLICIT_LITTLE_ENDIAN;
+
+            stream.reset();
+            stream.increment(128);
+
+            if (stream.readString(4) !== "DICM") {
+                throw new Error("Invalid a dicom file");
             }
 
-            DicomMessage.readTag(stream, mainSyntax, null, false);
-        }
+            const el = DicomMessage.readTag(stream, useSyntax), metaLength = el.values[0]; //read header buffer
+            const metaStream = stream.more(metaLength);
+            const metaHeader = DicomMessage.read(metaStream, useSyntax, false); //get the syntax
+            let mainSyntax = metaHeader["00020010"].Value[0];
 
-        // then
-        expect(lengths[0]).not.to.equal(0xffffffff);
-        expect(lengths[1]).to.equal(0xffffffff);
+            mainSyntax = DicomMessage._normalizeSyntax(mainSyntax);
 
-        console.log("Finished test_encapsulation");
+            while (!stream.end()) {
+                const group = new Uint16Array(stream.buffer, stream.offset, 1)[0].toString(16).padStart(4, '0');
+                const element = new Uint16Array(stream.buffer, stream.offset + 2, 1)[0].toString(16).padStart(4, '0');
+
+                if (group.concat(element) === '60003000') { // Overlay Data
+                    const length = Buffer.from(new Uint8Array(stream.buffer, stream.offset + 8, 4)).readUInt32LE(0);
+
+                    lengths.push(length);
+                }
+
+                if (group.concat(element) === '7fe00010') { // Pixel Data
+                    const length = Buffer.from(new Uint8Array(stream.buffer, stream.offset + 8, 4)).readUInt32LE(0);
+
+                    lengths.push(length);
+                }
+
+                DicomMessage.readTag(stream, mainSyntax, null, false);
+            }
+
+            // then
+            expect(lengths[0]).not.to.equal(0xffffffff);
+            expect(lengths[1]).to.equal(0xffffffff);
+
+            console.log("Finished test_encapsulation");
+        });
     },
 };
 
