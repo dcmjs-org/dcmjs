@@ -100,7 +100,7 @@ export default class TID300Measurement {
                 CodeMeaning
             } = findingSite;
             return {
-                RelationshipType: "CONTAINS",
+                RelationshipType: "HAS CONCEPT MOD",
                 ValueType: "CODE",
                 ConceptNameCodeSequence: {
                     CodeValue: "G-C0E3",
