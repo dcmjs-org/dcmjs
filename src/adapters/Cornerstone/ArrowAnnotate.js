@@ -85,11 +85,12 @@ class ArrowAnnotate {
     static getTID300RepresentationArguments(tool) {
         const points = [tool.handles.start];
 
-        let { finding, findingSites } = tool;
+        let { finding, findingSites, identifier } = tool;
 
         const TID300RepresentationArguments = {
             points,
-            trackingIdentifierTextValue: `cornerstoneTools@^4.0.0:ArrowAnnotate`,
+            trackingIdentifierTextValue:
+                identifier || `cornerstoneTools@^4.0.0:ArrowAnnotate`,
             findingSites: findingSites || []
         };
 

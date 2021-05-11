@@ -160,11 +160,12 @@ class Bidirectional {
             longestDiameter,
             finding,
             findingSites,
-            comment
+            comment,
+            identifier
         } = tool;
 
         const trackingIdentifierTextValue =
-            "cornerstoneTools@^4.0.0:Bidirectional";
+            identifier || "cornerstoneTools@^4.0.0:Bidirectional";
 
         return {
             longAxis: {
