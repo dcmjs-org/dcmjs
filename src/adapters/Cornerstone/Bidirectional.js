@@ -9,6 +9,8 @@ const SHORT_AXIS = "Short Axis";
 const FINDING = "121071";
 const FINDING_SITE = "G-C0E3";
 const COMMENT = "121106";
+const TRACKING_IDENTIFIER = "112039";
+const TRACKING_UNIQUE_IDENTIFIER = "112040";
 
 class Bidirectional {
     constructor() {}
@@ -27,6 +29,17 @@ class Bidirectional {
 
         const comment = toArray(ContentSequence).find(
             group => group.ConceptNameCodeSequence.CodeValue === COMMENT
+        );
+
+        const trackingIdentifier = toArray(ContentSequence).find(
+            group =>
+                group.ConceptNameCodeSequence.CodeValue === TRACKING_IDENTIFIER
+        );
+
+        const trackingUniqueIdentifier = toArray(ContentSequence).find(
+            group =>
+                group.ConceptNameCodeSequence.CodeValue ===
+                TRACKING_UNIQUE_IDENTIFIER
         );
 
         const longAxisNUMGroup = toArray(ContentSequence).find(
@@ -142,7 +155,9 @@ class Bidirectional {
             findingSites: findingSiteGroups.map(fsg => {
                 return { ...fsg.ConceptCodeSequence };
             }),
-            comment: comment ? comment.TextValue : undefined
+            comment: comment ? comment.TextValue : undefined,
+            trackingIdentifier: trackingIdentifier.TextValue,
+            trackingUniqueIdentifier: trackingUniqueIdentifier.UID
         };
 
         return state;
@@ -161,11 +176,11 @@ class Bidirectional {
             finding,
             findingSites,
             comment,
-            identifier
+            trackingIdentifier
         } = tool;
 
         const trackingIdentifierTextValue =
-            identifier || "cornerstoneTools@^4.0.0:Bidirectional";
+            trackingIdentifier || "cornerstoneTools@^4.0.0:Bidirectional";
 
         return {
             longAxis: {
