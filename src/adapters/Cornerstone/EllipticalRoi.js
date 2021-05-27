@@ -120,7 +120,7 @@ class EllipticalRoi {
             handles,
             finding,
             findingSites,
-            identifier
+            trackingIdentifier
         } = tool;
         const { start, end } = handles;
         const { area } = cachedStats;
@@ -151,7 +151,7 @@ class EllipticalRoi {
         }
 
         const trackingIdentifierTextValue =
-            identifier || "cornerstoneTools@^4.0.0:EllipticalRoi";
+            trackingIdentifier || "cornerstoneTools@^4.0.0:EllipticalRoi";
 
         return {
             area,

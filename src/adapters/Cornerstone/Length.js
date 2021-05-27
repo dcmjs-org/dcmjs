@@ -70,13 +70,13 @@ class Length {
     }
 
     static getTID300RepresentationArguments(tool) {
-        const { handles, finding, findingSites, identifier } = tool;
+        const { handles, finding, findingSites, trackingIdentifier } = tool;
         const point1 = handles.start;
         const point2 = handles.end;
         const distance = tool.length;
 
         const trackingIdentifierTextValue =
-            identifier || "cornerstoneTools@^4.0.0:Length";
+            trackingIdentifier || "cornerstoneTools@^4.0.0:Length";
 
         return {
             point1,
