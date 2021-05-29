@@ -176,7 +176,8 @@ class Bidirectional {
             finding,
             findingSites,
             comment,
-            trackingIdentifier
+            trackingIdentifier,
+            trackingUniqueIdentifier
         } = tool;
 
         const trackingIdentifierTextValue =
@@ -194,6 +195,7 @@ class Bidirectional {
             longAxisLength: longestDiameter,
             shortAxisLength: shortestDiameter,
             trackingIdentifierTextValue,
+            trackingUniqueIdentifier,
             finding: finding,
             findingSites: findingSites || [],
             comment: comment
