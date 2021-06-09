@@ -149,57 +149,6 @@ class ImageRegion3D extends Scoord3DContentItem {
     }
 }
 
-class VolumeSurface extends Scoord3DContentItem {
-    constructor(options) {
-        super({
-            name: new CodedConcept({
-                value: "121231",
-                meaning: "Volume Surface",
-                schemeDesignator: "DCM"
-            }),
-            graphicType: options.graphicType,
-            graphicData: options.graphicData,
-            frameOfFeferenceUID: options.frameOfFeferenceUID,
-            relationshipType: RelationshipTypes.CONTAINS
-        });
-        if (options.graphicType !== GraphicTypes3D.ELLIPSOID) {
-            throw new Error(
-                "Graphic type for volume surface must be 'ELLIPSOID'."
-            );
-        }
-        this.ContentSequence = new ContentSequence();
-        if (options.sourceImages) {
-            options.sourceImages.forEach(image => {
-                if (!(image || image.constructor === SourceImageForRegion)) {
-                    throw new Error(
-                        "Items of option 'sourceImages' of VolumeSurface " +
-                            "must have type SourceImageForRegion."
-                    );
-                }
-                this.ContentSequence.push(image);
-            });
-        } else if (options.sourceSeries) {
-            if (
-                !(
-                    options.sourceSeries ||
-                    options.sourceSeries.constructor === SourceSeriesForRegion
-                )
-            ) {
-                throw new Error(
-                    "Option 'sourceSeries' of VolumeSurface " +
-                        "must have type SourceSeriesForRegion."
-                );
-            }
-            this.ContentSequence.push(options.sourceSeries);
-        } else {
-            throw new Error(
-                "One of the following two options must be provided: " +
-                    "'sourceImage' or 'sourceSeries'."
-            );
-        }
-    }
-}
-
 class ReferencedRealWorldValueMap extends CompositeContentItem {
     constructor(options) {
         super({
@@ -377,7 +326,6 @@ export {
     ImageRegion3D,
     ReferencedSegmentation,
     ReferencedSegmentationFrame,
-    VolumeSurface,
     SourceImageForRegion,
     SourceImageForSegmentation,
     SourceSeriesForSegmentation
