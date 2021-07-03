@@ -16,8 +16,8 @@ export default class Bidirectional extends TID300Measurement {
                 RelationshipType: "CONTAINS",
                 ValueType: "NUM",
                 ConceptNameCodeSequence: {
-                    CodeValue: "G-A185",
-                    CodingSchemeDesignator: "SRT",
+                    CodeValue: "103339001", // David Clunie's recommendation
+                    CodingSchemeDesignator: "SCT",
                     CodeMeaning: "Long Axis"
                 },
                 MeasuredValueSequence: {
@@ -50,8 +50,8 @@ export default class Bidirectional extends TID300Measurement {
                 RelationshipType: "CONTAINS",
                 ValueType: "NUM",
                 ConceptNameCodeSequence: {
-                    CodeValue: "G-A186",
-                    CodingSchemeDesignator: "SRT",
+                    CodeValue: "103340004", // David Clunie's recommendation
+                    CodingSchemeDesignator: "SCT",
                     CodeMeaning: "Short Axis"
                 },
                 MeasuredValueSequence: {
