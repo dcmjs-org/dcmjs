@@ -1,4 +1,4 @@
-import log from "loglevelnext";
+import log from "./log.js";
 import { DicomMessage } from "./DicomMessage.js";
 import { ReadBufferStream } from "./BufferStream.js";
 import { WriteBufferStream } from "./BufferStream.js";
@@ -52,11 +52,11 @@ class ValueRepresentation {
             if (this.maxLength != length)
                 log.error(
                     "Invalid length for fixed length tag, vr " +
-                    this.type +
-                    ", length " +
-                    this.maxLength +
-                    " != " +
-                    length
+                        this.type +
+                        ", length " +
+                        this.maxLength +
+                        " != " +
+                        length
                 );
         }
         return this.readBytes(stream, length, syntax);
@@ -104,13 +104,12 @@ class ValueRepresentation {
                     written.push(0);
                 } else {
                     var self = this;
-                    valueArgs[0].forEach(function (v, k) {
+                    valueArgs[0].forEach(function(v, k) {
                         if (self.allowMultiple() && k > 0) {
                             stream.writeHex("5C");
                             //byteCount++;
                         }
                         var singularArgs = [v].concat(valueArgs.slice(1));
-
                         var byteCount = func.apply(stream, singularArgs);
                         written.push(byteCount);
                     });
@@ -122,7 +121,13 @@ class ValueRepresentation {
         }
     }
 
-    writeBytes(stream, value, lengths) {
+    writeBytes(
+        stream,
+        value,
+        lengths,
+        writeOptions = { allowInvalidVRLength: false }
+    ) {
+        const { allowInvalidVRLength } = writeOptions;
         var valid = true,
             valarr = Array.isArray(value) ? value : [value],
             total = 0;
@@ -132,7 +137,7 @@ class ValueRepresentation {
                 checklen = lengths[i],
                 isString = false,
                 displaylen = checklen;
-            if (checkValue === null) {
+            if (checkValue === null || allowInvalidVRLength) {
                 valid = true;
             } else if (this.checkLength) {
                 valid = this.checkLength(checkValue);
@@ -145,14 +150,14 @@ class ValueRepresentation {
                 valid = checklen <= this.maxLength;
             }
 
-            var errmsg =
-                "Value exceeds max length, vr: " +
-                this.type +
-                ", value: " +
-                checkValue +
-                ", length: " +
-                displaylen;
             if (!valid) {
+                var errmsg =
+                    "Value exceeds max length, vr: " +
+                    this.type +
+                    ", value: " +
+                    checkValue +
+                    ", length: " +
+                    displaylen;
                 if (isString) log.log(errmsg);
                 else throw new Error(errmsg);
             }
@@ -229,10 +234,12 @@ class StringRepresentation extends ValueRepresentation {
         return stream.readString(length);
     }
 
-    writeBytes(stream, value) {
+    writeBytes(stream, value, writeOptions) {
+        // TODO will delete
+        if (!writeOptions) throw new Error("writeOptions is undefined");
         const written = super.write(stream, "String", value);
 
-        return super.writeBytes(stream, value, written);
+        return super.writeBytes(stream, value, written, writeOptions);
     }
 }
 
@@ -241,17 +248,32 @@ class BinaryRepresentation extends ValueRepresentation {
         super(type);
     }
 
-    writeBytes(stream, value, syntax, isEncapsulated, writeOptions) {
+    writeBytes(stream, value, syntax, isEncapsulated, writeOptions = {}) {
         var i;
         var binaryStream;
         var { fragmentMultiframe = true } = writeOptions;
+        value = value === null || value === undefined ? [] : value;
         if (isEncapsulated) {
             var fragmentSize = 1024 * 20,
                 frames = value.length,
                 startOffset = [];
 
+            // Calculate a total length for storing binary stream
+            var bufferLength = 0;
+            for (i = 0; i < frames; i++) {
+                bufferLength += value[i].byteLength;
+                let fragmentsLength = 1;
+                if (fragmentMultiframe) {
+                    fragmentsLength = Math.ceil(
+                        value[i].byteLength / fragmentSize
+                    );
+                }
+                // 8 bytes per fragment are needed to store 0xffff (2 bytes), 0xe000 (2 bytes), and frageStream size (4 bytes)
+                bufferLength += fragmentsLength * 8;
+            }
+
             binaryStream = new WriteBufferStream(
-                1024 * 1024 * 20,
+                bufferLength,
                 stream.isLittleEndian
             );
 
@@ -307,7 +329,12 @@ class BinaryRepresentation extends ValueRepresentation {
             var binaryData = value[0];
             binaryStream = new ReadBufferStream(binaryData);
             stream.concat(binaryStream);
-            return super.writeBytes(stream, binaryData, [binaryStream.size]);
+            return super.writeBytes(
+                stream,
+                binaryData,
+                [binaryStream.size],
+                writeOptions
+            );
         }
     }
 
@@ -335,17 +362,48 @@ class BinaryRepresentation extends ValueRepresentation {
                 // to combine the for and while loops non-confusingly so went with the explicit but
                 // redundant approach.
                 if (offsets.length > 0) {
-                    for (let i = 0; i < offsets.length; i++) {
-                        const nextTag = Tag.readTag(stream);
+                    offsets.push(stream.size);
 
-                        if (!nextTag.is(0xfffee000)) {
-                            break;
+                    for (var _i = 0; _i < offsets.length - 1; _i++) {
+                        let fragments = [];
+
+                        while (stream.offset < offsets[_i + 1]) {
+                            var nextTag = Tag.readTag(stream);
+
+                            if (!nextTag.is(0xfffee000)) {
+                                break;
+                            }
+
+                            let fragmentItemLength = stream.readUint32();
+
+                            fragments.push(stream.more(fragmentItemLength));
                         }
 
-                        const frameItemLength = stream.readUint32();
-                        const fragmentStream = stream.more(frameItemLength);
+                        const frameSize = (() => {
+                            let size = 0;
 
-                        frames.push(fragmentStream.buffer);
+                            for (const fragment of fragments) {
+                                size += fragment.size;
+                            }
+
+                            return size;
+                        })();
+                        const frame = (() => {
+                            const frame = new Uint8Array(frameSize);
+                            let offset = 0;
+
+                            for (const fragment of fragments) {
+                                frame.set(
+                                    new Uint8Array(fragment.buffer),
+                                    offset
+                                );
+                                offset += fragment.size;
+                            }
+
+                            return frame;
+                        })();
+
+                        frames.push(frame.buffer);
                     }
                 }
                 // If no offset table, loop through remainder of stream looking for termination tag
@@ -441,11 +499,12 @@ class AttributeTag extends ValueRepresentation {
         return tagFromNumbers(group, element).value;
     }
 
-    writeBytes(stream, value) {
+    writeBytes(stream, value, writeOptions) {
         return super.writeBytes(
             stream,
             value,
-            super.write(stream, "Uint32", value)
+            super.write(stream, "TwoUint16s", value),
+            writeOptions
         );
     }
 }
@@ -483,9 +542,9 @@ class DecimalString extends StringRepresentation {
         return ds;
     }
 
-    writeBytes(stream, value) {
+    writeBytes(stream, value, writeOptions) {
         const val = Array.isArray(value) ? value.map(String) : [value];
-        return super.writeBytes(stream, val);
+        return super.writeBytes(stream, val, writeOptions);
     }
 }
 
@@ -510,11 +569,12 @@ class FloatingPointSingle extends ValueRepresentation {
         return Number(stream.readFloat());
     }
 
-    writeBytes(stream, value) {
+    writeBytes(stream, value, writeOptions) {
         return super.writeBytes(
             stream,
             value,
-            super.write(stream, "Float", value)
+            super.write(stream, "Float", value),
+            writeOptions
         );
     }
 }
@@ -532,11 +592,12 @@ class FloatingPointDouble extends ValueRepresentation {
         return Number(stream.readDouble());
     }
 
-    writeBytes(stream, value) {
+    writeBytes(stream, value, writeOptions) {
         return super.writeBytes(
             stream,
             value,
-            super.write(stream, "Double", value)
+            super.write(stream, "Double", value),
+            writeOptions
         );
     }
 }
@@ -565,9 +626,9 @@ class IntegerString extends StringRepresentation {
         return is;
     }
 
-    writeBytes(stream, value) {
+    writeBytes(stream, value, writeOptions) {
         const val = Array.isArray(value) ? value.map(String) : [value];
-        return super.writeBytes(stream, val);
+        return super.writeBytes(stream, val, writeOptions);
     }
 }
 
@@ -658,11 +719,12 @@ class SignedLong extends ValueRepresentation {
         return stream.readInt32();
     }
 
-    writeBytes(stream, value) {
+    writeBytes(stream, value, writeOptions) {
         return super.writeBytes(
             stream,
             value,
-            super.write(stream, "Int32", value)
+            super.write(stream, "Int32", value),
+            writeOptions
         );
     }
 }
@@ -764,7 +826,7 @@ class SequenceOfItems extends ValueRepresentation {
         }
     }
 
-    writeBytes(stream, value, syntax) {
+    writeBytes(stream, value, syntax, writeOptions) {
         let written = 0;
 
         if (value) {
@@ -774,7 +836,12 @@ class SequenceOfItems extends ValueRepresentation {
                 super.write(stream, "Uint16", 0xe000);
                 super.write(stream, "Uint32", 0xffffffff);
 
-                written += DicomMessage.write(item, stream, syntax);
+                written += DicomMessage.write(
+                    item,
+                    stream,
+                    syntax,
+                    writeOptions
+                );
 
                 super.write(stream, "Uint16", 0xfffe);
                 super.write(stream, "Uint16", 0xe00d);
@@ -787,7 +854,7 @@ class SequenceOfItems extends ValueRepresentation {
         super.write(stream, "Uint32", 0x00000000);
         written += 8;
 
-        return super.writeBytes(stream, value, [written]);
+        return super.writeBytes(stream, value, [written], writeOptions);
     }
 }
 
@@ -805,11 +872,12 @@ class SignedShort extends ValueRepresentation {
         return stream.readInt16();
     }
 
-    writeBytes(stream, value) {
+    writeBytes(stream, value, writeOptions) {
         return super.writeBytes(
             stream,
             value,
-            super.write(stream, "Int16", value)
+            super.write(stream, "Int16", value),
+            writeOptions
         );
     }
 }
@@ -878,11 +946,12 @@ class UnsignedShort extends ValueRepresentation {
         return stream.readUint16();
     }
 
-    writeBytes(stream, value) {
+    writeBytes(stream, value, writeOptions) {
         return super.writeBytes(
             stream,
             value,
-            super.write(stream, "Uint16", value)
+            super.write(stream, "Uint16", value),
+            writeOptions
         );
     }
 }
@@ -900,11 +969,12 @@ class UnsignedLong extends ValueRepresentation {
         return stream.readUint32();
     }
 
-    writeBytes(stream, value) {
+    writeBytes(stream, value, writeOptions) {
         return super.writeBytes(
             stream,
             value,
-            super.write(stream, "Uint32", value)
+            super.write(stream, "Uint32", value),
+            writeOptions
         );
     }
 }
@@ -936,16 +1006,12 @@ class UniversalResource extends StringRepresentation {
     }
 }
 
-class UnknownValue extends StringRepresentation {
+class UnknownValue extends BinaryRepresentation {
     constructor() {
         super("UN");
         this.maxLength = null;
         this.padByte = "00";
         this.noMultiple = true;
-    }
-
-    readBytes(stream, length) {
-        return stream.readString(length);
     }
 }
 

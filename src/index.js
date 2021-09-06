@@ -9,6 +9,8 @@ import { DICOMWEB } from "./dicomweb.js";
 import { Tag } from "./Tag.js";
 import { ValueRepresentation } from "./ValueRepresentation.js";
 import { Colors } from "./colors.js";
+import log from "./log.js";
+
 import {
     datasetToDict,
     datasetToBuffer,
@@ -38,6 +40,8 @@ import { DSRNormalizer } from "./normalizers.js";
 import adapters from "./adapters/index.js";
 import utilities from "./utilities/index.js";
 import sr from "./sr/index.js";
+
+import { cleanTags } from "./anonymizer.js";
 
 let data = {
     BitArray,
@@ -75,6 +79,10 @@ let normalizers = {
     DSRNormalizer
 };
 
+let anonymizer = {
+    cleanTags
+};
+
 const dcmjs = {
     DICOMWEB,
     adapters,
@@ -82,9 +90,21 @@ const dcmjs = {
     derivations,
     normalizers,
     sr,
-    utilities
+    utilities,
+    log,
+    anonymizer
 };
 
-export { DICOMWEB, adapters, data, derivations, normalizers, sr, utilities };
+export {
+    DICOMWEB,
+    adapters,
+    data,
+    derivations,
+    normalizers,
+    sr,
+    utilities,
+    log,
+    anonymizer
+};
 
 export default dcmjs;

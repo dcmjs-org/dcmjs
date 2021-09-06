@@ -96,7 +96,7 @@ class Tag {
                 useSyntax == EXPLICIT_LITTLE_ENDIAN
                     ? true
                     : false,
-            isEncapsulated = DicomMessage.isEncapsulated(syntax);
+            isEncapsulated = this.isPixelDataTag() && DicomMessage.isEncapsulated(syntax);
 
         var oldEndian = stream.isLittleEndian;
         stream.setEndian(isLittleEndian);
@@ -108,7 +108,7 @@ class Tag {
             valueLength;
         tagStream.setEndian(isLittleEndian);
 
-        if (vrType == "OW" || vrType == "OB") {
+        if (vrType == "OW" || vrType == "OB" || vrType == "UN") {
             valueLength = vr.writeBytes(
                 tagStream,
                 values,
@@ -116,13 +116,15 @@ class Tag {
                 isEncapsulated,
                 writeOptions
             );
-        } else {
+        } else if (vrType == "SQ") {
             valueLength = vr.writeBytes(
                 tagStream,
                 values,
                 useSyntax,
                 writeOptions
             );
+        } else {
+            valueLength = vr.writeBytes(tagStream, values, writeOptions);
         }
 
         if (vrType == "SQ") {
