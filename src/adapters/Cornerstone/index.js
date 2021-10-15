@@ -5,6 +5,7 @@ import Bidirectional from "./Bidirectional.js";
 import EllipticalRoi from "./EllipticalRoi.js";
 import ArrowAnnotate from "./ArrowAnnotate.js";
 import Segmentation from "./Segmentation.js";
+import CobbAngle from "./CobbAngle";
 
 const Cornerstone = {
     Length,
@@ -13,7 +14,8 @@ const Cornerstone = {
     EllipticalRoi,
     ArrowAnnotate,
     MeasurementReport,
-    Segmentation
+    Segmentation,
+    CobbAngle
 };
 
 export default Cornerstone;
