@@ -1,6 +1,7 @@
 import log from "./log.js";
-import { ValueRepresentation } from "./ValueRepresentation.js";
-import dictionary from "./dictionary.js";
+import { ValueRepresentation } from "./ValueRepresentation";
+import dictionary from "./dictionary";
+import addAccessors from "./utilities/addAccessors";
 
 class DicomMetaDictionary {
     // intakes a custom dictionary that will be used to parse/denaturalize the dataset
@@ -142,8 +143,16 @@ class DicomMetaDictionary {
                 }
 
                 if (naturalDataset[naturalName].length === 1) {
-                    naturalDataset[naturalName] =
-                        naturalDataset[naturalName][0];
+                    const sqZero = naturalDataset[naturalName][0];
+                    if (
+                        sqZero &&
+                        typeof sqZero === "object" &&
+                        !sqZero.length
+                    ) {
+                        addAccessors(naturalDataset[naturalName], sqZero);
+                    } else {
+                        naturalDataset[naturalName] = sqZero;
+                    }
                 }
             }
         });
