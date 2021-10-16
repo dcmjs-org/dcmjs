@@ -19,6 +19,22 @@ export default class TID1500MeasurementReport {
             PersonName: "unknown^unknown"
         };
 
+        this.ProcedureReported = {
+            RelationshipType: "HAS CONCEPT MOD",
+            ValueType: "CODE",
+            ConceptNameCodeSequence: {
+                CodeValue: "121058",
+                CodingSchemeDesignator: "DCM",
+                CodeMeaning: "Procedure reported"
+            },
+            // The default per PS3.21
+            ConceptCodeSequence: {
+                CodeValue: "P0-0099A",
+                CodingSchemeDesignator: "SRT",
+                CodeMeaning: "Imaging procedure"
+            }
+        };
+
         this.tid1500 = {
             ConceptNameCodeSequence: {
                 CodeValue: "126000",
@@ -73,20 +89,7 @@ export default class TID1500MeasurementReport {
                     }
                 },
                 this.PersonObserverName,
-                {
-                    RelationshipType: "HAS CONCEPT MOD",
-                    ValueType: "CODE",
-                    ConceptNameCodeSequence: {
-                        CodeValue: "121058",
-                        CodingSchemeDesignator: "DCM",
-                        CodeMeaning: "Procedure reported"
-                    },
-                    ConceptCodeSequence: {
-                        CodeValue: "1",
-                        CodingSchemeDesignator: "99dcmjs",
-                        CodeMeaning: "Unknown procedure"
-                    }
-                },
+                this.ProcedureReported,
                 {
                     RelationshipType: "CONTAINS",
                     ValueType: "CONTAINER",
@@ -118,7 +121,10 @@ export default class TID1500MeasurementReport {
         if (options.PersonName) {
             this.PersonObserverName.PersonName = options.PersonName;
         }
-
+        if (options.ProcedureReported) {
+            this.ProcedureReported.ConceptCodeSequence =
+                options.ProcedureReported;
+        }
         // Add the Measurement Groups to the Measurement Report
         this.addTID1501MeasurementGroups(derivationSourceDataset, options);
 
@@ -190,5 +196,20 @@ export default class TID1500MeasurementReport {
         };
 
         this.tid1500.ContentSequence.push(ImagingMeasurments);
+
+        if (options.qualitativeEvaluations) {
+            const qualitativeEvaluations = {
+                RelationshipType: "CONTAINS",
+                ValueType: "CONTAINER",
+                ConceptNameCodeSequence: {
+                    CodeValue: "C0034375",
+                    CodingSchemeDesignator: "UMLS",
+                    CodeMeaning: "Qualitative Evaluations"
+                },
+                ContinuityOfContent: "SEPARATE",
+                ContentSequence: options.qualitativeEvaluations
+            };
+            this.tid1500.ContentSequence.push(qualitativeEvaluations);
+        }
     }
 }

@@ -115,7 +115,13 @@ class EllipticalRoi {
     }
 
     static getTID300RepresentationArguments(tool) {
-        const { cachedStats, handles, finding, findingSites } = tool;
+        const {
+            cachedStats,
+            handles,
+            finding,
+            findingSites,
+            trackingIdentifier
+        } = tool;
         const { start, end } = handles;
         const { area } = cachedStats;
 
@@ -145,7 +151,7 @@ class EllipticalRoi {
         }
 
         const trackingIdentifierTextValue =
-            "cornerstoneTools@^4.0.0:EllipticalRoi";
+            trackingIdentifier || "cornerstoneTools@^4.0.0:EllipticalRoi";
 
         return {
             area,

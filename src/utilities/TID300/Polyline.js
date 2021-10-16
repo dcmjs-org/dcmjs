@@ -1,5 +1,6 @@
 import { DicomMetaDictionary } from "../../DicomMetaDictionary.js";
 import TID300Measurement from "./TID300Measurement.js";
+import utilities from "../index.js";
 
 /**
  * Expand an array of points stored as objects into
@@ -12,14 +13,50 @@ function expandPoints(points) {
     const allPoints = [];
 
     points.forEach(point => {
-        allPoints.push(point[0]);
-        allPoints.push(point[1]);
-        if (point[2] !== undefined) {
-            allPoints.push(point[2]);
+        allPoints.push(point.x);
+        allPoints.push(point.y);
+        if (point.z !== undefined) {
+            allPoints.push(point.z);
         }
     });
 
     return allPoints;
+}
+
+function getMeasurementComponent(
+    measurementType,
+    value,
+    unit,
+    GraphicData,
+    use3DSpatialCoordinates,
+    ReferencedSOPSequence
+) {
+    return {
+        // TODO: This feels weird to repeat the GraphicData
+        RelationshipType: "CONTAINS",
+        ValueType: "NUM",
+        ConceptNameCodeSequence:
+            utilities.quantificationCodedTermMap[measurementType],
+        MeasuredValueSequence: {
+            MeasurementUnitsCodeSequence:
+                utilities.unitsCodedTermMap[unit] ||
+                utilities.unitsCodedTermMap["1"],
+            NumericValue: value
+        },
+        ContentSequence: {
+            RelationshipType: "INFERRED FROM",
+            ValueType: use3DSpatialCoordinates ? "SCOORD3D" : "SCOORD",
+            GraphicType: "POLYLINE",
+            GraphicData,
+            ContentSequence: use3DSpatialCoordinates
+                ? undefined
+                : {
+                      RelationshipType: "SELECTED FROM",
+                      ValueType: "IMAGE",
+                      ReferencedSOPSequence
+                  }
+        }
+    };
 }
 
 export default class Polyline extends TID300Measurement {
@@ -27,82 +64,96 @@ export default class Polyline extends TID300Measurement {
         const {
             points,
             ReferencedSOPSequence,
-            use3DSpatialCoordinates = false
+            use3DSpatialCoordinates = false,
+            perimeter,
+            area,
+            meanStdDev,
+            meanStdDevSUV,
+            pixelUnit
         } = this.props;
 
-        // Combine all lengths to save the perimeter
-        // @ToDO The permiter has to be implemented
-        // const reducer = (accumulator, currentValue) => accumulator + currentValue;
-        // const perimeter = lengths.reduce(reducer);
-        const perimeter = {};
         const GraphicData = expandPoints(points);
 
-        // TODO: Add Mean and STDev value of (modality?) pixels
-
-        return this.getMeasurement([
-            {
-                RelationshipType: "CONTAINS",
-                ValueType: "NUM",
-                ConceptNameCodeSequence: {
-                    CodeValue: "G-A197",
-                    CodingSchemeDesignator: "SRT",
-                    CodeMeaning: "Perimeter" // TODO: Look this up from a Code Meaning dictionary
-                },
-                MeasuredValueSequence: {
-                    MeasurementUnitsCodeSequence: {
-                        CodeValue: "mm",
-                        CodingSchemeDesignator: "UCUM",
-                        CodingSchemeVersion: "1.4",
-                        CodeMeaning: "millimeter"
-                    },
-                    NumericValue: perimeter
-                },
-                ContentSequence: {
-                    RelationshipType: "INFERRED FROM",
-                    ValueType: use3DSpatialCoordinates ? "SCOORD3D" : "SCOORD",
-                    GraphicType: "POLYLINE",
+        const measurements = [];
+        // Talking with Steve, we decided it should not be calculated here.
+        // it should either come from cornerstone tools or should not be saved
+        if (perimeter) {
+            measurements.push(
+                getMeasurementComponent(
+                    "Perimeter",
+                    perimeter,
+                    "mm",
                     GraphicData,
-                    ContentSequence: use3DSpatialCoordinates
-                        ? undefined
-                        : {
-                              RelationshipType: "SELECTED FROM",
-                              ValueType: "IMAGE",
-                              ReferencedSOPSequence
-                          }
-                }
-            },
-            {
-                // TODO: This feels weird to repeat the GraphicData
-                RelationshipType: "CONTAINS",
-                ValueType: "NUM",
-                ConceptNameCodeSequence: {
-                    CodeValue: "G-A166",
-                    CodingSchemeDesignator: "SRT",
-                    CodeMeaning: "Area" // TODO: Look this up from a Code Meaning dictionary
-                },
-                MeasuredValueSequence: {
-                    MeasurementUnitsCodeSequence: {
-                        CodeValue: "mm2",
-                        CodingSchemeDesignator: "UCUM",
-                        CodingSchemeVersion: "1.4",
-                        CodeMeaning: "SquareMilliMeter"
-                    },
-                    NumericValue: perimeter
-                },
-                ContentSequence: {
-                    RelationshipType: "INFERRED FROM",
-                    ValueType: use3DSpatialCoordinates ? "SCOORD3D" : "SCOORD",
-                    GraphicType: "POLYLINE",
+                    use3DSpatialCoordinates,
+                    ReferencedSOPSequence
+                )
+            );
+        }
+        if (area) {
+            measurements.push(
+                getMeasurementComponent(
+                    "Area",
+                    area,
+                    "mm2",
                     GraphicData,
-                    ContentSequence: use3DSpatialCoordinates
-                        ? undefined
-                        : {
-                              RelationshipType: "SELECTED FROM",
-                              ValueType: "IMAGE",
-                              ReferencedSOPSequence
-                          }
-                }
+                    use3DSpatialCoordinates,
+                    ReferencedSOPSequence
+                )
+            );
+        }
+        // if the pixelUnit is not sent, check if tool calculated SUV, otherwise put HU. we cannot check modality here
+        const unit = pixelUnit || (meanStdDevSUV ? "suv" : "hu");
+        const stats = meanStdDevSUV || meanStdDev;
+        if (stats) {
+            if (stats.min) {
+                measurements.push(
+                    getMeasurementComponent(
+                        "Min",
+                        stats.min,
+                        unit,
+                        GraphicData,
+                        use3DSpatialCoordinates,
+                        ReferencedSOPSequence
+                    )
+                );
             }
-        ]);
+            if (stats.max) {
+                measurements.push(
+                    getMeasurementComponent(
+                        "Max",
+                        stats.max,
+                        unit,
+                        GraphicData,
+                        use3DSpatialCoordinates,
+                        ReferencedSOPSequence
+                    )
+                );
+            }
+            if (stats.stdDev) {
+                measurements.push(
+                    getMeasurementComponent(
+                        "StdDev",
+                        stats.stdDev,
+                        unit,
+                        GraphicData,
+                        use3DSpatialCoordinates,
+                        ReferencedSOPSequence
+                    )
+                );
+            }
+            if (stats.mean) {
+                measurements.push(
+                    getMeasurementComponent(
+                        "Mean",
+                        stats.mean,
+                        unit,
+                        GraphicData,
+                        use3DSpatialCoordinates,
+                        ReferencedSOPSequence
+                    )
+                );
+            }
+        }
+        return this.getMeasurement(measurements);
     }
 }

@@ -11,13 +11,34 @@ export default class TID300Measurement {
             ...this.getTrackingGroups(),
             ...this.getFindingGroup(),
             ...this.getFindingSiteGroups(),
+            ...this.getComment(),
             ...contentSequenceEntries
         ];
     }
 
-    getTrackingGroups() {
-        let { trackingIdentifierTextValue } = this.props;
+    getComment() {
+        let { comment } = this.props;
+        return comment
+            ? [
+                  {
+                      RelationshipType: "CONTAINS",
+                      ValueType: "TEXT",
+                      ConceptNameCodeSequence: {
+                          CodeValue: "121106",
+                          CodingSchemeDesignator: "DCM",
+                          CodeMeaning: "Comment"
+                      },
+                      TextValue: comment
+                  }
+              ]
+            : [];
+    }
 
+    getTrackingGroups() {
+        let {
+            trackingIdentifierTextValue,
+            trackingUniqueIdentifier
+        } = this.props;
         return [
             {
                 RelationshipType: "HAS OBS CONTEXT",
@@ -37,7 +58,7 @@ export default class TID300Measurement {
                     CodingSchemeDesignator: "DCM",
                     CodeMeaning: "Tracking Unique Identifier"
                 },
-                UID: DicomMetaDictionary.uid()
+                UID: trackingUniqueIdentifier || DicomMetaDictionary.uid()
             }
         ];
     }
@@ -79,7 +100,7 @@ export default class TID300Measurement {
                 CodeMeaning
             } = findingSite;
             return {
-                RelationshipType: "CONTAINS",
+                RelationshipType: "HAS CONCEPT MOD",
                 ValueType: "CODE",
                 ConceptNameCodeSequence: {
                     CodeValue: "G-C0E3",

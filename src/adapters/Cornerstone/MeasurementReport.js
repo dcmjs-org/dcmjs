@@ -69,8 +69,18 @@ export default class MeasurementReport {
             "generalSeriesModule",
             firstImageId
         );
+        const patientModule = metadataProvider.get(
+            "patientModule",
+            firstImageId
+        );
         //const sopCommonModule = metadataProvider.get('sopCommonModule', firstImageId);
         const { studyInstanceUID, seriesInstanceUID } = generalSeriesModule;
+        const {
+            patientID,
+            patientName,
+            patientBirthDate,
+            patientSex
+        } = patientModule;
 
         // Loop through each image in the toolData
         Object.keys(toolState).forEach(imageId => {
@@ -125,9 +135,13 @@ export default class MeasurementReport {
 
         const derivationSourceDataset = {
             StudyInstanceUID: studyInstanceUID,
-            SeriesInstanceUID: seriesInstanceUID
+            SeriesInstanceUID: seriesInstanceUID,
             //SOPInstanceUID: sopInstanceUID, // TODO: Necessary?
             //SOPClassUID: sopClassUID,
+            PatientID: patientID,
+            PatientName: patientName,
+            PatientBirthDate: patientBirthDate,
+            PatientSex: patientSex
         };
 
         const _meta = {
@@ -158,9 +172,10 @@ export default class MeasurementReport {
         derivationSourceDataset._meta = _meta;
         derivationSourceDataset._vrMap = _vrMap;
 
-        const report = new StructuredReport([derivationSourceDataset]);
+        const report = new StructuredReport([derivationSourceDataset], options);
         const contentItem = MeasurementReport.contentItem(
-            derivationSourceDataset
+            derivationSourceDataset,
+            options
         );
 
         // Merge the derived dataset with the content from the Measurement Report

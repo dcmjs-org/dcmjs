@@ -10,8 +10,8 @@ export default class Length extends TID300Measurement {
                 RelationshipType: "CONTAINS",
                 ValueType: "NUM",
                 ConceptNameCodeSequence: {
-                    CodeValue: "G-D7FE",
-                    CodingSchemeDesignator: "SRT",
+                    CodeValue: "410668003", // David Clunie's recommendation
+                    CodingSchemeDesignator: "SCT",
                     CodeMeaning: "Length"
                 },
                 MeasuredValueSequence: {
