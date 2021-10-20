@@ -13,19 +13,12 @@ class ArrowAnnotate {
 
     // TODO: this function is required for all Cornerstone Tool Adapters, since it is called by MeasurementReport.
     static getMeasurementData(MeasurementGroup) {
-        const { ContentSequence } = MeasurementGroup;
-
-        const NUMGroup = toArray(ContentSequence).find(
-            group => group.ValueType === "NUM"
-        );
-
-        const SCOORDGroup = toArray(NUMGroup.ContentSequence).find(
-            group => group.ValueType === "SCOORD"
-        );
-
-        const findingGroup = toArray(ContentSequence).find(
-            group => group.ConceptNameCodeSequence.CodeValue === FINDING
-        );
+        const {
+            defaultState,
+            NUMGroup,
+            SCOORDGroup,
+            findingGroup
+        } = MeasurementReport.getSetupMeasurementData(MeasurementGroup);
 
         const findingSiteGroups = toArray(ContentSequence).filter(
             group => group.ConceptNameCodeSequence.CodeValue === FINDING_SITE
@@ -35,14 +28,7 @@ class ArrowAnnotate {
 
         const { GraphicData } = SCOORDGroup;
 
-        const { ReferencedSOPSequence } = SCOORDGroup.ContentSequence;
-        const {
-            ReferencedSOPInstanceUID,
-            ReferencedFrameNumber
-        } = ReferencedSOPSequence;
         const state = {
-            sopInstanceUid: ReferencedSOPInstanceUID,
-            frameIndex: ReferencedFrameNumber || 0,
             toolType: ArrowAnnotate.toolType,
             active: false,
             handles: {
@@ -70,13 +56,7 @@ class ArrowAnnotate {
             },
             invalidated: true,
             text,
-            visible: true,
-            finding: findingGroup
-                ? findingGroup.ConceptCodeSequence
-                : undefined,
-            findingSites: findingSiteGroups.map(fsg => {
-                return { ...fsg.ConceptCodeSequence };
-            })
+            visible: true
         };
 
         return state;

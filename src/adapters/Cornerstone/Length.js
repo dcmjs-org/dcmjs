@@ -12,31 +12,14 @@ class Length {
 
     // TODO: this function is required for all Cornerstone Tool Adapters, since it is called by MeasurementReport.
     static getMeasurementData(MeasurementGroup) {
-        const { ContentSequence } = MeasurementGroup;
-
-        const findingGroup = toArray(ContentSequence).find(
-            group => group.ConceptNameCodeSequence.CodeValue === FINDING
-        );
-
-        const findingSiteGroups = toArray(ContentSequence).filter(
-            group => group.ConceptNameCodeSequence.CodeValue === FINDING_SITE
-        );
-
-        const NUMGroup = toArray(ContentSequence).find(
-            group => group.ValueType === "NUM"
-        );
-
-        const SCOORDGroup = toArray(NUMGroup.ContentSequence).find(
-            group => group.ValueType === "SCOORD"
-        );
-
-        const { ReferencedSOPSequence } = SCOORDGroup.ContentSequence;
         const {
-            ReferencedSOPInstanceUID,
-            ReferencedFrameNumber
-        } = ReferencedSOPSequence;
-        const lengthState = {
-            sopInstanceUid: ReferencedSOPInstanceUID,
+            defaultState,
+            NUMGroup,
+            SCOORDGroup
+        } = MeasurementReport.getSetupMeasurementData(MeasurementGroup);
+
+        const state = {
+            ...defaultState,
             frameIndex: ReferencedFrameNumber || 1,
             length: NUMGroup.MeasuredValueSequence.NumericValue,
             toolType: Length.toolType,
@@ -50,23 +33,17 @@ class Length {
                     allowedOutsideImage: true,
                     hasBoundingBox: true
                 }
-            },
-            finding: findingGroup
-                ? findingGroup.ConceptCodeSequence
-                : undefined,
-            findingSites: findingSiteGroups.map(fsg => {
-                return { ...fsg.ConceptCodeSequence };
-            })
+            }
         };
 
         [
-            lengthState.handles.start.x,
-            lengthState.handles.start.y,
-            lengthState.handles.end.x,
-            lengthState.handles.end.y
+            state.handles.start.x,
+            state.handles.start.y,
+            state.handles.end.x,
+            state.handles.end.y
         ] = SCOORDGroup.GraphicData;
 
-        return lengthState;
+        return state;
     }
 
     static getTID300RepresentationArguments(tool) {

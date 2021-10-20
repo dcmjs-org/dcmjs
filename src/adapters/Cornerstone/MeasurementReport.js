@@ -6,6 +6,9 @@ import TID1501MeasurementGroup from "../../utilities/TID1500/TID1501MeasurementG
 
 import { toArray, codeMeaningEquals } from "../helpers.js";
 
+const FINDING = "121071";
+const FINDING_SITE = "G-C0E3";
+
 function getTID300ContentItem(
     tool,
     toolType,
@@ -49,6 +52,61 @@ function getMeasurementGroup(toolType, toolData, ReferencedSOPSequence) {
 
 export default class MeasurementReport {
     constructor() {}
+
+    static getSetupMeasurementData(MeasurementGroup) {
+        const { ContentSequence } = MeasurementGroup;
+
+        const contentSequenceArr = toArray(ContentSequence);
+        const findingGroup = contentSequenceArr.find(
+            group => group.ConceptNameCodeSequence.CodeValue === FINDING
+        );
+        const findingSiteGroups = contentSequenceArr.filter(
+            group => group.ConceptNameCodeSequence.CodeValue === FINDING_SITE
+        );
+        const NUMGroup = contentSequenceArr.find(
+            group => group.ValueType === "NUM"
+        );
+        const SCOORDGroup = toArray(NUMGroup.ContentSequence).find(
+            group => group.ValueType === "SCOORD"
+        );
+        const { ReferencedSOPSequence } = SCOORDGroup.ContentSequence;
+        const {
+            ReferencedSOPInstanceUID,
+            ReferencedFrameNumber
+        } = ReferencedSOPSequence;
+
+        const defaultState = {
+            sopInstanceUid: ReferencedSOPInstanceUID,
+            frameIndex: ReferencedFrameNumber || 1,
+            complete: true,
+            finding: findingGroup
+                ? findingGroup.ConceptCodeSequence
+                : undefined,
+            findingSites: findingSiteGroups.map(fsg => {
+                return { ...fsg.ConceptCodeSequence };
+            })
+        };
+        if (defaultState.finding) {
+            defaultState.description = defaultState.finding.CodeMeaning;
+        }
+        const findingSite =
+            defaultState.findingSites && defaultState.findingSites[0];
+        if (findingSite) {
+            defaultState.location =
+                (findingSite[0] && findingSite[0].CodeMeaning) ||
+                findingSite.CodeMeaning;
+        }
+        return {
+            defaultState,
+            findingGroup,
+            findingSiteGroups,
+            NUMGroup,
+            SCOORDGroup,
+            ReferencedSOPSequence,
+            ReferencedSOPInstanceUID,
+            ReferencedFrameNumber
+        };
+    }
 
     static generateReport(toolState, metadataProvider, options) {
         // ToolState for array of imageIDs to a Report
