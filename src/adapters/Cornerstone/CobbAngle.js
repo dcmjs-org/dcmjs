@@ -40,15 +40,15 @@ class CobbAngle {
             }
         };
 
-        cons[
-            (state.handles.start.x,
+        [
+            state.handles.start.x,
             state.handles.start.y,
             state.handles.end.x,
             state.handles.end.y,
             state.handles.start2.x,
             state.handles.start2.y,
             state.handles.end2.x,
-            state.handles.end2.y)
+            state.handles.end2.y
         ] = SCOORDGroup.GraphicData;
 
         return state;

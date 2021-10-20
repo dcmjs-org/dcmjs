@@ -1,11 +1,8 @@
 import MeasurementReport from "./MeasurementReport.js";
 import TID300Point from "../../utilities/TID300/Point.js";
 import CORNERSTONE_4_TAG from "./cornerstone4Tag";
-import { toArray } from "../helpers.js";
 
 const ARROW_ANNOTATE = "ArrowAnnotate";
-const FINDING = "121071";
-const FINDING_SITE = "G-C0E3";
 const CORNERSTONEFREETEXT = "CORNERSTONEFREETEXT";
 
 class ArrowAnnotate {
@@ -15,20 +12,16 @@ class ArrowAnnotate {
     static getMeasurementData(MeasurementGroup) {
         const {
             defaultState,
-            NUMGroup,
             SCOORDGroup,
             findingGroup
         } = MeasurementReport.getSetupMeasurementData(MeasurementGroup);
-
-        const findingSiteGroups = toArray(ContentSequence).filter(
-            group => group.ConceptNameCodeSequence.CodeValue === FINDING_SITE
-        );
 
         const text = findingGroup.ConceptCodeSequence.CodeMeaning;
 
         const { GraphicData } = SCOORDGroup;
 
         const state = {
+            ...defaultState,
             toolType: ArrowAnnotate.toolType,
             active: false,
             handles: {

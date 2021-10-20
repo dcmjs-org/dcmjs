@@ -20,7 +20,6 @@ class Length {
 
         const state = {
             ...defaultState,
-            frameIndex: ReferencedFrameNumber || 1,
             length: NUMGroup.MeasuredValueSequence.NumericValue,
             toolType: Length.toolType,
             handles: {
