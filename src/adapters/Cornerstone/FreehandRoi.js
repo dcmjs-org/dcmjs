@@ -5,7 +5,7 @@ import CORNERSTONE_4_TAG from "./cornerstone4Tag";
 class FreehandRoi {
     constructor() {}
 
-    static measurementContentToLengthState(groupItemContent) {
+    static getMeasurementData(MeasurementGroup) {
         const {
             defaultState,
             SCOORDGroup
@@ -39,20 +39,13 @@ class FreehandRoi {
         return state;
     }
 
-    // TODO: this function is required for all Cornerstone Tool Adapters, since it is called by MeasurementReport.
-    static getMeasurementData(measurementContent) {
-        return measurementContent.map(
-            FreehandRoi.measurementContentToLengthState
-        );
-    }
-
     static getTID300RepresentationArguments(/*tool*/) {
         const { handles, finding, findingSites, cachedStats } = tool;
         const { points } = handles;
         const { area = 0, perimeter = 0 } = cachedStats;
 
         const trackingIdentifierTextValue =
-            "cornerstoneTools@^4.0.0:RectangleRoi";
+            "cornerstoneTools@^4.0.0:FreehandRoi";
 
         return {
             points,
@@ -69,7 +62,17 @@ FreehandRoi.toolType = "FreehandRoi";
 FreehandRoi.utilityToolType = "FreehandRoi";
 FreehandRoi.TID300Representation = TID300Polyline;
 FreehandRoi.isValidCornerstoneTrackingIdentifier = TrackingIdentifier => {
-    return false; // TODO
+    if (!TrackingIdentifier.includes(":")) {
+        return false;
+    }
+
+    const [cornerstone4Tag, toolType] = TrackingIdentifier.split(":");
+
+    if (cornerstone4Tag !== CORNERSTONE_4_TAG) {
+        return false;
+    }
+
+    return toolType === FreehandRoi.toolType;
 };
 
 MeasurementReport.registerTool(FreehandRoi);

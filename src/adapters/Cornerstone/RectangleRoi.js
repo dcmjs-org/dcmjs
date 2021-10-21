@@ -5,7 +5,7 @@ import CORNERSTONE_4_TAG from "./cornerstone4Tag";
 class RectangleRoi {
     constructor() {}
 
-    static measurementContentToLengthState(groupItemContent) {
+    static getMeasurementData(MeasurementGroup) {
         const {
             defaultState,
             SCOORDGroup
@@ -14,39 +14,34 @@ class RectangleRoi {
         const state = {
             ...defaultState,
             toolType: RectangleRoi.toolType,
-            start: {},
-            end: {},
+            handles: {
+                start: {},
+                end: {},
+                textBox: {
+                    active: false,
+                    hasMoved: false,
+                    movesIndependently: false,
+                    drawnIndependently: true,
+                    allowedOutsideImage: true,
+                    hasBoundingBox: true
+                },
+                initialRotation: 0
+            },
             color: undefined,
-            invalidated: true,
-            initialRotation: 0,
-            textBox: {
-                active: false,
-                hasMoved: false,
-                movesIndependently: false,
-                drawnIndependently: true,
-                allowedOutsideImage: true,
-                hasBoundingBox: true
-            }
+            invalidated: true
         };
         const intermediate = {};
 
         [
-            state.start.x,
-            state.start.y,
+            state.handles.start.x,
+            state.handles.start.y,
             intermediate.x,
             intermediate.y,
-            state.end.x,
-            state.end.y
+            state.handles.end.x,
+            state.handles.end.y
         ] = SCOORDGroup.GraphicData;
 
         return state;
-    }
-
-    // TODO: this function is required for all Cornerstone Tool Adapters, since it is called by MeasurementReport.
-    static getMeasurementData(measurementContent) {
-        return measurementContent.map(
-            RectangleRoi.measurementContentToLengthState
-        );
     }
 
     static getTID300RepresentationArguments(tool) {
@@ -80,7 +75,17 @@ RectangleRoi.toolType = "RectangleRoi";
 RectangleRoi.utilityToolType = "RectangleRoi";
 RectangleRoi.TID300Representation = TID300Polyline;
 RectangleRoi.isValidCornerstoneTrackingIdentifier = TrackingIdentifier => {
-    return false; // TODO
+    if (!TrackingIdentifier.includes(":")) {
+        return false;
+    }
+
+    const [cornerstone4Tag, toolType] = TrackingIdentifier.split(":");
+
+    if (cornerstone4Tag !== CORNERSTONE_4_TAG) {
+        return false;
+    }
+
+    return toolType === RectangleRoi.toolType;
 };
 
 MeasurementReport.registerTool(RectangleRoi);

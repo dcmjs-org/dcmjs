@@ -88,7 +88,7 @@ Angle.isValidCornerstoneTrackingIdentifier = TrackingIdentifier => {
         return false;
     }
 
-    return toolType === COBB_ANGLE;
+    return toolType === ANGLE;
 };
 
 MeasurementReport.registerTool(Angle);
