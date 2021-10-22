@@ -8,7 +8,6 @@ const CORNERSTONEFREETEXT = "CORNERSTONEFREETEXT";
 class ArrowAnnotate {
     constructor() {}
 
-    // TODO: this function is required for all Cornerstone Tool Adapters, since it is called by MeasurementReport.
     static getMeasurementData(MeasurementGroup) {
         const {
             defaultState,
@@ -31,11 +30,17 @@ class ArrowAnnotate {
                     highlight: true,
                     active: false
                 },
-                // TODO: How do we choose where the end goes?
-                // Just put it pointing from the bottom right for now?
+                // Use a generic offset if the stored data doesn't have the endpoint, otherwise
+                // use the actual endpoint.
                 end: {
-                    x: GraphicData[0] + 20,
-                    y: GraphicData[1] + 20,
+                    x:
+                        GraphicData.length == 4
+                            ? GraphicData[2]
+                            : GraphicData[0] + 20,
+                    y:
+                        GraphicData.length == 4
+                            ? GraphicData[3]
+                            : GraphicData[1] + 20,
                     highlight: true,
                     active: false
                 },
@@ -56,7 +61,7 @@ class ArrowAnnotate {
     }
 
     static getTID300RepresentationArguments(tool) {
-        const points = [tool.handles.start];
+        const points = [tool.handles.start, tool.handles.end];
 
         let { finding, findingSites } = tool;
 
