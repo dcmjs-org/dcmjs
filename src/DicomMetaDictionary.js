@@ -86,11 +86,13 @@ class DicomMetaDictionary {
         return namedDataset;
     }
 
-    // converts from DICOM JSON Model dataset
-    // to a natural dataset
-    // - sequences become lists
-    // - single element lists are replaced by their first element
-    // - object member names are dictionary, not group/element tag
+    /** converts from DICOM JSON Model dataset to a natural dataset
+     * - sequences become lists
+     * - single element lists are replaced by their first element,
+     *     with single element lists remaining lists, but being a
+     *     proxy for the child values, see addAccessors for examples
+     * - object member names are dictionary, not group/element tag
+     */
     static naturalizeDataset(dataset) {
         const naturalDataset = {
             _vrMap: {}
