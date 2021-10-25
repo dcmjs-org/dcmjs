@@ -6,8 +6,22 @@ import TID1501MeasurementGroup from "../../utilities/TID1500/TID1501MeasurementG
 
 import { toArray, codeMeaningEquals } from "../helpers.js";
 
-const FINDING = "121071";
-const FINDING_SITE = "G-C0E3";
+const FINDING = { CodingSchemeDesignator: "DCM", CodeValue: "121071" };
+const FINDING_SITE = { CodingSchemeDesignator: "SCT", CodeValue: "363698007" };
+const FINDING_SITE_OLD = { CodingSchemeDesignator: "SRT", CodeValue: "G-C0E3" };
+
+const codeValueMatch = (group, code, oldCode) => {
+    const { ConceptNameCodeSequence } = group;
+    if (!ConceptNameCodeSequence) return;
+    const { CodingSchemeDesignator, CodeValue } = ConceptNameCodeSequence;
+    return (
+        (CodingSchemeDesignator == code.CodingSchemeDesignator &&
+            CodeValue == code.CodeValue) ||
+        (oldCode &&
+            CodingSchemeDesignator == oldCode.CodingSchemeDesignator &&
+            CodeValue == oldCode.CodeValue)
+    );
+};
 
 function getTID300ContentItem(
     tool,
@@ -57,12 +71,13 @@ export default class MeasurementReport {
         const { ContentSequence } = MeasurementGroup;
 
         const contentSequenceArr = toArray(ContentSequence);
-        const findingGroup = contentSequenceArr.find(
-            group => group.ConceptNameCodeSequence.CodeValue === FINDING
+        const findingGroup = contentSequenceArr.find(group =>
+            codeValueMatch(group, FINDING)
         );
-        const findingSiteGroups = contentSequenceArr.filter(
-            group => group.ConceptNameCodeSequence.CodeValue === FINDING_SITE
-        );
+        const findingSiteGroups =
+            contentSequenceArr.filter(group =>
+                codeValueMatch(group, FINDING_SITE, FINDING_SITE_OLD)
+            ) || [];
         const NUMGroup = contentSequenceArr.find(
             group => group.ValueType === "NUM"
         );

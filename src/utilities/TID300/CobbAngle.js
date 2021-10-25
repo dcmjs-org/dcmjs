@@ -17,8 +17,8 @@ export default class CobbAngle extends TID300Measurement {
                 RelationshipType: "CONTAINS",
                 ValueType: "NUM",
                 ConceptNameCodeSequence: {
-                    CodeValue: "F-00E5C",
-                    CodingSchemeDesignator: "SRT",
+                    CodeValue: "285285000",
+                    CodingSchemeDesignator: "SCT",
                     CodeMeaning: "Cobb angle"
                 },
                 MeasuredValueSequence: {

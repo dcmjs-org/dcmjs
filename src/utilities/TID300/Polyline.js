@@ -34,16 +34,14 @@ export default class Polyline extends TID300Measurement {
 
         const GraphicData = expandPoints(points);
 
-        console.log("GraphicData=", GraphicData);
-        console.log("Area", area, "perimeter", perimeter);
         // TODO: Add Mean and STDev value of (modality?) pixels
         return this.getMeasurement([
             {
                 RelationshipType: "CONTAINS",
                 ValueType: "NUM",
                 ConceptNameCodeSequence: {
-                    CodeValue: "G-A197",
-                    CodingSchemeDesignator: "SRT",
+                    CodeValue: "131191004",
+                    CodingSchemeDesignator: "SCT",
                     CodeMeaning: "Perimeter"
                 },
                 MeasuredValueSequence: {
