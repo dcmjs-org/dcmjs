@@ -1,6 +1,7 @@
 import log from "./log.js";
-import { ValueRepresentation } from "./ValueRepresentation.js";
-import dictionary from "./dictionary.js";
+import { ValueRepresentation } from "./ValueRepresentation";
+import dictionary from "./dictionary";
+import addAccessors from "./utilities/addAccessors";
 
 class DicomMetaDictionary {
     // intakes a custom dictionary that will be used to parse/denaturalize the dataset
@@ -85,11 +86,13 @@ class DicomMetaDictionary {
         return namedDataset;
     }
 
-    // converts from DICOM JSON Model dataset
-    // to a natural dataset
-    // - sequences become lists
-    // - single element lists are replaced by their first element
-    // - object member names are dictionary, not group/element tag
+    /** converts from DICOM JSON Model dataset to a natural dataset
+     * - sequences become lists
+     * - single element lists are replaced by their first element,
+     *     with single element lists remaining lists, but being a
+     *     proxy for the child values, see addAccessors for examples
+     * - object member names are dictionary, not group/element tag
+     */
     static naturalizeDataset(dataset) {
         const naturalDataset = {
             _vrMap: {}
@@ -143,9 +146,14 @@ class DicomMetaDictionary {
 
                 if (naturalDataset[naturalName].length === 1) {
                     const sqZero = naturalDataset[naturalName][0];
-                    naturalDataset[naturalName] = sqZero;
-                    if (sqZero && typeof sqZero === "object") {
-                        Object.assign(sqZero, [sqZero]);
+                    if (
+                        sqZero &&
+                        typeof sqZero === "object" &&
+                        !sqZero.length
+                    ) {
+                        addAccessors(naturalDataset[naturalName], sqZero);
+                    } else {
+                        naturalDataset[naturalName] = sqZero;
                     }
                 }
             }
