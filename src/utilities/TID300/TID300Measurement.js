@@ -11,6 +11,8 @@ export default class TID300Measurement {
             ...this.getTrackingGroups(),
             ...this.getFindingGroup(),
             ...this.getFindingSiteGroups(),
+            ...this.getLocation(),
+            ...this.getDescription(),
             ...contentSequenceEntries
         ];
     }
@@ -93,5 +95,49 @@ export default class TID300Measurement {
                 }
             };
         });
+    }
+
+    getLocation() {
+        let location = this.props.location;
+
+        console.log(this.props);
+
+        if (!location) {
+            return [];
+        }
+
+        return [
+            {
+                RelationshipType: "HAS OBS CONTEXT",
+                ValueType: "TEXT",
+                ConceptNameCodeSequence: {
+                    CodeValue: "112041",
+                    CodingSchemeDesignator: "DCM",
+                    CodeMeaning: "Location"
+                },
+                TextValue: location
+            }
+        ];
+    }
+
+    getDescription() {
+        let description = this.props.description;
+
+        if (!description) {
+            return [];
+        }
+
+        return [
+            {
+                RelationshipType: "HAS OBS CONTEXT",
+                ValueType: "TEXT",
+                ConceptNameCodeSequence: {
+                    CodeValue: "112042",
+                    CodingSchemeDesignator: "DCM",
+                    CodeMeaning: "Description"
+                },
+                TextValue: description
+            }
+        ];
     }
 }

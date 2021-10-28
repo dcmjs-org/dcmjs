@@ -34,6 +34,13 @@ function getTID300ContentItem(
 
     const TID300Measurement = new toolClass.TID300Representation(args);
 
+    if (tool.location) {
+        TID300Measurement.props.location = tool.location;
+    }
+    if (tool.description) {
+        TID300Measurement.props.description = tool.description;
+    }
+
     return TID300Measurement;
 }
 
