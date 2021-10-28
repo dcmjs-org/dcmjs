@@ -2,49 +2,30 @@ import MeasurementReport from "./MeasurementReport.js";
 import TID300Point from "../../utilities/TID300/Point.js";
 import CORNERSTONE_4_TAG from "./cornerstone4Tag";
 import { toArray } from "../helpers.js";
+import GenericTool from "./GenericTool.js";
 
 const ARROW_ANNOTATE = "ArrowAnnotate";
 const FINDING = "121071";
-const FINDING_SITE = "G-C0E3";
 const CORNERSTONEFREETEXT = "CORNERSTONEFREETEXT";
 
-class ArrowAnnotate {
-    constructor() {}
-
+class ArrowAnnotate extends GenericTool {
     // TODO: this function is required for all Cornerstone Tool Adapters, since it is called by MeasurementReport.
     static getMeasurementData(MeasurementGroup) {
+        const toolState = super.getMeasurementData(MeasurementGroup);
+
         const { ContentSequence } = MeasurementGroup;
 
-        const NUMGroup = toArray(ContentSequence).find(
-            group => group.ValueType === "NUM"
-        );
-
-        const SCOORDGroup = toArray(NUMGroup.ContentSequence).find(
-            group => group.ValueType === "SCOORD"
-        );
+        const SCOORDGroup = this.getScoordContent(ContentSequence);
 
         const findingGroup = toArray(ContentSequence).find(
             group => group.ConceptNameCodeSequence.CodeValue === FINDING
-        );
-
-        const findingSiteGroups = toArray(ContentSequence).filter(
-            group => group.ConceptNameCodeSequence.CodeValue === FINDING_SITE
         );
 
         const text = findingGroup.ConceptCodeSequence.CodeMeaning;
 
         const { GraphicData } = SCOORDGroup;
 
-        const { ReferencedSOPSequence } = SCOORDGroup.ContentSequence;
-        const {
-            ReferencedSOPInstanceUID,
-            ReferencedFrameNumber
-        } = ReferencedSOPSequence;
-        const state = {
-            sopInstanceUid: ReferencedSOPInstanceUID,
-            frameIndex: ReferencedFrameNumber || 0,
-            toolType: ArrowAnnotate.toolType,
-            active: false,
+        let arrowState = {
             handles: {
                 start: {
                     x: GraphicData[0],
@@ -68,18 +49,14 @@ class ArrowAnnotate {
                     hasBoundingBox: true
                 }
             },
-            invalidated: true,
             text,
-            visible: true,
-            finding: findingGroup
-                ? findingGroup.ConceptCodeSequence
-                : undefined,
-            findingSites: findingSiteGroups.map(fsg => {
-                return { ...fsg.ConceptCodeSequence };
-            })
+            toolName: ARROW_ANNOTATE,
+            toolType: ArrowAnnotate.toolType
         };
 
-        return state;
+        arrowState = Object.assign(toolState, arrowState);
+
+        return arrowState;
     }
 
     static getTID300RepresentationArguments(tool) {
@@ -89,7 +66,8 @@ class ArrowAnnotate {
 
         const TID300RepresentationArguments = {
             points,
-            trackingIdentifierTextValue: `cornerstoneTools@^4.0.0:ArrowAnnotate`,
+            trackingIdentifierTextValue:
+                CORNERSTONE_4_TAG + ":" + ARROW_ANNOTATE,
             findingSites: findingSites || []
         };
 

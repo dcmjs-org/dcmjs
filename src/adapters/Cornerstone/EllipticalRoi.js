@@ -1,34 +1,20 @@
 import MeasurementReport from "./MeasurementReport";
 import TID300Ellipse from "../../utilities/TID300/Ellipse";
 import CORNERSTONE_4_TAG from "./cornerstone4Tag";
-import { toArray } from "../helpers.js";
+import GenericTool from "./GenericTool";
 
 const ELLIPTICALROI = "EllipticalRoi";
-const FINDING = "121071";
-const FINDING_SITE = "G-C0E3";
 
-class EllipticalRoi {
-    constructor() {}
-
+class EllipticalRoi extends GenericTool {
     // TODO: this function is required for all Cornerstone Tool Adapters, since it is called by MeasurementReport.
     static getMeasurementData(MeasurementGroup) {
+        const toolState = super.getMeasurementData(MeasurementGroup);
+
         const { ContentSequence } = MeasurementGroup;
 
-        const findingGroup = toArray(ContentSequence).find(
-            group => group.ConceptNameCodeSequence.CodeValue === FINDING
-        );
+        const NUMGroup = this.getNumericContent(ContentSequence);
 
-        const findingSiteGroups = toArray(ContentSequence).filter(
-            group => group.ConceptNameCodeSequence.CodeValue === FINDING_SITE
-        );
-
-        const NUMGroup = toArray(ContentSequence).find(
-            group => group.ValueType === "NUM"
-        );
-
-        const SCOORDGroup = toArray(NUMGroup.ContentSequence).find(
-            group => group.ValueType === "SCOORD"
-        );
+        const SCOORDGroup = this.getScoordContent(ContentSequence);
 
         const { GraphicData } = SCOORDGroup;
 
@@ -66,16 +52,10 @@ class EllipticalRoi {
             x: majorAxis[1].x - minorAxisDirection.x * halfMinorAxisLength,
             y: majorAxis[1].y - minorAxisDirection.y * halfMinorAxisLength
         };
-        const { ReferencedSOPSequence } = SCOORDGroup.ContentSequence;
-        const {
-            ReferencedSOPInstanceUID,
-            ReferencedFrameNumber
-        } = ReferencedSOPSequence;
-        const state = {
-            sopInstanceUid: ReferencedSOPInstanceUID,
-            frameIndex: ReferencedFrameNumber || 0,
+
+        let ellipState = {
+            toolName: ELLIPTICALROI,
             toolType: EllipticalRoi.toolType,
-            active: false,
             cachedStats: {
                 area: NUMGroup.MeasuredValueSequence.NumericValue
             },
@@ -100,22 +80,17 @@ class EllipticalRoi {
                     allowedOutsideImage: true,
                     hasBoundingBox: true
                 }
-            },
-            invalidated: true,
-            visible: true,
-            finding: findingGroup
-                ? findingGroup.ConceptCodeSequence
-                : undefined,
-            findingSites: findingSiteGroups.map(fsg => {
-                return { ...fsg.ConceptCodeSequence };
-            })
+            }
         };
 
-        return state;
+        ellipState = Object.assign(toolState, ellipState);
+
+        return ellipState;
     }
 
     static getTID300RepresentationArguments(tool) {
-        const { cachedStats, handles, finding, findingSites } = tool;
+        const TID300Rep = super.getTID300RepresentationArguments(tool);
+        const { cachedStats, handles } = tool;
         const { start, end } = handles;
         const { area } = cachedStats;
 
@@ -145,15 +120,13 @@ class EllipticalRoi {
         }
 
         const trackingIdentifierTextValue =
-            "cornerstoneTools@^4.0.0:EllipticalRoi";
+            CORNERSTONE_4_TAG + ":" + ELLIPTICALROI;
 
-        return {
+        return Object.assign(TID300Rep, {
             area,
             points,
-            trackingIdentifierTextValue,
-            finding,
-            findingSites: findingSites || []
-        };
+            trackingIdentifierTextValue
+        });
     }
 }
 

@@ -1,45 +1,22 @@
 import MeasurementReport from "./MeasurementReport.js";
 import TID300Length from "../../utilities/TID300/Length.js";
 import CORNERSTONE_4_TAG from "./cornerstone4Tag";
-import { toArray } from "../helpers.js";
+import GenericTool from "./GenericTool.js";
 
 const LENGTH = "Length";
-const FINDING = "121071";
-const FINDING_SITE = "G-C0E3";
 
-class Length {
-    constructor() {}
-
+class Length extends GenericTool {
     // TODO: this function is required for all Cornerstone Tool Adapters, since it is called by MeasurementReport.
     static getMeasurementData(MeasurementGroup) {
+        const toolState = super.getMeasurementData(MeasurementGroup);
+
         const { ContentSequence } = MeasurementGroup;
 
-        const findingGroup = toArray(ContentSequence).find(
-            group => group.ConceptNameCodeSequence.CodeValue === FINDING
-        );
+        const NUMGroup = this.getNumericContent(ContentSequence);
 
-        const findingSiteGroups = toArray(ContentSequence).filter(
-            group => group.ConceptNameCodeSequence.CodeValue === FINDING_SITE
-        );
+        const SCOORDGroup = this.getScoordContent(ContentSequence);
 
-        const NUMGroup = toArray(ContentSequence).find(
-            group => group.ValueType === "NUM"
-        );
-
-        const SCOORDGroup = toArray(NUMGroup.ContentSequence).find(
-            group => group.ValueType === "SCOORD"
-        );
-
-        const { ReferencedSOPSequence } = SCOORDGroup.ContentSequence;
-        const {
-            ReferencedSOPInstanceUID,
-            ReferencedFrameNumber
-        } = ReferencedSOPSequence;
-        const lengthState = {
-            sopInstanceUid: ReferencedSOPInstanceUID,
-            frameIndex: ReferencedFrameNumber || 1,
-            length: NUMGroup.MeasuredValueSequence.NumericValue,
-            toolType: Length.toolType,
+        let lengthState = {
             handles: {
                 start: {},
                 end: {},
@@ -51,12 +28,9 @@ class Length {
                     hasBoundingBox: true
                 }
             },
-            finding: findingGroup
-                ? findingGroup.ConceptCodeSequence
-                : undefined,
-            findingSites: findingSiteGroups.map(fsg => {
-                return { ...fsg.ConceptCodeSequence };
-            })
+            length: NUMGroup.MeasuredValueSequence.NumericValue,
+            toolName: LENGTH,
+            toolType: Length.toolType
         };
 
         [
@@ -66,25 +40,26 @@ class Length {
             lengthState.handles.end.y
         ] = SCOORDGroup.GraphicData;
 
+        lengthState = Object.assign(toolState, lengthState);
+
         return lengthState;
     }
 
     static getTID300RepresentationArguments(tool) {
-        const { handles, finding, findingSites } = tool;
+        const TID300Rep = super.getTID300RepresentationArguments(tool);
+        const { handles } = tool;
         const point1 = handles.start;
         const point2 = handles.end;
         const distance = tool.length;
 
-        const trackingIdentifierTextValue = "cornerstoneTools@^4.0.0:Length";
+        const trackingIdentifierTextValue = CORNERSTONE_4_TAG + ":" + LENGTH;
 
-        return {
+        return Object.assign(TID300Rep, {
+            distance,
             point1,
             point2,
-            distance,
-            trackingIdentifierTextValue,
-            finding,
-            findingSites: findingSites || []
-        };
+            trackingIdentifierTextValue
+        });
     }
 }
 

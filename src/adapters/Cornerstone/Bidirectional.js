@@ -2,27 +2,18 @@ import MeasurementReport from "./MeasurementReport";
 import TID300Bidirectional from "../../utilities/TID300/Bidirectional";
 import CORNERSTONE_4_TAG from "./cornerstone4Tag";
 import { toArray } from "../helpers.js";
+import GenericTool from "./GenericTool";
 
 const BIDIRECTIONAL = "Bidirectional";
 const LONG_AXIS = "Long Axis";
 const SHORT_AXIS = "Short Axis";
-const FINDING = "121071";
-const FINDING_SITE = "G-C0E3";
 
-class Bidirectional {
-    constructor() {}
-
+class Bidirectional extends GenericTool {
     // TODO: this function is required for all Cornerstone Tool Adapters, since it is called by MeasurementReport.
     static getMeasurementData(MeasurementGroup) {
+        const toolState = super.getMeasurementData(MeasurementGroup);
+
         const { ContentSequence } = MeasurementGroup;
-
-        const findingGroup = toArray(ContentSequence).find(
-            group => group.ConceptNameCodeSequence.CodeValue === FINDING
-        );
-
-        const findingSiteGroups = toArray(ContentSequence).filter(
-            group => group.ConceptNameCodeSequence.CodeValue === FINDING_SITE
-        );
 
         const longAxisNUMGroup = toArray(ContentSequence).find(
             group => group.ConceptNameCodeSequence.CodeMeaning === LONG_AXIS
@@ -39,12 +30,6 @@ class Bidirectional {
         const shortAxisSCOORDGroup = toArray(
             shortAxisNUMGroup.ContentSequence
         ).find(group => group.ValueType === "SCOORD");
-
-        const { ReferencedSOPSequence } = longAxisSCOORDGroup.ContentSequence;
-        const {
-            ReferencedSOPInstanceUID,
-            ReferencedFrameNumber
-        } = ReferencedSOPSequence;
 
         // Long axis
 
@@ -71,11 +56,7 @@ class Bidirectional {
             )
         };
 
-        const state = {
-            sopInstanceUid: ReferencedSOPInstanceUID,
-            frameIndex: ReferencedFrameNumber || 1,
-            toolType: Bidirectional.toolType,
-            active: false,
+        let bidirState = {
             handles: {
                 start: {
                     x: longAxisSCOORDGroup.GraphicData[0],
@@ -125,42 +106,31 @@ class Bidirectional {
                     y: bottomRight.y + 10
                 }
             },
-            invalidated: false,
-            isCreating: false,
             longestDiameter,
             shortestDiameter,
-            toolType: "Bidirectional",
-            toolName: "Bidirectional",
-            visible: true,
-            finding: findingGroup
-                ? findingGroup.ConceptCodeSequence
-                : undefined,
-            findingSites: findingSiteGroups.map(fsg => {
-                return { ...fsg.ConceptCodeSequence };
-            })
+            toolName: BIDIRECTIONAL,
+            toolType: Bidirectional.toolType
         };
 
-        return state;
+        bidirState = Object.assign(toolState, bidirState);
+
+        return bidirState;
     }
 
     static getTID300RepresentationArguments(tool) {
+        const TID300Rep = super.getTID300RepresentationArguments(tool);
         const {
             start,
             end,
             perpendicularStart,
             perpendicularEnd
         } = tool.handles;
-        const {
-            shortestDiameter,
-            longestDiameter,
-            finding,
-            findingSites
-        } = tool;
+        const { shortestDiameter, longestDiameter } = tool;
 
         const trackingIdentifierTextValue =
-            "cornerstoneTools@^4.0.0:Bidirectional";
+            CORNERSTONE_4_TAG + ":" + BIDIRECTIONAL;
 
-        return {
+        return Object.assign(TID300Rep, {
             longAxis: {
                 point1: start,
                 point2: end
@@ -171,10 +141,8 @@ class Bidirectional {
             },
             longAxisLength: longestDiameter,
             shortAxisLength: shortestDiameter,
-            trackingIdentifierTextValue,
-            finding: finding,
-            findingSites: findingSites || []
-        };
+            trackingIdentifierTextValue
+        });
     }
 }
 
