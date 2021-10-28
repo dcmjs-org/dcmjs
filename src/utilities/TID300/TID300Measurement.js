@@ -100,8 +100,6 @@ export default class TID300Measurement {
     getLocation() {
         let location = this.props.location;
 
-        console.log(this.props);
-
         if (!location) {
             return [];
         }
@@ -111,9 +109,9 @@ export default class TID300Measurement {
                 RelationshipType: "HAS OBS CONTEXT",
                 ValueType: "TEXT",
                 ConceptNameCodeSequence: {
-                    CodeValue: "112041",
+                    CodeValue: "121226",
                     CodingSchemeDesignator: "DCM",
-                    CodeMeaning: "Location"
+                    CodeMeaning: "Approximate spatial location"
                 },
                 TextValue: location
             }
@@ -132,9 +130,9 @@ export default class TID300Measurement {
                 RelationshipType: "HAS OBS CONTEXT",
                 ValueType: "TEXT",
                 ConceptNameCodeSequence: {
-                    CodeValue: "112042",
+                    CodeValue: "111033",
                     CodingSchemeDesignator: "DCM",
-                    CodeMeaning: "Description"
+                    CodeMeaning: "Impression description"
                 },
                 TextValue: description
             }
