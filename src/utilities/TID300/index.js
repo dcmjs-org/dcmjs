@@ -3,6 +3,7 @@ import Length from "./Length.js";
 import Bidirectional from "./Bidirectional.js";
 import Polyline from "./Polyline.js";
 import Ellipse from "./Ellipse.js";
+import Angle from "./Angle.js";
 
 // To be implemented:
 // - Cornerstone Probe
@@ -61,11 +62,12 @@ import Ellipse from "./Ellipse.js";
 // Should specify the Angle measured in Degrees, including the units in UCUM
 //
 const TID300 = {
-    TID300Measurement,
-    Length,
+    Angle,
     Bidirectional,
+    Ellipse,
+    Length,
     Polyline,
-    Ellipse
+    TID300Measurement
 };
 
 export { TID300Measurement, Length };

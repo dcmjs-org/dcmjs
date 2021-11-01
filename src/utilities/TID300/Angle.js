@@ -1,32 +1,45 @@
 import TID300Measurement from "./TID300Measurement.js";
 
-export default class Length extends TID300Measurement {
+export default class Angle extends TID300Measurement {
     contentItem() {
-        const { point1, point2, distance, ReferencedSOPSequence } = this.props;
+        const {
+            point1,
+            point2,
+            point3,
+            rAngle,
+            ReferencedSOPSequence
+        } = this.props;
 
         return this.getMeasurement([
             {
                 RelationshipType: "CONTAINS",
                 ValueType: "NUM",
                 ConceptNameCodeSequence: {
-                    CodeValue: "G-D7FE",
-                    CodingSchemeDesignator: "SRT",
-                    CodeMeaning: "Length"
+                    CodeValue: "4000022",
+                    CodingSchemeDesignator: "99PDL-rad",
+                    CodeMeaning: "Angle"
                 },
                 MeasuredValueSequence: {
                     MeasurementUnitsCodeSequence: {
-                        CodeValue: "mm",
+                        CodeValue: "deg",
                         CodingSchemeDesignator: "UCUM",
                         CodingSchemeVersion: "1.4",
-                        CodeMeaning: "millimeter"
+                        CodeMeaning: "degree"
                     },
-                    NumericValue: distance
+                    NumericValue: rAngle
                 },
                 ContentSequence: {
                     RelationshipType: "INFERRED FROM",
                     ValueType: "SCOORD",
                     GraphicType: "POLYLINE",
-                    GraphicData: [point1.x, point1.y, point2.x, point2.y],
+                    GraphicData: [
+                        point1.x,
+                        point1.y,
+                        point2.x,
+                        point2.y,
+                        point3.x,
+                        point3.y
+                    ],
                     ContentSequence: {
                         RelationshipType: "SELECTED FROM",
                         ValueType: "IMAGE",
