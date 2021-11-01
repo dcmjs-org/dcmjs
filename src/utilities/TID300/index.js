@@ -1,9 +1,10 @@
-import TID300Measurement from "./TID300Measurement.js";
-import Length from "./Length.js";
-import Bidirectional from "./Bidirectional.js";
-import Polyline from "./Polyline.js";
-import Ellipse from "./Ellipse.js";
 import Angle from "./Angle.js";
+import Bidirectional from "./Bidirectional.js";
+import Ellipse from "./Ellipse.js";
+import Length from "./Length.js";
+import Polyline from "./Polyline.js";
+import Rectangle from "./Rectangle.js";
+import TID300Measurement from "./TID300Measurement.js";
 
 // To be implemented:
 // - Cornerstone Probe
@@ -67,6 +68,7 @@ const TID300 = {
     Ellipse,
     Length,
     Polyline,
+    Rectangle,
     TID300Measurement
 };
 

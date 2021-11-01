@@ -1,10 +1,11 @@
-import MeasurementReport from "./MeasurementReport.js";
-import Length from "./Length.js";
-import Freehand from "./Freehand.js";
+import Angle from "./Angle.js";
+import ArrowAnnotate from "./ArrowAnnotate.js";
 import Bidirectional from "./Bidirectional.js";
 import EllipticalRoi from "./EllipticalRoi.js";
-import ArrowAnnotate from "./ArrowAnnotate.js";
-import Angle from "./Angle.js";
+import Freehand from "./Freehand.js";
+import Length from "./Length.js";
+import MeasurementReport from "./MeasurementReport.js";
+import RectangleRoi from "./RectangleRoi.js";
 import Segmentation from "./Segmentation.js";
 
 const Cornerstone = {
@@ -15,6 +16,7 @@ const Cornerstone = {
     Freehand,
     Length,
     MeasurementReport,
+    RectangleRoi,
     Segmentation
 };
 
