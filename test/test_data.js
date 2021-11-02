@@ -40,6 +40,7 @@ const metadata = {
 };
 
 const sequenceMetadata = {
+    "00080081": { "vr": "ST", "Value": [null] },
     "00081032": {
         vr: "SQ",
         Value: [
@@ -58,7 +59,26 @@ const sequenceMetadata = {
                 }
             }
         ]
-    }
+    },
+
+    "52009229": {
+        vr: "SQ",
+        Value: [
+            {
+                "00289110": {
+                    vr: "SQ",
+                    Value: [
+                        {
+                            "00180088": {
+                                vr: "DS",
+                                Value: [0.12],
+                            }
+                        }
+                    ],
+                },
+            },
+        ],
+    },
 };
 
 function downloadToFile(url, filePath) {
@@ -138,6 +158,15 @@ const tests = {
             "CodeValue",
             "IMG1332"
         );
+
+        // tests that single element sequences have been converted
+        // from arrays to values.
+        // See discussion here for more details: https://github.com/dcmjs-org/dcmjs/commit/74571a4bd6c793af2a679a31cec7e197f93e28cc
+        const spacing = naturalSequence.SharedFunctionalGroupsSequence
+            .PixelMeasuresSequence.SpacingBetweenSlices;
+        expect(spacing).to.equal(0.12);
+        expect(Array.isArray(naturalSequence.SharedFunctionalGroupsSequence)).to.equal(true);
+    
         expect(naturalSequence.ProcedureCodeSequence).to.have.property(
             "CodingSchemeDesignator",
             "L"
