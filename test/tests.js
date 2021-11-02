@@ -6,8 +6,9 @@ expect(dcmjs).to.be.an('Object');
 const testToRun = process.argv[2];
 
 const parts = [
-  "DICOMWEB", "adapters", "data", "derivations",
-  "normalizers", "sr", "utilities", "anonymizer",
+  // "DICOMWEB", "adapters", "data", "derivations",
+  // "normalizers", "sr", "utilities", "anonymizer",
+  "Nrrd"
 ];
 
 //

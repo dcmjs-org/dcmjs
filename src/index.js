@@ -1,5 +1,6 @@
 // Data
 import { BitArray } from "./bitArray.js";
+import { Nrrd } from "./nrrd/nrrd.js";
 import { ReadBufferStream } from "./BufferStream.js";
 import { WriteBufferStream } from "./BufferStream.js";
 import { DicomDict } from "./DicomDict.js";
@@ -85,6 +86,7 @@ let anonymizer = {
 
 const dcmjs = {
     DICOMWEB,
+    Nrrd,
     adapters,
     data,
     derivations,
@@ -97,6 +99,7 @@ const dcmjs = {
 
 export {
     DICOMWEB,
+    Nrrd,
     adapters,
     data,
     derivations,
