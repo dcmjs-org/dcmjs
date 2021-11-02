@@ -149,7 +149,8 @@ class DicomMetaDictionary {
                     if (
                         sqZero &&
                         typeof sqZero === "object" &&
-                        !sqZero.length
+                        !sqZero.length &&
+                        !(sqZero instanceof ArrayBuffer)
                     ) {
                         addAccessors(naturalDataset[naturalName], sqZero);
                     } else {
