@@ -146,6 +146,7 @@ class DicomMetaDictionary {
 
                 if (naturalDataset[naturalName].length === 1) {
                     const sqZero = naturalDataset[naturalName][0];
+                    //add accessor to object props, leave arrays and arraybuffers unchanged
                     if (
                         sqZero &&
                         typeof sqZero === "object" &&
