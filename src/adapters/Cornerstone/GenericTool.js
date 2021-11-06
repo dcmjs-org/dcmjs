@@ -28,12 +28,18 @@ class GenericTool {
         const LocationGroup = toArray(ContentSequence).filter(
             group => group.ConceptNameCodeSequence.CodeValue === LOCATION
         );
-        const location = LocationGroup[0].TextValue;
+        let location = "";
+        if (LocationGroup && LocationGroup.length > 0) {
+            location = LocationGroup[0].TextValue;
+        }
 
         const descriptionGroup = toArray(ContentSequence).filter(
             group => group.ConceptNameCodeSequence.CodeValue === DESCRIPTION
         );
-        const description = descriptionGroup[0].TextValue;
+        let description = "";
+        if (descriptionGroup && descriptionGroup.length > 0) {
+            description = descriptionGroup[0].TextValue;
+        }
 
         const SCOORDGroup = this.getScoordContent(ContentSequence);
 
