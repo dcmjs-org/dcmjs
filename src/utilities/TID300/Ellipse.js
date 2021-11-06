@@ -20,7 +20,7 @@ function expandPoints(points) {
 
 export default class Ellipse extends TID300Measurement {
     contentItem() {
-        const { points, ReferencedSOPSequence, area } = this.props;
+        const { cachedStats, points, ReferencedSOPSequence } = this.props;
 
         const GraphicData = expandPoints(points);
 
@@ -33,15 +33,35 @@ export default class Ellipse extends TID300Measurement {
                     CodingSchemeDesignator: "SRT",
                     CodeMeaning: "AREA"
                 },
-                MeasuredValueSequence: {
-                    MeasurementUnitsCodeSequence: {
-                        CodeValue: "mm2",
-                        CodingSchemeDesignator: "UCUM",
-                        CodingSchemeVersion: "1.4",
-                        CodeMeaning: "squaremillimeter"
+                MeasuredValueSequence: [
+                    {
+                        MeasurementUnitsCodeSequence: {
+                            CodeValue: "mm2",
+                            CodingSchemeDesignator: "UCUM",
+                            CodingSchemeVersion: "1.4",
+                            CodeMeaning: "squaremillimeter"
+                        },
+                        NumericValue: cachedStats.area
                     },
-                    NumericValue: area
-                },
+                    {
+                        MeasurementUnitsCodeSequence: {
+                            CodeValue: "HU",
+                            CodingSchemeDesignator: "UCUM",
+                            CodingSchemeVersion: "1.4",
+                            CodeMeaning: "Hounsfield unit"
+                        },
+                        NumericValue: cachedStats.mean
+                    },
+                    {
+                        MeasurementUnitsCodeSequence: {
+                            CodeValue: "HU",
+                            CodingSchemeDesignator: "UCUM",
+                            CodingSchemeVersion: "1.4",
+                            CodeMeaning: "Hounsfield unit"
+                        },
+                        NumericValue: cachedStats.stdDev
+                    }
+                ],
                 ContentSequence: {
                     RelationshipType: "INFERRED FROM",
                     ValueType: "SCOORD",

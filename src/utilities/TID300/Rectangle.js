@@ -5,7 +5,7 @@ export default class Rectangle extends Ellipse {
     contentItem() {
         let sequence = super.contentItem();
 
-        sequence.at(-1).GraphicType = "RECTANGLE";
+        sequence.at(-1).ContentSequence.GraphicType = "RECTANGLE";
         console.log(sequence);
         return sequence;
     }

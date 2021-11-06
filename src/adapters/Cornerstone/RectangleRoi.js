@@ -22,8 +22,6 @@ class RectangleRoi extends EllipticalRoi {
     static getTID300RepresentationArguments(tool) {
         const TID300Rep = super.getTID300RepresentationArguments(tool);
 
-        console.log(TID300Rep);
-
         const trackingIdentifierTextValue = CORNERSTONE_4_TAG + ":" + RECT;
 
         return Object.assign(TID300Rep, {

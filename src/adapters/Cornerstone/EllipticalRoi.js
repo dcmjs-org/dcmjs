@@ -57,7 +57,9 @@ class EllipticalRoi extends GenericTool {
             toolName: ELLIPTICALROI,
             toolType: EllipticalRoi.toolType,
             cachedStats: {
-                area: NUMGroup.MeasuredValueSequence.NumericValue
+                area: NUMGroup.MeasuredValueSequence[0].NumericValue,
+                mean: NUMGroup.MeasuredValueSequence[1].NumericValue,
+                stdDev: NUMGroup.MeasuredValueSequence[2].NumericValue
             },
             handles: {
                 end: {
@@ -92,7 +94,7 @@ class EllipticalRoi extends GenericTool {
         const TID300Rep = super.getTID300RepresentationArguments(tool);
         const { cachedStats, handles } = tool;
         const { start, end } = handles;
-        const { area } = cachedStats;
+        //const { area } = cachedStats;
 
         const halfXLength = Math.abs(start.x - end.x) / 2;
         const halfYLength = Math.abs(start.y - end.y) / 2;
@@ -123,7 +125,7 @@ class EllipticalRoi extends GenericTool {
             CORNERSTONE_4_TAG + ":" + ELLIPTICALROI;
 
         return Object.assign(TID300Rep, {
-            area,
+            cachedStats,
             points,
             trackingIdentifierTextValue
         });
