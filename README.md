@@ -36,8 +36,8 @@ _Parts of DICOM that dcmjs will focus on:_
 
 _Parts of DICOM that dcmjs *will not* focus on:_
 
-- DIMSE (legacy networking like C-FIND, C-MOVE, etc)
-- Physical Media (optical disks)
+- DIMSE (legacy networking like C-FIND, C-MOVE, etc).  See the [dicom-dimse project](https://github.com/PantelisGeorgiadis/dcmjs-dimse) for that.
+- Physical Media (optical disks).  See [this FAQ](https://www.dclunie.com/medical-image-faq/html/index.html) if you need to work with those.
 
 # Usage
 
@@ -77,6 +77,25 @@ Use the following "Commit Message Format" when drafting commit messages. If you'
 
 Note: Be wary of `BREAKING_CHANGE` in commit message descriptions, as this can force a major version bump.
 
+Be sure to use lower case for the first letter of your semantic commit message, so use `fix` not `Fix` or `feat` not `Feat`.
+It is advised to use the git-cz, i.e.:
+
+- install git-cz
+
+```
+npm install -g git-cz
+```
+
+- how to commit
+
+```
+git-cz --non-interactive --type=fix --subject="commit message"
+```
+
+More info at [git-cz](https://www.npmjs.com/package/git-cz).
+
+Note: a new package version will be published only if the commit comes from a PR.
+
 ## Community Participation
 
 Use this repository's issues page to report any bugs. Please follow [SSCCE](http://sscce.org/) guidelines when submitting issues.
@@ -113,12 +132,12 @@ Currently dcmjs is an early-stage development experiment, but already has valuab
 - 2017
   - At [NA-MIC Project Week 25](https://na-mic.org/wiki/Project_Week_25) Erik Ziegler and Steve Pieper [worked](https://na-mic.org/wiki/Project_Week_25/DICOM_Segmentation_Support_for_Cornerstone_and_OHIF_Viewer)
     with the community to define some example use cases to mix the pure JavaScript DICOM code with Cornerstone and [CornerstoneTools](https://github.com/chafey/cornerstoneTools).
-- 2018-2020
+- 2018-2021
   - Work continues to develop SR and SEG support to [OHIFViewer](http://ohif.org) allow interoperability with [DICOM4QI](https://legacy.gitbook.com/book/qiicr/dicom4qi/details)
 
 # Support
 
-The developers gratefully acknowledge their reseach support:
+The developers gratefully acknowledge their research support:
 
 - Open Health Imaging Foundation ([OHIF](http://ohif.org))
 - Quantitative Image Informatics for Cancer Research ([QIICR](http://qiicr.org))

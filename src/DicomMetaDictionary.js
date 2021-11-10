@@ -1,8 +1,17 @@
 import log from "./log.js";
-import { ValueRepresentation } from "./ValueRepresentation.js";
-import dictionary from "./dictionary.js";
+import { ValueRepresentation } from "./ValueRepresentation";
+import dictionary from "./dictionary";
+import addAccessors from "./utilities/addAccessors";
 
 class DicomMetaDictionary {
+    // intakes a custom dictionary that will be used to parse/denaturalize the dataset
+    constructor(customDictionary) {
+        this.customDictionary = customDictionary;
+        this.customNameMap = DicomMetaDictionary._generateCustomNameMap(
+            customDictionary
+        );
+    }
+
     static punctuateTag(rawTag) {
         if (rawTag.indexOf(",") !== -1) {
             return rawTag;
@@ -77,11 +86,13 @@ class DicomMetaDictionary {
         return namedDataset;
     }
 
-    // converts from DICOM JSON Model dataset
-    // to a natural dataset
-    // - sequences become lists
-    // - single element lists are replaced by their first element
-    // - object member names are dictionary, not group/element tag
+    /** converts from DICOM JSON Model dataset to a natural dataset
+     * - sequences become lists
+     * - single element lists are replaced by their first element,
+     *     with single element lists remaining lists, but being a
+     *     proxy for the child values, see addAccessors for examples
+     * - object member names are dictionary, not group/element tag
+     */
     static naturalizeDataset(dataset) {
         const naturalDataset = {
             _vrMap: {}
@@ -134,8 +145,16 @@ class DicomMetaDictionary {
                 }
 
                 if (naturalDataset[naturalName].length === 1) {
-                    naturalDataset[naturalName] =
-                        naturalDataset[naturalName][0];
+                    const sqZero = naturalDataset[naturalName][0];
+                    if (
+                        sqZero &&
+                        typeof sqZero === "object" &&
+                        !sqZero.length
+                    ) {
+                        addAccessors(naturalDataset[naturalName], sqZero);
+                    } else {
+                        naturalDataset[naturalName] = sqZero;
+                    }
                 }
             }
         });
@@ -162,12 +181,13 @@ class DicomMetaDictionary {
         return value;
     }
 
-    static denaturalizeDataset(dataset) {
+    // keep the static function to support previous calls to the class
+    static denaturalizeDataset(dataset, nameMap = DicomMetaDictionary.nameMap) {
         var unnaturalDataset = {};
         Object.keys(dataset).forEach(naturalName => {
             // check if it's a sequence
             var name = naturalName;
-            var entry = DicomMetaDictionary.nameMap[name];
+            var entry = nameMap[name];
             if (entry) {
                 let dataValue = dataset[naturalName];
 
@@ -207,7 +227,8 @@ class DicomMetaDictionary {
                             const nestedDataset = dataItem.Value[datasetIndex];
                             unnaturalValues.push(
                                 DicomMetaDictionary.denaturalizeDataset(
-                                    nestedDataset
+                                    nestedDataset,
+                                    nameMap
                                 )
                             );
                         }
@@ -288,12 +309,31 @@ class DicomMetaDictionary {
         });
     }
 
+    static _generateCustomNameMap(dictionary) {
+        const nameMap = {};
+        Object.keys(dictionary).forEach(tag => {
+            var dict = dictionary[tag];
+            if (dict.version != "PrivateTag") {
+                nameMap[dict.name] = dict;
+            }
+        });
+        return nameMap;
+    }
+
     static _generateUIDMap() {
         DicomMetaDictionary.sopClassUIDsByName = {};
         Object.keys(DicomMetaDictionary.sopClassNamesByUID).forEach(uid => {
             var name = DicomMetaDictionary.sopClassNamesByUID[uid];
             DicomMetaDictionary.sopClassUIDsByName[name] = uid;
         });
+    }
+
+    // denaturalizes dataset using custom dictionary and nameMap
+    denaturalizeDataset(dataset) {
+        return DicomMetaDictionary.denaturalizeDataset(
+            dataset,
+            this.customNameMap
+        );
     }
 }
 
