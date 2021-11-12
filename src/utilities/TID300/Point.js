@@ -10,8 +10,15 @@ export default class Point extends TID300Measurement {
         } = this.props;
 
         const GraphicData = use3DSpatialCoordinates
-            ? [points[0].x, points[0].y, points[0].z]
-            : [points[0].x, points[0].y];
+            ? [
+                  points[0].x,
+                  points[0].y,
+                  points[0].z,
+                  points[1].x,
+                  points[1].y,
+                  points[1].z
+              ]
+            : [points[0].x, points[0].y, points[1].x, points[1].y];
 
         return this.getMeasurement([
             {

@@ -36,8 +36,8 @@ class ArrowAnnotate extends GenericTool {
                 // TODO: How do we choose where the end goes?
                 // Just put it pointing from the bottom right for now?
                 end: {
-                    x: GraphicData[0] + 20,
-                    y: GraphicData[1] + 20,
+                    x: GraphicData[2],
+                    y: GraphicData[3],
                     highlight: true,
                     active: false
                 },
@@ -54,13 +54,22 @@ class ArrowAnnotate extends GenericTool {
             toolType: ArrowAnnotate.toolType
         };
 
+        if (GraphicData.length === 6) {
+            arrowState.handles.start.x = GraphicData[0];
+            arrowState.handles.start.y = GraphicData[1];
+            arrowState.handles.start.z = GraphicData[2];
+            arrowState.handles.end.x = GraphicData[3];
+            arrowState.handles.end.y = GraphicData[4];
+            arrowState.handles.end.z = GraphicData[5];
+        }
+
         arrowState = Object.assign(toolState, arrowState);
 
         return arrowState;
     }
 
     static getTID300RepresentationArguments(tool) {
-        const points = [tool.handles.start];
+        const points = [tool.handles.start, tool.handles.end];
 
         let { finding, findingSites } = tool;
 
