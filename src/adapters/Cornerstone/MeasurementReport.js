@@ -31,6 +31,7 @@ function getMeasurementGroup(toolType, toolData, ReferencedSOPSequence) {
     const toolTypeData = toolData[toolType];
     const toolClass =
         MeasurementReport.CORNERSTONE_TOOL_CLASSES_BY_TOOL_TYPE[toolType];
+
     if (
         !toolTypeData ||
         !toolTypeData.data ||
@@ -42,13 +43,19 @@ function getMeasurementGroup(toolType, toolData, ReferencedSOPSequence) {
 
     // Loop through the array of tool instances
     // for this tool
-    const Measurements = toolTypeData.data.map(tool => {
-        return getTID300ContentItem(
-            tool,
-            toolType,
-            ReferencedSOPSequence,
-            toolClass
-        );
+    const Measurements = [];
+
+    toolTypeData.data.forEach(tool => {
+        if (toolClass.checkMeasurementIntegrity(tool)) {
+            Measurements.push(
+                getTID300ContentItem(
+                    tool,
+                    toolType,
+                    ReferencedSOPSequence,
+                    toolClass
+                )
+            );
+        }
     });
 
     return new TID1501MeasurementGroup(Measurements);

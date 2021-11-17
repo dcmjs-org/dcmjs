@@ -66,6 +66,14 @@ class Angle extends GenericTool {
             trackingIdentifierTextValue
         });
     }
+
+    static checkMeasurementIntegrity(tool) {
+        if (tool.hasOwnProperty("rAngle")) {
+            return true;
+        } else {
+            return false;
+        }
+    }
 }
 
 Angle.toolType = ANGLE;

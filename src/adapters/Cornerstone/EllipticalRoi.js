@@ -130,6 +130,14 @@ class EllipticalRoi extends GenericTool {
             trackingIdentifierTextValue
         });
     }
+
+    static checkMeasurementIntegrity(tool) {
+        if (tool.hasOwnProperty("cachedStats")) {
+            return true;
+        } else {
+            return false;
+        }
+    }
 }
 
 EllipticalRoi.toolType = ELLIPTICALROI;

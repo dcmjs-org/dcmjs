@@ -93,6 +93,14 @@ class ArrowAnnotate extends GenericTool {
 
         return TID300RepresentationArguments;
     }
+
+    static checkMeasurementIntegrity(tool) {
+        if (tool.hasOwnProperty("text")) {
+            return true;
+        } else {
+            return false;
+        }
+    }
 }
 
 ArrowAnnotate.toolType = ARROW_ANNOTATE;

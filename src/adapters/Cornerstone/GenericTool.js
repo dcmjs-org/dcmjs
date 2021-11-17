@@ -106,6 +106,10 @@ class GenericTool {
             group => group.ValueType === COORD
         );
     }
+
+    static checkMeasurementIntegrity(tool) {
+        return true;
+    }
 }
 
 GenericTool.toolType = GenericTool;

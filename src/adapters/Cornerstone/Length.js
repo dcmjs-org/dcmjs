@@ -61,6 +61,14 @@ class Length extends GenericTool {
             trackingIdentifierTextValue
         });
     }
+
+    static checkMeasurementIntegrity(tool) {
+        if (tool.hasOwnProperty("length")) {
+            return true;
+        } else {
+            return false;
+        }
+    }
 }
 
 Length.toolType = LENGTH;

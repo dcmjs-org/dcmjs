@@ -144,6 +144,14 @@ class Bidirectional extends GenericTool {
             trackingIdentifierTextValue
         });
     }
+
+    static checkMeasurementIntegrity(tool) {
+        if (tool.longestDiameter > 0 && tool.shortestDiameter > 0) {
+            return true;
+        } else {
+            return false;
+        }
+    }
 }
 
 Bidirectional.toolType = BIDIRECTIONAL;
