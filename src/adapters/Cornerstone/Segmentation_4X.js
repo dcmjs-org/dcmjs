@@ -298,16 +298,24 @@ function generateToolState(
         console.warn("Insufficient metadata, imagePlaneModule missing.");
     }
 
-    const ImageOrientationPatient = Array.isArray(imagePlaneModule.rowCosines)
-        ? [...imagePlaneModule.rowCosines, ...imagePlaneModule.columnCosines]
-        : [
-              imagePlaneModule.rowCosines.x,
-              imagePlaneModule.rowCosines.y,
-              imagePlaneModule.rowCosines.z,
-              imagePlaneModule.columnCosines.x,
-              imagePlaneModule.columnCosines.y,
-              imagePlaneModule.columnCosines.z
-          ];
+    let ImageOrientationPatient;
+    if (imagePlaneModule.rowCosines && imagePlaneModule.columnCosines) {
+        ImageOrientationPatient = Array.isArray(imagePlaneModule.rowCosines)
+            ? [
+                  ...imagePlaneModule.rowCosines,
+                  ...imagePlaneModule.columnCosines
+              ]
+            : [
+                  imagePlaneModule.rowCosines.x,
+                  imagePlaneModule.rowCosines.y,
+                  imagePlaneModule.rowCosines.z,
+                  imagePlaneModule.columnCosines.x,
+                  imagePlaneModule.columnCosines.y,
+                  imagePlaneModule.columnCosines.z
+              ];
+    } else {
+        ImageOrientationPatient = [1, 0, 0, 0, 1, 0];
+    }
 
     // Get IOP from ref series, compute supported orientations:
     const validOrientations = getValidOrientations(ImageOrientationPatient);
