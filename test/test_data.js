@@ -574,6 +574,12 @@ const tests = {
         expect(Object.keys(dataset).length).to.equal(17)
         console.log("Finished test_custom_dictionary");
     },
+    test_readFile_undefined_length: () => {
+        const arrayBuffer = fs.readFileSync(
+          path.join(__dirname, "undefined-length-test.dcm")
+        ).buffer;
+        expect(() => DicomMessage.readFile(arrayBuffer)).not.to.throw();
+      },
 };
 
 exports.test = async testToRun => {
