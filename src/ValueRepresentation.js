@@ -363,7 +363,6 @@ class BinaryRepresentation extends ValueRepresentation {
                 // redundant approach.
                 if (offsets.length > 0) {
                     offsets.push(stream.size);
-
                     for (var _i = 0; _i < offsets.length - 1; _i++) {
                         let fragments = [];
 
@@ -421,13 +420,9 @@ class BinaryRepresentation extends ValueRepresentation {
                         frames.push(fragmentStream.buffer);
                     }
                 }
-
-                // Read SequenceDelimitationItem Tag
+                // Read delimitation item length (expect 00 00 00 00)
+                // https://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_7.5.html
                 stream.readUint32();
-                // Read SequenceDelimitationItem value.
-                if (stream.size - stream.offset >= 4) {
-                    stream.readUint32();
-                }
             } else {
                 throw new Error(
                     "Item tag not found after undefined binary length"
