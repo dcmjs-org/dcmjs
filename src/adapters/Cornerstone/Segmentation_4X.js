@@ -604,17 +604,7 @@ function getCorners(imagePlaneModule) {
 }
 
 /**
- * Checks if there is any overlapping segmentations. The check is performed frame by frame.
- *  Two assumptions are used in the loop:
- *  1) numberOfSegs * numberOfFrames = groupsLen,
- *     i.e. for each frame we have a N PerFrameFunctionalGroupsSequence, where N is the number of segmentations (numberOfSegs).
- *  2) the order of the group sequence is = numberOfFrames of segmentation 1 +  numberOfFrames of segmentation 2 + ... + numberOfFrames of segmentation numberOfSegs
- *
- *  -------------------
- *
- *  TO DO: We could check the ImagePositionPatient and working in 3D coordinates (instead of indexes) and remove the assumptions,
- *  but this would greatly increase the computation time (i.e. we would have to sort the data before running checkSEGsOverlapping).
- *
+ * Checks if there is any overlapping segmentations.
  *  @returns {boolean} Returns a flag if segmentations overlapping
  */
 
@@ -629,56 +619,48 @@ function checkSEGsOverlapping(
     const {
         SharedFunctionalGroupsSequence,
         PerFrameFunctionalGroupsSequence,
+        SegmentSequence,
         Rows,
         Columns
     } = multiframe;
+
+    let numberOfSegs = SegmentSequence.length;
+    if (numberOfSegs < 2) {
+        return false;
+    }
+
+    console.info("bella1");
 
     const sharedImageOrientationPatient = SharedFunctionalGroupsSequence.PlaneOrientationSequence
         ? SharedFunctionalGroupsSequence.PlaneOrientationSequence
               .ImageOrientationPatient
         : undefined;
     const sliceLength = Columns * Rows;
-
-    let firstSegIndex = -1;
-    let previousimageIdIndex = -1;
-    let temp2DArray = new Uint16Array(sliceLength).fill(0);
     const groupsLen = PerFrameFunctionalGroupsSequence.length;
-    const numberOfSegs = multiframe.SegmentSequence.length;
-    const numberOfFrames = imageIds.length;
 
-    if (numberOfSegs * numberOfFrames !== groupsLen) {
-        console.warn(
-            "Failed to check for overlap of segments: " +
-                "missing frames in PerFrameFunctionalGroupsSequence " +
-                "or the segmentation has different geometry respect to the source image."
-        );
-        return false;
-    }
+    // sort groupsLen to have all the segments for each frame in an array
+    // * frame 2 : 1, 2
+    // * frame 4 : 1, 3
+    // * frame 5 : 4
+    // ...
 
-    const refSegFrame0 = getSegmentIndex(multiframe, 0);
-    const refSegFrame1 = getSegmentIndex(multiframe, 1);
-    if (
-        refSegFrame0 === undefined ||
-        refSegFrame1 === undefined ||
-        refSegFrame0 !== refSegFrame1
-    ) {
-        console.warn(
-            "Failed to check for overlap of segments: frames in PerFrameFunctionalGroupsSequence are not sorted."
-        );
-        return false;
-    }
-
-    let i = 0;
-    while (i < groupsLen) {
-        const PerFrameFunctionalGroups = PerFrameFunctionalGroupsSequence[i];
+    let frameSegmentsMapping = new Map();
+    for (let frameSegment = 0; frameSegment < groupsLen; ++frameSegment) {
+        const PerFrameFunctionalGroups =
+            PerFrameFunctionalGroupsSequence[frameSegment];
 
         const ImageOrientationPatientI =
             sharedImageOrientationPatient ||
             PerFrameFunctionalGroups.PlaneOrientationSequence
                 .ImageOrientationPatient;
 
+        console.info("bella112", pixelData);
         const pixelDataI2D = ndarray(
-            new Uint8Array(pixelData.buffer, i * sliceLength, sliceLength),
+            new Uint8Array(
+                pixelData.buffer,
+                frameSegment * sliceLength,
+                sliceLength
+            ),
             [Rows, Columns]
         );
 
@@ -693,21 +675,21 @@ function checkSEGsOverlapping(
             console.warn(
                 "Individual SEG frames are out of plane with respect to the first SEG frame, this is not yet supported, skipping this frame."
             );
-            return false;
+            continue;
         }
 
-        const segmentIndex = getSegmentIndex(multiframe, i);
+        const segmentIndex = getSegmentIndex(multiframe, frameSegment);
         if (segmentIndex === undefined) {
             console.warn(
                 "Could not retrieve the segment index, skipping this frame."
             );
-            return false;
+            continue;
         }
 
         let SourceImageSequence;
 
         if (multiframe.SourceImageSequence) {
-            SourceImageSequence = multiframe.SourceImageSequence[i];
+            SourceImageSequence = multiframe.SourceImageSequence[frameSegment];
         } else {
             SourceImageSequence =
                 PerFrameFunctionalGroups.DerivationImageSequence
@@ -718,7 +700,7 @@ function checkSEGsOverlapping(
             console.warn(
                 "Source Image Sequence information missing: individual SEG frames are out of plane, this is not yet supported, skipping this frame."
             );
-            return false;
+            continue;
         }
 
         const imageId = getImageIdOfSourceImage(
@@ -729,19 +711,31 @@ function checkSEGsOverlapping(
 
         if (!imageId) {
             // Image not present in stack, can't import this frame.
-
-            i = i + numberOfFrames;
-            if (i >= groupsLen) {
-                i = i - numberOfFrames * numberOfSegs + 1;
-                if (i >= numberOfFrames) {
-                    break;
-                }
-            }
-
             continue;
         }
 
-        const data = alignedPixelDataI.data;
+        if (frameSegmentsMapping.has(imageId)) {
+            let segmentArray = frameSegmentsMapping.get(imageId);
+            if (!segmentArray.includes(frameSegment)) {
+                segmentArray.push(frameSegment);
+                frameSegmentsMapping.set(imageId, segmentArray);
+            }
+        } else {
+            frameSegmentsMapping.set(imageId, [frameSegment]);
+        }
+    }
+
+    console.info("bella2");
+
+    for (let [user, role] of frameSegmentsMapping.entries()) {
+        console.log(`bella312312, ${user}: ${role}`);
+    }
+
+    /*let firstSegIndex = -1;
+    let previousimageIdIndex = -1;
+    let temp2DArray = new Uint16Array(sliceLength).fill(0);*/
+
+    /*const data = alignedPixelDataI.data;
         const imageIdIndex = imageIds.findIndex(element => element === imageId);
 
         if (i === 0) {
@@ -763,16 +757,7 @@ function checkSEGsOverlapping(
                     return true;
                 }
             }
-        }
-
-        i = i + numberOfFrames;
-        if (i >= groupsLen) {
-            i = i - numberOfFrames * numberOfSegs + 1;
-            if (i >= numberOfFrames) {
-                break;
-            }
-        }
-    }
+        }*/
 
     return false;
 }
