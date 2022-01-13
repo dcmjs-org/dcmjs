@@ -604,6 +604,67 @@ function getCorners(imagePlaneModule) {
 }
 
 /**
+ * Find the reference frame of the segmentation frame in the source data.
+ *  @returns {string} Returns the imageId
+ */
+function findReferenceSourceImageId(
+    SourceImageSequence,
+    imageIds,
+    metadataProvider,
+    PerFrameFunctionalGroups,
+    frameOfReferenceUID,
+    tolerance
+) {
+    const imageId = getImageIdOfSourceImage(
+        SourceImageSequence,
+        imageIds,
+        metadataProvider
+    );
+
+    if (!imageId) {
+        // not found, we can do a check with the PlanePositionSequence,
+        // however (WARNING!!!) if more than a source series is present, this logic can find the wrong frame
+        // (i.e. two source series, with the same frameOfReferenceUID,
+        // that have each a frame with the same ImagePositionPatient of PlanePositionSequence)
+        if (
+            PerFrameFunctionalGroups.PlanePositionSequence !== undefined &&
+            PerFrameFunctionalGroups.PlanePositionSequence[0] !== undefined &&
+            PerFrameFunctionalGroups.PlanePositionSequence[0]
+                .ImagePositionPatient !== undefined
+        ) {
+            for (let i = 0; i < imageIds.length; ++i) {
+                const sourceImageMetadata = cornerstone.metaData.get(
+                    "instance",
+                    imageIds[i]
+                );
+
+                if (
+                    sourceImageMetadata === undefined ||
+                    sourceImageMetadata.ImagePositionPatient === undefined ||
+                    sourceImageMetadata.FrameOfReferenceUID !==
+                        frameOfReferenceUID
+                ) {
+                    continue;
+                }
+
+                if (
+                    compareArrays(
+                        PerFrameFunctionalGroups.PlanePositionSequence[0]
+                            .ImagePositionPatient,
+                        sourceImageMetadata.ImagePositionPatient,
+                        tolerance
+                    )
+                ) {
+                    return imageIds[i];
+                }
+            }
+        }
+    }
+
+    return imageId;
+}
+
+/**
  * Checks if there is any overlapping segmentations.
  *  @returns {boolean} Returns a flag if segmentations overlapping
  */
@@ -629,8 +690,6 @@ function checkSEGsOverlapping(
         return false;
     }
 
-    console.info("bella1");
-
     const sharedImageOrientationPatient = SharedFunctionalGroupsSequence.PlaneOrientationSequence
         ? SharedFunctionalGroupsSequence.PlaneOrientationSequence
               .ImageOrientationPatient
@@ -649,39 +708,12 @@ function checkSEGsOverlapping(
         const PerFrameFunctionalGroups =
             PerFrameFunctionalGroupsSequence[frameSegment];
 
-        const ImageOrientationPatientI =
-            sharedImageOrientationPatient ||
-            PerFrameFunctionalGroups.PlaneOrientationSequence
-                .ImageOrientationPatient;
-
-        console.info("bella112", pixelData);
-        const pixelDataI2D = ndarray(
-            new Uint8Array(
-                pixelData.buffer,
-                frameSegment * sliceLength,
-                sliceLength
-            ),
-            [Rows, Columns]
-        );
-
-        const alignedPixelDataI = alignPixelDataWithSourceData(
-            pixelDataI2D,
-            ImageOrientationPatientI,
-            validOrientations,
-            tolerance
-        );
-
-        if (!alignedPixelDataI) {
-            console.warn(
-                "Individual SEG frames are out of plane with respect to the first SEG frame, this is not yet supported, skipping this frame."
-            );
-            continue;
-        }
-
         const segmentIndex = getSegmentIndex(multiframe, frameSegment);
         if (segmentIndex === undefined) {
             console.warn(
-                "Could not retrieve the segment index, skipping this frame."
+                "Could not retrieve the segment index for frame segment " +
+                    frameSegment +
+                    ", skipping this frame."
             );
             continue;
         }
@@ -703,61 +735,83 @@ function checkSEGsOverlapping(
             continue;
         }
 
-        const imageId = getImageIdOfSourceImage(
+        const imageId = findReferenceSourceImageId(
             SourceImageSequence,
             imageIds,
-            metadataProvider
+            metadataProvider,
+            PerFrameFunctionalGroups,
+            multiframe.FrameOfReferenceUID,
+            tolerance
         );
 
         if (!imageId) {
-            // Image not present in stack, can't import this frame.
+            console.warn(
+                "Image not present in stack, can't import frame : " + i + "."
+            );
             continue;
         }
 
-        if (frameSegmentsMapping.has(imageId)) {
-            let segmentArray = frameSegmentsMapping.get(imageId);
-            if (!segmentArray.includes(frameSegment)) {
-                segmentArray.push(frameSegment);
-                frameSegmentsMapping.set(imageId, segmentArray);
-            }
-        } else {
-            frameSegmentsMapping.set(imageId, [frameSegment]);
-        }
-    }
-
-    console.info("bella2");
-
-    for (let [user, role] of frameSegmentsMapping.entries()) {
-        console.log(`bella312312, ${user}: ${role}`);
-    }
-
-    /*let firstSegIndex = -1;
-    let previousimageIdIndex = -1;
-    let temp2DArray = new Uint16Array(sliceLength).fill(0);*/
-
-    /*const data = alignedPixelDataI.data;
         const imageIdIndex = imageIds.findIndex(element => element === imageId);
 
-        if (i === 0) {
-            firstSegIndex = segmentIndex;
+        if (frameSegmentsMapping.has(imageIdIndex)) {
+            let segmentArray = frameSegmentsMapping.get(imageIdIndex);
+            if (!segmentArray.includes(frameSegment)) {
+                segmentArray.push(frameSegment);
+                frameSegmentsMapping.set(imageIdIndex, segmentArray);
+            }
+        } else {
+            frameSegmentsMapping.set(imageIdIndex, [frameSegment]);
         }
+    }
 
-        if (
-            segmentIndex === firstSegIndex &&
-            imageIdIndex > previousimageIdIndex
-        ) {
-            temp2DArray.fill(0);
-            previousimageIdIndex = imageIdIndex;
-        }
+    for (let [user, role] of frameSegmentsMapping.entries()) {
+        let temp2DArray = new Uint16Array(sliceLength).fill(0);
 
-        for (let j = 0, len = alignedPixelDataI.data.length; j < len; ++j) {
-            if (data[j]) {
-                temp2DArray[j]++;
-                if (temp2DArray[j] > 1) {
-                    return true;
+        for (let i = 0; i < role.length; ++i) {
+            const frameSegment = role[i];
+
+            const PerFrameFunctionalGroups =
+                PerFrameFunctionalGroupsSequence[frameSegment];
+
+            const ImageOrientationPatientI =
+                sharedImageOrientationPatient ||
+                PerFrameFunctionalGroups.PlaneOrientationSequence
+                    .ImageOrientationPatient;
+
+            const pixelDataI2D = ndarray(
+                new Uint8Array(
+                    pixelData.buffer,
+                    frameSegment * sliceLength,
+                    sliceLength
+                ),
+                [Rows, Columns]
+            );
+
+            const alignedPixelDataI = alignPixelDataWithSourceData(
+                pixelDataI2D,
+                ImageOrientationPatientI,
+                validOrientations,
+                tolerance
+            );
+
+            if (!alignedPixelDataI) {
+                console.warn(
+                    "Individual SEG frames are out of plane with respect to the first SEG frame, this is not yet supported, skipping this frame."
+                );
+                continue;
+            }
+
+            const data = alignedPixelDataI.data;
+            for (let j = 0, len = data.length; j < len; ++j) {
+                if (data[j] !== 0) {
+                    temp2DArray[j]++;
+                    if (temp2DArray[j] > 1) {
+                        return true;
+                    }
                 }
             }
-        }*/
+        }
+    }
 
     return false;
 }
@@ -855,9 +909,7 @@ function insertOverlappingPixelDataPlanar(
                 );
             }
 
-            let imageId = undefined;
             let SourceImageSequence = undefined;
-
             if (multiframe.SourceImageSequence) {
                 SourceImageSequence = multiframe.SourceImageSequence[i];
             } else {
@@ -873,14 +925,21 @@ function insertOverlappingPixelDataPlanar(
                 );
             }
 
-            imageId = getImageIdOfSourceImage(
+            const imageId = findReferenceSourceImageId(
                 SourceImageSequence,
                 imageIds,
-                metadataProvider
+                metadataProvider,
+                PerFrameFunctionalGroups,
+                multiframe.FrameOfReferenceUID,
+                tolerance
             );
 
             if (!imageId) {
-                // Image not present in stack, can't import this frame.
+                console.warn(
+                    "Image not present in stack, can't import frame : " +
+                        i +
+                        "."
+                );
                 continue;
             }
 
@@ -1041,7 +1100,6 @@ function insertPixelDataPlanar(
             );
         }
 
-        let imageId = undefined;
         let SourceImageSequence = undefined;
         if (multiframe.SourceImageSequence) {
             SourceImageSequence = multiframe.SourceImageSequence[i];
@@ -1058,14 +1116,19 @@ function insertPixelDataPlanar(
             );
         }
 
-        imageId = getImageIdOfSourceImage(
+        const imageId = findReferenceSourceImageId(
             SourceImageSequence,
             imageIds,
-            metadataProvider
+            metadataProvider,
+            PerFrameFunctionalGroups,
+            multiframe.FrameOfReferenceUID,
+            tolerance
         );
 
         if (!imageId) {
-            // Image not present in stack, can't import this frame.
+            console.warn(
+                "Image not present in stack, can't import frame : " + i + "."
+            );
             continue;
         }
 
@@ -1094,8 +1157,6 @@ function insertPixelDataPlanar(
         );
 
         const data = alignedPixelDataI.data;
-
-        //
         for (let j = 0, len = alignedPixelDataI.data.length; j < len; ++j) {
             if (data[j]) {
                 for (let x = j; x < len; ++x) {
@@ -1141,7 +1202,7 @@ function checkOrientation(
             .ImageOrientationPatient;
 
     const inPlane = validOrientations.some(operation =>
-        compareIOP(iop, operation, tolerance)
+        compareArrays(iop, operation, tolerance)
     );
 
     if (inPlane) {
@@ -1194,11 +1255,22 @@ function checkIfPerpendicular(iop1, iop2, tolerance) {
 function unpackPixelData(multiframe) {
     const segType = multiframe.SegmentationType;
 
-    if (segType === "BINARY") {
-        return BitArray.unpack(multiframe.PixelData);
+    let data;
+    if (Array.isArray(multiframe.PixelData)) {
+        data = multiframe.PixelData[0];
+    } else {
+        data = multiframe.PixelData;
     }
 
-    const pixelData = new Uint8Array(multiframe.PixelData);
+    if (data === undefined) {
+        log.error("This segmentation pixeldata is undefined.");
+    }
+
+    if (segType === "BINARY") {
+        return BitArray.unpack(data);
+    }
+
+    const pixelData = new Uint8Array(data);
 
     const max = multiframe.MaximumFractionalValue;
     const onlyMaxAndZero =
@@ -1360,38 +1432,38 @@ function alignPixelDataWithSourceData(
     orientations,
     tolerance
 ) {
-    if (compareIOP(iop, orientations[0], tolerance)) {
+    if (compareArrays(iop, orientations[0], tolerance)) {
         return pixelData2D;
-    } else if (compareIOP(iop, orientations[1], tolerance)) {
+    } else if (compareArrays(iop, orientations[1], tolerance)) {
         // Flipped vertically.
 
         // Undo Flip
         return flipMatrix2D.v(pixelData2D);
-    } else if (compareIOP(iop, orientations[2], tolerance)) {
+    } else if (compareArrays(iop, orientations[2], tolerance)) {
         // Flipped horizontally.
 
         // Unfo flip
         return flipMatrix2D.h(pixelData2D);
-    } else if (compareIOP(iop, orientations[3], tolerance)) {
+    } else if (compareArrays(iop, orientations[3], tolerance)) {
         //Rotated 90 degrees
 
         // Rotate back
         return rotateMatrix902D(pixelData2D);
-    } else if (compareIOP(iop, orientations[4], tolerance)) {
+    } else if (compareArrays(iop, orientations[4], tolerance)) {
         //Rotated 90 degrees and fliped horizontally.
 
         // Undo flip and rotate back.
         return rotateMatrix902D(flipMatrix2D.h(pixelData2D));
-    } else if (compareIOP(iop, orientations[5], tolerance)) {
+    } else if (compareArrays(iop, orientations[5], tolerance)) {
         // Rotated 90 degrees and fliped vertically
 
         // Unfo flip and rotate back.
         return rotateMatrix902D(flipMatrix2D.v(pixelData2D));
-    } else if (compareIOP(iop, orientations[6], tolerance)) {
+    } else if (compareArrays(iop, orientations[6], tolerance)) {
         // Rotated 180 degrees. // TODO -> Do this more effeciently, there is a 1:1 mapping like 90 degree rotation.
 
         return rotateMatrix902D(rotateMatrix902D(pixelData2D));
-    } else if (compareIOP(iop, orientations[7], tolerance)) {
+    } else if (compareArrays(iop, orientations[7], tolerance)) {
         // Rotated 270 degrees
 
         // Rotate back.
@@ -1402,23 +1474,26 @@ function alignPixelDataWithSourceData(
 }
 
 /**
- * compareIOP - Returns true if iop1 and iop2 are equal
+ * compareArrays - Returns true if array1 and array2 are equal
  * within a tolerance.
  *
- * @param  {Number[6]} iop1 - An ImageOrientationPatient array.
- * @param  {Number[6]} iop2 - An ImageOrientationPatient array.
+ * @param  {Number[]} array1 - An array.
+ * @param  {Number[]} array2 - An array.
  * @param {Number} tolerance.
- * @return {Boolean} True if iop1 and iop2 are equal.
+ * @return {Boolean} True if array1 and array2 are equal.
  */
-function compareIOP(iop1, iop2, tolerance) {
-    return (
-        nearlyEqual(iop1[0], iop2[0], tolerance) &&
-        nearlyEqual(iop1[1], iop2[1], tolerance) &&
-        nearlyEqual(iop1[2], iop2[2], tolerance) &&
-        nearlyEqual(iop1[3], iop2[3], tolerance) &&
-        nearlyEqual(iop1[4], iop2[4], tolerance) &&
-        nearlyEqual(iop1[5], iop2[5], tolerance)
-    );
+function compareArrays(array1, array2, tolerance) {
+    if (array1.length != array2.length) {
+        return false;
+    }
+
+    for (let i = 0; i < array1.length; ++i) {
+        if (!nearlyEqual(array1[i], array2[i], tolerance)) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 function getSegmentMetadata(multiframe, seriesInstanceUid) {
