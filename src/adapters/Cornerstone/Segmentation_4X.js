@@ -622,10 +622,12 @@ function findReferenceSourceImageId(
     );
 
     if (!imageId) {
-        // not found, we can do a check with the PlanePositionSequence,
-        // however (WARNING!!!) if more than a source series is present, this logic can find the wrong frame
-        // (i.e. two source series, with the same frameOfReferenceUID,
-        // that have each a frame with the same ImagePositionPatient of PlanePositionSequence)
+        /** not found, we can do a check with the PlanePositionSequence,
+         * however (WARNING!!!) if more than a source series is present,
+         * this logic can find the wrong frame
+         * (i.e. two source series, with the same frameOfReferenceUID,
+         * that have each a frame with the same ImagePositionPatient of PlanePositionSequence).
+         */
         if (
             PerFrameFunctionalGroups.PlanePositionSequence !== undefined &&
             PerFrameFunctionalGroups.PlanePositionSequence[0] !== undefined &&
@@ -697,11 +699,11 @@ function checkSEGsOverlapping(
     const sliceLength = Columns * Rows;
     const groupsLen = PerFrameFunctionalGroupsSequence.length;
 
-    // sort groupsLen to have all the segments for each frame in an array
-    // * frame 2 : 1, 2
-    // * frame 4 : 1, 3
-    // * frame 5 : 4
-    // ...
+    /** sort groupsLen to have all the segments for each frame in an array
+     * frame 2 : 1, 2
+     * frame 4 : 1, 3
+     * frame 5 : 4
+     */
 
     let frameSegmentsMapping = new Map();
     for (let frameSegment = 0; frameSegment < groupsLen; ++frameSegment) {
@@ -853,12 +855,12 @@ function insertOverlappingPixelDataPlanar(
     // temp list for checking overlaps
     let tempSegmentsOnFrame = cloneDeep(segmentsOnFrameArray[m]);
 
-    /* split overlapping SEGs algorithm for each segment: 
-    A) copy the labelmapBuffer in the array with index 0
-    B) add the segment pixel per pixel on the copied buffer from (A)
-    C) if no overlap, copy the results back on the orignal array from (A)
-    D) if overlap, repeat increasing the index m up to M (if out of memory, add new buffer in the array and M++); 
-    */
+    /** split overlapping SEGs algorithm for each segment:
+     *  A) copy the labelmapBuffer in the array with index 0
+     *  B) add the segment pixel per pixel on the copied buffer from (A)
+     *  C) if no overlap, copy the results back on the orignal array from (A)
+     *  D) if overlap, repeat increasing the index m up to M (if out of memory, add new buffer in the array and M++);
+     */
 
     let numberOfSegs = multiframe.SegmentSequence.length;
     for (
