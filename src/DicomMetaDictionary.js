@@ -1,7 +1,9 @@
 import log from "./log.js";
 import { ValueRepresentation } from "./ValueRepresentation";
 import dictionary from "./dictionary";
-import addAccessors from "./utilities/addAccessors";
+import utilities from "./utilities/index.js";
+
+const { addAccessors, isArrayBuffer, isTypedArray } = utilities;
 
 class DicomMetaDictionary {
     // intakes a custom dictionary that will be used to parse/denaturalize the dataset
@@ -149,7 +151,9 @@ class DicomMetaDictionary {
                     if (
                         sqZero &&
                         typeof sqZero === "object" &&
-                        !sqZero.length
+                        !sqZero.length &&
+                        !isArrayBuffer(sqZero) &&
+                        !isTypedArray(sqZero)
                     ) {
                         naturalDataset[naturalName] = [
                             ...naturalDataset[naturalName]
