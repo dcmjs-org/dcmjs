@@ -5,7 +5,7 @@
 
 <hr />
 
-[![CircleCI](https://circleci.com/gh/dcmjs-org/dcmjs.svg?style=svg)](https://circleci.com/gh/dcmjs-org/dcmjs)
+[![CI](https://github.com/dcmjs-org/dcmjs/actions/workflows/publish-package.yml/badge.svg)](https://github.com/dcmjs-org/dcmjs/actions?query=workflow:publish-package)
 
 **Note: this code is a work-in-progress and should not be used for production or clinical purposes**
 
