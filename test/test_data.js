@@ -176,7 +176,7 @@ const tests = {
             .PixelMeasuresSequence.SpacingBetweenSlices;
         expect(spacing).to.equal(0.12);
         expect(Array.isArray(naturalSequence.SharedFunctionalGroupsSequence)).to.equal(true);
-    
+
         expect(naturalSequence.ProcedureCodeSequence).to.have.property(
             "CodingSchemeDesignator",
             "L"
@@ -279,6 +279,7 @@ const tests = {
                             const dataset = DicomMetaDictionary.naturalizeDataset(
                                 dicomDict.dict
                             );
+                            expect(dataset.PixelData instanceof ArrayBuffer).to.be.true;
                             datasets.push(dataset);
                         });
 
