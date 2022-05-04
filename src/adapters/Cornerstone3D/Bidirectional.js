@@ -124,52 +124,52 @@ class Bidirectional {
                 Math.pow(secondPointPairs[0][2] - secondPointPairs[1][2], 2)
         );
 
-        let lengthPointPairs;
-        let widthPointPairs;
+        let shortAxisPoints;
+        let longAxisPoints;
         if (firstPointPairsDistance > secondPointPairsDistance) {
-            lengthPointPairs = firstPointPairs;
-            widthPointPairs = secondPointPairs;
+            shortAxisPoints = firstPointPairs;
+            longAxisPoints = secondPointPairs;
         } else {
-            lengthPointPairs = secondPointPairs;
-            widthPointPairs = firstPointPairs;
+            shortAxisPoints = secondPointPairs;
+            longAxisPoints = firstPointPairs;
         }
 
-        const lengthPointStartCanvas = worldToImageCoords(
+        const longAxisStartImage = worldToImageCoords(
             referencedImageId,
-            lengthPointPairs[0]
+            shortAxisPoints[0]
         );
-        const lengthPointEndCanvas = worldToImageCoords(
+        const longAxisEndImage = worldToImageCoords(
             referencedImageId,
-            lengthPointPairs[1]
+            shortAxisPoints[1]
         );
-        const widthPointStartCanvas = worldToImageCoords(
+        const shortAxisStartImage = worldToImageCoords(
             referencedImageId,
-            widthPointPairs[0]
+            longAxisPoints[0]
         );
-        const widthPointEndCanvas = worldToImageCoords(
+        const shortAxisEndImage = worldToImageCoords(
             referencedImageId,
-            widthPointPairs[1]
+            longAxisPoints[1]
         );
 
         return {
             longAxis: {
                 point1: {
-                    x: lengthPointStartCanvas[0],
-                    y: lengthPointStartCanvas[1]
+                    x: longAxisStartImage[0],
+                    y: longAxisStartImage[1]
                 },
                 point2: {
-                    x: lengthPointEndCanvas[0],
-                    y: lengthPointEndCanvas[1]
+                    x: longAxisEndImage[0],
+                    y: longAxisEndImage[1]
                 }
             },
             shortAxis: {
                 point1: {
-                    x: widthPointStartCanvas[0],
-                    y: widthPointStartCanvas[1]
+                    x: shortAxisStartImage[0],
+                    y: shortAxisStartImage[1]
                 },
                 point2: {
-                    x: widthPointEndCanvas[0],
-                    y: widthPointEndCanvas[1]
+                    x: shortAxisEndImage[0],
+                    y: shortAxisEndImage[1]
                 }
             },
             longAxisLength: length,

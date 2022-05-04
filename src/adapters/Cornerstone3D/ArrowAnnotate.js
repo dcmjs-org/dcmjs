@@ -6,6 +6,9 @@ const ARROW_ANNOTATE = "ArrowAnnotate";
 const CORNERSTONEFREETEXT = "CORNERSTONEFREETEXT";
 const trackingIdentifierTextValue = "Cornerstone3DTools@^0.1.0:ArrowAnnotate";
 
+// Cornerstone3D specified coding scheme for storing findings
+const CodingSchemeDesignator = "CS3DT1";
+
 class ArrowAnnotate {
     constructor() {}
 
@@ -78,7 +81,7 @@ class ArrowAnnotate {
         if (!finding || finding.CodeValue !== CORNERSTONEFREETEXT) {
             finding = {
                 CodeValue: CORNERSTONEFREETEXT,
-                CodingSchemeDesignator: "CS3DT1",
+                CodingSchemeDesignator,
                 CodeMeaning: data.text
             };
         }

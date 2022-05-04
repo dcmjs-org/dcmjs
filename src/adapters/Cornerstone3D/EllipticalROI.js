@@ -11,7 +11,6 @@ const trackingIdentifierTextValue = "Cornerstone3DTools@^0.1.0:EllipticalROI";
 class EllipticalROI {
     constructor() {}
 
-    // TODO: this function is required for all Cornerstone Tool Adapters, since it is called by MeasurementReport.
     static getMeasurementData(MeasurementGroup, imageId, imageToWorldCoords) {
         const {
             defaultState,
