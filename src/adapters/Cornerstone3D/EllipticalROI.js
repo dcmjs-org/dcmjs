@@ -1,3 +1,4 @@
+import { vec2, vec3 } from "gl-matrix";
 import MeasurementReport from "./MeasurementReport";
 import TID300Ellipse from "../../utilities/TID300/Ellipse";
 import CORNERSTONE_3D_TAG from "./cornerstone3DTag";
@@ -5,13 +6,19 @@ import CORNERSTONE_3D_TAG from "./cornerstone3DTag";
 const ELLIPTICALROI = "EllipticalROI";
 const FINDING = "121071";
 const FINDING_SITE = "G-C0E3";
+const EPSILON = 1e-4;
 
 const trackingIdentifierTextValue = "Cornerstone3DTools@^0.1.0:EllipticalROI";
 
 class EllipticalROI {
     constructor() {}
 
-    static getMeasurementData(MeasurementGroup, imageId, imageToWorldCoords) {
+    static getMeasurementData(
+        MeasurementGroup,
+        imageId,
+        imageToWorldCoords,
+        metadata
+    ) {
         const {
             defaultState,
             NUMGroup,
@@ -23,52 +30,66 @@ class EllipticalROI {
         // GraphicData is ordered as [majorAxisStartX, majorAxisStartY, majorAxisEndX, majorAxisEndY, minorAxisStartX, minorAxisStartY, minorAxisEndX, minorAxisEndY]
         // But Cornerstone3D points are ordered as top, bottom, left, right for the
         // ellipse so we need to identify if the majorAxis is horizontal or vertical
-        // and then choose the correct points to use for the ellipse.
-
-        const majorAxisStart = { x: GraphicData[0], y: GraphicData[1] };
-        const majorAxisEnd = { x: GraphicData[2], y: GraphicData[3] };
-        const minorAxisStart = { x: GraphicData[4], y: GraphicData[5] };
-        const minorAxisEnd = { x: GraphicData[6], y: GraphicData[7] };
-
-        const majorAxisIsHorizontal = majorAxisStart.y === majorAxisEnd.y;
-        const majorAxisIsVertical = majorAxisStart.x === majorAxisEnd.x;
-
-        let ellipsePointsImage;
-
-        if (majorAxisIsVertical) {
-            ellipsePointsImage = [
-                majorAxisStart.x,
-                majorAxisStart.y,
-                majorAxisEnd.x,
-                majorAxisEnd.y,
-                minorAxisStart.x,
-                minorAxisStart.y,
-                minorAxisEnd.x,
-                minorAxisEnd.y
-            ];
-        } else if (majorAxisIsHorizontal) {
-            ellipsePointsImage = [
-                minorAxisStart.x,
-                minorAxisStart.y,
-                minorAxisEnd.x,
-                minorAxisEnd.y,
-                majorAxisStart.x,
-                majorAxisStart.y,
-                majorAxisEnd.x,
-                majorAxisEnd.y
-            ];
-        } else {
-            throw new Error("ROTATED ELLIPSE NOT YET SUPPORTED");
-        }
-
-        const points = [];
-        for (let i = 0; i < ellipsePointsImage.length; i += 2) {
+        // in the image plane and then choose the correct points to use for the ellipse.
+        const pointsWorld = [];
+        for (let i = 0; i < GraphicData.length; i += 2) {
             const worldPos = imageToWorldCoords(imageId, [
-                ellipsePointsImage[i],
-                ellipsePointsImage[i + 1]
+                GraphicData[i],
+                GraphicData[i + 1]
             ]);
 
-            points.push(worldPos);
+            pointsWorld.push(worldPos);
+        }
+
+        const majorAxisStart = vec3.fromValues(...pointsWorld[0]);
+        const majorAxisEnd = vec3.fromValues(...pointsWorld[1]);
+        const minorAxisStart = vec3.fromValues(...pointsWorld[2]);
+        const minorAxisEnd = vec3.fromValues(...pointsWorld[3]);
+
+        const majorAxisVec = vec3.create();
+        vec3.sub(majorAxisVec, majorAxisEnd, majorAxisStart);
+
+        const minorAxisVec = vec3.create();
+        vec3.sub(minorAxisVec, minorAxisEnd, minorAxisStart);
+
+        const imagePlaneModule = metadata.get("imagePlaneModule", imageId);
+
+        if (!imagePlaneModule) {
+            throw new Error("imageId does not have imagePlaneModule metadata");
+        }
+
+        const { columnCosines } = imagePlaneModule;
+
+        // find which axis is parallel to the columnCosines
+        const columnCosinesVec = vec3.fromValues(...columnCosines);
+
+        const projectedMajorAxisOnColVec = vec3.dot(
+            columnCosinesVec,
+            majorAxisVec
+        );
+
+        const projectedMinorAxisOnColVec = vec3.dot(
+            columnCosinesVec,
+            minorAxisVec
+        );
+
+        let ellipsePoints = [];
+        if (projectedMajorAxisOnColVec < EPSILON) {
+            ellipsePoints = [
+                pointsWorld[2],
+                pointsWorld[3],
+                pointsWorld[0],
+                pointsWorld[1]
+            ];
+        } else if (projectedMinorAxisOnColVec < EPSILON) {
+            ellipsePoints = [
+                pointsWorld[0],
+                pointsWorld[1],
+                pointsWorld[2],
+                pointsWorld[3]
+            ];
+        } else {
+            console.warn("OBLIQUE ELLIPSE NOT YET SUPPORTED");
         }
 
         const state = {
@@ -76,7 +97,7 @@ class EllipticalROI {
             toolType: EllipticalROI.toolType,
             data: {
                 handles: {
-                    points: [...points],
+                    points: [...ellipsePoints],
                     activeHandleIndex: 0,
                     textBox: {
                         hasMoved: false
