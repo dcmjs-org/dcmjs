@@ -1,13 +1,10 @@
 import MeasurementReport from "./MeasurementReport.js";
 import TID300Point from "../../utilities/TID300/Point.js";
 import CORNERSTONE_3D_TAG from "./cornerstone3DTag";
+import { CodingSchemeDesignator, CORNERSTONEFREETEXT } from "./CodingScheme";
 
 const ARROW_ANNOTATE = "ArrowAnnotate";
-const CORNERSTONEFREETEXT = "CORNERSTONEFREETEXT";
 const trackingIdentifierTextValue = "Cornerstone3DTools@^0.1.0:ArrowAnnotate";
-
-// Cornerstone specified coding scheme for storing findings
-const CodingSchemeDesignator = "CORNERSTONEJS";
 
 class ArrowAnnotate {
     constructor() {}

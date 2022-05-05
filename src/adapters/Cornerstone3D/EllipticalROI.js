@@ -49,8 +49,12 @@ class EllipticalROI {
         const majorAxisVec = vec3.create();
         vec3.sub(majorAxisVec, majorAxisEnd, majorAxisStart);
 
+        // normalize majorAxisVec to avoid scaling issues
+        vec3.normalize(majorAxisVec, majorAxisVec);
+
         const minorAxisVec = vec3.create();
         vec3.sub(minorAxisVec, minorAxisEnd, minorAxisStart);
+        vec3.normalize(minorAxisVec, minorAxisVec);
 
         const imagePlaneModule = metadata.get("imagePlaneModule", imageId);
 
@@ -73,20 +77,23 @@ class EllipticalROI {
             minorAxisVec
         );
 
+        const absoluteOfMajorDotProduct = Math.abs(projectedMajorAxisOnColVec);
+        const absoluteOfMinorDotProduct = Math.abs(projectedMinorAxisOnColVec);
+
         let ellipsePoints = [];
-        if (projectedMajorAxisOnColVec < EPSILON) {
-            ellipsePoints = [
-                pointsWorld[2],
-                pointsWorld[3],
-                pointsWorld[0],
-                pointsWorld[1]
-            ];
-        } else if (projectedMinorAxisOnColVec < EPSILON) {
+        if (Math.abs(absoluteOfMajorDotProduct - 1) < EPSILON) {
             ellipsePoints = [
                 pointsWorld[0],
                 pointsWorld[1],
                 pointsWorld[2],
                 pointsWorld[3]
+            ];
+        } else if (Math.abs(absoluteOfMinorDotProduct - 1) < EPSILON) {
+            ellipsePoints = [
+                pointsWorld[2],
+                pointsWorld[3],
+                pointsWorld[0],
+                pointsWorld[1]
             ];
         } else {
             console.warn("OBLIQUE ELLIPSE NOT YET SUPPORTED");
