@@ -3,7 +3,7 @@ import Length from "./Length.js";
 import Bidirectional from "./Bidirectional.js";
 import EllipticalROI from "./EllipticalROI.js";
 import ArrowAnnotate from "./ArrowAnnotate.js";
-import { CORNERSTONEFREETEXT, CodingSchemeDesignator } from "./CodingScheme";
+import CodeScheme from "./CodingScheme";
 
 const Cornerstone3D = {
     Length,
@@ -11,8 +11,7 @@ const Cornerstone3D = {
     EllipticalROI,
     ArrowAnnotate,
     MeasurementReport,
-    CORNERSTONEFREETEXT,
-    CodingSchemeDesignator
+    CodeScheme
 };
 
 export default Cornerstone3D;

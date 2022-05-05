@@ -1,10 +1,12 @@
 import MeasurementReport from "./MeasurementReport.js";
 import TID300Point from "../../utilities/TID300/Point.js";
 import CORNERSTONE_3D_TAG from "./cornerstone3DTag";
-import { CodingSchemeDesignator, CORNERSTONEFREETEXT } from "./CodingScheme";
+import CodingScheme from "./CodingScheme";
 
 const ARROW_ANNOTATE = "ArrowAnnotate";
 const trackingIdentifierTextValue = "Cornerstone3DTools@^0.1.0:ArrowAnnotate";
+
+const { codeValues, CodingSchemeDesignator } = CodingScheme;
 
 class ArrowAnnotate {
     constructor() {}
@@ -75,9 +77,9 @@ class ArrowAnnotate {
         };
 
         // If freetext finding isn't present, add it from the tool text.
-        if (!finding || finding.CodeValue !== CORNERSTONEFREETEXT) {
+        if (!finding || finding.CodeValue !== codeValues.CORNERSTONEFREETEXT) {
             finding = {
-                CodeValue: CORNERSTONEFREETEXT,
+                CodeValue: codeValues.CORNERSTONEFREETEXT,
                 CodingSchemeDesignator,
                 CodeMeaning: data.text
             };
