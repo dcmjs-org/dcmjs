@@ -23,7 +23,6 @@ class CircleRoi {
         const center = { x: GraphicData[0], y: GraphicData[1] };
         const end = { x: GraphicData[2], y: GraphicData[3] };
 
-        console.log("NUMGroup=", NUMGroup);
         const state = {
             ...defaultState,
             toolType: CircleRoi.toolType,
