@@ -19,3 +19,14 @@ it("testAddAccessor", () => {
     expect(forArr.length).toEqual(1);
     expect(forArr[0]).toEqual(baseValue);
 });
+
+it("testAddAccessor-adds_children", () => {
+    const baseValue = { a: 1, b: 2 };
+    const arrValue = [baseValue];
+    const val = addAccessors(arrValue, baseValue);
+    val.push({ a: "two" });
+    expect(val.length).toBe(2);
+    expect(val[1].a).toBe("two");
+    expect(val.a).toBe(1);
+    expect(val[0].a).toBe(1);
+});
