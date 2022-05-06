@@ -17,19 +17,21 @@ class CircleRoi {
             NUMGroup,
             SCOORDGroup
         } = MeasurementReport.getSetupMeasurementData(MeasurementGroup);
-        console.log("Get cornerstone data from", MeasurementGroup);
 
         const { GraphicData } = SCOORDGroup;
 
         const center = { x: GraphicData[0], y: GraphicData[1] };
         const end = { x: GraphicData[2], y: GraphicData[3] };
 
+        console.log("NUMGroup=", NUMGroup);
         const state = {
             ...defaultState,
             toolType: CircleRoi.toolType,
             active: false,
             cachedStats: {
-                area: NUMGroup.MeasuredValueSequence.NumericValue
+                area: NUMGroup.MeasuredValueSequence.NumericValue,
+                radius: 5,
+                perimeter: 3
             },
             handles: {
                 end: {
@@ -67,8 +69,9 @@ class CircleRoi {
     static getTID300RepresentationArguments(tool) {
         const { cachedStats, handles, finding, findingSites } = tool;
         const { start: center, end } = handles;
-        const { area } = cachedStats;
+        const { area, radius } = cachedStats;
 
+        const perimeter = 2 * Math.PI * radius;
         const points = [];
 
         points.push(center);
@@ -78,6 +81,8 @@ class CircleRoi {
 
         return {
             area,
+            perimeter,
+            radius,
             points,
             trackingIdentifierTextValue,
             finding,
