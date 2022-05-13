@@ -29,8 +29,9 @@ class CircleRoi {
             active: false,
             cachedStats: {
                 area: NUMGroup.MeasuredValueSequence.NumericValue,
-                radius: 5,
-                perimeter: 3
+                // Dummy values to be updated by cornerstone
+                radius: 0,
+                perimeter: 0
             },
             handles: {
                 end: {
