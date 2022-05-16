@@ -77,7 +77,28 @@ function getMeasurementGroup(
 export default class MeasurementReport {
     constructor() {}
 
-    static getSetupMeasurementData(MeasurementGroup) {
+    static getCornerstoneLabelFromDefaultState(defaultState) {
+        const { findingSites = [], finding } = defaultState;
+
+        let freeTextLabel = findingSites.find(
+            fs => fs.CodeValue === "CORNERSTONEFREETEXT"
+        );
+
+        if (freeTextLabel) {
+            return freeTextLabel.CodeMeaning;
+        }
+
+        if (finding && finding.CodeValue === "CORNERSTONEFREETEXT") {
+            return finding.CodeMeaning;
+        }
+    }
+
+    static getSetupMeasurementData(
+        MeasurementGroup,
+        sopInstanceUIDToImageIdMap,
+        metadata,
+        toolType
+    ) {
         const { ContentSequence } = MeasurementGroup;
 
         const contentSequenceArr = toArray(ContentSequence);
@@ -100,31 +121,43 @@ export default class MeasurementReport {
             ReferencedFrameNumber
         } = ReferencedSOPSequence;
 
+        const referencedImageId =
+            sopInstanceUIDToImageIdMap[ReferencedSOPInstanceUID];
+        const imagePlaneModule = metadata.get(
+            "imagePlaneModule",
+            referencedImageId
+        );
+
+        const finding = findingGroup
+            ? findingGroup.ConceptCodeSequence[0]
+            : undefined;
+        const findingSites = findingSiteGroups.map(fsg => {
+            return { ...fsg.ConceptCodeSequence[0] };
+        });
+
         const defaultState = {
-            sopInstanceUid: ReferencedSOPInstanceUID,
-            frameIndex: ReferencedFrameNumber || 1,
-            complete: true,
-            finding: findingGroup
-                ? findingGroup.ConceptCodeSequence
-                : undefined,
-            findingSites: findingSiteGroups.map(fsg => {
-                return { ...fsg.ConceptCodeSequence };
-            })
+            annotation: {
+                annotationUID: DicomMetaDictionary.uid(),
+                metadata: {
+                    toolName: toolType,
+                    referencedImageId,
+                    FrameOfReferenceUID: imagePlaneModule.frameOfReferenceUID,
+                    label: ""
+                }
+            },
+            finding,
+            findingSites
         };
         if (defaultState.finding) {
             defaultState.description = defaultState.finding.CodeMeaning;
         }
-        const findingSite =
-            defaultState.findingSites && defaultState.findingSites[0];
-        if (findingSite) {
-            defaultState.location =
-                (findingSite[0] && findingSite[0].CodeMeaning) ||
-                findingSite.CodeMeaning;
-        }
+
+        defaultState.annotation.metadata.label = MeasurementReport.getCornerstoneLabelFromDefaultState(
+            defaultState
+        );
+
         return {
             defaultState,
-            findingGroup,
-            findingSiteGroups,
             NUMGroup,
             SCOORDGroup,
             ReferencedSOPSequence,
@@ -268,7 +301,7 @@ export default class MeasurementReport {
      */
     static generateToolState(
         dataset,
-        imageIds,
+        sopInstanceUIDToImageIdMap,
         imageToWorldCoords,
         metadata,
         hooks = {}
@@ -308,8 +341,6 @@ export default class MeasurementReport {
         });
 
         measurementGroups.forEach((measurementGroup, index) => {
-            const imageId = imageIds[index];
-
             const measurementGroupContentSequence = toArray(
                 measurementGroup.ContentSequence
             );
@@ -337,7 +368,7 @@ export default class MeasurementReport {
             if (toolClass) {
                 const measurement = toolClass.getMeasurementData(
                     measurementGroup,
-                    imageId,
+                    sopInstanceUIDToImageIdMap,
                     imageToWorldCoords,
                     metadata
                 );

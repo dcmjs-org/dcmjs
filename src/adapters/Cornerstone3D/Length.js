@@ -5,45 +5,55 @@ import CORNERSTONE_3D_TAG from "./cornerstone3DTag";
 const LENGTH = "Length";
 const FINDING = "121071";
 const FINDING_SITE = "G-C0E3";
-const trackingIdentifierTextValue = "Cornerstone3DTools@^0.1.0:Length";
+const trackingIdentifierTextValue = `${CORNERSTONE_3D_TAG}:${LENGTH}`;
 
 class Length {
     constructor() {}
 
     // TODO: this function is required for all Cornerstone Tool Adapters, since it is called by MeasurementReport.
-    static getMeasurementData(MeasurementGroup, imageId, imageToWorldCoords) {
+    static getMeasurementData(
+        MeasurementGroup,
+        sopInstanceUIDToImageIdMap,
+        imageToWorldCoords,
+        metadata
+    ) {
         const {
             defaultState,
             NUMGroup,
             SCOORDGroup
-        } = MeasurementReport.getSetupMeasurementData(MeasurementGroup);
+        } = MeasurementReport.getSetupMeasurementData(
+            MeasurementGroup,
+            sopInstanceUIDToImageIdMap,
+            metadata,
+            Length.toolType
+        );
+
+        const referencedImageId =
+            defaultState.annotation.metadata.referencedImageId;
 
         const { GraphicData } = SCOORDGroup;
         const worldCoords = [];
         for (let i = 0; i < GraphicData.length; i += 2) {
-            const point = imageToWorldCoords(imageId, [
+            const point = imageToWorldCoords(referencedImageId, [
                 GraphicData[i],
                 GraphicData[i + 1]
             ]);
             worldCoords.push(point);
         }
 
-        const state = {
-            ...defaultState,
-            length: NUMGroup.MeasuredValueSequence.NumericValue,
-            toolType: Length.toolType,
-            data: {
-                handles: {
-                    points: [worldCoords[0], worldCoords[1]],
-                    activeHandleIndex: 0,
-                    textBox: {
-                        hasMoved: false
-                    }
-                },
-                cachedStats: {
-                    [`imageId:${imageId}`]: {
-                        length: NUMGroup.MeasuredValueSequence.NumericValue
-                    }
+        const state = defaultState;
+
+        state.annotation.data = {
+            handles: {
+                points: [worldCoords[0], worldCoords[1]],
+                activeHandleIndex: 0,
+                textBox: {
+                    hasMoved: false
+                }
+            },
+            cachedStats: {
+                [`imageId:${referencedImageId}`]: {
+                    length: NUMGroup.MeasuredValueSequence.NumericValue
                 }
             }
         };
@@ -90,9 +100,9 @@ Length.isValidCornerstoneTrackingIdentifier = TrackingIdentifier => {
         return false;
     }
 
-    const [cornerstone4Tag, toolType] = TrackingIdentifier.split(":");
+    const [cornerstone3DTag, toolType] = TrackingIdentifier.split(":");
 
-    if (cornerstone4Tag !== CORNERSTONE_3D_TAG) {
+    if (cornerstone3DTag !== CORNERSTONE_3D_TAG) {
         return false;
     }
 
