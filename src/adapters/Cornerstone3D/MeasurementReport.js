@@ -316,8 +316,6 @@ export default class MeasurementReport {
             { sopInstanceUIDsToSeriesInstanceUIDMap }
         );
 
-        debugger;
-
         // Merge the derived dataset with the content from the Measurement Report
         report.dataset = Object.assign(report.dataset, contentItem);
         report.dataset._meta = _meta;
