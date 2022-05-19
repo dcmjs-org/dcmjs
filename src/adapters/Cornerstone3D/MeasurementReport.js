@@ -3,6 +3,7 @@ import { DicomMetaDictionary } from "../../DicomMetaDictionary.js";
 import { StructuredReport } from "../../derivations/index.js";
 import TID1500MeasurementReport from "../../utilities/TID1500/TID1500MeasurementReport.js";
 import TID1501MeasurementGroup from "../../utilities/TID1500/TID1501MeasurementGroup.js";
+import Cornerstone3DCodingScheme from "./CodingScheme";
 
 import { toArray, codeMeaningEquals } from "../helpers.js";
 
@@ -80,15 +81,18 @@ export default class MeasurementReport {
     static getCornerstoneLabelFromDefaultState(defaultState) {
         const { findingSites = [], finding } = defaultState;
 
+        const cornersoneFreeTextCodingValue =
+            Cornerstone3DCodingScheme.codeValues.CORNERSTONEFREETEXT;
+
         let freeTextLabel = findingSites.find(
-            fs => fs.CodeValue === "CORNERSTONEFREETEXT"
+            fs => fs.CodeValue === cornersoneFreeTextCodingValue
         );
 
         if (freeTextLabel) {
             return freeTextLabel.CodeMeaning;
         }
 
-        if (finding && finding.CodeValue === "CORNERSTONEFREETEXT") {
+        if (finding && finding.CodeValue === cornersoneFreeTextCodingValue) {
             return finding.CodeMeaning;
         }
     }

@@ -14,8 +14,6 @@ class Probe {
         imageToWorldCoords,
         metadata
     ) {
-        console.log("TODO");
-
         const {
             defaultState,
             SCOORDGroup
