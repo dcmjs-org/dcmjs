@@ -30,7 +30,7 @@ class ArrowAnnotate {
         const referencedImageId =
             defaultState.annotation.metadata.referencedImageId;
 
-        const text = defaultState.metadata.label;
+        const text = defaultState.annotation.metadata.label;
 
         const { GraphicData } = SCOORDGroup;
 
@@ -41,6 +41,33 @@ class ArrowAnnotate {
                 GraphicData[i + 1]
             ]);
             worldCoords.push(point);
+        }
+
+        // Since we use this adapter for both Cornerstone3D and Cornerstone legacy ArrowAnnotate,
+        // in the legacy code we don't store both start and end points. Therefore, if only one
+        // point is present, we derive the second point based on the image size relative to the
+        // first point.
+        if (worldCoords.length === 1) {
+            const imagePixelModule = metadata.get(
+                "imagePixelModule",
+                referencedImageId
+            );
+
+            let xOffset = 10;
+            let yOffset = 10;
+
+            if (imagePixelModule) {
+                const { columns, rows } = imagePixelModule;
+                xOffset = columns / 10;
+                yOffset = rows / 10;
+            }
+
+            const secondPoint = imageToWorldCoords(referencedImageId, [
+                GraphicData[0] + xOffset,
+                GraphicData[1] + yOffset
+            ]);
+
+            worldCoords.push(secondPoint);
         }
 
         const state = defaultState;
