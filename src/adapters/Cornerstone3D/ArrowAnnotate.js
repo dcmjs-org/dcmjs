@@ -43,10 +43,8 @@ class ArrowAnnotate {
             worldCoords.push(point);
         }
 
-        // Since we use this adapter for both Cornerstone3D and Cornerstone legacy ArrowAnnotate,
-        // in the legacy code we don't store both start and end points. Therefore, if only one
-        // point is present, we derive the second point based on the image size relative to the
-        // first point.
+        // Since the arrowAnnotate measurement is just a point, to generate the tool state
+        // we derive the second point based on the image size relative to the first point.
         if (worldCoords.length === 1) {
             const imagePixelModule = metadata.get(
                 "imagePixelModule",
@@ -75,6 +73,7 @@ class ArrowAnnotate {
         state.annotation.data = {
             text,
             handles: {
+                arrowFirst: true,
                 points: [worldCoords[0], worldCoords[1]],
                 activeHandleIndex: 0,
                 textBox: {
@@ -97,18 +96,25 @@ class ArrowAnnotate {
             );
         }
 
-        const { points } = data.handles;
+        const { points, arrowFirst } = data.handles;
 
-        const pointsImage = points.map(point => {
-            const pointImage = worldToImageCoords(referencedImageId, point);
-            return {
-                x: pointImage[0],
-                y: pointImage[1]
-            };
-        });
+        let point;
+
+        if (arrowFirst) {
+            point = points[0];
+        } else {
+            point = points[1];
+        }
+
+        const pointImage = worldToImageCoords(referencedImageId, point);
 
         const TID300RepresentationArguments = {
-            points: pointsImage,
+            points: [
+                {
+                    x: pointImage[0],
+                    y: pointImage[1]
+                }
+            ],
             trackingIdentifierTextValue,
             findingSites: findingSites || []
         };
