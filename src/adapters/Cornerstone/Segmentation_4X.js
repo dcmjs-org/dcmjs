@@ -715,10 +715,11 @@ function checkSEGsOverlapping(
         return false;
     }
 
-    const sharedImageOrientationPatient = SharedFunctionalGroupsSequence.PlaneOrientationSequence
-        ? SharedFunctionalGroupsSequence.PlaneOrientationSequence
-              .ImageOrientationPatient
-        : undefined;
+    const sharedImageOrientationPatient =
+        SharedFunctionalGroupsSequence.PlaneOrientationSequence
+            ? SharedFunctionalGroupsSequence.PlaneOrientationSequence
+                  .ImageOrientationPatient
+            : undefined;
     const sliceLength = Columns * Rows;
     const groupsLen = PerFrameFunctionalGroupsSequence.length;
 
@@ -841,10 +842,11 @@ function insertOverlappingPixelDataPlanar(
         Columns
     } = multiframe;
 
-    const sharedImageOrientationPatient = SharedFunctionalGroupsSequence.PlaneOrientationSequence
-        ? SharedFunctionalGroupsSequence.PlaneOrientationSequence
-              .ImageOrientationPatient
-        : undefined;
+    const sharedImageOrientationPatient =
+        SharedFunctionalGroupsSequence.PlaneOrientationSequence
+            ? SharedFunctionalGroupsSequence.PlaneOrientationSequence
+                  .ImageOrientationPatient
+            : undefined;
     const sliceLength = Columns * Rows;
     const arrayBufferLength = sliceLength * imageIds.length * 2; // 2 bytes per label voxel in cst4.
 
@@ -1013,10 +1015,8 @@ function insertOverlappingPixelDataPlanar(
 }
 
 const getSegmentIndex = (multiframe, frame) => {
-    const {
-        PerFrameFunctionalGroupsSequence,
-        SharedFunctionalGroupsSequence
-    } = multiframe;
+    const { PerFrameFunctionalGroupsSequence, SharedFunctionalGroupsSequence } =
+        multiframe;
     const PerFrameFunctionalGroups = PerFrameFunctionalGroupsSequence[frame];
     return PerFrameFunctionalGroups &&
         PerFrameFunctionalGroups.SegmentIdentificationSequence
@@ -1046,10 +1046,11 @@ function insertPixelDataPlanar(
         Columns
     } = multiframe;
 
-    const sharedImageOrientationPatient = SharedFunctionalGroupsSequence.PlaneOrientationSequence
-        ? SharedFunctionalGroupsSequence.PlaneOrientationSequence
-              .ImageOrientationPatient
-        : undefined;
+    const sharedImageOrientationPatient =
+        SharedFunctionalGroupsSequence.PlaneOrientationSequence
+            ? SharedFunctionalGroupsSequence.PlaneOrientationSequence
+                  .ImageOrientationPatient
+            : undefined;
     const sliceLength = Columns * Rows;
 
     for (
@@ -1156,15 +1157,14 @@ function checkOrientation(
     sourceDataDimensions,
     tolerance
 ) {
-    const {
-        SharedFunctionalGroupsSequence,
-        PerFrameFunctionalGroupsSequence
-    } = multiframe;
+    const { SharedFunctionalGroupsSequence, PerFrameFunctionalGroupsSequence } =
+        multiframe;
 
-    const sharedImageOrientationPatient = SharedFunctionalGroupsSequence.PlaneOrientationSequence
-        ? SharedFunctionalGroupsSequence.PlaneOrientationSequence
-              .ImageOrientationPatient
-        : undefined;
+    const sharedImageOrientationPatient =
+        SharedFunctionalGroupsSequence.PlaneOrientationSequence
+            ? SharedFunctionalGroupsSequence.PlaneOrientationSequence
+                  .ImageOrientationPatient
+            : undefined;
 
     // Check if in plane.
     const PerFrameFunctionalGroups = PerFrameFunctionalGroupsSequence[0];
@@ -1276,10 +1276,8 @@ function getImageIdOfSourceImagebySourceImageSequence(
     imageIds,
     metadataProvider
 ) {
-    const {
-        ReferencedSOPInstanceUID,
-        ReferencedFrameNumber
-    } = SourceImageSequence;
+    const { ReferencedSOPInstanceUID, ReferencedFrameNumber } =
+        SourceImageSequence;
 
     return ReferencedFrameNumber
         ? getImageIdOfReferencedFrame(
