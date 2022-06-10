@@ -392,7 +392,7 @@ class BinaryRepresentation extends ValueRepresentation {
                         // create a new readable stream based on the range
                         const s = new ReadBufferStream(
                             stream.buffer,
-                            stream.littleEndian,
+                            stream.isLittleEndian,
                             start,
                             stop,
                             stream.view
