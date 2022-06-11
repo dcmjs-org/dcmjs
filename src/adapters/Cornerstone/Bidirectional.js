@@ -135,9 +135,7 @@ class Bidirectional {
             finding: findingGroup
                 ? findingGroup.ConceptCodeSequence
                 : undefined,
-            findingSites: findingSiteGroups.map(fsg => {
-                return fsg.ConceptCodeSequence;
-            })
+            findingSites: findingSiteGroups.map(fsg => fsg.ConceptCodeSequence)
         };
 
         return state;
