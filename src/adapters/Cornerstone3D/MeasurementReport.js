@@ -3,6 +3,7 @@ import { DicomMetaDictionary } from "../../DicomMetaDictionary.js";
 import { StructuredReport } from "../../derivations/index.js";
 import TID1500MeasurementReport from "../../utilities/TID1500/TID1500MeasurementReport.js";
 import TID1501MeasurementGroup from "../../utilities/TID1500/TID1501MeasurementGroup.js";
+import Cornerstone3DCodingScheme from "./CodingScheme";
 
 import { toArray, codeMeaningEquals } from "../helpers.js";
 
@@ -27,9 +28,13 @@ function getTID300ContentItem(
     tool,
     toolType,
     ReferencedSOPSequence,
-    toolClass
+    toolClass,
+    worldToImageCoords
 ) {
-    const args = toolClass.getTID300RepresentationArguments(tool);
+    const args = toolClass.getTID300RepresentationArguments(
+        tool,
+        worldToImageCoords
+    );
     args.ReferencedSOPSequence = ReferencedSOPSequence;
 
     const TID300Measurement = new toolClass.TID300Representation(args);
@@ -37,7 +42,12 @@ function getTID300ContentItem(
     return TID300Measurement;
 }
 
-function getMeasurementGroup(toolType, toolData, ReferencedSOPSequence) {
+function getMeasurementGroup(
+    toolType,
+    toolData,
+    ReferencedSOPSequence,
+    worldToImageCoords
+) {
     const toolTypeData = toolData[toolType];
     const toolClass =
         MeasurementReport.CORNERSTONE_TOOL_CLASSES_BY_TOOL_TYPE[toolType];
@@ -57,7 +67,8 @@ function getMeasurementGroup(toolType, toolData, ReferencedSOPSequence) {
             tool,
             toolType,
             ReferencedSOPSequence,
-            toolClass
+            toolClass,
+            worldToImageCoords
         );
     });
 
@@ -67,147 +78,31 @@ function getMeasurementGroup(toolType, toolData, ReferencedSOPSequence) {
 export default class MeasurementReport {
     constructor() {}
 
-    static getSetupMeasurementData(MeasurementGroup) {
-        const { ContentSequence } = MeasurementGroup;
+    static getCornerstoneLabelFromDefaultState(defaultState) {
+        const { findingSites = [], finding } = defaultState;
 
-        const contentSequenceArr = toArray(ContentSequence);
-        const findingGroup = contentSequenceArr.find(group =>
-            codeValueMatch(group, FINDING)
-        );
-        const findingSiteGroups =
-            contentSequenceArr.filter(group =>
-                codeValueMatch(group, FINDING_SITE, FINDING_SITE_OLD)
-            ) || [];
-        const NUMGroup = contentSequenceArr.find(
-            group => group.ValueType === "NUM"
-        );
-        const SCOORDGroup = toArray(NUMGroup.ContentSequence).find(
-            group => group.ValueType === "SCOORD"
-        );
-        const { ReferencedSOPSequence } = SCOORDGroup.ContentSequence;
-        const {
-            ReferencedSOPInstanceUID,
-            ReferencedFrameNumber
-        } = ReferencedSOPSequence;
+        const cornersoneFreeTextCodingValue =
+            Cornerstone3DCodingScheme.codeValues.CORNERSTONEFREETEXT;
 
-        const defaultState = {
-            sopInstanceUid: ReferencedSOPInstanceUID,
-            frameIndex: ReferencedFrameNumber || 1,
-            complete: true,
-            finding: findingGroup
-                ? findingGroup.ConceptCodeSequence
-                : undefined,
-            findingSites: findingSiteGroups.map(fsg => {
-                return { ...fsg.ConceptCodeSequence };
-            })
-        };
-        if (defaultState.finding) {
-            defaultState.description = defaultState.finding.CodeMeaning;
+        let freeTextLabel = findingSites.find(
+            fs => fs.CodeValue === cornersoneFreeTextCodingValue
+        );
+
+        if (freeTextLabel) {
+            return freeTextLabel.CodeMeaning;
         }
-        const findingSite =
-            defaultState.findingSites && defaultState.findingSites[0];
-        if (findingSite) {
-            defaultState.location =
-                (findingSite[0] && findingSite[0].CodeMeaning) ||
-                findingSite.CodeMeaning;
+
+        if (finding && finding.CodeValue === cornersoneFreeTextCodingValue) {
+            return finding.CodeMeaning;
         }
-        return {
-            defaultState,
-            findingGroup,
-            findingSiteGroups,
-            NUMGroup,
-            SCOORDGroup,
-            ReferencedSOPSequence,
-            ReferencedSOPInstanceUID,
-            ReferencedFrameNumber
-        };
     }
 
-    static generateReport(toolState, metadataProvider, options) {
-        // ToolState for array of imageIDs to a Report
-        // Assume Cornerstone metadata provider has access to Study / Series / Sop Instance UID
-
-        let allMeasurementGroups = [];
-        const firstImageId = Object.keys(toolState)[0];
-        if (!firstImageId) {
-            throw new Error("No measurements provided.");
-        }
-
-        /* Patient ID
-        Warning - Missing attribute or value that would be needed to build DICOMDIR - Patient ID
-        Warning - Missing attribute or value that would be needed to build DICOMDIR - Study Date
-        Warning - Missing attribute or value that would be needed to build DICOMDIR - Study Time
-        Warning - Missing attribute or value that would be needed to build DICOMDIR - Study ID
-         */
-        const generalSeriesModule = metadataProvider.get(
-            "generalSeriesModule",
-            firstImageId
-        );
-
-        //const sopCommonModule = metadataProvider.get('sopCommonModule', firstImageId);
-
-        // NOTE: We are getting the Series and Study UIDs from the first imageId of the toolState
-        // which means that if the toolState is for multiple series, the report will have the incorrect
-        // SeriesInstanceUIDs
-        const { studyInstanceUID, seriesInstanceUID } = generalSeriesModule;
-
-        // Loop through each image in the toolData
-        Object.keys(toolState).forEach(imageId => {
-            const sopCommonModule = metadataProvider.get(
-                "sopCommonModule",
-                imageId
-            );
-            const frameNumber = metadataProvider.get("frameNumber", imageId);
-            const toolData = toolState[imageId];
-            const toolTypes = Object.keys(toolData);
-
-            const ReferencedSOPSequence = {
-                ReferencedSOPClassUID: sopCommonModule.sopClassUID,
-                ReferencedSOPInstanceUID: sopCommonModule.sopInstanceUID
-            };
-
-            if (
-                Normalizer.isMultiframeSOPClassUID(sopCommonModule.sopClassUID)
-            ) {
-                ReferencedSOPSequence.ReferencedFrameNumber = frameNumber;
-            }
-
-            // Loop through each tool type for the image
-            const measurementGroups = [];
-
-            toolTypes.forEach(toolType => {
-                const group = getMeasurementGroup(
-                    toolType,
-                    toolData,
-                    ReferencedSOPSequence
-                );
-                if (group) {
-                    measurementGroups.push(group);
-                }
-            });
-
-            allMeasurementGroups = allMeasurementGroups.concat(
-                measurementGroups
-            );
-        });
-
-        const MeasurementReport = new TID1500MeasurementReport(
-            { TID1501MeasurementGroups: allMeasurementGroups },
-            options
-        );
-
+    static generateDatasetMeta() {
         // TODO: what is the correct metaheader
         // http://dicom.nema.org/medical/Dicom/current/output/chtml/part10/chapter_7.html
         // TODO: move meta creation to happen in derivations.js
         const fileMetaInformationVersionArray = new Uint8Array(2);
         fileMetaInformationVersionArray[1] = 1;
-
-        const derivationSourceDataset = {
-            StudyInstanceUID: studyInstanceUID,
-            SeriesInstanceUID: seriesInstanceUID
-            //SOPInstanceUID: sopInstanceUID, // TODO: Necessary?
-            //SOPClassUID: sopClassUID,
-        };
 
         const _meta = {
             FileMetaInformationVersion: {
@@ -230,17 +125,200 @@ export default class MeasurementReport {
             }
         };
 
+        return _meta;
+    }
+
+    static generateDerivationSourceDataset(
+        StudyInstanceUID,
+        SeriesInstanceUID
+    ) {
         const _vrMap = {
             PixelData: "OW"
         };
 
-        derivationSourceDataset._meta = _meta;
-        derivationSourceDataset._vrMap = _vrMap;
+        const _meta = MeasurementReport.generateDatasetMeta();
 
-        const report = new StructuredReport([derivationSourceDataset]);
+        const derivationSourceDataset = {
+            StudyInstanceUID,
+            SeriesInstanceUID,
+            _meta: _meta,
+            _vrMap: _vrMap
+        };
 
-        const contentItem = MeasurementReport.contentItem(
-            derivationSourceDataset
+        return derivationSourceDataset;
+    }
+
+    static getSetupMeasurementData(
+        MeasurementGroup,
+        sopInstanceUIDToImageIdMap,
+        metadata,
+        toolType
+    ) {
+        const { ContentSequence } = MeasurementGroup;
+
+        const contentSequenceArr = toArray(ContentSequence);
+        const findingGroup = contentSequenceArr.find(group =>
+            codeValueMatch(group, FINDING)
+        );
+        const findingSiteGroups =
+            contentSequenceArr.filter(group =>
+                codeValueMatch(group, FINDING_SITE, FINDING_SITE_OLD)
+            ) || [];
+        const NUMGroup = contentSequenceArr.find(
+            group => group.ValueType === "NUM"
+        );
+        const SCOORDGroup = toArray(NUMGroup.ContentSequence).find(
+            group => group.ValueType === "SCOORD"
+        );
+        const { ReferencedSOPSequence } = SCOORDGroup.ContentSequence;
+        const {
+            ReferencedSOPInstanceUID,
+            ReferencedFrameNumber
+        } = ReferencedSOPSequence;
+
+        const referencedImageId =
+            sopInstanceUIDToImageIdMap[ReferencedSOPInstanceUID];
+        const imagePlaneModule = metadata.get(
+            "imagePlaneModule",
+            referencedImageId
+        );
+
+        const finding = findingGroup
+            ? findingGroup.ConceptCodeSequence[0]
+            : undefined;
+        const findingSites = findingSiteGroups.map(fsg => {
+            return { ...fsg.ConceptCodeSequence[0] };
+        });
+
+        const defaultState = {
+            sopInstanceUid: ReferencedSOPInstanceUID,
+            annotation: {
+                annotationUID: DicomMetaDictionary.uid(),
+                metadata: {
+                    toolName: toolType,
+                    referencedImageId,
+                    FrameOfReferenceUID: imagePlaneModule.frameOfReferenceUID,
+                    label: ""
+                }
+            },
+            finding,
+            findingSites
+        };
+        if (defaultState.finding) {
+            defaultState.description = defaultState.finding.CodeMeaning;
+        }
+
+        defaultState.annotation.metadata.label = MeasurementReport.getCornerstoneLabelFromDefaultState(
+            defaultState
+        );
+
+        return {
+            defaultState,
+            NUMGroup,
+            SCOORDGroup,
+            ReferencedSOPSequence,
+            ReferencedSOPInstanceUID,
+            ReferencedFrameNumber
+        };
+    }
+
+    static generateReport(
+        toolState,
+        metadataProvider,
+        worldToImageCoords,
+        options
+    ) {
+        // ToolState for array of imageIDs to a Report
+        // Assume Cornerstone metadata provider has access to Study / Series / Sop Instance UID
+        let allMeasurementGroups = [];
+
+        /* Patient ID
+        Warning - Missing attribute or value that would be needed to build DICOMDIR - Patient ID
+        Warning - Missing attribute or value that would be needed to build DICOMDIR - Study Date
+        Warning - Missing attribute or value that would be needed to build DICOMDIR - Study Time
+        Warning - Missing attribute or value that would be needed to build DICOMDIR - Study ID
+        */
+
+        const sopInstanceUIDsToSeriesInstanceUIDMap = {};
+        const derivationSourceDatasets = [];
+
+        const _meta = MeasurementReport.generateDatasetMeta();
+
+        // Loop through each image in the toolData
+        Object.keys(toolState).forEach(imageId => {
+            const sopCommonModule = metadataProvider.get(
+                "sopCommonModule",
+                imageId
+            );
+            const generalSeriesModule = metadataProvider.get(
+                "generalSeriesModule",
+                imageId
+            );
+
+            const { sopInstanceUID, sopClassUID } = sopCommonModule;
+            const { studyInstanceUID, seriesInstanceUID } = generalSeriesModule;
+
+            sopInstanceUIDsToSeriesInstanceUIDMap[
+                sopInstanceUID
+            ] = seriesInstanceUID;
+
+            if (
+                !derivationSourceDatasets.find(
+                    dsd => dsd.SeriesInstanceUID === seriesInstanceUID
+                )
+            ) {
+                // Entry not present for series, create one.
+                const derivationSourceDataset = MeasurementReport.generateDerivationSourceDataset(
+                    studyInstanceUID,
+                    seriesInstanceUID
+                );
+
+                derivationSourceDatasets.push(derivationSourceDataset);
+            }
+
+            const frameNumber = metadataProvider.get("frameNumber", imageId);
+            const toolData = toolState[imageId];
+            const toolTypes = Object.keys(toolData);
+
+            const ReferencedSOPSequence = {
+                ReferencedSOPClassUID: sopClassUID,
+                ReferencedSOPInstanceUID: sopInstanceUID
+            };
+
+            if (Normalizer.isMultiframeSOPClassUID(sopClassUID)) {
+                ReferencedSOPSequence.ReferencedFrameNumber = frameNumber;
+            }
+
+            // Loop through each tool type for the image
+            const measurementGroups = [];
+
+            toolTypes.forEach(toolType => {
+                const group = getMeasurementGroup(
+                    toolType,
+                    toolData,
+                    ReferencedSOPSequence,
+                    worldToImageCoords
+                );
+                if (group) {
+                    measurementGroups.push(group);
+                }
+            });
+
+            allMeasurementGroups = allMeasurementGroups.concat(
+                measurementGroups
+            );
+        });
+
+        const tid1500MeasurementReport = new TID1500MeasurementReport(
+            { TID1501MeasurementGroups: allMeasurementGroups },
+            options
+        );
+
+        const report = new StructuredReport(derivationSourceDatasets);
+
+        const contentItem = tid1500MeasurementReport.contentItem(
+            derivationSourceDatasets,
+            { sopInstanceUIDsToSeriesInstanceUIDMap }
         );
 
         // Merge the derived dataset with the content from the Measurement Report
@@ -257,7 +335,13 @@ export default class MeasurementReport {
      * @param {function} hooks.getToolClass Function to map dataset to a tool class
      * @returns
      */
-    static generateToolState(dataset, hooks = {}) {
+    static generateToolState(
+        dataset,
+        sopInstanceUIDToImageIdMap,
+        imageToWorldCoords,
+        metadata,
+        hooks = {}
+    ) {
         // For now, bail out if the dataset is not a TID1500 SR with length measurements
         if (dataset.ContentTemplateSequence.TemplateIdentifier !== "1500") {
             throw new Error(
@@ -292,7 +376,7 @@ export default class MeasurementReport {
             measurementData[key] = [];
         });
 
-        measurementGroups.forEach(measurementGroup => {
+        measurementGroups.forEach((measurementGroup, index) => {
             const measurementGroupContentSequence = toArray(
                 measurementGroup.ContentSequence
             );
@@ -319,7 +403,10 @@ export default class MeasurementReport {
 
             if (toolClass) {
                 const measurement = toolClass.getMeasurementData(
-                    measurementGroup
+                    measurementGroup,
+                    sopInstanceUIDToImageIdMap,
+                    imageToWorldCoords,
+                    metadata
                 );
 
                 console.log(`=== ${toolClass.toolType} ===`);
