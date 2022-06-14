@@ -41,8 +41,10 @@ class Bidirectional {
         ).find(group => group.ValueType === "SCOORD");
 
         const { ReferencedSOPSequence } = longAxisSCOORDGroup.ContentSequence;
-        const { ReferencedSOPInstanceUID, ReferencedFrameNumber } =
-            ReferencedSOPSequence;
+        const {
+            ReferencedSOPInstanceUID,
+            ReferencedFrameNumber
+        } = ReferencedSOPSequence;
 
         // Long axis
 
@@ -134,7 +136,7 @@ class Bidirectional {
                 ? findingGroup.ConceptCodeSequence
                 : undefined,
             findingSites: findingSiteGroups.map(fsg => {
-                return { ...fsg.ConceptCodeSequence };
+                return fsg.ConceptCodeSequence;
             })
         };
 
@@ -142,10 +144,18 @@ class Bidirectional {
     }
 
     static getTID300RepresentationArguments(tool) {
-        const { start, end, perpendicularStart, perpendicularEnd } =
-            tool.handles;
-        const { shortestDiameter, longestDiameter, finding, findingSites } =
-            tool;
+        const {
+            start,
+            end,
+            perpendicularStart,
+            perpendicularEnd
+        } = tool.handles;
+        const {
+            shortestDiameter,
+            longestDiameter,
+            finding,
+            findingSites
+        } = tool;
 
         const trackingIdentifierTextValue =
             "cornerstoneTools@^4.0.0:Bidirectional";
