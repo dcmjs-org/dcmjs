@@ -50,7 +50,7 @@ function toFloat(val) {
 }
 
 class BufferStream {
-    constructor(sizeOrBuffer, littleEndian, view) {
+    constructor(sizeOrBuffer, littleEndian) {
         this.buffer =
             typeof sizeOrBuffer == "number"
                 ? new ArrayBuffer(sizeOrBuffer)
@@ -58,7 +58,7 @@ class BufferStream {
         if (!this.buffer) {
             this.buffer = new ArrayBuffer(0);
         }
-        this.view = view || new DataView(this.buffer);
+        this.view = new DataView(this.buffer);
         this.offset = 0;
         this.isLittleEndian = littleEndian || false;
         this.size = 0;
@@ -308,8 +308,7 @@ class BufferStream {
             this.buffer,
             null,
             this.offset,
-            this.offset + length,
-            this.view
+            this.offset + length
         );
         this.increment(length);
 
@@ -331,8 +330,8 @@ class BufferStream {
 }
 
 class ReadBufferStream extends BufferStream {
-    constructor(buffer, littleEndian, start, end, view) {
-        super(buffer, littleEndian, view);
+    constructor(buffer, littleEndian, start, end) {
+        super(buffer, littleEndian);
         this.offset = start || 0;
         this.size = end || this.buffer.byteLength;
         this.startOffset = this.offset;

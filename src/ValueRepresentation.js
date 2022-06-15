@@ -394,8 +394,7 @@ class BinaryRepresentation extends ValueRepresentation {
                             stream.buffer,
                             stream.isLittleEndian,
                             start,
-                            stop,
-                            stream.view
+                            stop
                         );
                         while (!s.end()) {
                             const [buf, done] = getFrameOrFragement(s);
