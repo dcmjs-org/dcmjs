@@ -422,7 +422,7 @@ class BinaryRepresentation extends ValueRepresentation {
                             const mergedFrame = new ArrayBuffer(frameSize);
                             const u8Data = new Uint8Array(mergedFrame);
                             fragments.reduce((offset, buffer) => {
-                                u8Data.set(buffer, offset);
+                                u8Data.set(new Uint8Array(buffer), offset);
                                 return offset + buffer.byteLength;
                             }, 0);
 
