@@ -506,7 +506,7 @@ it("test_encapsulation", async () => {
     const el = DicomMessage.readTag(stream, useSyntax),
         metaLength = el.values[0]; //read header buffer
     const metaStream = stream.more(metaLength);
-    const metaHeader = DicomMessage.read(metaStream, useSyntax, false); //get the syntax
+    const metaHeader = DicomMessage.read(metaStream, useSyntax); //get the syntax
     let mainSyntax = metaHeader["00020010"].Value[0];
 
     mainSyntax = DicomMessage._normalizeSyntax(mainSyntax);
