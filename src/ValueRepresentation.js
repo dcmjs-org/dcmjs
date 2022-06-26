@@ -844,7 +844,7 @@ class SequenceOfItems extends ValueRepresentation {
                         read += toRead;
                         if (undef) stream.increment(8);
 
-                        var items = DicomMessage.read(itemStream, syntax);
+                        var items = DicomMessage._read(itemStream, syntax);
                         elements.push(items);
                     }
                     if (!undefLength && read == sqlength) {

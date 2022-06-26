@@ -33,6 +33,36 @@ class DicomMessage {
     static read(
         bufferStream,
         syntax,
+        ignoreErrors,
+        untilTag = null,
+        includeUntilTagValue = false
+    ) {
+        console.warn("DicomMessage.read to be deprecated after dcmjs 0.24.x");
+        return this._read(bufferStream, syntax, {
+            ignoreErrors: ignoreErrors,
+            untilTag: untilTag,
+            includeUntilTagValue: includeUntilTagValue
+        });
+    }
+
+    static readTag(
+        bufferStream,
+        syntax,
+        untilTag = null,
+        includeUntilTagValue = false
+    ) {
+        console.warn(
+            "DicomMessage.readTag to be deprecated after dcmjs 0.24.x"
+        );
+        return this._readTag(bufferStream, syntax, {
+            untilTag: untilTag,
+            includeUntilTagValue: includeUntilTagValue
+        });
+    }
+
+    static _read(
+        bufferStream,
+        syntax,
         options = {
             ignoreErrors: false,
             untilTag: null,
@@ -43,7 +73,7 @@ class DicomMessage {
         var dict = {};
         try {
             while (!bufferStream.end()) {
-                const readInfo = DicomMessage.readTag(
+                const readInfo = DicomMessage._readTag(
                     bufferStream,
                     syntax,
                     options
@@ -103,17 +133,17 @@ class DicomMessage {
         if (stream.readString(4) !== "DICM") {
             throw new Error("Invalid a dicom file");
         }
-        var el = DicomMessage.readTag(stream, useSyntax),
+        var el = DicomMessage._readTag(stream, useSyntax),
             metaLength = el.values[0];
 
         //read header buffer
         var metaStream = stream.more(metaLength);
 
-        var metaHeader = DicomMessage.read(metaStream, useSyntax, options);
+        var metaHeader = DicomMessage._read(metaStream, useSyntax, options);
         //get the syntax
         var mainSyntax = metaHeader["00020010"].Value[0];
         mainSyntax = DicomMessage._normalizeSyntax(mainSyntax);
-        var objects = DicomMessage.read(stream, mainSyntax, options);
+        var objects = DicomMessage._read(stream, mainSyntax, options);
 
         var dicomDict = new DicomDict(metaHeader);
         dicomDict.dict = objects;
@@ -149,7 +179,7 @@ class DicomMessage {
         return written;
     }
 
-    static readTag(
+    static _readTag(
         stream,
         syntax,
         options = {

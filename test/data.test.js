@@ -503,10 +503,10 @@ it("test_encapsulation", async () => {
         throw new Error("Invalid a dicom file");
     }
 
-    const el = DicomMessage.readTag(stream, useSyntax),
+    const el = DicomMessage._readTag(stream, useSyntax),
         metaLength = el.values[0]; //read header buffer
     const metaStream = stream.more(metaLength);
-    const metaHeader = DicomMessage.read(metaStream, useSyntax); //get the syntax
+    const metaHeader = DicomMessage._read(metaStream, useSyntax); //get the syntax
     let mainSyntax = metaHeader["00020010"].Value[0];
 
     mainSyntax = DicomMessage._normalizeSyntax(mainSyntax);
@@ -537,7 +537,7 @@ it("test_encapsulation", async () => {
             lengths.push(length);
         }
 
-        DicomMessage.readTag(stream, mainSyntax);
+        DicomMessage._readTag(stream, mainSyntax);
     }
 
     // then
