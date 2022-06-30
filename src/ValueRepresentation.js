@@ -23,6 +23,7 @@ class ValueRepresentation {
     constructor(type) {
         this.type = type;
         this.multi = false;
+        this.length = undefined;
     }
 
     isBinary() {

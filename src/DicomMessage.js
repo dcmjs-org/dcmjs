@@ -82,7 +82,11 @@ class DicomMessage {
 
                 dict[cleanTagString] = {
                     vr: readInfo.vr.type,
-                    Value: readInfo.values
+                    Value: readInfo.values,
+                    Meta: {
+                        length: readInfo.vr.length,
+                        type: readInfo.vr.type
+                    }
                 };
 
                 if (untilTag && untilTag === cleanTagString) {
@@ -263,8 +267,12 @@ class DicomMessage {
             }
         }
         stream.setEndian(oldEndian);
-
-        return { tag: tag, vr: vr, values: values };
+        vr.length = length;
+        return {
+            tag: tag,
+            vr: vr,
+            values: values
+        };
     }
 
     static lookupTag(tag) {
