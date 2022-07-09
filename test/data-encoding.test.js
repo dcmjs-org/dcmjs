@@ -25,13 +25,12 @@ const expectedPatientNames = {
   "SCSX1": "Wang^XiaoDong=王^小東=",
   "SCSX2": "Wang^XiaoDong=王^小东=",
   // These are not yet supported, because they use multiple encodings, which would require a more complex parser...
-  //"SCSH31": "Yamada^Tarou=\u001b$B;3ED\u001b(B^\u001b$BB@O:\u001b(B=\u001b$B$d$^$@\u001b(B^\u001b$B$?$m$&\u001b(B",
-  //"SCSH32": "ÔÏÀÞ^ÀÛ³=\u001b$B;3ED\u001b(J^\u001b$BB@O:\u001b(J=\u001b$B$d$^$@\u001b(J^\u001b$B$?$m$&\u001b(J",
-  //"SCSI2": "Hong^Gildong=\u001b$)Cûó^\u001b$)CÑÎÔ×=\u001b$)CÈ«^\u001b$)C±æµ¿",
+  //"SCSH31": "X",
+  //"SCSH32": "X",
+  //"SCSI2": "X",
 }
 
-it.only("test_encodings", async () => {
-    return 
+it("test_encodings", async () => {
     const url = "https://github.com/dcmjs-org/data/releases/download/dclunie-charsets/dclunie-charsets.zip"
     const unzipPath = await getZippedTestDataset(url, "dclunie-charsets.zip", "dclunie-charsets");
     const filesPath = unzipPath + "/charsettests"
