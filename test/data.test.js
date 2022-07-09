@@ -532,7 +532,6 @@ it("Reads DICOM with multiplicity", async () => {
         "https://github.com/dcmjs-org/data/releases/download/multiplicity/multiplicity.dcm";
     const dcmPath = await getTestDataset(url, "multiplicity.dcm")
     const file = await promisify(fs.readFile)(dcmPath);
-    //const file = fs.readFileSync(dcmPath);
     const dicomDict = DicomMessage.readFile(file.buffer);
 
     expect(dicomDict.dict["00101020"].Value).toEqual([1, 2]);
@@ -558,7 +557,7 @@ it("Reads binary data into an ArrayBuffer", async () => {
 it("Reads a multiframe DICOM which has trailing padding", async () => {
     const url =
         "https://github.com/dcmjs-org/data/releases/download/binary-parsing-stressors/multiframe-ultrasound.dcm";
-    const dcmPath = path.join(os.tmpdir(), "multiframe-ultrasound.dcm");
+    const dcmPath = await getTestDataset(url, "multiframe-ultrasound.dcm")
     const dicomDict = DicomMessage.readFile(fs.readFileSync(dcmPath).buffer);
     const dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(
         dicomDict.dict
