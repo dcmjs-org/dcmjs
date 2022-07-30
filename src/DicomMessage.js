@@ -11,6 +11,7 @@ const singleVRs = ["SQ", "OF", "OW", "OB", "UN", "LT"];
 
 const encodingMapping = {
     "iso-ir-192": "utf-8",
+    "iso-ir-6": "latin1",
     "": "latin1"
 };
 
@@ -91,11 +92,7 @@ class DicomMessage {
                         if (coding in encodingMapping) {
                             coding = encodingMapping[coding];
                         }
-                        try {
-                            bufferStream.setDecoder(new TextDecoder(coding));
-                        } catch (error) {
-                            console.warn(error);
-                        }
+                        bufferStream.setDecoder(new TextDecoder(coding));
                     }
                     if (readInfo.values.length > 1) {
                         console.warn(

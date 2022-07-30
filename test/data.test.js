@@ -620,3 +620,44 @@ it("Writes encapsulated OB data which has an odd length with a padding byte in i
         0x00000000 // SequenceDelimiterTag value (always zero)
     ]);
 });
+
+it("Reads a DICOM with a SpecificCharacterSet of ISO_IR 6", async () => {
+    const syntax = "1.2.840.10008.1.2"; // Implicit little endian
+
+    // Write SpecificCharacterSet = "ISO_IR 6"
+    const stream = new WriteBufferStream(1024);
+    DicomMessage.write(
+        DicomMetaDictionary.denaturalizeDataset({
+            SpecificCharacterSet: "ISO_IR 6"
+        }),
+        stream,
+        syntax
+    );
+
+    // Read it back to check that "ISO_IR 6" is accepted
+    const readResult = DicomMetaDictionary.naturalizeDataset(
+        DicomMessage._read(new ReadBufferStream(stream.buffer), syntax)
+    );
+
+    // The SpecificCharacterSet will be converted to UTF-8 on load
+    expect(readResult.SpecificCharacterSet).toEqual("ISO_IR 192");
+});
+
+it("Throws an exception for a DICOM with an unsupported SpecificCharacterSet", async () => {
+    const syntax = "1.2.840.10008.1.2"; // Implicit little endian
+
+    // Write an unsupported SpecificCharacterSet
+    const stream = new WriteBufferStream(1024);
+    DicomMessage.write(
+        DicomMetaDictionary.denaturalizeDataset({
+            SpecificCharacterSet: "alien-encoding"
+        }),
+        stream,
+        syntax
+    );
+
+    // Check that reading it throws an exception
+    expect(() =>
+        DicomMessage._read(new ReadBufferStream(stream.buffer), syntax)
+    ).toThrow(new RangeError('The "alien-encoding" encoding is not supported'));
+});
