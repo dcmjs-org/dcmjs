@@ -80,7 +80,7 @@ let normalizers = {
 };
 
 let anonymizer = {
-    cleanTags
+    cleanTags,
     tagNamesToEmpty
 };
 
