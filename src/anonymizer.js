@@ -2,7 +2,7 @@ import log from "./log.js";
 import { DicomMetaDictionary } from "./DicomMetaDictionary.js";
 import { Tag } from "./Tag.js";
 
-export var tagNamesToEmpty = [
+var tagNamesToEmpty = [
     // please override these in specificReplaceDefaults to have useful values
     "PatientID",
     "PatientName",
@@ -235,8 +235,20 @@ export var tagNamesToEmpty = [
     "DataSetTrailingPadding"
 ];
 
-export function cleanTags(dict, tagNamesToReplace) {
-    tagNamesToEmpty.forEach(function (tag) {
+export function getTagsNameToEmpty() {
+    return [...tagNamesToEmpty];
+}
+
+export function cleanTags(
+    dict,
+    tagNamesToReplace,
+    customTagNamesToEmpty = undefined
+) {
+    var tags =
+        customTagNamesToEmpty != undefined
+            ? customTagNamesToEmpty
+            : tagNamesToEmpty;
+    tags.forEach(function (tag) {
         var tagInfo = DicomMetaDictionary.nameMap[tag];
         if (tagInfo && tagInfo.version != "PrivateTag") {
             var tagNumber = tagInfo.tag,
