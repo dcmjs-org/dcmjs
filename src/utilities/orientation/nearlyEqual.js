@@ -18,10 +18,10 @@ export default function nearlyEqual(a, b, epsilon) {
     const absA = Math.abs(a);
     const absB = Math.abs(b);
     const diff = Math.abs(a - b);
-    if (a == b) {
+    if (a === b) {
         // shortcut, handles infinities
         return true;
-    } else if (a == 0 || b == 0 || absA + absB < Number.EPSILON) {
+    } else if (a === 0 || b === 0 || absA + absB < epsilon * epsilon) {
         // a or b is zero or both are extremely close to it
         // relative error is less meaningful here
         return diff < epsilon;
