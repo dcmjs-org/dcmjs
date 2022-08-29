@@ -367,7 +367,8 @@ DicomMetaDictionary.sopClassNamesByUID = {
     "1.2.840.10008.5.1.4.1.1.88.33": "ComprehensiveSR",
     "1.2.840.10008.5.1.4.1.1.128": "PETImage",
     "1.2.840.10008.5.1.4.1.1.130": "EnhancedPETImage",
-    "1.2.840.10008.5.1.4.1.1.128.1": "LegacyConvertedEnhancedPETImage"
+    "1.2.840.10008.5.1.4.1.1.128.1": "LegacyConvertedEnhancedPETImage",
+    "1.2.840.10008.5.1.4.1.1.481.3": "RTStructureSetStorage"
 };
 
 DicomMetaDictionary.dictionary = dictionary;
