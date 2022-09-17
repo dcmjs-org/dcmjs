@@ -622,6 +622,23 @@ it("Writes encapsulated OB data which has an odd length with a padding byte in i
     ]);
 });
 
+it("test_deflated", () => {
+    const file = fs.readFileSync("test/deflated.dcm");
+    const dicomData = dcmjs.data.DicomMessage.readFile(file.buffer, {
+        // ignoreErrors: true,
+    });
+    const dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(
+        dicomData.dict
+    );
+    // eslint-disable-next-line no-underscore-dangle
+    dataset._meta = dcmjs.data.DicomMetaDictionary.namifyDataset(
+        dicomData.meta
+    );
+    expect(dataset.Modality).toEqual("OT");
+    expect(dataset.Rows).toEqual(512);
+    expect(dataset.Columns).toEqual(512);
+});
+
 describe("With a SpecificCharacterSet tag", () => {
     it("Reads a long string in the '' character set", async () => {
         expect(readEncodedLongString("", [0x68, 0x69])).toEqual("hi");
