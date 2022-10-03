@@ -20,7 +20,8 @@ class Length {
         const {
             defaultState,
             NUMGroup,
-            SCOORDGroup
+            SCOORDGroup,
+            ReferencedFrameNumber
         } = MeasurementReport.getSetupMeasurementData(
             MeasurementGroup,
             sopInstanceUIDToImageIdMap,
@@ -57,7 +58,8 @@ class Length {
                         ? NUMGroup.MeasuredValueSequence.NumericValue
                         : 0
                 }
-            }
+            },
+            frameNumber: ReferencedFrameNumber || 1,
         };
 
         return state;

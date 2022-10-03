@@ -20,7 +20,7 @@ class Bidirectional {
         imageToWorldCoords,
         metadata
     ) {
-        const { defaultState } = MeasurementReport.getSetupMeasurementData(
+        const { defaultState, ReferencedFrameNumber } = MeasurementReport.getSetupMeasurementData(
             MeasurementGroup,
             sopInstanceUIDToImageIdMap,
             metadata,
@@ -80,7 +80,8 @@ class Bidirectional {
                     length: longAxisNUMGroup.MeasuredValueSequence.NumericValue,
                     width: shortAxisNUMGroup.MeasuredValueSequence.NumericValue
                 }
-            }
+            },
+            frameNumber: ReferencedFrameNumber || 1,
         };
 
         return state;
