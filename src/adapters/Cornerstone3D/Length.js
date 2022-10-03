@@ -17,17 +17,13 @@ class Length {
         imageToWorldCoords,
         metadata
     ) {
-        const {
-            defaultState,
-            NUMGroup,
-            SCOORDGroup,
-            ReferencedFrameNumber
-        } = MeasurementReport.getSetupMeasurementData(
-            MeasurementGroup,
-            sopInstanceUIDToImageIdMap,
-            metadata,
-            Length.toolType
-        );
+        const { defaultState, NUMGroup, SCOORDGroup, ReferencedFrameNumber } =
+            MeasurementReport.getSetupMeasurementData(
+                MeasurementGroup,
+                sopInstanceUIDToImageIdMap,
+                metadata,
+                Length.toolType
+            );
 
         const referencedImageId =
             defaultState.annotation.metadata.referencedImageId;
@@ -59,7 +55,7 @@ class Length {
                         : 0
                 }
             },
-            frameNumber: ReferencedFrameNumber || 1,
+            frameNumber: ReferencedFrameNumber
         };
 
         return state;

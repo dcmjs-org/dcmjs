@@ -74,7 +74,7 @@ class PlanarFreehandROI {
                     hasMoved: false
                 }
             },
-            frameNumber: ReferencedFrameNumber || 1,
+            frameNumber: ReferencedFrameNumber
         };
 
         return state;
