@@ -50,6 +50,10 @@ _Parts of DICOM that dcmjs *will not* focus on:_
 
 ## In Node
 
+We aim to support at least the `Maintenance` version according to the [Node.js release schedule](https://github.com/nodejs/release#release-schedule).
+
+At the moment, it should work with Node 11 and above (although it's not recommended to use End Of Life versions).
+
 ```None
 // To install latest _stable_ release
 npm install --save dcmjs
