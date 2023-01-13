@@ -78,7 +78,7 @@ Use the following "Commit Message Format" when drafting commit messages. If you'
 
 Note: Be wary of `BREAKING_CHANGE` in commit message descriptions, as this can force a major version bump.
 
-Be sure to use lower case for the first letter of your semantic commit message, so use `fix` not `Fix` or `feat` not `Feat`.
+Be sure to use lower case for the first letter of your semantic commit message, so use `fix` not `Fix` or `feat` not `Feat`, and have a space after the :
 
 Note: a new package version will be published only if the commit comes from a PR.
 
