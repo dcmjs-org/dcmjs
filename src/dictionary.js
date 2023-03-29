@@ -13504,7 +13504,7 @@ const dictionary = {
     },
     "(0028,3006)": {
         tag: "(0028,3006)",
-        vr: "lt",
+        vr: "LT",
         name: "LUTData",
         vm: "1-n",
         version: "DICOM"
