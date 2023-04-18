@@ -1,8 +1,9 @@
 import { ReadBufferStream } from "../../src/BufferStream";
-import { ITEM_DELIMITATION_TAG, ITEM_TAG, SEQUENCE_DELIMITATION_TAG } from "../../src/constants/dicom/Tags";
-import { ITEM_DELIMITATION_LENGTH, SEQUENCE_DELIMITATION_VALUE, UNDEFINED_LENGTH } from "../../src/constants/dicom/Values";
+import { ITEM_DELIMITATION_LENGTH, SEQUENCE_DELIMITATION_VALUE, UNDEFINED_LENGTH } from "../../src/constants/dicom";
 
 export class DicomDataReadBufferStreamBuilder {
+
+
     constructor() {
         this.itemArray = [];
         this.options = {
@@ -11,20 +12,24 @@ export class DicomDataReadBufferStreamBuilder {
             includeUntilTagValue: false,
             noCopy: false
         }
+
+        this.SEQUENCE_DELIMITATION_TAG = 0xfffee0dd;
+        this.ITEM_TAG = 0xfffee000;
+        this.ITEM_DELIMITATION_TAG = 0xfffee00d;
     }
 
     addSequenceDelimitationTagAndValue() {
-        this.splitIntoFourTwoByteItemsAndAddToDataArray(SEQUENCE_DELIMITATION_TAG);
+        this.splitIntoFourTwoByteItemsAndAddToDataArray(this.SEQUENCE_DELIMITATION_TAG);
         this.splitIntoFourTwoByteItemsAndAddToDataArray(SEQUENCE_DELIMITATION_VALUE);
     }
 
     addUndefinedLengthItem() {
-        this.splitIntoFourTwoByteItemsAndAddToDataArray(ITEM_TAG);
+        this.splitIntoFourTwoByteItemsAndAddToDataArray(this.ITEM_TAG);
         this.splitIntoFourTwoByteItemsAndAddToDataArray(UNDEFINED_LENGTH);
     }
 
     addUndefinedLengthItemDelimitation() {
-        this.splitIntoFourTwoByteItemsAndAddToDataArray(ITEM_DELIMITATION_TAG);
+        this.splitIntoFourTwoByteItemsAndAddToDataArray(this.ITEM_DELIMITATION_TAG);
         this.splitIntoFourTwoByteItemsAndAddToDataArray(ITEM_DELIMITATION_LENGTH);
     }
 
