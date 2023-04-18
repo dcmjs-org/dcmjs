@@ -1,4 +1,5 @@
 module.exports = Object.freeze({
+    // TransferSyntaxUIDs
     IMPLICIT_LITTLE_ENDIAN: "1.2.840.10008.1.2",
     EXPLICIT_LITTLE_ENDIAN: "1.2.840.10008.1.2.1",
     DEFLATED_EXPLICIT_LITTLE_ENDIAN: "1.2.840.10008.1.2.1.99",

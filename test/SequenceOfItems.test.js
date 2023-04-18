@@ -1,6 +1,6 @@
 import { ValueRepresentation } from '../src/ValueRepresentation';
 import { DicomDataReadBufferStreamBuilder } from './helper/DicomDataReadBufferStreamBuilder';
-import { IMPLICIT_LITTLE_ENDIAN } from "../src/constants/dicom/uids/TransferSyntaxUID";
+import { IMPLICIT_LITTLE_ENDIAN } from '../src/constants/dicom';
 import { UNDEFINED_LENGTH } from '../src/constants/dicom/Values';
 
 describe('SequenceOfItems extends ValueRepresentation', () => {
