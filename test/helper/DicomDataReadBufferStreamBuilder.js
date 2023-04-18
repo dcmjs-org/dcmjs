@@ -28,6 +28,10 @@ export class DicomDataReadBufferStreamBuilder {
         this.splitIntoFourTwoByteItemsAndAddToDataArray(ITEM_DELIMITATION_LENGTH);
     }
 
+    /**
+     * Converts a 8 byte hexadecimal value into a 4 * 2 byte String values array.
+     * (0xfffee00d -> ['0xff', '0xfe', '0xe0', 0x0d'])
+     */
     splitIntoFourTwoByteItemsAndAddToDataArray(hexValue) {
         let hexValueItemArray = [];
 
@@ -43,14 +47,15 @@ export class DicomDataReadBufferStreamBuilder {
         this.itemArray = this.itemArray.concat(hexValueItemArray);
     }
 
+    /**
+     * Adds a "File Meta Information Group Length" tag (0002,0000) with the length 4 and the value 4 to the stream. 
+     */
     addUlExampleItem() {
         const fileMetaInfoGroupLengthTag = ['0x02', '0x00', '0x00', '0x00'];
-        // const fileMetaInfoGroupLengthVr = 'UL';
         const length = ['0x04', '0x00', '0x00', '0x00'];
         const item = ['0x04', '0x00', '0x00', '0x00'];
 
         this.itemArray = this.itemArray.concat(fileMetaInfoGroupLengthTag);
-        // this.itemArray.push(fileMetaInfoGroupLengthVr.charCodeAt(0).toString(16), fileMetaInfoGroupLengthVr.charCodeAt(1).toString(16));
         this.itemArray = this.itemArray.concat(length);
         this.itemArray = this.itemArray.concat(item);
 
