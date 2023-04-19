@@ -1,7 +1,7 @@
-import log from "./log.js";
-import { ValueRepresentation } from "./ValueRepresentation";
 import dictionary from "./dictionary";
+import log from "./log.js";
 import addAccessors from "./utilities/addAccessors";
+import { ValueRepresentation } from "./ValueRepresentation";
 
 class DicomMetaDictionary {
     // intakes a custom dictionary that will be used to parse/denaturalize the dataset
@@ -26,6 +26,22 @@ class DicomMetaDictionary {
             return tag;
         }
         return tag.substring(1, 10).replace(",", "");
+    }
+
+    static parseIntFromTag(tag) {
+        const integerValue = parseInt(
+            "0x" + DicomMetaDictionary.unpunctuateTag(tag)
+        );
+        return integerValue;
+    }
+
+    static tagAsIntegerFromName(name) {
+        const item = DicomMetaDictionary.nameMap[name];
+        if (item != undefined) {
+            return this.parseIntFromTag(item.tag);
+        } else {
+            return undefined;
+        }
     }
 
     // fixes some common errors in VRs
