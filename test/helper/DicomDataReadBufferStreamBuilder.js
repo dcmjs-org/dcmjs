@@ -1,5 +1,6 @@
 import { ReadBufferStream } from "../../src/BufferStream";
 import { ITEM_DELIMITATION_LENGTH, SEQUENCE_DELIMITATION_VALUE, UNDEFINED_LENGTH } from "../../src/constants/dicom";
+import { DicomMetaDictionary } from "../../src/DicomMetaDictionary";
 
 export class DicomDataReadBufferStreamBuilder {
 
@@ -13,23 +14,21 @@ export class DicomDataReadBufferStreamBuilder {
             noCopy: false
         }
 
-        this.SEQUENCE_DELIMITATION_TAG = 0xfffee0dd;
-        this.ITEM_TAG = 0xfffee000;
-        this.ITEM_DELIMITATION_TAG = 0xfffee00d;
     }
 
+
     addSequenceDelimitationTagAndValue() {
-        this.splitIntoFourTwoByteItemsAndAddToDataArray(this.SEQUENCE_DELIMITATION_TAG);
+        this.splitIntoFourTwoByteItemsAndAddToDataArray(DicomMetaDictionary.tagAsIntegerFromName('SequenceDelimitationItem'));
         this.splitIntoFourTwoByteItemsAndAddToDataArray(SEQUENCE_DELIMITATION_VALUE);
     }
 
     addUndefinedLengthItem() {
-        this.splitIntoFourTwoByteItemsAndAddToDataArray(this.ITEM_TAG);
+        this.splitIntoFourTwoByteItemsAndAddToDataArray(DicomMetaDictionary.tagAsIntegerFromName('Item'));
         this.splitIntoFourTwoByteItemsAndAddToDataArray(UNDEFINED_LENGTH);
     }
 
     addUndefinedLengthItemDelimitation() {
-        this.splitIntoFourTwoByteItemsAndAddToDataArray(this.ITEM_DELIMITATION_TAG);
+        this.splitIntoFourTwoByteItemsAndAddToDataArray(DicomMetaDictionary.tagAsIntegerFromName('ItemDelimitationItem'));
         this.splitIntoFourTwoByteItemsAndAddToDataArray(ITEM_DELIMITATION_LENGTH);
     }
 
