@@ -1,19 +1,20 @@
 import "regenerator-runtime/runtime.js";
 
-import { getZippedTestDataset, getTestDataset } from "./testUtils.js";
 import { jest } from "@jest/globals";
-import dcmjs from "../src/index.js";
-import { WriteBufferStream } from "../src/BufferStream";
 import fs from "fs";
 import fsPromises from "fs/promises";
-import os from "os";
 import path from "path";
+import { WriteBufferStream } from "../src/BufferStream";
+import dcmjs from "../src/index.js";
+import { getTestDataset, getZippedTestDataset } from "./testUtils.js";
 
-import datasetWithNullNumberVRs from "./mocks/null_number_vrs_dataset.json";
-import minimalDataset from "./mocks/minimal_fields_dataset.json";
-import arrayItem from "./arrayItem.json";
-import { rawTags } from "./rawTags";
 import { promisify } from "util";
+import arrayItem from "./arrayItem.json";
+import minimalDataset from "./mocks/minimal_fields_dataset.json";
+import datasetWithNullNumberVRs from "./mocks/null_number_vrs_dataset.json";
+import { rawTags } from "./rawTags";
+
+import { EXPLICIT_LITTLE_ENDIAN, IMPLICIT_LITTLE_ENDIAN } from "./../src/constants/dicom.js";
 
 const {
     DicomMetaDictionary,
@@ -21,9 +22,6 @@ const {
     DicomMessage,
     ReadBufferStream
 } = dcmjs.data;
-
-const IMPLICIT_LITTLE_ENDIAN = "1.2.840.10008.1.2";
-const EXPLICIT_LITTLE_ENDIAN = "1.2.840.10008.1.2.1";
 
 const fileMetaInformationVersionArray = new Uint8Array(2);
 fileMetaInformationVersionArray[1] = 1;
@@ -242,7 +240,7 @@ it("test_oneslice_seg", async () => {
         "https://github.com/dcmjs-org/data/releases/download/CTPelvis/Lesion1_onesliceSEG.dcm";
     const unzipPath = await getZippedTestDataset(ctPelvisURL, "CTPelvis.zip", "test_oneslice_seg");
     const segFileName = "Lesion1_onesliceSEG.dcm"
-    
+
     const ctPelvisPath = path.join(
         unzipPath,
         "Series-1.2.840.113704.1.111.1916.1223562191.15"
@@ -452,8 +450,8 @@ it("test_encapsulation", async () => {
     // when
     const lengths = [];
     const stream = new ReadBufferStream(
-            dicomDict.write({ fragmentMultiframe: false })
-        ),
+        dicomDict.write({ fragmentMultiframe: false })
+    ),
         useSyntax = EXPLICIT_LITTLE_ENDIAN;
 
     stream.reset();
@@ -629,17 +627,17 @@ it("test_deflated", async () => {
     const deflatedPath = path.join(unzipPath, "deflate_tests");
 
     const expected = [
-        { file: "image_dfl", tags: { Modality: "OT", Rows: 512, Columns: 512 }},
-        { file: "report_dfl", tags: { Modality: "SR", VerificationFlag: "UNVERIFIED", ContentDate: "20001110" }},
-        { file: "wave_dfl", tags: { Modality: "ECG", SynchronizationTrigger: "NO TRIGGER", ContentDate: "19991223" }}
+        { file: "image_dfl", tags: { Modality: "OT", Rows: 512, Columns: 512 } },
+        { file: "report_dfl", tags: { Modality: "SR", VerificationFlag: "UNVERIFIED", ContentDate: "20001110" } },
+        { file: "wave_dfl", tags: { Modality: "ECG", SynchronizationTrigger: "NO TRIGGER", ContentDate: "19991223" } }
     ];
-    
+
     expected.forEach(e => {
         const buffer = fs.readFileSync(path.join(deflatedPath, e.file));
         const dicomDict = DicomMessage.readFile(buffer.buffer.slice(
             buffer.byteOffset,
             buffer.byteOffset + buffer.byteLength
-          ));
+        ));
         const dataset = DicomMetaDictionary.naturalizeDataset(dicomDict.dict);
         Object.keys(e.tags).forEach(t => {
             expect(dataset[t]).toEqual(e.tags[t]);
