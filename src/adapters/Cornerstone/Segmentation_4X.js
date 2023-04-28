@@ -295,23 +295,32 @@ function generateToolState(
 
     const SeriesInstanceUID = generalSeriesModule.seriesInstanceUID;
 
-    if (!imagePlaneModule) {
-        console.warn("Insufficient metadata, imagePlaneModule missing.");
+    let ImageOrientationPatient;
+    let validOrientations;
+
+    const hasCoordinateSystem = "FrameOfReferenceUID" in multiframe;
+    if (hasCoordinateSystem) {
+        if (!imagePlaneModule) {
+            console.warn("Insufficient metadata, imagePlaneModule missing.");
+        }
+
+        ImageOrientationPatient = Array.isArray(imagePlaneModule.rowCosines)
+            ? [
+                  ...imagePlaneModule.rowCosines,
+                  ...imagePlaneModule.columnCosines
+              ]
+            : [
+                  imagePlaneModule.rowCosines.x,
+                  imagePlaneModule.rowCosines.y,
+                  imagePlaneModule.rowCosines.z,
+                  imagePlaneModule.columnCosines.x,
+                  imagePlaneModule.columnCosines.y,
+                  imagePlaneModule.columnCosines.z
+              ];
+
+        // Get IOP from ref series, compute supported orientations:
+        validOrientations = getValidOrientations(ImageOrientationPatient);
     }
-
-    const ImageOrientationPatient = Array.isArray(imagePlaneModule.rowCosines)
-        ? [...imagePlaneModule.rowCosines, ...imagePlaneModule.columnCosines]
-        : [
-              imagePlaneModule.rowCosines.x,
-              imagePlaneModule.rowCosines.y,
-              imagePlaneModule.rowCosines.z,
-              imagePlaneModule.columnCosines.x,
-              imagePlaneModule.columnCosines.y,
-              imagePlaneModule.columnCosines.z
-          ];
-
-    // Get IOP from ref series, compute supported orientations:
-    const validOrientations = getValidOrientations(ImageOrientationPatient);
 
     const sliceLength = multiframe.Columns * multiframe.Rows;
     const segMetadata = getSegmentMetadata(multiframe, SeriesInstanceUID);
@@ -344,12 +353,17 @@ function generateToolState(
         }
     }
 
-    const orientation = checkOrientation(
-        multiframe,
-        validOrientations,
-        [imagePlaneModule.rows, imagePlaneModule.columns, imageIds.length],
-        tolerance
-    );
+    let orientation;
+    if (hasCoordinateSystem) {
+        orientation = checkOrientation(
+            multiframe,
+            validOrientations,
+            [imagePlaneModule.rows, imagePlaneModule.columns, imageIds.length],
+            tolerance
+        );
+    } else {
+        orientation = "Planar";
+    }
 
     let overlapping = false;
     if (!skipOverlapping) {
@@ -636,9 +650,7 @@ function findReferenceSourceImageId(
     }
 
     let frameSourceImageSequence = undefined;
-    if (SourceImageSequence && SourceImageSequence.length !== 0) {
-        frameSourceImageSequence = SourceImageSequence[frameSegment];
-    } else if (PerFrameFunctionalGroup.DerivationImageSequence) {
+    if (PerFrameFunctionalGroup.DerivationImageSequence) {
         let DerivationImageSequence =
             PerFrameFunctionalGroup.DerivationImageSequence;
         if (Array.isArray(DerivationImageSequence)) {
@@ -660,6 +672,8 @@ function findReferenceSourceImageId(
                 }
             }
         }
+    } else if (SourceImageSequence && SourceImageSequence.length !== 0) {
+        frameSourceImageSequence = SourceImageSequence[frameSegment];
     }
 
     if (frameSourceImageSequence) {
@@ -781,11 +795,6 @@ function checkSEGsOverlapping(
             const PerFrameFunctionalGroups =
                 PerFrameFunctionalGroupsSequence[frameSegment];
 
-            const ImageOrientationPatientI =
-                sharedImageOrientationPatient ||
-                PerFrameFunctionalGroups.PlaneOrientationSequence
-                    .ImageOrientationPatient;
-
             const pixelDataI2D = ndarray(
                 new Uint8Array(
                     pixelData.buffer,
@@ -795,12 +804,24 @@ function checkSEGsOverlapping(
                 [Rows, Columns]
             );
 
-            const alignedPixelDataI = alignPixelDataWithSourceData(
-                pixelDataI2D,
-                ImageOrientationPatientI,
-                validOrientations,
-                tolerance
-            );
+            let alignedPixelDataI;
+
+            const hasCoordinateSystem = "FrameOfReferenceUID" in multiframe;
+            if (hasCoordinateSystem) {
+                const ImageOrientationPatientI =
+                    sharedImageOrientationPatient ||
+                    PerFrameFunctionalGroups.PlaneOrientationSequence
+                        .ImageOrientationPatient;
+
+                alignedPixelDataI = alignPixelDataWithSourceData(
+                    pixelDataI2D,
+                    ImageOrientationPatientI,
+                    validOrientations,
+                    tolerance
+                );
+            } else {
+                alignedPixelDataI = pixelDataI2D;
+            }
 
             if (!alignedPixelDataI) {
                 console.warn(
@@ -894,22 +915,29 @@ function insertOverlappingPixelDataPlanar(
                 continue;
             }
 
-            const ImageOrientationPatientI =
-                sharedImageOrientationPatient ||
-                PerFrameFunctionalGroups.PlaneOrientationSequence
-                    .ImageOrientationPatient;
-
             const pixelDataI2D = ndarray(
                 new Uint8Array(pixelData.buffer, i * sliceLength, sliceLength),
                 [Rows, Columns]
             );
 
-            const alignedPixelDataI = alignPixelDataWithSourceData(
-                pixelDataI2D,
-                ImageOrientationPatientI,
-                validOrientations,
-                tolerance
-            );
+            let alignedPixelDataI;
+
+            const hasCoordinateSystem = "FrameOfReferenceUID" in multiframe;
+            if (hasCoordinateSystem) {
+                const ImageOrientationPatientI =
+                    sharedImageOrientationPatient ||
+                    PerFrameFunctionalGroups.PlaneOrientationSequence
+                        .ImageOrientationPatient;
+
+                alignedPixelDataI = alignPixelDataWithSourceData(
+                    pixelDataI2D,
+                    ImageOrientationPatientI,
+                    validOrientations,
+                    tolerance
+                );
+            } else {
+                alignedPixelDataI = pixelDataI2D;
+            }
 
             if (!alignedPixelDataI) {
                 throw new Error(
@@ -936,12 +964,12 @@ function insertOverlappingPixelDataPlanar(
             }
 
             const sourceImageMetadata = metadataProvider.get(
-                "instance",
+                "imagePixelModule",
                 imageId
             );
             if (
-                Rows !== sourceImageMetadata.Rows ||
-                Columns !== sourceImageMetadata.Columns
+                Rows !== sourceImageMetadata.rows ||
+                Columns !== sourceImageMetadata.columns
             ) {
                 throw new Error(
                     "Individual SEG frames have different geometry dimensions (Rows and Columns) " +
@@ -1060,22 +1088,29 @@ function insertPixelDataPlanar(
     ) {
         const PerFrameFunctionalGroups = PerFrameFunctionalGroupsSequence[i];
 
-        const ImageOrientationPatientI =
-            sharedImageOrientationPatient ||
-            PerFrameFunctionalGroups.PlaneOrientationSequence
-                .ImageOrientationPatient;
-
         const pixelDataI2D = ndarray(
             new Uint8Array(pixelData.buffer, i * sliceLength, sliceLength),
             [Rows, Columns]
         );
 
-        const alignedPixelDataI = alignPixelDataWithSourceData(
-            pixelDataI2D,
-            ImageOrientationPatientI,
-            validOrientations,
-            tolerance
-        );
+        let alignedPixelDataI;
+
+        const hasCoordinateSystem = "FrameOfReferenceUID" in multiframe;
+        if (hasCoordinateSystem) {
+            const ImageOrientationPatientI =
+                sharedImageOrientationPatient ||
+                PerFrameFunctionalGroups.PlaneOrientationSequence
+                    .ImageOrientationPatient;
+
+            alignedPixelDataI = alignPixelDataWithSourceData(
+                pixelDataI2D,
+                ImageOrientationPatientI,
+                validOrientations,
+                tolerance
+            );
+        } else {
+            alignedPixelDataI = pixelDataI2D;
+        }
 
         if (!alignedPixelDataI) {
             throw new Error(
@@ -1106,10 +1141,13 @@ function insertPixelDataPlanar(
             continue;
         }
 
-        const sourceImageMetadata = metadataProvider.get("instance", imageId);
+        const sourceImageMetadata = metadataProvider.get(
+            "imagePixelModule",
+            imageId
+        );
         if (
-            Rows !== sourceImageMetadata.Rows ||
-            Columns !== sourceImageMetadata.Columns
+            Rows !== sourceImageMetadata.rows ||
+            Columns !== sourceImageMetadata.columns
         ) {
             throw new Error(
                 "Individual SEG frames have different geometry dimensions (Rows and Columns) " +
