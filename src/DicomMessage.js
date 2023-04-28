@@ -1,14 +1,15 @@
-import { ReadBufferStream } from "./BufferStream.js";
-import { DeflatedReadBufferStream } from "./BufferStream.js";
-import { Tag } from "./Tag.js";
-import { DicomMetaDictionary } from "./DicomMetaDictionary.js";
+import { DeflatedReadBufferStream, ReadBufferStream } from "./BufferStream.js";
+import {
+    DEFLATED_EXPLICIT_LITTLE_ENDIAN,
+    EXPLICIT_BIG_ENDIAN,
+    EXPLICIT_LITTLE_ENDIAN,
+    IMPLICIT_LITTLE_ENDIAN
+} from "./constants/dicom";
 import { DicomDict } from "./DicomDict.js";
+import { DicomMetaDictionary } from "./DicomMetaDictionary.js";
+import { Tag } from "./Tag.js";
 import { ValueRepresentation } from "./ValueRepresentation.js";
 
-const IMPLICIT_LITTLE_ENDIAN = "1.2.840.10008.1.2";
-const EXPLICIT_LITTLE_ENDIAN = "1.2.840.10008.1.2.1";
-const DEFLATED_EXPLICIT_LITTLE_ENDIAN = "1.2.840.10008.1.2.1.99";
-const EXPLICIT_BIG_ENDIAN = "1.2.840.10008.1.2.2";
 const singleVRs = ["SQ", "OF", "OW", "OB", "UN", "LT"];
 
 const encodingMapping = {
