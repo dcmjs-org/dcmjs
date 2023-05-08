@@ -255,6 +255,17 @@ function _createSegFromImages(images, isMultiframe, options) {
     return new SegmentationDerivation([multiframe], options);
 }
 
+// See https://dicom.nema.org/dicom/2013/output/chtml/part03/sect_A.51.html for details
+function checkFor3DTags(segmentation) {
+    var required3DTags = [
+        "FrameOfReferenceUID",
+        "PixelMeasuresSequence",
+        "PlanePositionSequence",
+        "PlaneOrientationSequence"
+    ];
+    return required3DTags.every(t => t in segmentation);
+}
+
 /**
  * generateToolState - Given a set of cornrstoneTools imageIds and a Segmentation buffer,
  * derive cornerstoneTools toolState and brush metadata.
@@ -299,7 +310,9 @@ function generateToolState(
     let validOrientations;
 
     const hasCoordinateSystem = "FrameOfReferenceUID" in multiframe;
-    if (hasCoordinateSystem) {
+    const has3DTags = checkFor3DTags(multiframe);
+
+    if (hasCoordinateSystem && has3DTags) {
         if (!imagePlaneModule) {
             console.warn("Insufficient metadata, imagePlaneModule missing.");
         }
@@ -354,7 +367,7 @@ function generateToolState(
     }
 
     let orientation;
-    if (hasCoordinateSystem) {
+    if (hasCoordinateSystem && has3DTags) {
         orientation = checkOrientation(
             multiframe,
             validOrientations,
@@ -807,7 +820,9 @@ function checkSEGsOverlapping(
             let alignedPixelDataI;
 
             const hasCoordinateSystem = "FrameOfReferenceUID" in multiframe;
-            if (hasCoordinateSystem) {
+            const has3DTags = checkFor3DTags(multiframe);
+
+            if (hasCoordinateSystem && has3DTags) {
                 const ImageOrientationPatientI =
                     sharedImageOrientationPatient ||
                     PerFrameFunctionalGroups.PlaneOrientationSequence
@@ -923,7 +938,9 @@ function insertOverlappingPixelDataPlanar(
             let alignedPixelDataI;
 
             const hasCoordinateSystem = "FrameOfReferenceUID" in multiframe;
-            if (hasCoordinateSystem) {
+            const has3DTags = checkFor3DTags(multiframe);
+
+            if (hasCoordinateSystem && has3DTags) {
                 const ImageOrientationPatientI =
                     sharedImageOrientationPatient ||
                     PerFrameFunctionalGroups.PlaneOrientationSequence
@@ -1096,7 +1113,9 @@ function insertPixelDataPlanar(
         let alignedPixelDataI;
 
         const hasCoordinateSystem = "FrameOfReferenceUID" in multiframe;
-        if (hasCoordinateSystem) {
+        const has3DTags = checkFor3DTags(multiframe);
+
+        if (hasCoordinateSystem && has3DTags) {
             const ImageOrientationPatientI =
                 sharedImageOrientationPatient ||
                 PerFrameFunctionalGroups.PlaneOrientationSequence

@@ -1,6 +1,9 @@
-import loglevelnext from "loglevelnext";
-
-const log = loglevelnext.create("dcmjs");
+const log = {
+    error: () => {},
+    log: () => {},
+    warn: () => {},
+    debug: () => {}
+};
 
 export { log };
 export default log;
