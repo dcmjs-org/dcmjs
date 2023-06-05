@@ -174,6 +174,10 @@ class ValueRepresentation {
         }
         return vr;
     }
+
+    static parseUnknownVr(type) {
+        return new ParsedUnknownValue(type);
+    }
 }
 
 class AsciiStringRepresentation extends ValueRepresentation {
@@ -1039,6 +1043,18 @@ class UnknownValue extends BinaryRepresentation {
         this.maxLength = null;
         this.padByte = 0;
         this.noMultiple = true;
+    }
+}
+
+class ParsedUnknownValue extends BinaryRepresentation {
+    constructor(vr) {
+        super(vr);
+        this.maxLength = null;
+        this.padByte = 0;
+        this.noMultiple = true;
+        this._isBinary = true;
+        this._allowMultiple = false;
+        this._isExplicit = true;
     }
 }
 
