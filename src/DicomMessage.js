@@ -315,7 +315,11 @@ class DicomMessage {
         } else {
             vrType = stream.readVR();
 
-            if (vrType === "UN" && DicomMessage.lookupTag(tag)?.vr) {
+            if (
+                vrType === "UN" &&
+                DicomMessage.lookupTag(tag) &&
+                DicomMessage.lookupTag(tag).vr
+            ) {
                 vrType = DicomMessage.lookupTag(tag).vr;
 
                 vr = ValueRepresentation.parseUnknownVr(vrType);
