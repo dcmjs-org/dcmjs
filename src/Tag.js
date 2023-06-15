@@ -1,9 +1,10 @@
-import { ValueRepresentation } from "./ValueRepresentation.js";
-import { DicomMessage } from "./DicomMessage.js";
 import { WriteBufferStream } from "./BufferStream.js";
-
-var IMPLICIT_LITTLE_ENDIAN = "1.2.840.10008.1.2";
-var EXPLICIT_LITTLE_ENDIAN = "1.2.840.10008.1.2.1";
+import {
+    EXPLICIT_LITTLE_ENDIAN,
+    IMPLICIT_LITTLE_ENDIAN
+} from "./constants/dicom";
+import { DicomMessage } from "./DicomMessage.js";
+import { ValueRepresentation } from "./ValueRepresentation.js";
 
 function paddingLeft(paddingValue, string) {
     return String(paddingValue + string).slice(-paddingValue.length);

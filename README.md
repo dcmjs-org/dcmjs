@@ -9,6 +9,8 @@
 
 **Note: this code is a work-in-progress and should not be used for production or clinical purposes**
 
+This is a community effort so please help improve support for a wide range of DICOM data and use cases.
+
 See [live examples here](https://dcmjs.netlify.com/)
 
 # Goals
