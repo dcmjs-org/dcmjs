@@ -7,6 +7,7 @@ import Polyline from "./Polyline.js";
 import Polygon from "./Polygon.js";
 import Ellipse from "./Ellipse.js";
 import Circle from "./Circle";
+import unit2CodingValue from "./unit2CodingValue.js";
 
 // To be implemented:
 // - Cornerstone Probe
@@ -73,7 +74,8 @@ const TID300 = {
     Polyline,
     Polygon,
     Ellipse,
-    Circle
+    Circle,
+    unit2CodingValue
 };
 
 export { TID300Measurement, Length };

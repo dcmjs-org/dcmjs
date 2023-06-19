@@ -1,9 +1,15 @@
-import { DicomMetaDictionary } from "../../DicomMetaDictionary.js";
 import TID300Measurement from "./TID300Measurement.js";
+import unit2CodingValue from "./unit2CodingValue.js";
 
 export default class Length extends TID300Measurement {
     contentItem() {
-        const { point1, point2, distance, ReferencedSOPSequence } = this.props;
+        const {
+            point1,
+            point2,
+            unit = "mm",
+            distance,
+            ReferencedSOPSequence
+        } = this.props;
 
         return this.getMeasurement([
             {
@@ -15,12 +21,7 @@ export default class Length extends TID300Measurement {
                     CodeMeaning: "Length"
                 },
                 MeasuredValueSequence: {
-                    MeasurementUnitsCodeSequence: {
-                        CodeValue: "mm",
-                        CodingSchemeDesignator: "UCUM",
-                        CodingSchemeVersion: "1.4",
-                        CodeMeaning: "millimeter"
-                    },
+                    MeasurementUnitsCodeSequence: unit2CodingValue(unit),
                     NumericValue: distance
                 },
                 ContentSequence: {

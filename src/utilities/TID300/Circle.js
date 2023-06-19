@@ -1,5 +1,5 @@
-import { DicomMetaDictionary } from "../../DicomMetaDictionary.js";
 import TID300Measurement from "./TID300Measurement.js";
+import unit2CodingValue from "./unit2CodingValue.js";
 
 /**
  * Expand an array of points stored as objects into
@@ -26,7 +26,9 @@ export default class Circle extends TID300Measurement {
             ReferencedSOPSequence,
             use3DSpatialCoordinates = false,
             perimeter,
-            area
+            area,
+            areaUnit = "mm2",
+            unit = "mm"
         } = this.props;
 
         // Combine all lengths to save the perimeter
@@ -47,12 +49,7 @@ export default class Circle extends TID300Measurement {
                     CodeMeaning: "Perimeter" // TODO: Look this up from a Code Meaning dictionary
                 },
                 MeasuredValueSequence: {
-                    MeasurementUnitsCodeSequence: {
-                        CodeValue: "mm",
-                        CodingSchemeDesignator: "UCUM",
-                        CodingSchemeVersion: "1.4",
-                        CodeMeaning: "millimeter"
-                    },
+                    MeasurementUnitsCodeSequence: unit2CodingValue(unit),
                     NumericValue: perimeter
                 },
                 ContentSequence: {
@@ -79,12 +76,7 @@ export default class Circle extends TID300Measurement {
                     CodeMeaning: "Area" // TODO: Look this up from a Code Meaning dictionary
                 },
                 MeasuredValueSequence: {
-                    MeasurementUnitsCodeSequence: {
-                        CodeValue: "mm2",
-                        CodingSchemeDesignator: "UCUM",
-                        CodingSchemeVersion: "1.4",
-                        CodeMeaning: "SquareMilliMeter"
-                    },
+                    MeasurementUnitsCodeSequence: unit2CodingValue(areaUnit),
                     NumericValue: area
                 },
                 ContentSequence: {
