@@ -1,4 +1,3 @@
-import log from "./log.js";
 import { DicomMetaDictionary } from "./DicomMetaDictionary.js";
 import { Tag } from "./Tag.js";
 

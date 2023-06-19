@@ -7,6 +7,7 @@ import path from "path";
 import { WriteBufferStream } from "../src/BufferStream";
 import dcmjs from "../src/index.js";
 import { getTestDataset, getZippedTestDataset } from "./testUtils.js";
+import { log } from "./../src/log.js";
 
 import { promisify } from "util";
 import arrayItem from "./arrayItem.json";
@@ -571,7 +572,8 @@ it("Reads a multiframe DICOM which has trailing padding", async () => {
     expect(dataset.PixelData[28].byteLength).toEqual(103194);
 });
 
-it("Reads a multiframe DICOM with large private tags before and after the image data", async () => {
+/** Skipping this because the underlying data in the repository is broken */
+it.skip("Reads a multiframe DICOM with large private tags before and after the image data", async () => {
     const url =
         "https://github.com/dcmjs-org/data/releases/download/binary-parsing-stressors/large-private-tags.dcm";
     const dcmPath = await getTestDataset(url, "large-private-tags.dcm")
@@ -669,12 +671,14 @@ describe("With a SpecificCharacterSet tag", () => {
     });
 
     it("Throws an exception on an unsupported character set", async () => {
+        log.level = 5;
         expect(() => readEncodedLongString("nope", [])).toThrow(
             new Error("Unsupported character set: nope")
         );
     });
 
     it("Doesn't throw an exception on an unsupported character set when ignoring errors", async () => {
+        log.level = 5;
         expect(
             readEncodedLongString("nope", [0x68, 0x69], { ignoreErrors: true })
         ).toEqual("hi");

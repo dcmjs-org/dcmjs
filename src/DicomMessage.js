@@ -8,6 +8,7 @@ import {
 import { DicomDict } from "./DicomDict.js";
 import { DicomMetaDictionary } from "./DicomMetaDictionary.js";
 import { Tag } from "./Tag.js";
+import { log } from "./log.js";
 import { ValueRepresentation } from "./ValueRepresentation.js";
 
 const singleVRs = ["SQ", "OF", "OW", "OB", "UN", "LT"];
@@ -77,7 +78,7 @@ class DicomMessage {
         untilTag = null,
         includeUntilTagValue = false
     ) {
-        console.warn("DicomMessage.read to be deprecated after dcmjs 0.24.x");
+        log.warn("DicomMessage.read to be deprecated after dcmjs 0.24.x");
         return this._read(bufferStream, syntax, {
             ignoreErrors: ignoreErrors,
             untilTag: untilTag,
@@ -91,9 +92,7 @@ class DicomMessage {
         untilTag = null,
         includeUntilTagValue = false
     ) {
-        console.warn(
-            "DicomMessage.readTag to be deprecated after dcmjs 0.24.x"
-        );
+        log.warn("DicomMessage.readTag to be deprecated after dcmjs 0.24.x");
         return this._readTag(bufferStream, syntax, {
             untilTag: untilTag,
             includeUntilTagValue: includeUntilTagValue
@@ -127,7 +126,7 @@ class DicomMessage {
                             coding = encodingMapping[coding];
                             bufferStream.setDecoder(new TextDecoder(coding));
                         } else if (ignoreErrors) {
-                            console.warn(
+                            log.warn(
                                 `Unsupported character set: ${coding}, using default character set`
                             );
                         } else {
@@ -136,7 +135,7 @@ class DicomMessage {
                     }
                     if (readInfo.values.length > 1) {
                         if (ignoreErrors) {
-                            console.warn(
+                            log.warn(
                                 "Using multiple character sets is not supported, proceeding with just the first character set",
                                 readInfo.values
                             );
@@ -160,7 +159,7 @@ class DicomMessage {
             return dict;
         } catch (err) {
             if (ignoreErrors) {
-                console.warn("WARN:", err);
+                log.warn("WARN:", err);
                 return dict;
             }
             throw err;
