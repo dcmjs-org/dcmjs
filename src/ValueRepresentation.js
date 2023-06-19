@@ -1,4 +1,4 @@
-import log from "./log.js";
+import { validationLog, log } from "./log.js";
 import { DicomMessage } from "./DicomMessage.js";
 import { ReadBufferStream } from "./BufferStream.js";
 import { WriteBufferStream } from "./BufferStream.js";
@@ -162,13 +162,14 @@ class ValueRepresentation {
             if (type == "ox") {
                 // TODO: determine VR based on context (could be 1 byte pixel data)
                 // https://github.com/dgobbi/vtk-dicom/issues/38
-                log.error("Invalid vr type " + type + " - using OW");
+                validationLog.error("Invalid vr type", type, "- using OW");
                 vr = VRinstances["OW"];
             } else if (type == "xs") {
-                log.error("Invalid vr type " + type + " - using US");
+                validationLog.error("Invalid vr type", type, "- using US");
                 vr = VRinstances["US"];
             } else {
-                log.error("Invalid vr type " + type + " - using UN");
+                console.log("validationLog", validationLog.level);
+                validationLog.error("Invalid vr type", type, "- using UN");
                 vr = VRinstances["UN"];
             }
         }

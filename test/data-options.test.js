@@ -3,16 +3,13 @@ import "regenerator-runtime/runtime.js";
 import dcmjs from "../src/index.js";
 import fs from "fs";
 import path from "path";
-import os from "os";
 import { promisify } from "util";
 import fsPromises from "fs/promises";
 import { getZippedTestDataset, getTestDataset } from "./testUtils.js";
 
 const {
     DicomMetaDictionary,
-    DicomDict,
     DicomMessage,
-    ReadBufferStream
 } = dcmjs.data;
 
 const areEqual = (first, second) =>
