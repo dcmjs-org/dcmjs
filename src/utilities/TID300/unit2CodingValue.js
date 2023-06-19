@@ -21,13 +21,14 @@ const NO_UNIT = {
     CodeMeaning: "px"
 };
 
-const PX2_UNIT = PX_UNIT;
+const NO2_UNIT = NO_UNIT;
 
 const measurementMap = {
     px: NO_UNIT,
     mm: MM_UNIT,
     mm2: MM2_UNIT,
-    "mm\xB2": MM2_UNIT
+    "mm\xB2": MM2_UNIT,
+    "px\xB2": NO2_UNIT
 };
 
 /** Converts the given unit into the
@@ -40,7 +41,7 @@ const unit2CodingValue = units => {
     const baseUnit = space === -1 ? units : units.substring(0, space);
     const codingUnit = measurementMap[units] || measurementMap[baseUnit];
     if (!codingUnit) {
-        log.error("Unspecified units", units, type);
+        log.error("Unspecified units", units);
         return MM_UNIT;
     }
     return codingUnit;
