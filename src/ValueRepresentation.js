@@ -168,7 +168,6 @@ class ValueRepresentation {
                 validationLog.error("Invalid vr type", type, "- using US");
                 vr = VRinstances["US"];
             } else {
-                console.log("validationLog", validationLog.level);
                 validationLog.error("Invalid vr type", type, "- using UN");
                 vr = VRinstances["UN"];
             }

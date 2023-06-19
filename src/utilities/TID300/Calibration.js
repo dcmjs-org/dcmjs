@@ -1,7 +1,7 @@
 import TID300Measurement from "./TID300Measurement.js";
 import unit2CodingValue from "./unit2CodingValue.js";
 
-export default class Length extends TID300Measurement {
+export default class Calibration extends TID300Measurement {
     contentItem() {
         const {
             point1,
@@ -16,9 +16,9 @@ export default class Length extends TID300Measurement {
                 RelationshipType: "CONTAINS",
                 ValueType: "NUM",
                 ConceptNameCodeSequence: {
-                    CodeValue: "G-D7FE",
-                    CodingSchemeDesignator: "SRT",
-                    CodeMeaning: "Length"
+                    CodeValue: "102304005",
+                    CodingSchemeDesignator: "SCT",
+                    CodeMeaning: "Calibration Ruler"
                 },
                 MeasuredValueSequence: {
                     MeasurementUnitsCodeSequence: unit2CodingValue(unit),

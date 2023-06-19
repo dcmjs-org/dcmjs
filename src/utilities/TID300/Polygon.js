@@ -1,5 +1,6 @@
 import { DicomMetaDictionary } from "../../DicomMetaDictionary.js";
 import TID300Measurement from "./TID300Measurement.js";
+import unit2CodingValue from "./unit2CodingValue.js";
 
 /**
  * Expand an array of points stored as objects into
@@ -26,11 +27,14 @@ export default class Polygon extends TID300Measurement {
     contentItem() {
         const {
             points,
+            perimeter,
+            unit = "mm",
+            area,
+            areaUnit,
             ReferencedSOPSequence,
             use3DSpatialCoordinates = false
         } = this.props;
 
-        const perimeter = {};
         const GraphicData = expandPoints(points);
 
         return this.getMeasurement([
@@ -43,12 +47,7 @@ export default class Polygon extends TID300Measurement {
                     CodeMeaning: "Perimeter"
                 },
                 MeasuredValueSequence: {
-                    MeasurementUnitsCodeSequence: {
-                        CodeValue: "mm",
-                        CodingSchemeDesignator: "UCUM",
-                        CodingSchemeVersion: "1.4",
-                        CodeMeaning: "millimeter"
-                    },
+                    MeasurementUnitsCodeSequence: unit2CodingValue(unit),
                     NumericValue: perimeter
                 },
                 ContentSequence: {
@@ -74,13 +73,8 @@ export default class Polygon extends TID300Measurement {
                     CodeMeaning: "Area"
                 },
                 MeasuredValueSequence: {
-                    MeasurementUnitsCodeSequence: {
-                        CodeValue: "mm2",
-                        CodingSchemeDesignator: "UCUM",
-                        CodingSchemeVersion: "1.4",
-                        CodeMeaning: "SquareMilliMeter"
-                    },
-                    NumericValue: perimeter
+                    MeasurementUnitsCodeSequence: unit2CodingValue(areaUnit),
+                    NumericValue: area
                 },
                 ContentSequence: {
                     RelationshipType: "INFERRED FROM",
