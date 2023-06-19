@@ -1,5 +1,5 @@
-import { DicomMetaDictionary } from "../../DicomMetaDictionary.js";
-import TID300Measurement from "./TID300Measurement.js";
+import TID300Measurement from "./TID300Measurement";
+import unit2CodingValue from "./unit2CodingValue";
 
 /**
  * Expand an array of points stored as objects into
@@ -27,9 +27,11 @@ export default class Polyline extends TID300Measurement {
         const {
             points,
             area,
+            areaUnit = "mm2",
             ReferencedSOPSequence,
             use3DSpatialCoordinates = false,
-            perimeter
+            perimeter,
+            unit = "mm"
         } = this.props;
 
         const GraphicData = expandPoints(points);
@@ -45,12 +47,7 @@ export default class Polyline extends TID300Measurement {
                     CodeMeaning: "Perimeter"
                 },
                 MeasuredValueSequence: {
-                    MeasurementUnitsCodeSequence: {
-                        CodeValue: "mm",
-                        CodingSchemeDesignator: "UCUM",
-                        CodingSchemeVersion: "1.4",
-                        CodeMeaning: "millimeter"
-                    },
+                    MeasurementUnitsCodeSequence: unit2CodingValue(unit),
                     NumericValue: perimeter
                 },
                 ContentSequence: {
@@ -77,12 +74,7 @@ export default class Polyline extends TID300Measurement {
                     CodeMeaning: "Area" // TODO: Look this up from a Code Meaning dictionary
                 },
                 MeasuredValueSequence: {
-                    MeasurementUnitsCodeSequence: {
-                        CodeValue: "mm2",
-                        CodingSchemeDesignator: "UCUM",
-                        CodingSchemeVersion: "1.4",
-                        CodeMeaning: "SquareMilliMeter"
-                    },
+                    MeasurementUnitsCodeSequence: unit2CodingValue(areaUnit),
                     NumericValue: area
                 },
                 ContentSequence: {

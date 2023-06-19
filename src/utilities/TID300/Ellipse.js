@@ -1,4 +1,5 @@
 import TID300Measurement from "./TID300Measurement.js";
+import unit2CodingValue from "./unit2CodingValue.js";
 
 /**
  * Expand an array of points stored as objects into
@@ -20,7 +21,7 @@ function expandPoints(points) {
 
 export default class Ellipse extends TID300Measurement {
     contentItem() {
-        const { points, ReferencedSOPSequence, area } = this.props;
+        const { points, ReferencedSOPSequence, area, areaUnit } = this.props;
 
         const GraphicData = expandPoints(points);
 
@@ -34,12 +35,7 @@ export default class Ellipse extends TID300Measurement {
                     CodeMeaning: "AREA"
                 },
                 MeasuredValueSequence: {
-                    MeasurementUnitsCodeSequence: {
-                        CodeValue: "mm2",
-                        CodingSchemeDesignator: "UCUM",
-                        CodingSchemeVersion: "1.4",
-                        CodeMeaning: "squaremillimeter"
-                    },
+                    MeasurementUnitsCodeSequence: unit2CodingValue(areaUnit),
                     NumericValue: area
                 },
                 ContentSequence: {

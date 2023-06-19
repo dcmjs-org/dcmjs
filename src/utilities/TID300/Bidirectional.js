@@ -1,5 +1,6 @@
 import { DicomMetaDictionary } from "../../DicomMetaDictionary.js";
 import TID300Measurement from "./TID300Measurement.js";
+import unit2CodingValue from "./unit2CodingValue.js";
 
 export default class Bidirectional extends TID300Measurement {
     contentItem() {
@@ -8,6 +9,7 @@ export default class Bidirectional extends TID300Measurement {
             shortAxis,
             longAxisLength,
             shortAxisLength,
+            unit,
             ReferencedSOPSequence
         } = this.props;
 
@@ -21,12 +23,7 @@ export default class Bidirectional extends TID300Measurement {
                     CodeMeaning: "Long Axis"
                 },
                 MeasuredValueSequence: {
-                    MeasurementUnitsCodeSequence: {
-                        CodeValue: "mm",
-                        CodingSchemeDesignator: "UCUM",
-                        CodingSchemeVersion: "1.4",
-                        CodeMeaning: "millimeter"
-                    },
+                    MeasurementUnitsCodeSequence: unit2CodingValue(unit),
                     NumericValue: longAxisLength
                 },
                 ContentSequence: {
@@ -55,12 +52,7 @@ export default class Bidirectional extends TID300Measurement {
                     CodeMeaning: "Short Axis"
                 },
                 MeasuredValueSequence: {
-                    MeasurementUnitsCodeSequence: {
-                        CodeValue: "mm",
-                        CodingSchemeDesignator: "UCUM",
-                        CodingSchemeVersion: "1.4",
-                        CodeMeaning: "millimeter"
-                    },
+                    MeasurementUnitsCodeSequence: unit2CodingValue(unit),
                     NumericValue: shortAxisLength
                 },
                 ContentSequence: {
