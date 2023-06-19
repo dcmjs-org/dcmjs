@@ -76,8 +76,7 @@ it("noCopy multiframe DICOM which has trailing padding", async () => {
     });
 });
 
-/** Skipping this because the underlying data in the repository is broken */
-it.skip("noCopy multiframe DICOM with large private tags before and after the image data", async () => {
+it("noCopy multiframe DICOM with large private tags before and after the image data", async () => {
     const url =
         "https://github.com/dcmjs-org/data/releases/download/binary-parsing-stressors/large-private-tags.dcm";
     const dcmPath = await getTestDataset(url, "large-private-tags.dcm")
