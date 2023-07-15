@@ -46,19 +46,17 @@ const generateSegmentationDefaultOptions = {
  * imageIds, images and the cornerstoneTools brushData.
  *
  * @param  {object[]} images An array of cornerstone images that contain the source
- *                           data under `image.data.byteArray.buffer`.
+ *                           data under `image.data.byteArray.buffer` or an array of DICOM JSON Objects.
  * @param  {Object|Object[]} inputLabelmaps3D The cornerstone `Labelmap3D` object, or an array of objects.
  * @param  {Object} userOptions Options to pass to the segmentation derivation and `fillSegmentation`.
  * @returns {Blob}
  */
 function generateSegmentation(images, inputLabelmaps3D, userOptions = {}) {
     const isMultiframe = images[0].imageId.includes("?frame");
-    const segmentation = _createSegFromImages(
-        images,
-        isMultiframe,
-        userOptions
-    );
-
+    const isDataAvailable = images[0] && !!images[0].data;
+    const segmentation = isDataAvailable
+        ? _createSegFromImages(images, isMultiframe, userOptions)
+        : _createSegFromJSONObjects(images, isMultiframe, userOptions);
     return fillSegmentation(segmentation, inputLabelmaps3D, userOptions);
 }
 
@@ -253,6 +251,31 @@ function _createSegFromImages(images, isMultiframe, options) {
     const multiframe = Normalizer.normalizeToDataset(datasets);
 
     return new SegmentationDerivation([multiframe], options);
+}
+
+function _createSegFromJSONObjects(jsonObjects, isMultiframe, options) {
+    var datasets = [];
+
+    if (isMultiframe) {
+        var jsonObject = jsonObjects[0];
+        const dataset =
+            dcmjs.data.DicomMetaDictionary.naturalizeDataset(jsonObject);
+        // not sure about this yet
+        // dataset._meta = DicomMetaDictionary.namifyDataset(dicomData.meta);
+        datasets.push(dataset);
+    } else {
+        for (var i = 0; i < jsonObjects.length; i++) {
+            var _jsonObject = jsonObjects[i];
+            const _dataset =
+                dcmjs.data.DicomMetaDictionary.naturalizeDataset(_jsonObject);
+            // not sure about this yet
+            // _dataset._meta = DicomMetaDictionary.namifyDataset(_dicomData.meta);
+            datasets.push(_dataset);
+        }
+    }
+
+    var multiframe = Normalizer.normalizeToDataset(datasets);
+    return new Segmentation([multiframe], options);
 }
 
 /**
