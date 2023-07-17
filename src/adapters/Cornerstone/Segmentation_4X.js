@@ -258,16 +258,14 @@ function _createSegFromJSONObjects(jsonObjects, isMultiframe, options) {
 
     if (isMultiframe) {
         var jsonObject = jsonObjects[0];
-        const dataset =
-            dcmjs.data.DicomMetaDictionary.naturalizeDataset(jsonObject);
+        const dataset = DicomMetaDictionary.naturalizeDataset(jsonObject);
         // not sure about this yet
         // dataset._meta = DicomMetaDictionary.namifyDataset(dicomData.meta);
         datasets.push(dataset);
     } else {
         for (var i = 0; i < jsonObjects.length; i++) {
             var _jsonObject = jsonObjects[i];
-            const _dataset =
-                dcmjs.data.DicomMetaDictionary.naturalizeDataset(_jsonObject);
+            const _dataset = DicomMetaDictionary.naturalizeDataset(_jsonObject);
             // not sure about this yet
             // _dataset._meta = DicomMetaDictionary.namifyDataset(_dicomData.meta);
             datasets.push(_dataset);
