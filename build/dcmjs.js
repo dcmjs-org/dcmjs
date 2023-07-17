@@ -18077,18 +18077,18 @@ b"+i+"*=d\
 
 	  if (isMultiframe) {
 	    var jsonObject = jsonObjects[0];
-	    var dataset = DicomMetaDictionary.naturalizeDataset(jsonObject); // not sure about this yet
-	    // dataset._meta = DicomMetaDictionary.namifyDataset(dicomData.meta);
+	    var dataset = DicomMetaDictionary.naturalizeDataset(jsonObject); // not sure about this yet. Seems like it should be just the file meta tags
 
+	    dataset._meta = DicomMetaDictionary.namifyDataset(dataset);
 	    datasets.push(dataset);
 	  } else {
 	    for (var i = 0; i < jsonObjects.length; i++) {
 	      var _jsonObject = jsonObjects[i];
 
-	      var _dataset = DicomMetaDictionary.naturalizeDataset(_jsonObject); // not sure about this yet
-	      // _dataset._meta = DicomMetaDictionary.namifyDataset(_dicomData.meta);
+	      var _dataset = DicomMetaDictionary.naturalizeDataset(_jsonObject); // not sure about this yet. Seems like it should be just the file meta tags
 
 
+	      _dataset._meta = DicomMetaDictionary.namifyDataset(_dataset);
 	      datasets.push(_dataset);
 	    }
 	  }
