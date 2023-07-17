@@ -18060,7 +18060,7 @@ b"+i+"*=d\
 
 	  if (isMultiframe) {
 	    var jsonObject = jsonObjects[0];
-	    var dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(jsonObject); // not sure about this yet
+	    var dataset = DicomMetaDictionary.naturalizeDataset(jsonObject); // not sure about this yet
 	    // dataset._meta = DicomMetaDictionary.namifyDataset(dicomData.meta);
 
 	    datasets.push(dataset);
@@ -18068,7 +18068,7 @@ b"+i+"*=d\
 	    for (var i = 0; i < jsonObjects.length; i++) {
 	      var _jsonObject = jsonObjects[i];
 
-	      var _dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(_jsonObject); // not sure about this yet
+	      var _dataset = DicomMetaDictionary.naturalizeDataset(_jsonObject); // not sure about this yet
 	      // _dataset._meta = DicomMetaDictionary.namifyDataset(_dicomData.meta);
 
 
@@ -24996,7 +24996,7 @@ b"+i+"*=d\
 	  cleanTags: cleanTags,
 	  getTagsNameToEmpty: getTagsNameToEmpty
 	};
-	var dcmjs$1 = {
+	var dcmjs = {
 	  DICOMWEB: DICOMWEB,
 	  adapters: adapters,
 	  data: data,
@@ -25012,7 +25012,7 @@ b"+i+"*=d\
 	exports.adapters = adapters;
 	exports.anonymizer = anonymizer;
 	exports.data = data;
-	exports.default = dcmjs$1;
+	exports.default = dcmjs;
 	exports.derivations = derivations;
 	exports.log = log;
 	exports.normalizers = normalizers;

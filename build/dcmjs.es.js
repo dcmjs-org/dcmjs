@@ -18054,7 +18054,7 @@ function _createSegFromJSONObjects(jsonObjects, isMultiframe, options) {
 
   if (isMultiframe) {
     var jsonObject = jsonObjects[0];
-    var dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(jsonObject); // not sure about this yet
+    var dataset = DicomMetaDictionary.naturalizeDataset(jsonObject); // not sure about this yet
     // dataset._meta = DicomMetaDictionary.namifyDataset(dicomData.meta);
 
     datasets.push(dataset);
@@ -18062,7 +18062,7 @@ function _createSegFromJSONObjects(jsonObjects, isMultiframe, options) {
     for (var i = 0; i < jsonObjects.length; i++) {
       var _jsonObject = jsonObjects[i];
 
-      var _dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(_jsonObject); // not sure about this yet
+      var _dataset = DicomMetaDictionary.naturalizeDataset(_jsonObject); // not sure about this yet
       // _dataset._meta = DicomMetaDictionary.namifyDataset(_dicomData.meta);
 
 
@@ -24990,7 +24990,7 @@ var anonymizer = {
   cleanTags: cleanTags,
   getTagsNameToEmpty: getTagsNameToEmpty
 };
-var dcmjs$1 = {
+var dcmjs = {
   DICOMWEB: DICOMWEB,
   adapters: adapters,
   data: data,
@@ -25002,5 +25002,5 @@ var dcmjs$1 = {
   anonymizer: anonymizer
 };
 
-export { DICOMWEB, adapters, anonymizer, data, dcmjs$1 as default, derivations, log, normalizers, sr, utilities };
+export { DICOMWEB, adapters, anonymizer, data, dcmjs as default, derivations, log, normalizers, sr, utilities };
 //# sourceMappingURL=dcmjs.es.js.map
