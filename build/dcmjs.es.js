@@ -18088,7 +18088,7 @@ function _createSegFromJSONObjects(jsonObjects, isMultiframe, options) {
   }
 
   var multiframe = Normalizer.normalizeToDataset(datasets);
-  return new Segmentation$2([multiframe], options);
+  return new Segmentation$4([multiframe], options);
 }
 /**
  * generateToolState - Given a set of cornrstoneTools imageIds and a Segmentation buffer,

@@ -289,7 +289,7 @@ function _createSegFromJSONObjects(jsonObjects, isMultiframe, options) {
     }
 
     var multiframe = Normalizer.normalizeToDataset(datasets);
-    return new Segmentation([multiframe], options);
+    return new SegmentationDerivation([multiframe], options);
 }
 
 /**
