@@ -17881,7 +17881,8 @@ var generateSegmentationDefaultOptions = {
  * imageIds, images and the cornerstoneTools brushData.
  *
  * @param  {object[]} images An array of cornerstone images that contain the source
- *                           data under `image.data.byteArray.buffer` or an array of DICOM JSON Objects.
+ *                           data under `image.data.byteArray.buffer` or an array of image metadata objects
+ *                           from CornerstoneWadoImageLoader's MetadataProvider.
  * @param  {Object|Object[]} inputLabelmaps3D The cornerstone `Labelmap3D` object, or an array of objects.
  * @param  {Object} userOptions Options to pass to the segmentation derivation and `fillSegmentation`.
  * @returns {Blob}
@@ -17889,10 +17890,26 @@ var generateSegmentationDefaultOptions = {
 
 function generateSegmentation$1(images, inputLabelmaps3D) {
   var userOptions = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
-  var isMultiframe = images[0].imageId.includes("?frame");
   var isDataAvailable = images[0] && !!images[0].data;
-  var segmentation = isDataAvailable ? _createSegFromImages(images, isMultiframe, userOptions) : _createSegFromJSONObjects(images, isMultiframe, userOptions);
-  return fillSegmentation$1(segmentation, inputLabelmaps3D, userOptions);
+
+  if (isDataAvailable) {
+    // Cornerstone image object
+    var isMultiframe = images[0].imageId.includes("?frame");
+
+    var segmentation = _createSegFromImages(images, isMultiframe, userOptions);
+
+    return fillSegmentation$1(segmentation, inputLabelmaps3D, userOptions);
+  } else {
+    // Cornerstone metadata objects
+    var _isMultiframe = images[0].isMultiframe;
+    images.forEach(function (image) {
+      return delete image.isMultiframe;
+    });
+
+    var _segmentation = _createSegFromJSONObjects(images, _isMultiframe, userOptions);
+
+    return fillSegmentation$1(_segmentation, inputLabelmaps3D, userOptions);
+  }
 }
 /**
  * fillSegmentation - Fills a derived segmentation dataset with cornerstoneTools `LabelMap3D` data.
