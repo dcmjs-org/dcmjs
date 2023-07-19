@@ -66,7 +66,6 @@ function generateSegmentation(images, inputLabelmaps3D, userOptions = {}) {
     } else {
         // Cornerstone metadata objects
         const isMultiframe = images[0].isMultiframe;
-        images.forEach(image => delete image.isMultiframe);
         const segmentation = _createSegFromJSONObjects(
             images,
             isMultiframe,
@@ -274,16 +273,12 @@ function _createSegFromJSONObjects(jsonObjects, isMultiframe, options) {
 
     if (isMultiframe) {
         var jsonObject = jsonObjects[0];
-        const dataset = DicomMetaDictionary.naturalizeDataset(jsonObject);
-        // not sure about this yet. Seems like it should be just the file meta tags
-        dataset._meta = DicomMetaDictionary.namifyDataset(dataset);
+        const dataset = createImageDataFromMetadata(jsonObject);
         datasets.push(dataset);
     } else {
         for (var i = 0; i < jsonObjects.length; i++) {
             var _jsonObject = jsonObjects[i];
-            const _dataset = DicomMetaDictionary.naturalizeDataset(_jsonObject);
-            // not sure about this yet. Seems like it should be just the file meta tags
-            _dataset._meta = DicomMetaDictionary.namifyDataset(_dataset);
+            const _dataset = createImageDataFromMetadata(_jsonObject);
             datasets.push(_dataset);
         }
     }
@@ -861,6 +856,35 @@ function checkSEGsOverlapping(
     return false;
 }
 
+function createImageDataFromMetadata(cornerstoneMetadata) {
+    const meta = {};
+    const filemeta = [
+        "00020000",
+        "00020001",
+        "00020002",
+        "00020003",
+        "00020010",
+        "00020012",
+        "00020013",
+        "00020016",
+        "00020100",
+        "00020102"
+    ];
+
+    // delete the cornerstone specific property
+    delete cornerstoneMetadata.isMultiframe;
+    // move the file meta tags to meta object
+    for (let i = 0; i < filemeta.length; i++) {
+        meta[filemeta[i]] = cornerstoneMetadata[filemeta[i]];
+        delete cornerstoneMetadata[filemeta[i]];
+    }
+
+    const dataset = DicomMetaDictionary.naturalizeDataset(cornerstoneMetadata);
+    dataset._meta = DicomMetaDictionary.namifyDataset(meta);
+
+    return dataset;
+}
+
 function insertOverlappingPixelDataPlanar(
     segmentsOnFrame,
     segmentsOnFrameArray,
@@ -972,10 +996,15 @@ function insertOverlappingPixelDataPlanar(
                 continue;
             }
 
-            const sourceImageMetadata = metadataProvider.get(
-                "instance",
-                imageId
-            );
+            let sourceImageMetadata = metadataProvider.get("instance", imageId);
+            if (!sourceImageMetadata) {
+                const metadata =
+                    cornerstoneWADOImageLoader.wadors.metaDataManager.get(
+                        imageId
+                    );
+
+                sourceImageMetadata = createImageDataFromMetadata(metadata);
+            }
             if (
                 Rows !== sourceImageMetadata.Rows ||
                 Columns !== sourceImageMetadata.Columns
