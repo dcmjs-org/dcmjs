@@ -998,11 +998,8 @@ function insertOverlappingPixelDataPlanar(
 
             let sourceImageMetadata = metadataProvider.get("instance", imageId);
             if (!sourceImageMetadata) {
-                const metadata =
-                    cornerstoneWADOImageLoader.wadors.metaDataManager.get(
-                        imageId
-                    );
-
+                // metadataProvider should be sent as cornerstoneWADOImageLoader.wadors.metaDataManager
+                const metadata = metadataProvider.get(imageId);
                 sourceImageMetadata = createImageDataFromMetadata(metadata);
             }
             if (
@@ -1174,9 +1171,8 @@ function insertPixelDataPlanar(
 
         let sourceImageMetadata = metadataProvider.get("instance", imageId);
         if (!sourceImageMetadata) {
-            const metadata =
-                cornerstoneWADOImageLoader.wadors.metaDataManager.get(imageId);
-
+            // metadataProvider should be sent as cornerstoneWADOImageLoader.wadors.metaDataManager
+            const metadata = metadataProvider.get(imageId);
             sourceImageMetadata = createImageDataFromMetadata(metadata);
         }
         if (
@@ -1402,11 +1398,7 @@ function getImageIdOfSourceImagebyGeometry(
             imageIds[imageIdsIndexc]
         );
         if (!sourceImageMetadata) {
-            const metadata =
-                cornerstoneWADOImageLoader.wadors.metaDataManager.get(
-                    imageIds[imageIdsIndexc]
-                );
-
+            const metadata = metadataProvider.get(imageIds[imageIdsIndexc]);
             sourceImageMetadata = createImageDataFromMetadata(metadata);
         }
 
