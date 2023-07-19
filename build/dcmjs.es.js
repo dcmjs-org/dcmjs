@@ -17902,9 +17902,6 @@ function generateSegmentation$1(images, inputLabelmaps3D) {
   } else {
     // Cornerstone metadata objects
     var _isMultiframe = images[0].isMultiframe;
-    images.forEach(function (image) {
-      return delete image.isMultiframe;
-    });
 
     var _segmentation = _createSegFromJSONObjects(images, _isMultiframe, userOptions);
 
@@ -18071,18 +18068,14 @@ function _createSegFromJSONObjects(jsonObjects, isMultiframe, options) {
 
   if (isMultiframe) {
     var jsonObject = jsonObjects[0];
-    var dataset = DicomMetaDictionary.naturalizeDataset(jsonObject); // not sure about this yet. Seems like it should be just the file meta tags
-
-    dataset._meta = DicomMetaDictionary.namifyDataset(dataset);
+    var dataset = createImageDataFromMetadata(jsonObject);
     datasets.push(dataset);
   } else {
     for (var i = 0; i < jsonObjects.length; i++) {
       var _jsonObject = jsonObjects[i];
 
-      var _dataset = DicomMetaDictionary.naturalizeDataset(_jsonObject); // not sure about this yet. Seems like it should be just the file meta tags
+      var _dataset = createImageDataFromMetadata(_jsonObject);
 
-
-      _dataset._meta = DicomMetaDictionary.namifyDataset(_dataset);
       datasets.push(_dataset);
     }
   }
@@ -18382,6 +18375,22 @@ function checkSEGsOverlapping(pixelData, multiframe, imageIds, validOrientations
   return false;
 }
 
+function createImageDataFromMetadata(cornerstoneMetadata) {
+  var meta = {};
+  var filemeta = ["00020000", "00020001", "00020002", "00020003", "00020010", "00020012", "00020013", "00020016", "00020100", "00020102"]; // delete the cornerstone specific property
+
+  delete cornerstoneMetadata.isMultiframe; // move the file meta tags to meta object
+
+  for (var i = 0; i < filemeta.length; i++) {
+    meta[filemeta[i]] = cornerstoneMetadata[filemeta[i]];
+    delete cornerstoneMetadata[filemeta[i]];
+  }
+
+  var dataset = DicomMetaDictionary.naturalizeDataset(cornerstoneMetadata);
+  dataset._meta = DicomMetaDictionary.namifyDataset(meta);
+  return dataset;
+}
+
 function insertOverlappingPixelDataPlanar(segmentsOnFrame, segmentsOnFrameArray, labelmapBufferArray, pixelData, multiframe, imageIds, validOrientations, metadataProvider, tolerance) {
   var SharedFunctionalGroupsSequence = multiframe.SharedFunctionalGroupsSequence,
       PerFrameFunctionalGroupsSequence = multiframe.PerFrameFunctionalGroupsSequence,
@@ -18439,6 +18448,11 @@ function insertOverlappingPixelDataPlanar(segmentsOnFrame, segmentsOnFrameArray,
       }
 
       var sourceImageMetadata = metadataProvider.get("instance", imageId);
+
+      if (!sourceImageMetadata) {
+        var metadata = cornerstoneWADOImageLoader.wadors.metaDataManager.get(imageId);
+        sourceImageMetadata = createImageDataFromMetadata(metadata);
+      }
 
       if (Rows !== sourceImageMetadata.Rows || Columns !== sourceImageMetadata.Columns) {
         throw new Error("Individual SEG frames have different geometry dimensions (Rows and Columns) " + "respect to the source image reference frame. This is not yet supported. " + "Aborting segmentation loading. ");
