@@ -18561,6 +18561,11 @@ function insertPixelDataPlanar(segmentsOnFrame, segmentsOnFrameArray, labelmapBu
 
     var sourceImageMetadata = metadataProvider.get("instance", imageId);
 
+    if (!sourceImageMetadata) {
+      var metadata = cornerstoneWADOImageLoader.wadors.metaDataManager.get(imageId);
+      sourceImageMetadata = createImageDataFromMetadata(metadata);
+    }
+
     if (Rows !== sourceImageMetadata.Rows || Columns !== sourceImageMetadata.Columns) {
       throw new Error("Individual SEG frames have different geometry dimensions (Rows and Columns) " + "respect to the source image reference frame. This is not yet supported. " + "Aborting segmentation loading. ");
     }
@@ -18713,6 +18718,11 @@ function getImageIdOfSourceImagebyGeometry(ReferencedSeriesInstanceUID, FrameOfR
 
   for (var imageIdsIndexc = 0; imageIdsIndexc < imageIds.length; ++imageIdsIndexc) {
     var sourceImageMetadata = metadataProvider.get("instance", imageIds[imageIdsIndexc]);
+
+    if (!sourceImageMetadata) {
+      var metadata = cornerstoneWADOImageLoader.wadors.metaDataManager.get(imageIds[imageIdsIndexc]);
+      sourceImageMetadata = createImageDataFromMetadata(metadata);
+    }
 
     if (sourceImageMetadata === undefined || sourceImageMetadata.ImagePositionPatient === undefined || sourceImageMetadata.FrameOfReferenceUID !== FrameOfReferenceUID || sourceImageMetadata.SeriesInstanceUID !== ReferencedSeriesInstanceUID) {
       continue;
