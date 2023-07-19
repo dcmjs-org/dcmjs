@@ -368,7 +368,6 @@ function generateToolState(
     const TransferSyntaxUID = multiframe._meta.TransferSyntaxUID.Value[0];
 
     let pixelData;
-    console.log("pixeldata", multiframe.PixelData);
     if (TransferSyntaxUID === "1.2.840.10008.1.2.5") {
         const rleEncodedFrames = Array.isArray(multiframe.PixelData)
             ? multiframe.PixelData
