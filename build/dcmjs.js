@@ -18129,13 +18129,6 @@ b"+i+"*=d\
 	    var sourceImageMetadata = createImageDataFromMetadata(metadata);
 	    SeriesInstanceUID = sourceImageMetadata.SeriesInstanceUID;
 	    ImageOrientationPatient = sourceImageMetadata.ImageOrientationPatient;
-
-	    if (!Array.isArray(ImageOrientationPatient)) {
-	      ImageOrientationPatient = ImageOrientationPatient.split("\\");
-	    }
-
-	    console.log("DICOMs", sourceImageMetadata.ImageOrientationPatient);
-	    console.log("ImageOrientationPatient", ImageOrientationPatient);
 	    rows = sourceImageMetadata.Rows;
 	    cols = sourceImageMetadata.Columns;
 	  }
@@ -18154,6 +18147,7 @@ b"+i+"*=d\
 	  var segMetadata = getSegmentMetadata(multiframe, SeriesInstanceUID);
 	  var TransferSyntaxUID = multiframe._meta.TransferSyntaxUID.Value[0];
 	  var pixelData;
+	  console.log("pixeldata", multiframe.PixelData);
 
 	  if (TransferSyntaxUID === "1.2.840.10008.1.2.5") {
 	    var rleEncodedFrames = Array.isArray(multiframe.PixelData) ? multiframe.PixelData : [multiframe.PixelData];
