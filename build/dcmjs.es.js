@@ -18450,7 +18450,8 @@ function insertOverlappingPixelDataPlanar(segmentsOnFrame, segmentsOnFrameArray,
       var sourceImageMetadata = metadataProvider.get("instance", imageId);
 
       if (!sourceImageMetadata) {
-        var metadata = cornerstoneWADOImageLoader.wadors.metaDataManager.get(imageId);
+        // metadataProvider should be sent as cornerstoneWADOImageLoader.wadors.metaDataManager
+        var metadata = metadataProvider.get(imageId);
         sourceImageMetadata = createImageDataFromMetadata(metadata);
       }
 
@@ -18562,7 +18563,8 @@ function insertPixelDataPlanar(segmentsOnFrame, segmentsOnFrameArray, labelmapBu
     var sourceImageMetadata = metadataProvider.get("instance", imageId);
 
     if (!sourceImageMetadata) {
-      var metadata = cornerstoneWADOImageLoader.wadors.metaDataManager.get(imageId);
+      // metadataProvider should be sent as cornerstoneWADOImageLoader.wadors.metaDataManager
+      var metadata = metadataProvider.get(imageId);
       sourceImageMetadata = createImageDataFromMetadata(metadata);
     }
 
@@ -18720,7 +18722,7 @@ function getImageIdOfSourceImagebyGeometry(ReferencedSeriesInstanceUID, FrameOfR
     var sourceImageMetadata = metadataProvider.get("instance", imageIds[imageIdsIndexc]);
 
     if (!sourceImageMetadata) {
-      var metadata = cornerstoneWADOImageLoader.wadors.metaDataManager.get(imageIds[imageIdsIndexc]);
+      var metadata = metadataProvider.get(imageIds[imageIdsIndexc]);
       sourceImageMetadata = createImageDataFromMetadata(metadata);
     }
 
