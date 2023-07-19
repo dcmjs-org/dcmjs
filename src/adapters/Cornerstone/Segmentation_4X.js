@@ -336,11 +336,6 @@ function generateToolState(
         const sourceImageMetadata = createImageDataFromMetadata(metadata);
         SeriesInstanceUID = sourceImageMetadata.SeriesInstanceUID;
         ImageOrientationPatient = sourceImageMetadata.ImageOrientationPatient;
-        if (!Array.isArray(ImageOrientationPatient)) {
-            ImageOrientationPatient = ImageOrientationPatient.split("\\");
-        }
-        console.log("DICOMs", sourceImageMetadata.ImageOrientationPatient);
-        console.log("ImageOrientationPatient", ImageOrientationPatient);
         rows = sourceImageMetadata.Rows;
         cols = sourceImageMetadata.Columns;
     }
@@ -373,7 +368,7 @@ function generateToolState(
     const TransferSyntaxUID = multiframe._meta.TransferSyntaxUID.Value[0];
 
     let pixelData;
-
+    console.log("pixeldata", multiframe.PixelData);
     if (TransferSyntaxUID === "1.2.840.10008.1.2.5") {
         const rleEncodedFrames = Array.isArray(multiframe.PixelData)
             ? multiframe.PixelData
