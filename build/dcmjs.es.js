@@ -18141,7 +18141,6 @@ function generateToolState$1(imageIds, arrayBuffer, metadataProvider) {
   var segMetadata = getSegmentMetadata(multiframe, SeriesInstanceUID);
   var TransferSyntaxUID = multiframe._meta.TransferSyntaxUID.Value[0];
   var pixelData;
-  console.log("pixeldata", multiframe.PixelData);
 
   if (TransferSyntaxUID === "1.2.840.10008.1.2.5") {
     var rleEncodedFrames = Array.isArray(multiframe.PixelData) ? multiframe.PixelData : [multiframe.PixelData];
