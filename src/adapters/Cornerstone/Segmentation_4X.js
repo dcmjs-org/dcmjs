@@ -1172,7 +1172,13 @@ function insertPixelDataPlanar(
             continue;
         }
 
-        const sourceImageMetadata = metadataProvider.get("instance", imageId);
+        let sourceImageMetadata = metadataProvider.get("instance", imageId);
+        if (!sourceImageMetadata) {
+            const metadata =
+                cornerstoneWADOImageLoader.wadors.metaDataManager.get(imageId);
+
+            sourceImageMetadata = createImageDataFromMetadata(metadata);
+        }
         if (
             Rows !== sourceImageMetadata.Rows ||
             Columns !== sourceImageMetadata.Columns
@@ -1391,10 +1397,18 @@ function getImageIdOfSourceImagebyGeometry(
         imageIdsIndexc < imageIds.length;
         ++imageIdsIndexc
     ) {
-        const sourceImageMetadata = metadataProvider.get(
+        let sourceImageMetadata = metadataProvider.get(
             "instance",
             imageIds[imageIdsIndexc]
         );
+        if (!sourceImageMetadata) {
+            const metadata =
+                cornerstoneWADOImageLoader.wadors.metaDataManager.get(
+                    imageIds[imageIdsIndexc]
+                );
+
+            sourceImageMetadata = createImageDataFromMetadata(metadata);
+        }
 
         if (
             sourceImageMetadata === undefined ||
