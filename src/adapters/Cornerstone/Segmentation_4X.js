@@ -1472,6 +1472,11 @@ function getImageIdOfReferencedSingleFramedSOPInstance(
             imageId
         );
         if (!sopCommonModule) {
+            // in wadors loading metadataProvider should be sent as cornerstoneWADOImageLoader.wadors.metaDataManager
+            const metadata = metadataProvider.get(imageId);
+            const sourceImageMetadata = createImageDataFromMetadata(metadata);
+            if (sourceImageMetadata.SOPInstanceUID)
+                return sourceImageMetadata.SOPInstanceUID === sopInstanceUid;
             return;
         }
 
@@ -1502,6 +1507,16 @@ function getImageIdOfReferencedFrame(
             imageId
         );
         if (!sopCommonModule) {
+            // in wadors loading metadataProvider should be sent as cornerstoneWADOImageLoader.wadors.metaDataManager
+            const metadata = metadataProvider.get(imageId);
+            const sourceImageMetadata = createImageDataFromMetadata(metadata);
+            const imageIdFrameNumber = Number(imageId.split("/frames/")[1]);
+            if (sourceImageMetadata.SOPInstanceUID)
+                return (
+                    //frameNumber is zero indexed for cornerstoneWADOImageLoader image Ids.
+                    sourceImageMetadata.SOPInstanceUID === sopInstanceUid &&
+                    imageIdFrameNumber === frameNumber
+                );
             return;
         }
 
