@@ -324,23 +324,45 @@ function generateToolState(
         "generalSeriesModule",
         imageIds[0]
     );
-
-    const SeriesInstanceUID = generalSeriesModule.seriesInstanceUID;
+    let SeriesInstanceUID = null;
+    let ImageOrientationPatient = null;
+    let rows = null,
+        cols = null;
+    if (generalSeriesModule) {
+        SeriesInstanceUID = generalSeriesModule.seriesInstanceUID;
+    } else {
+        // in wadors loading metadataProvider should be sent as cornerstoneWADOImageLoader.wadors.metaDataManager
+        const metadata = metadataProvider.get(imageIds[0]);
+        const sourceImageMetadata = createImageDataFromMetadata(metadata);
+        SeriesInstanceUID = sourceImageMetadata.SeriesInstanceUID;
+        ImageOrientationPatient = sourceImageMetadata.ImageOrientationPatient;
+        if (!Array.isArray(ImageOrientationPatient)) {
+            ImageOrientationPatient = ImageOrientationPatient.split("\\");
+        }
+        console.log("DICOMs", sourceImageMetadata.ImageOrientationPatient);
+        console.log("ImageOrientationPatient", ImageOrientationPatient);
+        rows = sourceImageMetadata.Rows;
+        cols = sourceImageMetadata.Columns;
+    }
 
     if (!imagePlaneModule) {
         console.warn("Insufficient metadata, imagePlaneModule missing.");
     }
-
-    const ImageOrientationPatient = Array.isArray(imagePlaneModule.rowCosines)
-        ? [...imagePlaneModule.rowCosines, ...imagePlaneModule.columnCosines]
-        : [
-              imagePlaneModule.rowCosines.x,
-              imagePlaneModule.rowCosines.y,
-              imagePlaneModule.rowCosines.z,
-              imagePlaneModule.columnCosines.x,
-              imagePlaneModule.columnCosines.y,
-              imagePlaneModule.columnCosines.z
-          ];
+    if (!ImageOrientationPatient) {
+        ImageOrientationPatient = Array.isArray(imagePlaneModule.rowCosines)
+            ? [
+                  ...imagePlaneModule.rowCosines,
+                  ...imagePlaneModule.columnCosines
+              ]
+            : [
+                  imagePlaneModule.rowCosines.x,
+                  imagePlaneModule.rowCosines.y,
+                  imagePlaneModule.rowCosines.z,
+                  imagePlaneModule.columnCosines.x,
+                  imagePlaneModule.columnCosines.y,
+                  imagePlaneModule.columnCosines.z
+              ];
+    }
 
     // Get IOP from ref series, compute supported orientations:
     const validOrientations = getValidOrientations(ImageOrientationPatient);
@@ -375,11 +397,15 @@ function generateToolState(
             throw new Error("Fractional segmentations are not yet supported");
         }
     }
-
+    // if generalSeriesModule cannot be retrieved, it is wadors mode, we fill in rows and cols from wadors metadata
     const orientation = checkOrientation(
         multiframe,
         validOrientations,
-        [imagePlaneModule.rows, imagePlaneModule.columns, imageIds.length],
+        [
+            rows || imagePlaneModule.rows,
+            cols || imagePlaneModule.columns,
+            imageIds.length
+        ],
         tolerance
     );
 
