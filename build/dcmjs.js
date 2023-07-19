@@ -18116,13 +18116,38 @@ b"+i+"*=d\
 	  var multiframe = Normalizer.normalizeToDataset([dataset]);
 	  var imagePlaneModule = metadataProvider.get("imagePlaneModule", imageIds[0]);
 	  var generalSeriesModule = metadataProvider.get("generalSeriesModule", imageIds[0]);
-	  var SeriesInstanceUID = generalSeriesModule.seriesInstanceUID;
+	  var SeriesInstanceUID = null;
+	  var ImageOrientationPatient = null;
+	  var rows = null,
+	      cols = null;
+
+	  if (generalSeriesModule) {
+	    SeriesInstanceUID = generalSeriesModule.seriesInstanceUID;
+	  } else {
+	    // in wadors loading metadataProvider should be sent as cornerstoneWADOImageLoader.wadors.metaDataManager
+	    var metadata = metadataProvider.get(imageIds[0]);
+	    var sourceImageMetadata = createImageDataFromMetadata(metadata);
+	    SeriesInstanceUID = sourceImageMetadata.SeriesInstanceUID;
+	    ImageOrientationPatient = sourceImageMetadata.ImageOrientationPatient;
+
+	    if (!Array.isArray(ImageOrientationPatient)) {
+	      ImageOrientationPatient = ImageOrientationPatient.split("\\");
+	    }
+
+	    console.log("DICOMs", sourceImageMetadata.ImageOrientationPatient);
+	    console.log("ImageOrientationPatient", ImageOrientationPatient);
+	    rows = sourceImageMetadata.Rows;
+	    cols = sourceImageMetadata.Columns;
+	  }
 
 	  if (!imagePlaneModule) {
 	    console.warn("Insufficient metadata, imagePlaneModule missing.");
 	  }
 
-	  var ImageOrientationPatient = Array.isArray(imagePlaneModule.rowCosines) ? [].concat(_toConsumableArray(imagePlaneModule.rowCosines), _toConsumableArray(imagePlaneModule.columnCosines)) : [imagePlaneModule.rowCosines.x, imagePlaneModule.rowCosines.y, imagePlaneModule.rowCosines.z, imagePlaneModule.columnCosines.x, imagePlaneModule.columnCosines.y, imagePlaneModule.columnCosines.z]; // Get IOP from ref series, compute supported orientations:
+	  if (!ImageOrientationPatient) {
+	    ImageOrientationPatient = Array.isArray(imagePlaneModule.rowCosines) ? [].concat(_toConsumableArray(imagePlaneModule.rowCosines), _toConsumableArray(imagePlaneModule.columnCosines)) : [imagePlaneModule.rowCosines.x, imagePlaneModule.rowCosines.y, imagePlaneModule.rowCosines.z, imagePlaneModule.columnCosines.x, imagePlaneModule.columnCosines.y, imagePlaneModule.columnCosines.z];
+	  } // Get IOP from ref series, compute supported orientations:
+
 
 	  var validOrientations = getValidOrientations(ImageOrientationPatient);
 	  var sliceLength = multiframe.Columns * multiframe.Rows;
@@ -18144,9 +18169,10 @@ b"+i+"*=d\
 	    if (!pixelData) {
 	      throw new Error("Fractional segmentations are not yet supported");
 	    }
-	  }
+	  } // if generalSeriesModule cannot be retrieved, it is wadors mode, we fill in rows and cols from wadors metadata
 
-	  var orientation = checkOrientation(multiframe, validOrientations, [imagePlaneModule.rows, imagePlaneModule.columns, imageIds.length], tolerance);
+
+	  var orientation = checkOrientation(multiframe, validOrientations, [rows || imagePlaneModule.rows, cols || imagePlaneModule.columns, imageIds.length], tolerance);
 	  var overlapping = false;
 
 	  if (!skipOverlapping) {
@@ -18758,6 +18784,10 @@ b"+i+"*=d\
 	    var sopCommonModule = metadataProvider.get("sopCommonModule", imageId);
 
 	    if (!sopCommonModule) {
+	      // in wadors loading metadataProvider should be sent as cornerstoneWADOImageLoader.wadors.metaDataManager
+	      var metadata = metadataProvider.get(imageId);
+	      var sourceImageMetadata = createImageDataFromMetadata(metadata);
+	      if (sourceImageMetadata.SOPInstanceUID) return sourceImageMetadata.SOPInstanceUID === sopInstanceUid;
 	      return;
 	    }
 
@@ -18782,6 +18812,15 @@ b"+i+"*=d\
 	    var sopCommonModule = metadataProvider.get("sopCommonModule", imageId);
 
 	    if (!sopCommonModule) {
+	      // in wadors loading metadataProvider should be sent as cornerstoneWADOImageLoader.wadors.metaDataManager
+	      var metadata = metadataProvider.get(imageId);
+	      var sourceImageMetadata = createImageDataFromMetadata(metadata);
+
+	      var _imageIdFrameNumber = Number(imageId.split("/frames/")[1]);
+
+	      if (sourceImageMetadata.SOPInstanceUID) return (//frameNumber is zero indexed for cornerstoneWADOImageLoader image Ids.
+	        sourceImageMetadata.SOPInstanceUID === sopInstanceUid && _imageIdFrameNumber === frameNumber
+	      );
 	      return;
 	    }
 
