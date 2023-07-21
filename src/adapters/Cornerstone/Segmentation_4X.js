@@ -54,25 +54,21 @@ const generateSegmentationDefaultOptions = {
  */
 function generateSegmentation(images, inputLabelmaps3D, userOptions = {}) {
     const isDataAvailable = images[0] && !!images[0].data;
+    let segmentation = null;
     if (isDataAvailable) {
         // Cornerstone image object
         const isMultiframe = images[0].imageId.includes("?frame");
-        const segmentation = _createSegFromImages(
-            images,
-            isMultiframe,
-            userOptions
-        );
-        return fillSegmentation(segmentation, inputLabelmaps3D, userOptions);
+        segmentation = _createSegFromImages(images, isMultiframe, userOptions);
     } else {
         // Cornerstone metadata objects
         const isMultiframe = images[0].isMultiframe;
-        const segmentation = _createSegFromJSONObjects(
+        segmentation = _createSegFromJSONObjects(
             images,
             isMultiframe,
             userOptions
         );
-        return fillSegmentation(segmentation, inputLabelmaps3D, userOptions);
     }
+    return fillSegmentation(segmentation, inputLabelmaps3D, userOptions);
 }
 
 /**
