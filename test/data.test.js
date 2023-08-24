@@ -13,6 +13,7 @@ import { promisify } from "util";
 import arrayItem from "./arrayItem.json";
 import minimalDataset from "./mocks/minimal_fields_dataset.json";
 import datasetWithNullNumberVRs from "./mocks/null_number_vrs_dataset.json";
+import sampleDicom from "./sample-dicom.json";
 import { rawTags } from "./rawTags";
 
 import {
@@ -822,6 +823,94 @@ it("Tests that reading fails on a DICOM without a meta length tag", () => {
     }).toThrow(
         "Invalid DICOM file, meta length tag is malformed or not present."
     );
+});
+
+describe("The same DICOM file loaded from both DCM and JSON", () => {
+    let dicomData;
+    let jsonData;
+
+    beforeEach(() => {
+        const file = fs.readFileSync("test/sample-dicom.dcm");
+        dicomData = dcmjs.data.DicomMessage.readFile(file.buffer, {
+            // ignoreErrors: true,
+        });
+        jsonData = JSON.parse(JSON.stringify(sampleDicom));
+    });
+
+    describe("naturalized datasets", () => {
+        let dcmDataset;
+        let jsonDataset;
+
+        beforeEach(() => {
+            dcmDataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(
+                dicomData.dict
+            );
+            jsonDataset =
+                dcmjs.data.DicomMetaDictionary.naturalizeDataset(jsonData);
+        });
+
+        // OperatorName is three-component name
+        describe("OperatorName", () => {
+            it("Compares naturalized values", () => {
+                expect(JSON.stringify(jsonDataset.OperatorsName)).toEqual(
+                    JSON.stringify(dcmDataset.OperatorsName)
+                );
+                expect(jsonDataset.OperatorsName.toString()).toEqual(
+                    dcmDataset.OperatorsName.toString()
+                );
+            });
+
+            it("Compares denaturalized values", () => {
+                const jsonDenaturalized =
+                    dcmjs.data.DicomMetaDictionary.denaturalizeDataset(
+                        jsonDataset
+                    );
+                const dcmDenaturalized =
+                    dcmjs.data.DicomMetaDictionary.denaturalizeDataset(
+                        dcmDataset
+                    );
+
+                expect(jsonDenaturalized["00081070"].Value).toEqual([
+                    "Operator^John^^Mr.^Sr.=John Operator=O-per-a-tor"
+                ]);
+                expect(jsonDenaturalized["00081070"].Value).toEqual(
+                    dcmDenaturalized["00081070"].Value
+                );
+            });
+
+            it("Compares changed values", () => {
+                jsonDataset.OperatorsName.Alphabetic =
+                    dcmDataset.OperatorsName.Alphabetic = "Doe^John";
+                jsonDataset.OperatorsName.Ideographic =
+                    dcmDataset.OperatorsName.Ideographic = undefined;
+                jsonDataset.OperatorsName.Phonetic =
+                    dcmDataset.OperatorsName.Phonetic = undefined;
+
+                expect(JSON.stringify(jsonDataset.OperatorsName)).toEqual(
+                    JSON.stringify(dcmDataset.OperatorsName)
+                );
+                expect(jsonDataset.OperatorsName.toString()).toEqual(
+                    dcmDataset.OperatorsName.toString()
+                );
+
+                const jsonDenaturalized =
+                    dcmjs.data.DicomMetaDictionary.denaturalizeDataset(
+                        jsonDataset
+                    );
+                const dcmDenaturalized =
+                    dcmjs.data.DicomMetaDictionary.denaturalizeDataset(
+                        dcmDataset
+                    );
+
+                expect(jsonDenaturalized["00081070"].Value).toEqual([
+                    "Doe^John"
+                ]);
+                expect(jsonDenaturalized["00081070"].Value).toEqual(
+                    dcmDenaturalized["00081070"].Value
+                );
+            });
+        });
+    });
 });
 
 it.each([

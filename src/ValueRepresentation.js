@@ -29,6 +29,10 @@ class ValueRepresentation {
         this._isExplicit = explicitVRs.indexOf(this.type) != -1;
     }
 
+    denaturalize(value) {
+        return value.constructor.name == "Number" ? String(value) : value;
+    }
+
     isBinary() {
         return this._isBinary;
     }
@@ -39,6 +43,10 @@ class ValueRepresentation {
 
     isExplicit() {
         return this._isExplicit;
+    }
+
+    finalizeTag(tag) {
+        return tag;
     }
 
     read(stream, length, syntax) {
@@ -695,6 +703,35 @@ class PersonName extends EncodedStringRepresentation {
         super("PN");
         this.maxLength = null;
         this.padByte = 0x20;
+    }
+
+    finalizeTag(tag) {
+        // Signal that this value was deserialized from a dcm file
+        tag.values.__pnDcm = true;
+        tag.values.toJSON = function () {
+            const components = this[0].split("=");
+            if (components && components.length) {
+                return [
+                    {
+                        Alphabetic: components[0],
+                        Ideographic: components[1],
+                        Phonetic: components[2]
+                    }
+                ];
+            }
+            return [];
+        };
+        return tag;
+    }
+
+    denaturalize(value) {
+        if (value && typeof value === "object") {
+            value = `${value.Alphabetic ?? ""}=${value.Ideographic ?? ""}=${
+                value.Phonetic ?? ""
+            }`.replace(/=*$/, "");
+        }
+
+        return value;
     }
 
     checkLength(value) {

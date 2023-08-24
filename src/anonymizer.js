@@ -259,13 +259,15 @@ export function cleanTags(
             var tagNumber = tagInfo.tag,
                 tagString = Tag.fromPString(tagNumber).toCleanString();
             if (dict[tagString]) {
-                var newValue;
-                if (tagString in tagNamesToReplace) {
-                    newValue = [tagNamesToReplace[tagString]];
+                if (Array.isArray(dict[tagString].Value)) {
+                    // Keep references
+                    dict[tagString].Value.length = 0;
                 } else {
-                    newValue = [];
+                    dict[tagString].Value = [];
                 }
-                dict[tagString].Value = newValue;
+                if (tagString in tagNamesToReplace) {
+                    dict[tagString].Value[0] = tagNamesToReplace[tagString];
+                }
             }
         }
     });

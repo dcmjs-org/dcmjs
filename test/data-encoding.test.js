@@ -46,14 +46,16 @@ it("test_encodings", async () => {
             const dataset = DicomMetaDictionary.naturalizeDataset(
                 dicomDict.dict
             );
-            expect(dataset.PatientName).toEqual(expectedPatientNames[fileName]);
+            expect(String(dataset.PatientName)).toEqual(
+                expectedPatientNames[fileName]
+            );
 
             // write to memory and expect correctly loaded utf-8 DICOM
             const newDicomDict = DicomMessage.readFile(dicomDict.write());
             const newDataset = DicomMetaDictionary.naturalizeDataset(
                 newDicomDict.dict
             );
-            expect(newDataset.PatientName).toEqual(
+            expect(String(newDataset.PatientName)).toEqual(
                 expectedPatientNames[fileName]
             );
             expect(newDataset.SpecificCharacterSet).toEqual("ISO_IR 192");

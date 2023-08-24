@@ -346,7 +346,7 @@ class DicomMessage {
         }
         stream.setEndian(oldEndian);
 
-        return { tag: tag, vr: vr, values: values };
+        return vr.finalizeTag({ tag: tag, vr: vr, values: values });
     }
 
     static lookupTag(tag) {

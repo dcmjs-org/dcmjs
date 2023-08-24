@@ -155,11 +155,81 @@ class DicomMetaDictionary {
                     });
 
                     naturalDataset[naturalName] = naturalValues;
+                } else if (data.vr === "PN") {
+                    // PN is one of the few deviations from the binary model, see:
+                    // https://dicom.nema.org/dicom/2013/output/chtml/part18/sect_F.2.html
+
+                    // If the PN object was created from a dcm file, it will be a ["string"].
+                    // In this case ValueRepresentation will add a toJSON overload to the
+                    // containing array object. If the object was created from JSON (by
+                    // DICOMWeb for instance), toJSON should work as expected, and the
+                    // denaturalization process will handle the converstion.
+
+                    if (
+                        data.Value.__pnDcm ||
+                        (data.Value &&
+                            Array.isArray(data.Value) &&
+                            data.Value[0] == "string")
+                    ) {
+                        // This provides a consistent accessor experience for the naturalized
+                        // dataset.
+                        data.Value.__objectLike = true;
+                        Object.defineProperty(data.Value, "Alphabetic", {
+                            get() {
+                                return this[0]?.split("=")[0];
+                            },
+                            set(value) {
+                                this[0] = `${value ?? ""}=${
+                                    this.Ideographic ?? ""
+                                }=${this.Phonetic ?? ""}`.replace(/=*$/, "");
+                            }
+                        });
+                        Object.defineProperty(data.Value, "Ideographic", {
+                            get() {
+                                return this[0]?.split("=")[1];
+                            },
+                            set(value) {
+                                this[0] = `${this.Alphabetic ?? ""}=${
+                                    value ?? ""
+                                }=${this.Phonetic ?? ""}`.replace(/=*$/, "");
+                            }
+                        });
+                        Object.defineProperty(data.Value, "Phonetic", {
+                            get() {
+                                return this[0]?.split("=")[2];
+                            },
+                            set(value) {
+                                this[0] = `${this.Alphabetic ?? ""}=${
+                                    this.Ideographic ?? ""
+                                }=${value ?? ""}`.replace(/=*$/, "");
+                            }
+                        });
+                    } else {
+                        if (data.Value && Array.isArray(data.Value)) {
+                            if (typeof data.Value[0] === "object") {
+                                data.Value.toString = function () {
+                                    return [
+                                        data.Value[0].Alphabetic ?? "",
+                                        data.Value[0].Ideographic ?? "",
+                                        data.Value[0].Phonetic ?? ""
+                                    ]
+                                        .join("=")
+                                        .replace(/=*$/, "");
+                                };
+                            }
+                        } else {
+                            // Data incorrectly formed.
+                        }
+                    }
+                    naturalDataset[naturalName] = data.Value;
                 } else {
                     naturalDataset[naturalName] = data.Value;
                 }
 
-                if (naturalDataset[naturalName].length === 1) {
+                if (
+                    naturalDataset[naturalName].length === 1 &&
+                    !naturalDataset[naturalName].__objectLike
+                ) {
                     const sqZero = naturalDataset[naturalName][0];
                     if (
                         sqZero &&
@@ -179,7 +249,7 @@ class DicomMetaDictionary {
         return naturalDataset;
     }
 
-    static denaturalizeValue(naturalValue) {
+    static denaturalizeValue(naturalValue, vr) {
         let value = naturalValue;
         if (!Array.isArray(value)) {
             value = [value];
@@ -193,9 +263,9 @@ class DicomMetaDictionary {
                 );
             }
         }
-        value = value.map(entry =>
-            entry.constructor.name == "Number" ? String(entry) : entry
-        );
+
+        value = value.map(vr.denaturalize);
+
         return value;
     }
 
@@ -231,8 +301,13 @@ class DicomMetaDictionary {
                         }
                     }
 
+                    let vr = ValueRepresentation.createByTypeString(
+                        dataItem.vr
+                    );
+
                     dataItem.Value = DicomMetaDictionary.denaturalizeValue(
-                        dataItem.Value
+                        dataItem.Value,
+                        vr
                     );
 
                     if (entry.vr == "SQ") {
@@ -252,9 +327,7 @@ class DicomMetaDictionary {
                         }
                         dataItem.Value = unnaturalValues;
                     }
-                    let vr = ValueRepresentation.createByTypeString(
-                        dataItem.vr
-                    );
+
                     if (!vr.isBinary() && vr.maxLength) {
                         dataItem.Value = dataItem.Value.map(value => {
                             if (value.length > vr.maxLength) {
