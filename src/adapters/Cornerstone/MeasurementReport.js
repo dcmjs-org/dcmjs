@@ -86,10 +86,8 @@ export default class MeasurementReport {
             group => group.ValueType === "SCOORD"
         );
         const { ReferencedSOPSequence } = SCOORDGroup.ContentSequence;
-        const {
-            ReferencedSOPInstanceUID,
-            ReferencedFrameNumber
-        } = ReferencedSOPSequence;
+        const { ReferencedSOPInstanceUID, ReferencedFrameNumber } =
+            ReferencedSOPSequence;
 
         const defaultState = {
             sopInstanceUid: ReferencedSOPInstanceUID,
@@ -187,9 +185,8 @@ export default class MeasurementReport {
                 }
             });
 
-            allMeasurementGroups = allMeasurementGroups.concat(
-                measurementGroups
-            );
+            allMeasurementGroups =
+                allMeasurementGroups.concat(measurementGroups);
         });
 
         const MeasurementReport = new TID1500MeasurementReport(
@@ -298,11 +295,12 @@ export default class MeasurementReport {
                 measurementGroup.ContentSequence
             );
 
-            const TrackingIdentifierGroup = measurementGroupContentSequence.find(
-                contentItem =>
-                    contentItem.ConceptNameCodeSequence.CodeMeaning ===
-                    TRACKING_IDENTIFIER
-            );
+            const TrackingIdentifierGroup =
+                measurementGroupContentSequence.find(
+                    contentItem =>
+                        contentItem.ConceptNameCodeSequence.CodeMeaning ===
+                        TRACKING_IDENTIFIER
+                );
 
             const TrackingIdentifierValue = TrackingIdentifierGroup.TextValue;
 
@@ -319,9 +317,8 @@ export default class MeasurementReport {
                   );
 
             if (toolClass) {
-                const measurement = toolClass.getMeasurementData(
-                    measurementGroup
-                );
+                const measurement =
+                    toolClass.getMeasurementData(measurementGroup);
 
                 console.log(`=== ${toolClass.toolType} ===`);
                 console.log(measurement);

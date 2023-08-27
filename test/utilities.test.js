@@ -38,7 +38,7 @@ describe("addAccessor", () => {
         const val = addAccessors(arrValue, baseValue);
         expect(val).toEqual(addAccessors(val));
         expect(val.__isProxy).toBe(true);
-    })
+    });
 
     it("Handles non-array dest with no sqzero", () => {
         const baseValue = { a: 1, b: 2 };
@@ -46,6 +46,5 @@ describe("addAccessor", () => {
         expect(addAccessors("Hello")).toBe("Hello");
         expect(addAccessors([baseValue])[0]).toBe(baseValue);
         expect(addAccessors([baseValue, 2])[1]).toBe(2);
-    })
-
+    });
 });
