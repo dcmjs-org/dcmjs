@@ -13,7 +13,7 @@ import { promisify } from "util";
 import arrayItem from "./arrayItem.json";
 import minimalDataset from "./mocks/minimal_fields_dataset.json";
 import datasetWithNullNumberVRs from "./mocks/null_number_vrs_dataset.json";
-import sampleDicom from "./sample-dicom.json";
+import sampleDicomSR from "./sample-sr.json";
 import { rawTags } from "./rawTags";
 
 import {
@@ -830,11 +830,11 @@ describe("The same DICOM file loaded from both DCM and JSON", () => {
     let jsonData;
 
     beforeEach(() => {
-        const file = fs.readFileSync("test/sample-dicom.dcm");
+        const file = fs.readFileSync("test/sample-sr.dcm");
         dicomData = dcmjs.data.DicomMessage.readFile(file.buffer, {
             // ignoreErrors: true,
         });
-        jsonData = JSON.parse(JSON.stringify(sampleDicom));
+        jsonData = JSON.parse(JSON.stringify(sampleDicomSR));
     });
 
     describe("naturalized datasets", () => {
@@ -847,6 +847,20 @@ describe("The same DICOM file loaded from both DCM and JSON", () => {
             );
             jsonDataset =
                 dcmjs.data.DicomMetaDictionary.naturalizeDataset(jsonData);
+        });
+
+        it("Compares dcm rebuilt from json with original", () => {
+            const dicomDict = new dcmjs.data.DicomDict(dicomData.meta);
+            dicomDict.dict =
+                dcmjs.data.DicomMetaDictionary.denaturalizeDataset(jsonDataset);
+
+            const buffer = dicomDict.write();
+
+            const rebuiltData = dcmjs.data.DicomMessage.readFile(buffer);
+
+            expect(JSON.stringify(rebuiltData)).toEqual(
+                JSON.stringify(dicomData)
+            );
         });
 
         // OperatorName is three-component name

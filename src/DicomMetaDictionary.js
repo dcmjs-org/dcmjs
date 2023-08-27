@@ -165,14 +165,17 @@ class DicomMetaDictionary {
                     // DICOMWeb for instance), toJSON should work as expected, and the
                     // denaturalization process will handle the converstion.
 
+                    // This following code provides a consistent accessor experience for
+                    // the naturalized dataset. If the value is a string, it mocks a json
+                    // object, and if it's a json object it mocks a string by overriding
+                    // toString. The latter ensures the ValueRepresentation output is
+                    // correct.
                     if (
                         data.Value.__pnDcm ||
                         (data.Value &&
                             Array.isArray(data.Value) &&
                             data.Value[0] == "string")
                     ) {
-                        // This provides a consistent accessor experience for the naturalized
-                        // dataset.
                         data.Value.__objectLike = true;
                         Object.defineProperty(data.Value, "Alphabetic", {
                             get() {
@@ -218,7 +221,10 @@ class DicomMetaDictionary {
                                 };
                             }
                         } else {
-                            // Data incorrectly formed.
+                            throw new Error(
+                                data.Value,
+                                "Cannot determine value of PN (PersonName) tag"
+                            );
                         }
                     }
                     naturalDataset[naturalName] = data.Value;

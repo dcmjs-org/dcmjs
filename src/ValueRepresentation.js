@@ -709,7 +709,7 @@ class PersonName extends EncodedStringRepresentation {
         // Signal that this value was deserialized from a dcm file
         tag.values.__pnDcm = true;
         tag.values.toJSON = function () {
-            const components = this[0].split("=");
+            const components = this[0]?.split("=");
             if (components && components.length) {
                 return [
                     {
