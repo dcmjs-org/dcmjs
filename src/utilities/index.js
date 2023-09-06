@@ -2,6 +2,7 @@ import TID1500 from "./TID1500";
 import TID300 from "./TID300";
 import message from "./Message";
 import addAccessors from "./addAccessors";
+import dicomJson from "./dicomJson";
 import * as orientation from "./orientation";
 import * as compression from "./compression/rleSingleSamplePerPixel";
 
@@ -11,7 +12,8 @@ const utilities = {
     message,
     addAccessors,
     orientation,
-    compression
+    compression,
+    dicomJson
 };
 
 export default utilities;

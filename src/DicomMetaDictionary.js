@@ -2,6 +2,7 @@ import dictionary from "./dictionary";
 import log from "./log.js";
 import addAccessors from "./utilities/addAccessors";
 import { ValueRepresentation } from "./ValueRepresentation";
+import dicomJson from "./utilities/dicomJson";
 
 class DicomMetaDictionary {
     // intakes a custom dictionary that will be used to parse/denaturalize the dataset
@@ -156,77 +157,7 @@ class DicomMetaDictionary {
 
                     naturalDataset[naturalName] = naturalValues;
                 } else if (data.vr === "PN") {
-                    // PN is one of the few deviations from the binary model, see:
-                    // https://dicom.nema.org/dicom/2013/output/chtml/part18/sect_F.2.html
-
-                    // If the PN object was created from a dcm file, it will be a ["string"].
-                    // In this case ValueRepresentation will add a toJSON overload to the
-                    // containing array object. If the object was created from JSON (by
-                    // DICOMWeb for instance), toJSON should work as expected, and the
-                    // denaturalization process will handle the converstion.
-
-                    // This following code provides a consistent accessor experience for
-                    // the naturalized dataset. If the value is a string, it mocks a json
-                    // object, and if it's a json object it mocks a string by overriding
-                    // toString. The latter ensures the ValueRepresentation output is
-                    // correct.
-                    if (
-                        data.Value.__pnDcm ||
-                        (data.Value &&
-                            Array.isArray(data.Value) &&
-                            data.Value[0] == "string")
-                    ) {
-                        data.Value.__objectLike = true;
-                        Object.defineProperty(data.Value, "Alphabetic", {
-                            get() {
-                                return this[0]?.split("=")[0];
-                            },
-                            set(value) {
-                                this[0] = `${value ?? ""}=${
-                                    this.Ideographic ?? ""
-                                }=${this.Phonetic ?? ""}`.replace(/=*$/, "");
-                            }
-                        });
-                        Object.defineProperty(data.Value, "Ideographic", {
-                            get() {
-                                return this[0]?.split("=")[1];
-                            },
-                            set(value) {
-                                this[0] = `${this.Alphabetic ?? ""}=${
-                                    value ?? ""
-                                }=${this.Phonetic ?? ""}`.replace(/=*$/, "");
-                            }
-                        });
-                        Object.defineProperty(data.Value, "Phonetic", {
-                            get() {
-                                return this[0]?.split("=")[2];
-                            },
-                            set(value) {
-                                this[0] = `${this.Alphabetic ?? ""}=${
-                                    this.Ideographic ?? ""
-                                }=${value ?? ""}`.replace(/=*$/, "");
-                            }
-                        });
-                    } else {
-                        if (data.Value && Array.isArray(data.Value)) {
-                            if (typeof data.Value[0] === "object") {
-                                data.Value.toString = function () {
-                                    return [
-                                        data.Value[0].Alphabetic ?? "",
-                                        data.Value[0].Ideographic ?? "",
-                                        data.Value[0].Phonetic ?? ""
-                                    ]
-                                        .join("=")
-                                        .replace(/=*$/, "");
-                                };
-                            }
-                        } else {
-                            throw new Error(
-                                data.Value,
-                                "Cannot determine value of PN (PersonName) tag"
-                            );
-                        }
-                    }
+                    dicomJson.pnNormalizeDicomToJson(data);
                     naturalDataset[naturalName] = data.Value;
                 } else {
                     naturalDataset[naturalName] = data.Value;

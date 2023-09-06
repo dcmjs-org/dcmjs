@@ -3,6 +3,7 @@ import { DicomMessage } from "./DicomMessage.js";
 import { ReadBufferStream } from "./BufferStream.js";
 import { WriteBufferStream } from "./BufferStream.js";
 import { Tag } from "./Tag.js";
+import dicomJson from "./utilities/dicomJson.js";
 
 function rtrim(str) {
     return str.replace(/\s*$/g, "");
@@ -706,32 +707,12 @@ class PersonName extends EncodedStringRepresentation {
     }
 
     finalizeTag(tag) {
-        // Signal that this value was deserialized from a dcm file
-        tag.values.__pnDcm = true;
-        tag.values.toJSON = function () {
-            const components = this[0]?.split("=");
-            if (components && components.length) {
-                return [
-                    {
-                        Alphabetic: components[0],
-                        Ideographic: components[1],
-                        Phonetic: components[2]
-                    }
-                ];
-            }
-            return [];
-        };
+        dicomJson.pnFromPart10(tag);
         return tag;
     }
 
     denaturalize(value) {
-        if (value && typeof value === "object") {
-            value = `${value.Alphabetic ?? ""}=${value.Ideographic ?? ""}=${
-                value.Phonetic ?? ""
-            }`.replace(/=*$/, "");
-        }
-
-        return value;
+        return dicomJson.pnDenaturalize(value);
     }
 
     checkLength(value) {
