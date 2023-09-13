@@ -1,5 +1,6 @@
 import { WriteBufferStream } from "./BufferStream";
 import { DicomMessage } from "./DicomMessage";
+import { ValueRepresentation } from "./ValueRepresentation";
 
 const EXPLICIT_LITTLE_ENDIAN = "1.2.840.10008.1.2.1";
 
@@ -11,9 +12,11 @@ class DicomDict {
 
     upsertTag(tag, vr, values) {
         if (this.dict[tag]) {
+            // Should already have tag accessors.
             this.dict[tag].Value = values;
         } else {
-            this.dict[tag] = { vr: vr, Value: values };
+            this.dict[tag] = ValueRepresentation.addTagAccessors({ vr: vr });
+            this.dict[tag].Value = values;
         }
     }
 

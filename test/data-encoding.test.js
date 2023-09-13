@@ -18,8 +18,8 @@ const expectedPatientNames = {
     SCSGREEK: "Διονυσιος",
     SCSHBRW: "שרון^דבורה",
     SCSRUSS: "Люкceмбypг",
-    SCSX1: "Wang^XiaoDong=王^小東=",
-    SCSX2: "Wang^XiaoDong=王^小东="
+    SCSX1: "Wang^XiaoDong=王^小東", // Trailing "=" gets stripped, as is permitted by the spec
+    SCSX2: "Wang^XiaoDong=王^小东" // idem
     // These are not yet supported, because they use multiple encodings, which would require a more complex parser...
     //"SCSH31": "X",
     //"SCSH32": "X",

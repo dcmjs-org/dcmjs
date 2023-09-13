@@ -3,7 +3,14 @@ import { DicomMessage } from "./DicomMessage.js";
 import { ReadBufferStream } from "./BufferStream.js";
 import { WriteBufferStream } from "./BufferStream.js";
 import { Tag } from "./Tag.js";
+import {
+    PADDING_NULL,
+    PADDING_SPACE,
+    VM_DELIMITER,
+    PN_COMPONENT_DELIMITER
+} from "./constants/dicom.js";
 import dicomJson from "./utilities/dicomJson.js";
+import { DicomMetaDictionary } from "./DicomMetaDictionary.js";
 
 function rtrim(str) {
     return str.replace(/\s*$/g, "");
@@ -30,10 +37,6 @@ class ValueRepresentation {
         this._isExplicit = explicitVRs.indexOf(this.type) != -1;
     }
 
-    denaturalize(value) {
-        return value.constructor.name == "Number" ? String(value) : value;
-    }
-
     isBinary() {
         return this._isBinary;
     }
@@ -46,7 +49,65 @@ class ValueRepresentation {
         return this._isExplicit;
     }
 
-    finalizeTag(tag) {
+    addValueAccessors(value) {
+        return value;
+    }
+
+    /**
+     * Replaces a tag with a Proxy which assigns value accessors based on the vr field
+     * of the tag being given to it. If the tag object does not have a vr or vr.type
+     * property, the proxy will look for the prop name in the natural name map.
+     * @param {any} tag object to add accessors to
+     * @returns {any} either the same object if no accessor needed, or a Proxy
+     */
+    static addTagAccessors(tag) {
+        if (
+            !tag.__hasTagAccessors &&
+            ValueRepresentation.hasValueAccessors(tag.vr?.type || tag.vr)
+        ) {
+            // We replace the tag with a Proxy which intercepts assignments to obj[valueProp]
+            // and adds additional overrides/accessors to the value if need be. If valueProp
+            // is falsy, we check target.vr and add accessors via a ValueRepresentation lookup.
+            // Specifically, this helps address the incorrect (though common) use of the library:
+            //   dicomDict.dict.upsertTag('00101001', 'PN', 'Doe^John'); /* direct string assignment */
+            //   dicomDict.dict['00081070'].Value = 'Doe^John\Doe^Jane'; /* overwrite with multiplicity */
+            //   ...
+            //   jsonOutput = JSON.serialize(dicomDict);
+            // or:
+            //   naturalizedDataset.OperatorsName = 'Doe^John';
+            //   jsonOutput = JSON.serialize(naturalizedDataset);
+            // Whereas the correct usage of the dicom+json model would be:
+            //   dicomDict.dict.upsertTag('00101001', 'PN', [{Alphabetic:'Doe^John'}]);
+            //   naturalizedDataset.OperatorsName = [{Alphabetic:'Doe^John'},{Alphabetic:'Doe^Jane'}];
+            // TODO: refactor with addAccessors.js in mind
+            const handler = {
+                set(target, prop, value) {
+                    var vrType;
+                    if (
+                        ["values", "Value"].includes(prop) &&
+                        target.vr &&
+                        ValueRepresentation.hasValueAccessors(target.vr)
+                    ) {
+                        vrType = ValueRepresentation.createByTypeString(
+                            target.vr
+                        );
+                    } else if (prop in DicomMetaDictionary.nameMap) {
+                        vrType = ValueRepresentation.createByTypeString(
+                            DicomMetaDictionary.nameMap[prop].vr
+                        );
+                    } else {
+                        target[prop] = value;
+                        return true;
+                    }
+
+                    target[prop] = vrType.addValueAccessors(value);
+
+                    return true;
+                }
+            };
+            Object.defineProperty(tag, "__hasTagAccessors", { value: true });
+            return new Proxy(tag, handler);
+        }
         return tag;
     }
 
@@ -70,14 +131,27 @@ class ValueRepresentation {
         return stream.readAsciiString(length);
     }
 
-    readNullPaddedString(stream, length) {
+    readPaddedAsciiString(stream, length) {
         if (!length) return "";
-        if (stream.peekUint8(length - 1) !== 0) {
+        if (stream.peekUint8(length - 1) !== this.padByte) {
             return stream.readAsciiString(length);
         } else {
             var val = stream.readAsciiString(length - 1);
             stream.increment(1);
             return val;
+        }
+    }
+
+    readPaddedEncodedString(stream, length) {
+        if (!length) return "";
+        const val = stream.readEncodedString(length);
+        if (
+            val.length &&
+            val[val.length - 1] !== String.fromCharCode(this.padByte)
+        ) {
+            return val;
+        } else {
+            return val.slice(0, -1);
         }
     }
 
@@ -96,7 +170,7 @@ class ValueRepresentation {
                     var self = this;
                     valueArgs[0].forEach(function (v, k) {
                         if (self.allowMultiple() && k > 0) {
-                            stream.writeUint8(0x5c);
+                            stream.writeUint8(VM_DELIMITER);
                         }
                         var singularArgs = [v].concat(valueArgs.slice(1));
                         var byteCount = func.apply(stream, singularArgs);
@@ -163,6 +237,17 @@ class ValueRepresentation {
             written++;
         }
         return written;
+    }
+
+    static hasValueAccessors(type) {
+        if (type in VRinstances) {
+            return (
+                VRinstances[type].addValueAccessors !==
+                ValueRepresentation.prototype.addValueAccessors
+            );
+        }
+        // Given undefined, assume the representation need to add value accessors
+        return type === undefined;
     }
 
     static createByTypeString(type) {
@@ -456,7 +541,7 @@ class ApplicationEntity extends AsciiStringRepresentation {
     constructor() {
         super("AE");
         this.maxLength = 16;
-        this.padByte = 0x20;
+        this.padByte = PADDING_SPACE;
     }
 
     readBytes(stream, length) {
@@ -468,7 +553,7 @@ class CodeString extends AsciiStringRepresentation {
     constructor() {
         super("CS");
         this.maxLength = 16;
-        this.padByte = 0x20;
+        this.padByte = PADDING_SPACE;
     }
 
     readBytes(stream, length) {
@@ -480,7 +565,7 @@ class AgeString extends AsciiStringRepresentation {
     constructor() {
         super("AS");
         this.maxLength = 4;
-        this.padByte = 0x20;
+        this.padByte = PADDING_SPACE;
         this.fixed = true;
         this.defaultValue = "";
     }
@@ -491,7 +576,7 @@ class AttributeTag extends ValueRepresentation {
         super("AT");
         this.maxLength = 4;
         this.valueLength = 4;
-        this.padByte = 0;
+        this.padByte = PADDING_NULL;
         this.fixed = true;
     }
 
@@ -513,7 +598,7 @@ class DateValue extends AsciiStringRepresentation {
     constructor(value) {
         super("DA", value);
         this.maxLength = 18;
-        this.padByte = 0x20;
+        this.padByte = PADDING_SPACE;
         //this.fixed = true;
         this.defaultValue = "";
     }
@@ -523,11 +608,11 @@ class DecimalString extends AsciiStringRepresentation {
     constructor() {
         super("DS");
         this.maxLength = 16;
-        this.padByte = 0x20;
+        this.padByte = PADDING_SPACE;
     }
 
     readBytes(stream, length) {
-        const BACKSLASH = String.fromCharCode(0x5c);
+        const BACKSLASH = String.fromCharCode(VM_DELIMITER);
         let ds = stream.readAsciiString(length);
         ds = ds.replace(/[^0-9.\\\-+e]/gi, "");
         if (ds.indexOf(BACKSLASH) !== -1) {
@@ -589,7 +674,7 @@ class DateTime extends AsciiStringRepresentation {
     constructor() {
         super("DT");
         this.maxLength = 26;
-        this.padByte = 0x20;
+        this.padByte = PADDING_SPACE;
     }
 }
 
@@ -597,7 +682,7 @@ class FloatingPointSingle extends ValueRepresentation {
     constructor() {
         super("FL");
         this.maxLength = 4;
-        this.padByte = 0;
+        this.padByte = PADDING_NULL;
         this.fixed = true;
         this.defaultValue = 0.0;
     }
@@ -620,7 +705,7 @@ class FloatingPointDouble extends ValueRepresentation {
     constructor() {
         super("FD");
         this.maxLength = 8;
-        this.padByte = 0;
+        this.padByte = PADDING_NULL;
         this.fixed = true;
         this.defaultValue = 0.0;
     }
@@ -643,11 +728,11 @@ class IntegerString extends AsciiStringRepresentation {
     constructor() {
         super("IS");
         this.maxLength = 12;
-        this.padByte = 0x20;
+        this.padByte = PADDING_SPACE;
     }
 
     readBytes(stream, length) {
-        const BACKSLASH = String.fromCharCode(0x5c);
+        const BACKSLASH = String.fromCharCode(VM_DELIMITER);
         let is = stream.readAsciiString(length).trim();
 
         is = is.replace(/[^0-9.\\\-+e]/gi, "");
@@ -679,7 +764,7 @@ class LongString extends EncodedStringRepresentation {
     constructor() {
         super("LO");
         this.maxCharLength = 64;
-        this.padByte = 0x20;
+        this.padByte = PADDING_SPACE;
     }
 
     readBytes(stream, length) {
@@ -691,7 +776,7 @@ class LongText extends EncodedStringRepresentation {
     constructor() {
         super("LT");
         this.maxCharLength = 10240;
-        this.padByte = 0x20;
+        this.padByte = PADDING_SPACE;
     }
 
     readBytes(stream, length) {
@@ -703,42 +788,77 @@ class PersonName extends EncodedStringRepresentation {
     constructor() {
         super("PN");
         this.maxLength = null;
-        this.padByte = 0x20;
+        this.padByte = PADDING_SPACE;
     }
 
-    finalizeTag(tag) {
-        dicomJson.pnFromPart10(tag);
-        return tag;
-    }
-
-    denaturalize(value) {
-        return dicomJson.pnDenaturalize(value);
-    }
-
-    checkLength(value) {
-        var components = [];
-        if (typeof value === "object" && value !== null) {
-            // In DICOM JSON, components are encoded as a mapping (object),
-            // where the keys are one or more of the following: "Alphabetic",
-            // "Ideographic", "Phonetic".
-            // http://dicom.nema.org/medical/dicom/current/output/chtml/part18/sect_F.2.2.html
-            components = Object.keys(value).forEach(key => value[key]);
-        } else if (typeof value === "string" || value instanceof String) {
-            // In DICOM Part10, components are encoded as a string,
-            // where components ("Alphabetic", "Ideographic", "Phonetic")
-            // are separated by the "=" delimeter.
-            // http://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_6.2.html
-            components = value.split(/\=/);
-        }
+    static checkComponentLengths(components) {
         for (var i in components) {
             var cmp = components[i];
+            // As per table 6.2-1 in the spec
             if (cmp.length > 64) return false;
         }
         return true;
     }
 
+    addValueAccessors(value) {
+        if (typeof value === "string") {
+            value = new String(value);
+        }
+        if (value != undefined) {
+            if (typeof value === "object") {
+                return dicomJson.pnAddValueAccessors(value);
+            } else {
+                throw new Error(
+                    "Cannot add accessors to non-string primitives"
+                );
+            }
+        }
+        return value;
+    }
+
+    checkLength(value) {
+        if (Array.isArray(value)) {
+            // In DICOM JSON, components are encoded as a mapping (object),
+            // where the keys are one or more of the following: "Alphabetic",
+            // "Ideographic", "Phonetic".
+            // http://dicom.nema.org/medical/dicom/current/output/chtml/part18/sect_F.2.2.html
+            for (const pnValue of value) {
+                const components = Object.keys(pnValue).forEach(
+                    key => value[key]
+                );
+                if (!PersonName.checkComponentLengths(components)) return false;
+            }
+        } else if (typeof value === "string" || value instanceof String) {
+            // In DICOM Part10, components are encoded as a string,
+            // where components ("Alphabetic", "Ideographic", "Phonetic")
+            // are separated by the "=" delimeter.
+            // http://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_6.2.html
+            // PN may also have multiplicity, with each item separated by
+            // 0x5C (backslash).
+            // https://dicom.nema.org/dicom/2013/output/chtml/part05/sect_6.4.html
+            const values = value.split(String.fromCharCode(VM_DELIMITER));
+
+            for (var pnString of values) {
+                const components = pnString.split(
+                    String.fromCharCode(PN_COMPONENT_DELIMITER)
+                );
+                if (!PersonName.checkComponentLengths(components)) return false;
+            }
+        }
+        return true;
+    }
+
     readBytes(stream, length) {
-        return rtrim(stream.readEncodedString(length));
+        const result = this.readPaddedEncodedString(stream, length);
+        return dicomJson.pnConvertToJsonObject(result);
+    }
+
+    writeBytes(stream, value, writeOptions) {
+        return super.writeBytes(
+            stream,
+            dicomJson.pnObjectToString(value),
+            writeOptions
+        );
     }
 }
 
@@ -746,7 +866,7 @@ class ShortString extends EncodedStringRepresentation {
     constructor() {
         super("SH");
         this.maxCharLength = 16;
-        this.padByte = 0x20;
+        this.padByte = PADDING_SPACE;
     }
 
     readBytes(stream, length) {
@@ -758,7 +878,7 @@ class SignedLong extends ValueRepresentation {
     constructor() {
         super("SL");
         this.maxLength = 4;
-        this.padByte = 0;
+        this.padByte = PADDING_NULL;
         this.fixed = true;
         this.defaultValue = 0;
     }
@@ -781,7 +901,7 @@ class SequenceOfItems extends ValueRepresentation {
     constructor() {
         super("SQ");
         this.maxLength = null;
-        this.padByte = 0;
+        this.padByte = PADDING_NULL;
         this.noMultiple = true;
     }
 
@@ -918,7 +1038,7 @@ class SignedShort extends ValueRepresentation {
         super("SS");
         this.maxLength = 2;
         this.valueLength = 2;
-        this.padByte = 0;
+        this.padByte = PADDING_NULL;
         this.fixed = true;
         this.defaultValue = 0;
     }
@@ -941,7 +1061,7 @@ class ShortText extends EncodedStringRepresentation {
     constructor() {
         super("ST");
         this.maxCharLength = 1024;
-        this.padByte = 0x20;
+        this.padByte = PADDING_SPACE;
     }
 
     readBytes(stream, length) {
@@ -953,7 +1073,7 @@ class TimeValue extends AsciiStringRepresentation {
     constructor() {
         super("TM");
         this.maxLength = 14;
-        this.padByte = 0x20;
+        this.padByte = PADDING_SPACE;
     }
 
     readBytes(stream, length) {
@@ -966,7 +1086,7 @@ class UnlimitedCharacters extends EncodedStringRepresentation {
         super("UC");
         this.maxLength = null;
         this.multi = true;
-        this.padByte = 0x20;
+        this.padByte = PADDING_SPACE;
     }
 
     readBytes(stream, length) {
@@ -978,7 +1098,7 @@ class UnlimitedText extends EncodedStringRepresentation {
     constructor() {
         super("UT");
         this.maxLength = null;
-        this.padByte = 0x20;
+        this.padByte = PADDING_SPACE;
     }
 
     readBytes(stream, length) {
@@ -990,7 +1110,7 @@ class UnsignedShort extends ValueRepresentation {
     constructor() {
         super("US");
         this.maxLength = 2;
-        this.padByte = 0;
+        this.padByte = PADDING_NULL;
         this.fixed = true;
         this.defaultValue = 0;
     }
@@ -1013,7 +1133,7 @@ class UnsignedLong extends ValueRepresentation {
     constructor() {
         super("UL");
         this.maxLength = 4;
-        this.padByte = 0;
+        this.padByte = PADDING_NULL;
         this.fixed = true;
         this.defaultValue = 0;
     }
@@ -1036,13 +1156,13 @@ class UniqueIdentifier extends AsciiStringRepresentation {
     constructor() {
         super("UI");
         this.maxLength = 64;
-        this.padByte = 0;
+        this.padByte = PADDING_NULL;
     }
 
     readBytes(stream, length) {
-        const result = this.readNullPaddedString(stream, length);
+        const result = this.readPaddedAsciiString(stream, length);
 
-        const BACKSLASH = String.fromCharCode(0x5c);
+        const BACKSLASH = String.fromCharCode(VM_DELIMITER);
         const uidRegExp = /[^0-9.]/g;
 
         // Treat backslashes as a delimiter for multiple UIDs, in which case an
@@ -1067,7 +1187,7 @@ class UniversalResource extends AsciiStringRepresentation {
     constructor() {
         super("UR");
         this.maxLength = null;
-        this.padByte = 0x20;
+        this.padByte = PADDING_SPACE;
     }
 
     readBytes(stream, length) {
@@ -1079,7 +1199,7 @@ class UnknownValue extends BinaryRepresentation {
     constructor() {
         super("UN");
         this.maxLength = null;
-        this.padByte = 0;
+        this.padByte = PADDING_NULL;
         this.noMultiple = true;
     }
 }
@@ -1088,7 +1208,7 @@ class OtherWordString extends BinaryRepresentation {
     constructor() {
         super("OW");
         this.maxLength = null;
-        this.padByte = 0;
+        this.padByte = PADDING_NULL;
         this.noMultiple = true;
     }
 }
@@ -1097,7 +1217,7 @@ class OtherByteString extends BinaryRepresentation {
     constructor() {
         super("OB");
         this.maxLength = null;
-        this.padByte = 0;
+        this.padByte = PADDING_NULL;
         this.noMultiple = true;
     }
 }
@@ -1106,7 +1226,7 @@ class OtherDoubleString extends BinaryRepresentation {
     constructor() {
         super("OD");
         this.maxLength = null;
-        this.padByte = 0;
+        this.padByte = PADDING_NULL;
         this.noMultiple = true;
     }
 }
@@ -1115,7 +1235,7 @@ class OtherFloatString extends BinaryRepresentation {
     constructor() {
         super("OF");
         this.maxLength = null;
-        this.padByte = 0;
+        this.padByte = PADDING_NULL;
         this.noMultiple = true;
     }
 }

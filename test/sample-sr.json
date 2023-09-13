@@ -150,6 +150,21 @@
       "M"
     ]
   },
+  "00101001": {
+    "vr": "PN",
+    "Value": [
+      {
+        "Alphabetic": "Doe^John",
+        "Ideographic": "Johnny",
+        "Phonetic": "Jonny"
+      },
+      {
+        "Alphabetic": "Doe^Jane",
+        "Ideographic": "Janie",
+        "Phonetic": "Jayne"
+      }
+    ]
+  },
   "00101010": {
     "vr": "AS",
     "Value": [

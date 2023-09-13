@@ -110,9 +110,9 @@ class DicomMetaDictionary {
      * - object member names are dictionary, not group/element tag
      */
     static naturalizeDataset(dataset) {
-        const naturalDataset = {
+        const naturalDataset = ValueRepresentation.addTagAccessors({
             _vrMap: {}
-        };
+        });
 
         Object.keys(dataset).forEach(tag => {
             const data = dataset[tag];
@@ -156,17 +156,11 @@ class DicomMetaDictionary {
                     });
 
                     naturalDataset[naturalName] = naturalValues;
-                } else if (data.vr === "PN") {
-                    dicomJson.pnNormalizeDicomToJson(data);
-                    naturalDataset[naturalName] = data.Value;
                 } else {
                     naturalDataset[naturalName] = data.Value;
                 }
 
-                if (
-                    naturalDataset[naturalName].length === 1 &&
-                    !naturalDataset[naturalName].__objectLike
-                ) {
+                if (naturalDataset[naturalName].length === 1) {
                     const sqZero = naturalDataset[naturalName][0];
                     if (
                         sqZero &&
@@ -183,10 +177,11 @@ class DicomMetaDictionary {
                 }
             }
         });
+
         return naturalDataset;
     }
 
-    static denaturalizeValue(naturalValue, vr) {
+    static denaturalizeValue(naturalValue) {
         let value = naturalValue;
         if (!Array.isArray(value)) {
             value = [value];
@@ -201,7 +196,9 @@ class DicomMetaDictionary {
             }
         }
 
-        value = value.map(vr.denaturalize);
+        value = value.map(entry =>
+            entry.constructor.name == "Number" ? String(entry) : entry
+        );
 
         return value;
     }
@@ -221,10 +218,10 @@ class DicomMetaDictionary {
                     return;
                 }
                 // process this one entry
-                var dataItem = {
-                    vr: entry.vr,
-                    Value: dataset[naturalName]
-                };
+                var dataItem = ValueRepresentation.addTagAccessors({
+                    vr: entry.vr
+                });
+                dataItem.Value = dataset[naturalName];
 
                 if (dataValue !== null) {
                     if (entry.vr == "ox") {
@@ -243,8 +240,7 @@ class DicomMetaDictionary {
                     );
 
                     dataItem.Value = DicomMetaDictionary.denaturalizeValue(
-                        dataItem.Value,
-                        vr
+                        dataItem.Value
                     );
 
                     if (entry.vr == "SQ") {

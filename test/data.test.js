@@ -18,7 +18,8 @@ import { rawTags } from "./rawTags";
 
 import {
     EXPLICIT_LITTLE_ENDIAN,
-    IMPLICIT_LITTLE_ENDIAN
+    IMPLICIT_LITTLE_ENDIAN,
+    PADDING_SPACE
 } from "./../src/constants/dicom.js";
 import { ValueRepresentation } from "../src/ValueRepresentation";
 
@@ -547,6 +548,10 @@ it("Reads DICOM with multiplicity", async () => {
 
     expect(dicomDict.dict["00101020"].Value).toEqual([1, 2]);
     expect(dicomDict.dict["0018100B"].Value).toEqual(["1.2", "3.4"]);
+    expect(dicomDict.dict["00081070"].Value).toEqual([
+        { Alphabetic: "Doe^John" },
+        { Alphabetic: "Doe^Jane" }
+    ]);
 });
 
 it("Reads binary data into an ArrayBuffer", async () => {
@@ -742,7 +747,7 @@ describe("With a SpecificCharacterSet tag", () => {
             specificCharacterSet += " ";
         }
         if (encodedBytes.length & 1) {
-            encodedBytes.push(0x20);
+            encodedBytes.push(PADDING_SPACE);
         }
 
         // Manually construct the binary representation for the following two tags:
@@ -849,6 +854,35 @@ describe("The same DICOM file loaded from both DCM and JSON", () => {
                 dcmjs.data.DicomMetaDictionary.naturalizeDataset(jsonData);
         });
 
+        it("Compares denaturalized PersonName values and accessors", () => {
+            const jsonDenaturalized =
+                dcmjs.data.DicomMetaDictionary.denaturalizeDataset(jsonDataset);
+            const dcmDenaturalized =
+                dcmjs.data.DicomMetaDictionary.denaturalizeDataset(dcmDataset);
+
+            // These check to ensure when new denaturalized tags are created we're adding
+            // accessors to them, as well as the value accessors.
+            // This is specific to PN VRs.
+            expect(jsonDataset.OperatorsName.__hasValueAccessors).toBe(true);
+            expect(dcmDataset.OperatorsName.__hasValueAccessors).toBe(true);
+            expect(
+                jsonDenaturalized["00081070"].Value.__hasValueAccessors
+            ).toBe(true);
+            expect(dcmDenaturalized["00081070"].Value.__hasValueAccessors).toBe(
+                true
+            );
+            expect(jsonDataset.__hasTagAccessors).toBe(true);
+            expect(dcmDataset.__hasTagAccessors).toBe(true);
+            expect(jsonDenaturalized["00081070"].__hasTagAccessors).toBe(true);
+            expect(dcmDenaturalized["00081070"].__hasTagAccessors).toBe(true);
+            expect(jsonDenaturalized["00081070"]).not.toBe(
+                jsonDataset.OperatorsName
+            );
+            expect(dcmDenaturalized["00081070"]).not.toBe(
+                dcmDataset.OperatorsName
+            );
+        });
+
         it("Compares dcm rebuilt from json with original", () => {
             const dicomDict = new dcmjs.data.DicomDict(dicomData.meta);
             dicomDict.dict =
@@ -863,17 +897,64 @@ describe("The same DICOM file loaded from both DCM and JSON", () => {
             );
         });
 
-        // OperatorName is three-component name
-        describe("OperatorName", () => {
+        it("Adds a new PN tag", () => {
+            jsonDataset.PerformingPhysicianName = { Alphabetic: "Doe^John" };
+
+            expect(String(jsonDataset.PerformingPhysicianName)).toEqual(
+                "Doe^John"
+            );
+            expect(JSON.stringify(jsonDataset.PerformingPhysicianName)).toEqual(
+                '[{"Alphabetic":"Doe^John"}]'
+            );
+        });
+
+        // Multiplicity
+        describe("multiplicity", () => {
             it("Compares naturalized values", () => {
-                expect(JSON.stringify(jsonDataset.OperatorsName)).toEqual(
-                    JSON.stringify(dcmDataset.OperatorsName)
+                expect(JSON.stringify(jsonDataset.OtherPatientNames)).toEqual(
+                    JSON.stringify(dcmDataset.OtherPatientNames)
                 );
-                expect(jsonDataset.OperatorsName.toString()).toEqual(
-                    dcmDataset.OperatorsName.toString()
+                expect(jsonDataset.OtherPatientNames.toString()).toEqual(
+                    dcmDataset.OtherPatientNames.toString()
                 );
             });
 
+            it("Checks dicom output string", () => {
+                expect(String(jsonDataset.OtherPatientNames)).toEqual(
+                    "Doe^John=Johnny=Jonny\\Doe^Jane=Janie=Jayne"
+                );
+                expect(String(dcmDataset.OtherPatientNames)).toEqual(
+                    "Doe^John=Johnny=Jonny\\Doe^Jane=Janie=Jayne"
+                );
+            });
+
+            it("Adds additional names", () => {
+                jsonDataset.OtherPatientNames.push("Test==Name");
+                expect(JSON.stringify(jsonDataset.OtherPatientNames)).toContain(
+                    `,{"Alphabetic":"Test","Phonetic":"Name"}]`
+                );
+
+                jsonDataset.OtherPatientNames.push({ Alphabetic: "Test2" });
+                expect(JSON.stringify(jsonDataset.OtherPatientNames)).toContain(
+                    `,{"Alphabetic":"Test2"}]`
+                );
+
+                dcmDataset.OtherPatientNames.push("Test==Name");
+                expect(JSON.stringify(dcmDataset.OtherPatientNames)).toContain(
+                    `,{"Alphabetic":"Test","Phonetic":"Name"}]`
+                );
+
+                dcmDataset.OtherPatientNames.push({
+                    Alphabetic: "Test2"
+                });
+                expect(JSON.stringify(dcmDataset.OtherPatientNames)).toContain(
+                    `,{"Alphabetic":"Test2"}]`
+                );
+            });
+        });
+
+        // OperatorName is three-component name
+        describe("multiple-component name", () => {
             it("Compares denaturalized values", () => {
                 const jsonDenaturalized =
                     dcmjs.data.DicomMetaDictionary.denaturalizeDataset(
@@ -885,11 +966,24 @@ describe("The same DICOM file loaded from both DCM and JSON", () => {
                     );
 
                 expect(jsonDenaturalized["00081070"].Value).toEqual([
-                    "Operator^John^^Mr.^Sr.=John Operator=O-per-a-tor"
+                    {
+                        Alphabetic: "Operator^John^^Mr.^Sr.",
+                        Ideographic: "John Operator",
+                        Phonetic: "O-per-a-tor"
+                    }
                 ]);
                 expect(jsonDenaturalized["00081070"].Value).toEqual(
                     dcmDenaturalized["00081070"].Value
                 );
+                expect(jsonDenaturalized["00081070"].Value).toEqual(
+                    jsonDataset.OperatorsName
+                );
+                expect(String(jsonDenaturalized["00081070"].Value)).toEqual(
+                    String(jsonDataset.OperatorsName)
+                );
+                expect(
+                    JSON.stringify(jsonDenaturalized["00081070"].Value)
+                ).toEqual(JSON.stringify(jsonDataset.OperatorsName));
             });
 
             it("Compares changed values", () => {
@@ -917,10 +1011,86 @@ describe("The same DICOM file loaded from both DCM and JSON", () => {
                     );
 
                 expect(jsonDenaturalized["00081070"].Value).toEqual([
-                    "Doe^John"
+                    { Alphabetic: "Doe^John" }
                 ]);
                 expect(jsonDenaturalized["00081070"].Value).toEqual(
                     dcmDenaturalized["00081070"].Value
+                );
+            });
+        });
+    });
+
+    describe("unnaturalized datasets", () => {
+        it("Upserting a name", () => {
+            // PerformingPhysicianName
+            dicomData.upsertTag("00081050", "PN", "Test^Name=Upsert\\Test");
+            expect(String(dicomData.dict["00081050"].Value)).toEqual(
+                "Test^Name=Upsert\\Test"
+            );
+            expect(dicomData.dict["00081050"].Value).toBeInstanceOf(String);
+            expect(JSON.stringify(dicomData.dict["00081050"].Value)).toEqual(
+                '[{"Alphabetic":"Test^Name","Ideographic":"Upsert"},{"Alphabetic":"Test"}]'
+            );
+
+            // Upsert a second time on the same tag to overwrite it.
+            dicomData.upsertTag("00081050", "PN", "Another=Upsert\\Testing");
+
+            expect(String(dicomData.dict["00081050"].Value)).toEqual(
+                "Another=Upsert\\Testing"
+            );
+            expect(dicomData.dict["00081050"].Value).toBeInstanceOf(String);
+            expect(JSON.stringify(dicomData.dict["00081050"].Value)).toEqual(
+                '[{"Alphabetic":"Another","Ideographic":"Upsert"},{"Alphabetic":"Testing"}]'
+            );
+
+            // Upsert a third time on the same tag, with a naked object.
+            dicomData.upsertTag("00081050", "PN", {
+                Alphabetic: "Object^Testing"
+            });
+            expect(dicomData.dict["00081050"].Value).toEqual({
+                Alphabetic: "Object^Testing"
+            });
+            expect(JSON.stringify(dicomData.dict["00081050"].Value)).toEqual(
+                '[{"Alphabetic":"Object^Testing"}]'
+            );
+
+            // Upsert a fourth time on the same tag, with a full object.
+            dicomData.upsertTag("00081050", "PN", [
+                {
+                    Alphabetic: "Object^Testing^Complete"
+                }
+            ]);
+            expect(dicomData.dict["00081050"].Value).toEqual([
+                {
+                    Alphabetic: "Object^Testing^Complete"
+                }
+            ]);
+            expect(JSON.stringify(dicomData.dict["00081050"].Value)).toEqual(
+                '[{"Alphabetic":"Object^Testing^Complete"}]'
+            );
+        });
+
+        describe("Multiplicity", () => {
+            it("Checks raw output string", () => {
+                expect(String(dicomData.dict["00101001"].Value)).toEqual(
+                    "Doe^John=Johnny=Jonny\\Doe^Jane=Janie=Jayne"
+                );
+                expect(dicomData.dict["00101001"].Value).toEqual([
+                    {
+                        Alphabetic: "Doe^John",
+                        Ideographic: "Johnny",
+                        Phonetic: "Jonny"
+                    },
+                    {
+                        Alphabetic: "Doe^Jane",
+                        Ideographic: "Janie",
+                        Phonetic: "Jayne"
+                    }
+                ]);
+                expect(
+                    JSON.stringify(dicomData.dict["00101001"].Value)
+                ).toEqual(
+                    '[{"Alphabetic":"Doe^John","Ideographic":"Johnny","Phonetic":"Jonny"},{"Alphabetic":"Doe^Jane","Ideographic":"Janie","Phonetic":"Jayne"}]'
                 );
             });
         });
