@@ -536,10 +536,22 @@ class DecimalString extends AsciiStringRepresentation {
         if (value === null) {
             return "";
         }
-
-        const str = String(value);
+        let str = String(value);
         if (str.length > this.maxLength) {
-            return value.toExponential();
+            const logval = Math.log10(Math.abs(value));
+            const sign_chars = value < 0 ? 1 : 0;
+            const use_scientific = logval < -4 || logval >= 14 - sign_chars;
+            if (use_scientific) {
+                const trunc_str = value.toExponential(16 - sign_chars);
+                if (trunc_str.length <= 16) return trunc_str;
+                return value.toExponential(
+                    16 - (trunc_str.length - 16) - sign_chars
+                );
+            } else {
+                const trunc_str = value.toFixed(16 - sign_chars);
+                if (trunc_str.length <= 16) return trunc_str;
+                return value.toFixed(16 - sign_chars - (trunc_str.length - 16));
+            }
         }
         return str;
     }
