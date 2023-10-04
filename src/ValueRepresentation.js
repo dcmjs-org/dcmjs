@@ -12,6 +12,45 @@ import {
 import dicomJson from "./utilities/dicomJson.js";
 import { DicomMetaDictionary } from "./DicomMetaDictionary.js";
 
+// We replace the tag with a Proxy which intercepts assignments to obj[valueProp]
+// and adds additional overrides/accessors to the value if need be. If valueProp
+// is falsy, we check target.vr and add accessors via a ValueRepresentation lookup.
+// Specifically, this helps address the incorrect (though common) use of the library:
+//   dicomDict.dict.upsertTag('00101001', 'PN', 'Doe^John'); /* direct string assignment */
+//   dicomDict.dict['00081070'].Value = 'Doe^John\Doe^Jane'; /* overwrite with multiplicity */
+//   ...
+//   jsonOutput = JSON.serialize(dicomDict);
+// or:
+//   naturalizedDataset.OperatorsName = 'Doe^John';
+//   jsonOutput = JSON.serialize(naturalizedDataset);
+// Whereas the correct usage of the dicom+json model would be:
+//   dicomDict.dict.upsertTag('00101001', 'PN', [{Alphabetic:'Doe^John'}]);
+//   naturalizedDataset.OperatorsName = [{Alphabetic:'Doe^John'},{Alphabetic:'Doe^Jane'}];
+// TODO: refactor with addAccessors.js in mind
+const tagProxyHandler = {
+    set(target, prop, value) {
+        var vrType;
+        if (
+            ["values", "Value"].includes(prop) &&
+            target.vr &&
+            ValueRepresentation.hasValueAccessors(target.vr)
+        ) {
+            vrType = ValueRepresentation.createByTypeString(target.vr);
+        } else if (prop in DicomMetaDictionary.nameMap) {
+            vrType = ValueRepresentation.createByTypeString(
+                DicomMetaDictionary.nameMap[prop].vr
+            );
+        } else {
+            target[prop] = value;
+            return true;
+        }
+
+        target[prop] = vrType.addValueAccessors(value);
+
+        return true;
+    }
+};
+
 function rtrim(str) {
     return str.replace(/\s*$/g, "");
 }
@@ -65,48 +104,9 @@ class ValueRepresentation {
             !tag.__hasTagAccessors &&
             ValueRepresentation.hasValueAccessors(tag.vr?.type || tag.vr)
         ) {
-            // We replace the tag with a Proxy which intercepts assignments to obj[valueProp]
-            // and adds additional overrides/accessors to the value if need be. If valueProp
-            // is falsy, we check target.vr and add accessors via a ValueRepresentation lookup.
-            // Specifically, this helps address the incorrect (though common) use of the library:
-            //   dicomDict.dict.upsertTag('00101001', 'PN', 'Doe^John'); /* direct string assignment */
-            //   dicomDict.dict['00081070'].Value = 'Doe^John\Doe^Jane'; /* overwrite with multiplicity */
-            //   ...
-            //   jsonOutput = JSON.serialize(dicomDict);
-            // or:
-            //   naturalizedDataset.OperatorsName = 'Doe^John';
-            //   jsonOutput = JSON.serialize(naturalizedDataset);
-            // Whereas the correct usage of the dicom+json model would be:
-            //   dicomDict.dict.upsertTag('00101001', 'PN', [{Alphabetic:'Doe^John'}]);
-            //   naturalizedDataset.OperatorsName = [{Alphabetic:'Doe^John'},{Alphabetic:'Doe^Jane'}];
-            // TODO: refactor with addAccessors.js in mind
-            const handler = {
-                set(target, prop, value) {
-                    var vrType;
-                    if (
-                        ["values", "Value"].includes(prop) &&
-                        target.vr &&
-                        ValueRepresentation.hasValueAccessors(target.vr)
-                    ) {
-                        vrType = ValueRepresentation.createByTypeString(
-                            target.vr
-                        );
-                    } else if (prop in DicomMetaDictionary.nameMap) {
-                        vrType = ValueRepresentation.createByTypeString(
-                            DicomMetaDictionary.nameMap[prop].vr
-                        );
-                    } else {
-                        target[prop] = value;
-                        return true;
-                    }
-
-                    target[prop] = vrType.addValueAccessors(value);
-
-                    return true;
-                }
-            };
             Object.defineProperty(tag, "__hasTagAccessors", { value: true });
-            return new Proxy(tag, handler);
+            // See note in declaration of taxProxyHandler
+            return new Proxy(tag, tagProxyHandler);
         }
         return tag;
     }
@@ -800,6 +800,9 @@ class PersonName extends EncodedStringRepresentation {
         return true;
     }
 
+    // Adds toJSON and toString accessors to normalize PersonName output; ie toJSON
+    // always returns a dicom+json object, and toString always returns a part10
+    // style string, regardless of typeof value
     addValueAccessors(value) {
         if (typeof value === "string") {
             value = new String(value);
@@ -816,6 +819,7 @@ class PersonName extends EncodedStringRepresentation {
         return value;
     }
 
+    // Only checked on write, not on read nor creation
     checkLength(value) {
         if (Array.isArray(value)) {
             // In DICOM JSON, components are encoded as a mapping (object),
