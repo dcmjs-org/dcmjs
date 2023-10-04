@@ -548,6 +548,15 @@ it("Reads DICOM with multiplicity", async () => {
 
     expect(dicomDict.dict["00101020"].Value).toEqual([1, 2]);
     expect(dicomDict.dict["0018100B"].Value).toEqual(["1.2", "3.4"]);
+});
+
+it("Reads DICOM with PersonName multiplicity", async () => {
+    const url =
+        "https://github.com/dcmjs-org/data/releases/download/multiplicity2/multiplicity.2.dcm";
+    const dcmPath = await getTestDataset(url, "multiplicity.2.dcm");
+    const file = await promisify(fs.readFile)(dcmPath);
+    const dicomDict = DicomMessage.readFile(file.buffer);
+
     expect(dicomDict.dict["00081070"].Value).toEqual([
         { Alphabetic: "Doe^John" },
         { Alphabetic: "Doe^Jane" }
