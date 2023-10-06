@@ -16,6 +16,7 @@ import datasetWithNullNumberVRs from "./mocks/null_number_vrs_dataset.json";
 import { rawTags } from "./rawTags";
 
 import { EXPLICIT_LITTLE_ENDIAN, IMPLICIT_LITTLE_ENDIAN } from "./../src/constants/dicom.js";
+import { ValueRepresentation } from "../src/ValueRepresentation";
 
 const {
     DicomMetaDictionary,
@@ -790,4 +791,27 @@ it("Tests that reading fails on a DICOM without a meta length tag", () => {
     }).toThrow(
         "Invalid DICOM file, meta length tag is malformed or not present."
     );
+});
+
+it.each([
+    [1.0, "1"],
+    [0.0, "0"],
+    [-0.0, "0"],
+    [0.123, "0.123"],
+    [-0.321, "-0.321"],
+    [0.00001, "0.00001"],
+    [3.14159265358979323846, "3.14159265358979"],
+    [-3.14159265358979323846, "-3.1415926535898"],
+    [5.3859401928763739403e-7, "5.38594019288e-7"],
+    [-5.3859401928763739403e-7, "-5.3859401929e-7"],
+    [1.2342534378125532912998323e10, "12342534378.1255"],
+    [6.40708699858767842501238e13, "64070869985876.8"],
+    [1.7976931348623157e308, "1.797693135e+308"],
+    [0.99990081787109, "0.99990081787109"],
+    ])
+    ("A converted decimal string should not exceed 16 bytes in length", (a, expected) => {
+        const decimalString = ValueRepresentation.createByTypeString("DS");
+        let value = decimalString.formatValue(a);
+        expect(value.length).toBeLessThanOrEqual(16);
+        expect(value).toBe(expected);
 });
