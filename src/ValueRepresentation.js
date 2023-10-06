@@ -533,23 +533,35 @@ class DecimalString extends AsciiStringRepresentation {
     }
 
     formatValue(value) {
-        if (value === null) {
-            return "";
-        }
+        if (value === null) return "";
+
         let str = String(value);
         if (str.length > this.maxLength) {
-            const logval = Math.log10(Math.abs(value));
+            // Characters needed for '-' at start.
             const sign_chars = value < 0 ? 1 : 0;
+
+            // Decide whether to use scientific notation.
+            const logval = Math.log10(Math.abs(value));
+
+            // Numbers larger than 1e14 cannot be correctly represented by truncating
+            // their string representations to 16 chars, e.g pi * 10^13 would become
+            // '314159265358979.', which may not be universally understood. This limit
+            // is 1e13 for negative numbers because of the minus sign.
+            // For negative exponents, the point of equal precision between scientific
+            // and standard notation is 1e-4 e.g. '0.00031415926535' and
+            // '3.1415926535e-04' are both 16 chars.
             const use_scientific = logval < -4 || logval >= 14 - sign_chars;
             if (use_scientific) {
                 const trunc_str = value.toExponential(16 - sign_chars);
                 if (trunc_str.length <= 16) return trunc_str;
+                // If string is too long, correct the length.
                 return value.toExponential(
                     16 - (trunc_str.length - 16) - sign_chars
                 );
             } else {
                 const trunc_str = value.toFixed(16 - sign_chars);
                 if (trunc_str.length <= 16) return trunc_str;
+                // If string is too long, correct the length.
                 return value.toFixed(16 - sign_chars - (trunc_str.length - 16));
             }
         }

@@ -807,6 +807,7 @@ it.each([
     [1.2342534378125532912998323e10, "12342534378.1255"],
     [6.40708699858767842501238e13, "64070869985876.8"],
     [1.7976931348623157e308, "1.797693135e+308"],
+    [0.99990081787109, "0.99990081787109"],
     ])
     ("A converted decimal string should not exceed 16 bytes in length", (a, expected) => {
         const decimalString = ValueRepresentation.createByTypeString("DS");
