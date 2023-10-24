@@ -1,5 +1,6 @@
 import { DicomMetaDictionary } from "./DicomMetaDictionary.js";
 import { Tag } from "./Tag.js";
+import { ValueRepresentation } from "./ValueRepresentation.js";
 
 var tagNamesToEmpty = [
     // please override these in specificReplaceDefaults to have useful values
@@ -265,6 +266,9 @@ export function cleanTags(
                 } else {
                     newValue = [];
                 }
+                dict[tagString] = ValueRepresentation.addTagAccessors(
+                    dict[tagString]
+                );
                 dict[tagString].Value = newValue;
             }
         }

@@ -51,8 +51,14 @@ const addAccessors = (dest, sqZero) => {
         if (Array.isArray(dest) && dest.length !== 1) return dest;
         itemZero = Array.isArray(dest) ? dest[0] : dest;
     }
-    const ret = [itemZero];
-    return new Proxy(ret, handler);
+    // dest may have some decorations so keep the object
+    if (Array.isArray(dest)) {
+        dest.length = 0;
+        dest.push(itemZero);
+        return new Proxy(dest, handler);
+    } else {
+        return new Proxy([itemZero], handler);
+    }
 };
 
 export default addAccessors;
