@@ -2,7 +2,6 @@ import dictionary from "./dictionary";
 import log from "./log.js";
 import addAccessors from "./utilities/addAccessors";
 import { ValueRepresentation } from "./ValueRepresentation";
-import dicomJson from "./utilities/dicomJson";
 
 class DicomMetaDictionary {
     // intakes a custom dictionary that will be used to parse/denaturalize the dataset
