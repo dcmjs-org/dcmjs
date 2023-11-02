@@ -36,7 +36,12 @@ const tagProxyHandler = {
             ValueRepresentation.hasValueAccessors(target.vr)
         ) {
             vrType = ValueRepresentation.createByTypeString(target.vr);
-        } else if (prop in DicomMetaDictionary.nameMap) {
+        } else if (
+            prop in DicomMetaDictionary.nameMap &&
+            ValueRepresentation.hasValueAccessors(
+                DicomMetaDictionary.nameMap[prop].vr
+            )
+        ) {
             vrType = ValueRepresentation.createByTypeString(
                 DicomMetaDictionary.nameMap[prop].vr
             );
