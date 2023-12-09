@@ -6,11 +6,8 @@ class FreehandRoi {
     constructor() {}
 
     static getMeasurementData(MeasurementGroup) {
-        const {
-            defaultState,
-            SCOORDGroup,
-            NUMGroup
-        } = MeasurementReport.getSetupMeasurementData(MeasurementGroup);
+        const { defaultState, SCOORDGroup, NUMGroup } =
+            MeasurementReport.getSetupMeasurementData(MeasurementGroup);
 
         const state = {
             ...defaultState,

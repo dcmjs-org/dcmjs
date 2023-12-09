@@ -2,7 +2,7 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import followRedirects from "follow-redirects";
-import AdmZip from 'adm-zip';
+import AdmZip from "adm-zip";
 import { validationLog } from "./../src/log.js";
 
 const { https } = followRedirects;
@@ -25,55 +25,53 @@ function downloadToFile(url, filePath) {
 }
 
 function unzip(zipFilePath, targetPath) {
-  return new Promise( (resolve,reject) => {
-    try {
-    // reading archives
-    var zip = new AdmZip(zipFilePath);
-    var zipEntries = zip.getEntries(); // an array of ZipEntry records    
-    // extracts everything
-    zip.extractAllTo(targetPath, true);
-    resolve();
-    } catch(e) {
-      reject(e);
-    }
-  });
+    return new Promise((resolve, reject) => {
+        try {
+            // reading archives
+            var zip = new AdmZip(zipFilePath);
+            var zipEntries = zip.getEntries(); // an array of ZipEntry records
+            // extracts everything
+            zip.extractAllTo(targetPath, true);
+            resolve();
+        } catch (e) {
+            reject(e);
+        }
+    });
 
-  // This code is broken in Node 18+, creating garbage output
-  // return new Promise(resolve => {
-  //       fs.createReadStream(zipFilePath).pipe(
-  //           unzipper.Extract({ path: targetPath }).on("close", resolve)
-  //       );
-  //   });
+    // This code is broken in Node 18+, creating garbage output
+    // return new Promise(resolve => {
+    //       fs.createReadStream(zipFilePath).pipe(
+    //           unzipper.Extract({ path: targetPath }).on("close", resolve)
+    //       );
+    //   });
 }
 
 function ensureTestDataDir() {
-  var targetPath = path.join(os.tmpdir(), "dcmjs-test")
-  if (!fs.existsSync(targetPath)) {
-    fs.mkdirSync(targetPath)
-  }
-  return targetPath
+    var targetPath = path.join(os.tmpdir(), "dcmjs-test");
+    if (!fs.existsSync(targetPath)) {
+        fs.mkdirSync(targetPath);
+    }
+    return targetPath;
 }
 
 async function getZippedTestDataset(url, filename, unpackDirectory) {
-  var dir = ensureTestDataDir()
-  var targetPath = path.join(dir, filename);
-  var unpackPath = path.join(dir, unpackDirectory);
-  if (!fs.existsSync(unpackPath)) {
-    await downloadToFile(url, targetPath)
-    await unzip(targetPath, unpackPath)
-  }
-  return unpackPath
+    var dir = ensureTestDataDir();
+    var targetPath = path.join(dir, filename);
+    var unpackPath = path.join(dir, unpackDirectory);
+    if (!fs.existsSync(unpackPath)) {
+        await downloadToFile(url, targetPath);
+        await unzip(targetPath, unpackPath);
+    }
+    return unpackPath;
 }
 
 async function getTestDataset(url, filename) {
-  var dir = ensureTestDataDir()
-  var targetPath = path.join(dir, filename);
-  if (!fs.existsSync(targetPath)) {
-    await downloadToFile(url, targetPath)
-  }
-  return targetPath
+    var dir = ensureTestDataDir();
+    var targetPath = path.join(dir, filename);
+    if (!fs.existsSync(targetPath)) {
+        await downloadToFile(url, targetPath);
+    }
+    return targetPath;
 }
 
-export {
-  getTestDataset, getZippedTestDataset
-}
+export { getTestDataset, getZippedTestDataset };

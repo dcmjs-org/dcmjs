@@ -109,9 +109,9 @@ class DicomMetaDictionary {
      * - object member names are dictionary, not group/element tag
      */
     static naturalizeDataset(dataset) {
-        const naturalDataset = {
+        const naturalDataset = ValueRepresentation.addTagAccessors({
             _vrMap: {}
-        };
+        });
 
         Object.keys(dataset).forEach(tag => {
             const data = dataset[tag];
@@ -176,6 +176,7 @@ class DicomMetaDictionary {
                 }
             }
         });
+
         return naturalDataset;
     }
 
@@ -193,9 +194,11 @@ class DicomMetaDictionary {
                 );
             }
         }
+
         value = value.map(entry =>
             entry.constructor.name == "Number" ? String(entry) : entry
         );
+
         return value;
     }
 
@@ -214,10 +217,10 @@ class DicomMetaDictionary {
                     return;
                 }
                 // process this one entry
-                var dataItem = {
-                    vr: entry.vr,
-                    Value: dataset[naturalName]
-                };
+                var dataItem = ValueRepresentation.addTagAccessors({
+                    vr: entry.vr
+                });
+                dataItem.Value = dataset[naturalName];
 
                 if (dataValue !== null) {
                     if (entry.vr == "ox") {
@@ -230,6 +233,10 @@ class DicomMetaDictionary {
                             );
                         }
                     }
+
+                    let vr = ValueRepresentation.createByTypeString(
+                        dataItem.vr
+                    );
 
                     dataItem.Value = DicomMetaDictionary.denaturalizeValue(
                         dataItem.Value
@@ -252,9 +259,7 @@ class DicomMetaDictionary {
                         }
                         dataItem.Value = unnaturalValues;
                     }
-                    let vr = ValueRepresentation.createByTypeString(
-                        dataItem.vr
-                    );
+
                     if (!vr.isBinary() && vr.maxLength) {
                         dataItem.Value = dataItem.Value.map(value => {
                             if (value.length > vr.maxLength) {

@@ -9,7 +9,7 @@
  * the Creative Commons Attribution License (BY):
  * http://creativecommons.org/licenses/by/3.0/
  *
- * The actual implementation has been adjusted 
+ * The actual implementation has been adjusted
  * as discussed here: https://github.com/dcmjs-org/dcmjs/pull/304
  *
  * More information on floating point comparison here:

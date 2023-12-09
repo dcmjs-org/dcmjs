@@ -3,8 +3,9 @@ import {
     DEFLATED_EXPLICIT_LITTLE_ENDIAN,
     EXPLICIT_BIG_ENDIAN,
     EXPLICIT_LITTLE_ENDIAN,
-    IMPLICIT_LITTLE_ENDIAN
-} from "./constants/dicom";
+    IMPLICIT_LITTLE_ENDIAN,
+    VM_DELIMITER
+} from "./constants/dicom.js";
 import { DicomDict } from "./DicomDict.js";
 import { DicomMetaDictionary } from "./DicomMetaDictionary.js";
 import { Tag } from "./Tag.js";
@@ -67,7 +68,10 @@ const encapsulatedSyntaxes = [
     "1.2.840.10008.1.2.6.1",
     "1.2.840.10008.1.2.4.100",
     "1.2.840.10008.1.2.4.102",
-    "1.2.840.10008.1.2.4.103"
+    "1.2.840.10008.1.2.4.103",
+    "1.2.840.10008.1.2.4.201",
+    "1.2.840.10008.1.2.4.202",
+    "1.2.840.10008.1.2.4.203"
 ];
 
 class DicomMessage {
@@ -147,10 +151,11 @@ class DicomMessage {
                     }
                     readInfo.values = ["ISO_IR 192"]; // change SpecificCharacterSet to UTF-8
                 }
-                dict[cleanTagString] = {
-                    vr: readInfo.vr.type,
-                    Value: readInfo.values
-                };
+
+                dict[cleanTagString] = ValueRepresentation.addTagAccessors({
+                    vr: readInfo.vr.type
+                });
+                dict[cleanTagString].Value = readInfo.values;
 
                 if (untilTag && untilTag === cleanTagString) {
                     break;
@@ -334,7 +339,7 @@ class DicomMessage {
             if (!vr.isBinary() && singleVRs.indexOf(vr.type) == -1) {
                 values = val;
                 if (typeof val === "string") {
-                    values = val.split(String.fromCharCode(0x5c));
+                    values = val.split(String.fromCharCode(VM_DELIMITER));
                 }
             } else if (vr.type == "SQ") {
                 values = val;
@@ -346,7 +351,12 @@ class DicomMessage {
         }
         stream.setEndian(oldEndian);
 
-        return { tag: tag, vr: vr, values: values };
+        const retObj = ValueRepresentation.addTagAccessors({
+            tag: tag,
+            vr: vr
+        });
+        retObj.values = values;
+        return retObj;
     }
 
     static lookupTag(tag) {
