@@ -6,6 +6,7 @@ import EllipticalRoi from "./EllipticalRoi.js";
 import CircleRoi from "./CircleRoi.js";
 import ArrowAnnotate from "./ArrowAnnotate.js";
 import Segmentation from "./Segmentation.js";
+import RTSS from "./RTSS.js";
 import CobbAngle from "./CobbAngle";
 import Angle from "./Angle";
 import RectangleRoi from "./RectangleRoi";
@@ -19,6 +20,7 @@ const Cornerstone = {
     ArrowAnnotate,
     MeasurementReport,
     Segmentation,
+    RTSS,
     CobbAngle,
     Angle,
     RectangleRoi
