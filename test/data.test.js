@@ -1106,6 +1106,25 @@ describe("The same DICOM file loaded from both DCM and JSON", () => {
     });
 });
 
+describe.only("test_un_vr", () => {
+    it("UN vr should save in _vrMap during naturalization", async () => {
+        const testDictWithUnVr = { "00181411": {vr: "UN", Value: Array(1)} };
+        const dataset = DicomMetaDictionary.naturalizeDataset(testDictWithUnVr);
+
+        expect(dataset._vrMap).toHaveProperty("ExposureIndex", "UN");
+    });
+
+    it("UN vr should set for tag during denaturalization", async () => {
+        const testDatasetWithUnVr = { ...minimalDataset };
+        testDatasetWithUnVr["ExposureIndex"] = Array(1);
+        testDatasetWithUnVr["_vrMap"] = { ExposureIndex: "UN" };
+
+        const dict = DicomMetaDictionary.denaturalizeDataset(testDatasetWithUnVr);
+        expect(dict).toHaveProperty("00181411");
+        expect(dict["00181411"]).toHaveProperty("vr", "UN");
+    });
+});
+
 it.each([
     [1.0, "1"],
     [0.0, "0"],
