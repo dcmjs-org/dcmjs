@@ -1106,7 +1106,7 @@ describe("The same DICOM file loaded from both DCM and JSON", () => {
     });
 });
 
-describe.only("test_un_vr", () => {
+describe("test_un_vr", () => {
     it("UN vr should save in _vrMap during naturalization", async () => {
         const testDictWithUnVr = { "00181411": {vr: "UN", Value: Array(1)} };
         const dataset = DicomMetaDictionary.naturalizeDataset(testDictWithUnVr);
