@@ -126,10 +126,6 @@ class DicomMetaDictionary {
                     // when the vr is data-dependent, keep track of the original type
                     naturalDataset._vrMap[naturalName] = data.vr;
                 }
-
-                if (data.vr == "UN") {
-                    naturalDataset._vrMap[naturalName] = data.vr;
-                }
             }
 
             if (data.Value === undefined) {
@@ -222,10 +218,7 @@ class DicomMetaDictionary {
                 }
                 // process this one entry
                 var dataItem = ValueRepresentation.addTagAccessors({
-                    vr:
-                        dataset._vrMap && dataset._vrMap[naturalName]
-                            ? dataset._vrMap[naturalName]
-                            : entry.vr
+                    vr: entry.vr
                 });
                 dataItem.Value = dataset[naturalName];
 
