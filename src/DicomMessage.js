@@ -80,13 +80,15 @@ class DicomMessage {
         syntax,
         ignoreErrors,
         untilTag = null,
-        includeUntilTagValue = false
+        includeUntilTagValue = false,
+        parseUnknownVr = false
     ) {
         log.warn("DicomMessage.read to be deprecated after dcmjs 0.24.x");
         return this._read(bufferStream, syntax, {
             ignoreErrors: ignoreErrors,
             untilTag: untilTag,
-            includeUntilTagValue: includeUntilTagValue
+            includeUntilTagValue: includeUntilTagValue,
+            parseUnknownVr: parseUnknownVr
         });
     }
 
@@ -193,7 +195,8 @@ class DicomMessage {
             ignoreErrors: false,
             untilTag: null,
             includeUntilTagValue: false,
-            noCopy: false
+            noCopy: false,
+            parseUnknownVr: false
         }
     ) {
         var stream = new ReadBufferStream(buffer, null, {
@@ -271,10 +274,11 @@ class DicomMessage {
         syntax,
         options = {
             untilTag: null,
-            includeUntilTagValue: false
+            includeUntilTagValue: false,
+            parseUnknownVr: false
         }
     ) {
-        const { untilTag, includeUntilTagValue } = options;
+        const { untilTag, includeUntilTagValue, parseUnknownVr } = options;
         var implicit = syntax == IMPLICIT_LITTLE_ENDIAN ? true : false,
             isLittleEndian =
                 syntax == IMPLICIT_LITTLE_ENDIAN ||
@@ -318,7 +322,20 @@ class DicomMessage {
             vr = ValueRepresentation.createByTypeString(vrType);
         } else {
             vrType = stream.readVR();
-            vr = ValueRepresentation.createByTypeString(vrType);
+
+            if (
+                parseUnknownVr &&
+                vrType === "UN" &&
+                DicomMessage.lookupTag(tag) &&
+                DicomMessage.lookupTag(tag).vr
+            ) {
+                vrType = DicomMessage.lookupTag(tag).vr;
+
+                vr = ValueRepresentation.parseUnknownVr(vrType);
+            } else {
+                vr = ValueRepresentation.createByTypeString(vrType);
+            }
+
             if (vr.isExplicit()) {
                 stream.increment(2);
                 length = stream.readUint32();
