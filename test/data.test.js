@@ -1107,7 +1107,7 @@ describe("The same DICOM file loaded from both DCM and JSON", () => {
 });
 
 describe("test_un_vr", () => {
-    it("UN vr should not parsed if parseUnknownVr is false", async () => {
+    it("Tag with UN vr should be parsed according VR in dictionary", async () => {
         const expectedExposureIndex = 662;
         const expectedDeviationIndex = -1.835;
 
@@ -1117,29 +1117,6 @@ describe("test_un_vr", () => {
             untilTag: null,
             includeUntilTagValue: false,
             noCopy: false,
-            parseUnknownVr: false,
-        });
-        const dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(
-            dicomData.dict
-        );
-
-        expect(dataset.ExposureIndex).not.toEqual(expectedExposureIndex);
-        expect(dataset.ExposureIndex[0] instanceof ArrayBuffer).toBe(true);
-        expect(dataset.DeviationIndex).not.toEqual(expectedDeviationIndex);
-        expect(dataset.DeviationIndex[0] instanceof ArrayBuffer).toBe(true);
-    });
-
-    it("UN vr should be parsed if parseUnknownVr is true", async () => {
-        const expectedExposureIndex = 662;
-        const expectedDeviationIndex = -1.835;
-
-        const file = fs.readFileSync("test/sample-dicom-with-un-vr.dcm");
-        const dicomData = dcmjs.data.DicomMessage.readFile(file.buffer, {
-            ignoreErrors: false,
-            untilTag: null,
-            includeUntilTagValue: false,
-            noCopy: false,
-            parseUnknownVr: true,
         });
         const dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(
             dicomData.dict

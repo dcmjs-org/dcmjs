@@ -80,15 +80,13 @@ class DicomMessage {
         syntax,
         ignoreErrors,
         untilTag = null,
-        includeUntilTagValue = false,
-        parseUnknownVr = false
+        includeUntilTagValue = false
     ) {
         log.warn("DicomMessage.read to be deprecated after dcmjs 0.24.x");
         return this._read(bufferStream, syntax, {
             ignoreErrors: ignoreErrors,
             untilTag: untilTag,
-            includeUntilTagValue: includeUntilTagValue,
-            parseUnknownVr: parseUnknownVr
+            includeUntilTagValue: includeUntilTagValue
         });
     }
 
@@ -195,8 +193,7 @@ class DicomMessage {
             ignoreErrors: false,
             untilTag: null,
             includeUntilTagValue: false,
-            noCopy: false,
-            parseUnknownVr: false
+            noCopy: false
         }
     ) {
         var stream = new ReadBufferStream(buffer, null, {
@@ -274,11 +271,10 @@ class DicomMessage {
         syntax,
         options = {
             untilTag: null,
-            includeUntilTagValue: false,
-            parseUnknownVr: false
+            includeUntilTagValue: false
         }
     ) {
-        const { untilTag, includeUntilTagValue, parseUnknownVr } = options;
+        const { untilTag, includeUntilTagValue } = options;
         var implicit = syntax == IMPLICIT_LITTLE_ENDIAN ? true : false,
             isLittleEndian =
                 syntax == IMPLICIT_LITTLE_ENDIAN ||
@@ -324,7 +320,6 @@ class DicomMessage {
             vrType = stream.readVR();
 
             if (
-                parseUnknownVr &&
                 vrType === "UN" &&
                 DicomMessage.lookupTag(tag) &&
                 DicomMessage.lookupTag(tag).vr
