@@ -1112,7 +1112,7 @@ describe("test_un_vr", () => {
         const expectedDeviationIndex = -1.835;
 
         const url =
-        "https://github.com/dcmjs-org/data/releases/download/unknown-VR/sample-dicom-with-un-vr.dcm";
+            "https://github.com/dcmjs-org/data/releases/download/unknown-VR/sample-dicom-with-un-vr.dcm";
         const dcmPath = await getTestDataset(url, "sample-dicom-with-un-vr.dcm");
 
         const file = await promisify(fs.readFile)(dcmPath);
