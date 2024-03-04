@@ -1111,7 +1111,11 @@ describe("test_un_vr", () => {
         const expectedExposureIndex = 662;
         const expectedDeviationIndex = -1.835;
 
-        const file = fs.readFileSync("test/sample-dicom-with-un-vr.dcm");
+        const url =
+        "https://github.com/dcmjs-org/data/releases/download/unknown-VR/sample-dicom-with-un-vr.dcm";
+        const dcmPath = await getTestDataset(url, "sample-dicom-with-un-vr.dcm");
+
+        const file = await promisify(fs.readFile)(dcmPath);
         const dicomData = dcmjs.data.DicomMessage.readFile(file.buffer, {
             ignoreErrors: false,
             untilTag: null,
