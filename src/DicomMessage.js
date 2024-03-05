@@ -318,7 +318,19 @@ class DicomMessage {
             vr = ValueRepresentation.createByTypeString(vrType);
         } else {
             vrType = stream.readVR();
-            vr = ValueRepresentation.createByTypeString(vrType);
+
+            if (
+                vrType === "UN" &&
+                DicomMessage.lookupTag(tag) &&
+                DicomMessage.lookupTag(tag).vr
+            ) {
+                vrType = DicomMessage.lookupTag(tag).vr;
+
+                vr = ValueRepresentation.parseUnknownVr(vrType);
+            } else {
+                vr = ValueRepresentation.createByTypeString(vrType);
+            }
+
             if (vr.isExplicit()) {
                 stream.increment(2);
                 length = stream.readUint32();

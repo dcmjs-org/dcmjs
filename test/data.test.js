@@ -1106,6 +1106,30 @@ describe("The same DICOM file loaded from both DCM and JSON", () => {
     });
 });
 
+describe("test_un_vr", () => {
+    it("Tag with UN vr should be parsed according VR in dictionary", async () => {
+        const expectedExposureIndex = 662;
+        const expectedDeviationIndex = -1.835;
+
+        const url = "https://github.com/dcmjs-org/data/releases/download/unknown-VR/sample-dicom-with-un-vr.dcm";
+        const dcmPath = await getTestDataset(url, "sample-dicom-with-un-vr.dcm");
+
+        const file = await promisify(fs.readFile)(dcmPath);
+        const dicomData = dcmjs.data.DicomMessage.readFile(file.buffer, {
+            ignoreErrors: false,
+            untilTag: null,
+            includeUntilTagValue: false,
+            noCopy: false,
+        });
+        const dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(
+            dicomData.dict
+        );
+
+        expect(dataset.ExposureIndex).toEqual(expectedExposureIndex);
+        expect(dataset.DeviationIndex).toEqual(expectedDeviationIndex);
+    });
+});
+
 it.each([
     [1.0, "1"],
     [0.0, "0"],

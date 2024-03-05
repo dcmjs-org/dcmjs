@@ -273,6 +273,10 @@ class ValueRepresentation {
         }
         return vr;
     }
+
+    static parseUnknownVr(type) {
+        return new ParsedUnknownValue(type);
+    }
 }
 
 class AsciiStringRepresentation extends ValueRepresentation {
@@ -1210,6 +1214,49 @@ class UnknownValue extends BinaryRepresentation {
         this.maxLength = null;
         this.padByte = PADDING_NULL;
         this.noMultiple = true;
+    }
+}
+
+class ParsedUnknownValue extends BinaryRepresentation {
+    constructor(vr) {
+        super(vr);
+        this.maxLength = null;
+        this.padByte = 0;
+        this.noMultiple = true;
+        this._isBinary = true;
+        this._allowMultiple = false;
+        this._isExplicit = true;
+    }
+
+    read(stream, length, syntax) {
+        const arrayBuffer = this.readBytes(stream, length, syntax)[0];
+        const streamFromBuffer = new ReadBufferStream(arrayBuffer, true);
+        const vr = ValueRepresentation.createByTypeString(this.type);
+
+        var values = [];
+        if (vr.isBinary() && length > vr.maxLength && !vr.noMultiple) {
+            var times = length / vr.maxLength,
+                i = 0;
+            while (i++ < times) {
+                values.push(vr.read(streamFromBuffer, vr.maxLength, syntax));
+            }
+        } else {
+            var val = vr.read(streamFromBuffer, length, syntax);
+            if (!vr.isBinary() && singleVRs.indexOf(vr.type) == -1) {
+                values = val;
+                if (typeof val === "string") {
+                    values = val.split(String.fromCharCode(VM_DELIMITER));
+                }
+            } else if (vr.type == "SQ") {
+                values = val;
+            } else if (vr.type == "OW" || vr.type == "OB") {
+                values = val;
+            } else {
+                Array.isArray(val) ? (values = val) : values.push(val);
+            }
+        }
+
+        return values;
     }
 }
 
