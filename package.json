@@ -44,7 +44,7 @@
     "lint-staged": "^13.1.2",
     "prettier": "^2.6.2",
     "rollup": "^3.25.1",
-    "xml2js": "^0.4.23"
+    "xml2js": "^0.6.2"
   },
   "dependencies": {
     "@babel/runtime-corejs3": "^7.22.5",
