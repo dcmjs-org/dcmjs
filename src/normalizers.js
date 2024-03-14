@@ -34,6 +34,7 @@ class Normalizer {
         sopClassUID = sopClassUID.replace(/[^0-9.]/g, ""); // TODO: clean all VRs as part of normalizing
         let toUID = DicomMetaDictionary.sopClassUIDsByName;
         let sopClassUIDMap = {};
+        sopClassUIDMap[toUID.NMImage] = NMImageNormalizer;
         sopClassUIDMap[toUID.CTImage] = CTImageNormalizer;
         sopClassUIDMap[toUID.ParametricMapStorage] = PMImageNormalizer;
         sopClassUIDMap[toUID.MRImage] = MRImageNormalizer;
@@ -56,6 +57,7 @@ class Normalizer {
     static isMultiframeSOPClassUID(sopClassUID) {
         const toUID = DicomMetaDictionary.sopClassUIDsByName;
         const multiframeSOPClasses = [
+            toUID.NMImage,
             toUID.EnhancedMRImage,
             toUID.LegacyConvertedEnhancedMRImage,
             toUID.EnhancedCTImage,
@@ -81,7 +83,7 @@ class Normalizer {
     static normalizeToDataset(datasets) {
         let sopClassUID = Normalizer.consistentSOPClassUIDs(datasets);
         let normalizerClass = Normalizer.normalizerForSOPClassUID(sopClassUID);
-
+        console.log("HERE-<<<<<<<<");
         if (!normalizerClass) {
             log.error("no normalizerClass for ", sopClassUID);
             return undefined;
@@ -171,6 +173,10 @@ class ImageNormalizer extends Normalizer {
         let distanceDatasetPairs = [];
         this.datasets.forEach(function (dataset) {
             let position = dataset.ImagePositionPatient.slice();
+            console.log(
+                "NM FORK dataset.ImagePositionPatient.slice() position: ",
+                position
+            );
             let positionVector = ImageNormalizer.vec3Subtract(
                 position,
                 referencePosition
@@ -186,7 +192,7 @@ class ImageNormalizer extends Normalizer {
         if (ds.BitsAllocated !== 16) {
             log.error(
                 "Only works with 16 bit data, not " +
-                    String(this.dataset.BitsAllocated)
+                String(this.dataset.BitsAllocated)
             );
         }
         if (referenceDataset._vrMap && !referenceDataset._vrMap.PixelData) {
@@ -388,27 +394,32 @@ class ImageNormalizer extends Normalizer {
             // provide a volume-level window/level guess (mean of per-frame)
             if (ds.PerFrameFunctionalGroupsSequence) {
                 let wcww = { center: 0, width: 0, count: 0 };
-                ds.PerFrameFunctionalGroupsSequence.forEach(function (
-                    functionalGroup
-                ) {
-                    if (functionalGroup.FrameVOILUT) {
-                        let wc =
-                            functionalGroup.FrameVOILUTSequence.WindowCenter;
-                        let ww =
-                            functionalGroup.FrameVOILUTSequence.WindowWidth;
-                        if (functionalGroup.FrameVOILUTSequence && wc && ww) {
-                            if (Array.isArray(wc)) {
-                                wc = wc[0];
+                ds.PerFrameFunctionalGroupsSequence.forEach(
+                    function (functionalGroup) {
+                        if (functionalGroup.FrameVOILUT) {
+                            let wc =
+                                functionalGroup.FrameVOILUTSequence
+                                    .WindowCenter;
+                            let ww =
+                                functionalGroup.FrameVOILUTSequence.WindowWidth;
+                            if (
+                                functionalGroup.FrameVOILUTSequence &&
+                                wc &&
+                                ww
+                            ) {
+                                if (Array.isArray(wc)) {
+                                    wc = wc[0];
+                                }
+                                if (Array.isArray(ww)) {
+                                    ww = ww[0];
+                                }
+                                wcww.center += Number(wc);
+                                wcww.width += Number(ww);
+                                wcww.count++;
                             }
-                            if (Array.isArray(ww)) {
-                                ww = ww[0];
-                            }
-                            wcww.center += Number(wc);
-                            wcww.width += Number(ww);
-                            wcww.count++;
                         }
                     }
-                });
+                );
                 if (wcww.count > 0) {
                     ds.WindowCenter.push(String(wcww.center / wcww.count));
                     ds.WindowWidth.push(String(wcww.width / wcww.count));
@@ -475,6 +486,15 @@ class EnhancedUSVolumeNormalizer extends ImageNormalizer {
         super.normalize();
     }
 }
+class NMImageNormalizer extends ImageNormalizer {
+    normalize() {
+        super.normalize();
+        // TODO: provide option at export to swap in LegacyConverted UID
+        let toUID = DicomMetaDictionary.sopClassUIDsByName;
+
+        this.dataset.SOPClassUID = toUID.NMImage;
+    }
+}
 
 class CTImageNormalizer extends ImageNormalizer {
     normalize() {
@@ -526,6 +546,7 @@ export { MRImageNormalizer };
 export { EnhancedCTImageNormalizer };
 export { EnhancedMRImageNormalizer };
 export { EnhancedUSVolumeNormalizer };
+export { NMImageNormalizer };
 export { CTImageNormalizer };
 export { PETImageNormalizer };
 export { SEGImageNormalizer };
