@@ -83,7 +83,6 @@ class Normalizer {
     static normalizeToDataset(datasets) {
         let sopClassUID = Normalizer.consistentSOPClassUIDs(datasets);
         let normalizerClass = Normalizer.normalizerForSOPClassUID(sopClassUID);
-        console.log("HERE-<<<<<<<<");
         if (!normalizerClass) {
             log.error("no normalizerClass for ", sopClassUID);
             return undefined;
