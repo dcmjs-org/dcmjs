@@ -83,6 +83,7 @@ class Normalizer {
     static normalizeToDataset(datasets) {
         let sopClassUID = Normalizer.consistentSOPClassUIDs(datasets);
         let normalizerClass = Normalizer.normalizerForSOPClassUID(sopClassUID);
+
         if (!normalizerClass) {
             log.error("no normalizerClass for ", sopClassUID);
             return undefined;
@@ -172,10 +173,6 @@ class ImageNormalizer extends Normalizer {
         let distanceDatasetPairs = [];
         this.datasets.forEach(function (dataset) {
             let position = dataset.ImagePositionPatient.slice();
-            console.log(
-                "NM FORK dataset.ImagePositionPatient.slice() position: ",
-                position
-            );
             let positionVector = ImageNormalizer.vec3Subtract(
                 position,
                 referencePosition
@@ -191,7 +188,7 @@ class ImageNormalizer extends Normalizer {
         if (ds.BitsAllocated !== 16) {
             log.error(
                 "Only works with 16 bit data, not " +
-                String(this.dataset.BitsAllocated)
+                    String(this.dataset.BitsAllocated)
             );
         }
         if (referenceDataset._vrMap && !referenceDataset._vrMap.PixelData) {
@@ -393,32 +390,27 @@ class ImageNormalizer extends Normalizer {
             // provide a volume-level window/level guess (mean of per-frame)
             if (ds.PerFrameFunctionalGroupsSequence) {
                 let wcww = { center: 0, width: 0, count: 0 };
-                ds.PerFrameFunctionalGroupsSequence.forEach(
-                    function (functionalGroup) {
-                        if (functionalGroup.FrameVOILUT) {
-                            let wc =
-                                functionalGroup.FrameVOILUTSequence
-                                    .WindowCenter;
-                            let ww =
-                                functionalGroup.FrameVOILUTSequence.WindowWidth;
-                            if (
-                                functionalGroup.FrameVOILUTSequence &&
-                                wc &&
-                                ww
-                            ) {
-                                if (Array.isArray(wc)) {
-                                    wc = wc[0];
-                                }
-                                if (Array.isArray(ww)) {
-                                    ww = ww[0];
-                                }
-                                wcww.center += Number(wc);
-                                wcww.width += Number(ww);
-                                wcww.count++;
+                ds.PerFrameFunctionalGroupsSequence.forEach(function (
+                    functionalGroup
+                ) {
+                    if (functionalGroup.FrameVOILUT) {
+                        let wc =
+                            functionalGroup.FrameVOILUTSequence.WindowCenter;
+                        let ww =
+                            functionalGroup.FrameVOILUTSequence.WindowWidth;
+                        if (functionalGroup.FrameVOILUTSequence && wc && ww) {
+                            if (Array.isArray(wc)) {
+                                wc = wc[0];
                             }
+                            if (Array.isArray(ww)) {
+                                ww = ww[0];
+                            }
+                            wcww.center += Number(wc);
+                            wcww.width += Number(ww);
+                            wcww.count++;
                         }
                     }
-                );
+                });
                 if (wcww.count > 0) {
                     ds.WindowCenter.push(String(wcww.center / wcww.count));
                     ds.WindowWidth.push(String(wcww.width / wcww.count));
