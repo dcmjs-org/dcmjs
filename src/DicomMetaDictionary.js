@@ -357,6 +357,7 @@ class DicomMetaDictionary {
 // Subset of those listed at:
 // http://dicom.nema.org/medical/dicom/current/output/html/part04.html#sect_B.5
 DicomMetaDictionary.sopClassNamesByUID = {
+    "1.2.840.10008.5.1.4.1.1.20": "NMImage",
     "1.2.840.10008.5.1.4.1.1.2": "CTImage",
     "1.2.840.10008.5.1.4.1.1.2.1": "EnhancedCTImage",
     "1.2.840.10008.5.1.4.1.1.2.2": "LegacyConvertedEnhancedCTImage",

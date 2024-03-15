@@ -34,6 +34,7 @@ class Normalizer {
         sopClassUID = sopClassUID.replace(/[^0-9.]/g, ""); // TODO: clean all VRs as part of normalizing
         let toUID = DicomMetaDictionary.sopClassUIDsByName;
         let sopClassUIDMap = {};
+        sopClassUIDMap[toUID.NMImage] = NMImageNormalizer;
         sopClassUIDMap[toUID.CTImage] = CTImageNormalizer;
         sopClassUIDMap[toUID.ParametricMapStorage] = PMImageNormalizer;
         sopClassUIDMap[toUID.MRImage] = MRImageNormalizer;
@@ -56,6 +57,7 @@ class Normalizer {
     static isMultiframeSOPClassUID(sopClassUID) {
         const toUID = DicomMetaDictionary.sopClassUIDsByName;
         const multiframeSOPClasses = [
+            toUID.NMImage,
             toUID.EnhancedMRImage,
             toUID.LegacyConvertedEnhancedMRImage,
             toUID.EnhancedCTImage,
@@ -475,6 +477,15 @@ class EnhancedUSVolumeNormalizer extends ImageNormalizer {
         super.normalize();
     }
 }
+class NMImageNormalizer extends ImageNormalizer {
+    normalize() {
+        super.normalize();
+        // TODO: provide option at export to swap in LegacyConverted UID
+        let toUID = DicomMetaDictionary.sopClassUIDsByName;
+
+        this.dataset.SOPClassUID = toUID.NMImage;
+    }
+}
 
 class CTImageNormalizer extends ImageNormalizer {
     normalize() {
@@ -526,6 +537,7 @@ export { MRImageNormalizer };
 export { EnhancedCTImageNormalizer };
 export { EnhancedMRImageNormalizer };
 export { EnhancedUSVolumeNormalizer };
+export { NMImageNormalizer };
 export { CTImageNormalizer };
 export { PETImageNormalizer };
 export { SEGImageNormalizer };
