@@ -31,13 +31,97 @@ export default class Polyline extends TID300Measurement {
             ReferencedSOPSequence,
             use3DSpatialCoordinates = false,
             perimeter,
-            unit = "mm"
+            unit = "mm",
+            stdDev,
+            mean,
+            max,
+            modalityUnit
         } = this.props;
 
         const GraphicData = expandPoints(points);
 
-        // TODO: Add Mean and STDev value of (modality?) pixels
         return this.getMeasurement([
+            {
+                RelationshipType: "CONTAINS",
+                ValueType: "NUM",
+                ConceptNameCodeSequence: {
+                    CodeValue: "56851009",
+                    CodingSchemeDesignator: "SCT",
+                    CodeMeaning: "Maximum"
+                },
+                MeasuredValueSequence: {
+                    MeasurementUnitsCodeSequence:
+                        unit2CodingValue(modalityUnit),
+                    NumericValue: max
+                },
+                ContentSequence: {
+                    RelationshipType: "INFERRED FROM",
+                    ValueType: use3DSpatialCoordinates ? "SCOORD3D" : "SCOORD",
+                    GraphicType: "POLYLINE",
+                    GraphicData,
+                    ContentSequence: use3DSpatialCoordinates
+                        ? undefined
+                        : {
+                              RelationshipType: "SELECTED FROM",
+                              ValueType: "IMAGE",
+                              ReferencedSOPSequence
+                          }
+                }
+            },
+            {
+                RelationshipType: "CONTAINS",
+                ValueType: "NUM",
+                ConceptNameCodeSequence: {
+                    CodeValue: "386136009",
+                    CodingSchemeDesignator: "SCT",
+                    CodeMeaning: "Standard Deviation"
+                },
+                MeasuredValueSequence: {
+                    MeasurementUnitsCodeSequence:
+                        unit2CodingValue(modalityUnit),
+                    NumericValue: stdDev
+                },
+                ContentSequence: {
+                    RelationshipType: "INFERRED FROM",
+                    ValueType: use3DSpatialCoordinates ? "SCOORD3D" : "SCOORD",
+                    GraphicType: "POLYLINE",
+                    GraphicData,
+                    ContentSequence: use3DSpatialCoordinates
+                        ? undefined
+                        : {
+                              RelationshipType: "SELECTED FROM",
+                              ValueType: "IMAGE",
+                              ReferencedSOPSequence
+                          }
+                }
+            },
+            {
+                RelationshipType: "CONTAINS",
+                ValueType: "NUM",
+                ConceptNameCodeSequence: {
+                    CodeValue: "373098007",
+                    CodingSchemeDesignator: "SCT",
+                    CodeMeaning: "Mean"
+                },
+                MeasuredValueSequence: {
+                    MeasurementUnitsCodeSequence:
+                        unit2CodingValue(modalityUnit),
+                    NumericValue: mean
+                },
+                ContentSequence: {
+                    RelationshipType: "INFERRED FROM",
+                    ValueType: use3DSpatialCoordinates ? "SCOORD3D" : "SCOORD",
+                    GraphicType: "POLYLINE",
+                    GraphicData,
+                    ContentSequence: use3DSpatialCoordinates
+                        ? undefined
+                        : {
+                              RelationshipType: "SELECTED FROM",
+                              ValueType: "IMAGE",
+                              ReferencedSOPSequence
+                          }
+                }
+            },
             {
                 RelationshipType: "CONTAINS",
                 ValueType: "NUM",
