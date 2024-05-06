@@ -452,7 +452,7 @@ return Object.freeze({ newInstance, extend, SlicingMode });
     //
     function part10ToVolumeActor(part10) {
       part10 = Array.isArray(part10) ? part10[0] : part10;
-      if (!ArrayBuffer.isView(part10) {
+      if (!ArrayBuffer.isView(part10)) {
           console.error("Invalid part10 binary retrieved", part10);
           return;
       }
