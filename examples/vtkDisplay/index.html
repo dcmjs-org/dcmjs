@@ -451,8 +451,8 @@ return Object.freeze({ newInstance, extend, SlicingMode });
     // a vtkVolume (actor) ready to render
     //
     function part10ToVolumeActor(part10) {
-      part10 = typeof part10 == "Array" ? part10[0] : part10;
-      if (typeof part10 != "ArrayBuffer") {
+      part10 = Array.isArray(part10) ? part10[0] : part10;
+      if (!ArrayBuffer.isView(part10) {
           console.error("Invalid part10 binary retrieved", part10);
           return;
       }
