@@ -11,7 +11,7 @@
 
 This is a community effort so please help improve support for a wide range of DICOM data and use cases.
 
-See [live examples here](https://dcmjs.netlify.com/)
+See [live examples here](https://dcmjs2.netlify.com/)
 
 # Goals
 
