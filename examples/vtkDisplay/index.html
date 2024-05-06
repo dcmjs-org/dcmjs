@@ -451,7 +451,12 @@ return Object.freeze({ newInstance, extend, SlicingMode });
     // a vtkVolume (actor) ready to render
     //
     function part10ToVolumeActor(part10) {
-
+      part10 = typeof part10 == "Array" ? part10[0] : part10;
+      if (typeof part10 != "ArrayBuffer") {
+          console.error("Invalid part10 binary retrieved", part10);
+          return;
+      }
+        
       dataset = DICOMZero.datasetFromArrayBuffer(part10);
 
       const scalarArray = vtk.Common.Core.vtkDataArray.newInstance({
