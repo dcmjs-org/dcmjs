@@ -481,7 +481,7 @@ return Object.freeze({ newInstance, extend, SlicingMode });
     }
 
     function part10ToSEGVolumeActors(part10) {
-
+      part10 = Array.isArray(part10) ? part10[0] : part10;
       dataset = DICOMZero.datasetFromArrayBuffer(part10);
       if (dataset.SegmentSequence.constructor.name !== "Array") {
         dataset.SegmentSequence = [dataset.SegmentSequence];
