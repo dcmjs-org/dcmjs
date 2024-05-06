@@ -1,8 +1,9 @@
 import { WriteBufferStream } from "./BufferStream";
-import { DicomMessage } from "./DicomMessage";
 import { ValueRepresentation } from "./ValueRepresentation";
 
 const EXPLICIT_LITTLE_ENDIAN = "1.2.840.10008.1.2.1";
+
+let DicomMessage;
 
 class DicomDict {
     constructor(meta) {
@@ -47,6 +48,11 @@ class DicomDict {
         var useSyntax = this.meta["00020010"].Value[0];
         DicomMessage.write(this.dict, fileStream, useSyntax, writeOptions);
         return fileStream.getBuffer();
+    }
+
+    /** Helper method to avoid circular dependencies */
+    static setDicomMessageClass(dicomMessageClass) {
+        DicomMessage = dicomMessageClass;
     }
 }
 
