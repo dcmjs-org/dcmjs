@@ -169,7 +169,7 @@ it("noCopy test_fragment_multiframe", async () => {
         "https://github.com/dcmjs-org/data/releases/download/encapsulation/encapsulation-fragment-multiframe.dcm";
     const dcmPath = await getTestDataset(
         url,
-        "encapsulation-fragment-multiframe-b.dcm"
+        "encapsulation-fragment-multiframe.dcm"
     );
     const file = fs.readFileSync(dcmPath);
 
