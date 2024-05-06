@@ -1,5 +1,6 @@
 import "regenerator-runtime/runtime.js";
 import fs from "fs";
+import "../src/index.js";
 import Segmentation_4X from "../src/adapters/Cornerstone/Segmentation_4X"
 import { getTestDataset } from "./testUtils.js";
 

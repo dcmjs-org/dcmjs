@@ -3,16 +3,22 @@ import {
     EXPLICIT_LITTLE_ENDIAN,
     IMPLICIT_LITTLE_ENDIAN
 } from "./constants/dicom";
-import { DicomMessage } from "./DicomMessage.js";
 import { ValueRepresentation } from "./ValueRepresentation.js";
 
 function paddingLeft(paddingValue, string) {
     return String(paddingValue + string).slice(-paddingValue.length);
 }
 
+let DicomMessage;
+
 class Tag {
     constructor(value) {
         this.value = value;
+    }
+
+    /** Helper method to avoid circular dependencies */
+    static setDicomMessageClass(dicomMessageClass) {
+        DicomMessage = dicomMessageClass;
     }
 
     toString() {

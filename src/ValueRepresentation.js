@@ -1,8 +1,6 @@
 import { validationLog, log } from "./log.js";
-import { DicomMessage } from "./DicomMessage.js";
 import { ReadBufferStream } from "./BufferStream.js";
 import { WriteBufferStream } from "./BufferStream.js";
-import { Tag } from "./Tag.js";
 import {
     PADDING_NULL,
     PADDING_SPACE,
@@ -67,6 +65,8 @@ function toWindows(inputArray, size) {
     );
 }
 
+let DicomMessage, Tag;
+
 var binaryVRs = ["FL", "FD", "SL", "SS", "UL", "US", "AT"],
     explicitVRs = ["OB", "OW", "OF", "SQ", "UC", "UR", "UT", "UN"],
     singleVRs = ["SQ", "OF", "OW", "OB", "UN"];
@@ -79,6 +79,14 @@ class ValueRepresentation {
         this._allowMultiple =
             !this._isBinary && singleVRs.indexOf(this.type) == -1;
         this._isExplicit = explicitVRs.indexOf(this.type) != -1;
+    }
+
+    static setDicomMessageClass(dicomMessageClass) {
+        DicomMessage = dicomMessageClass;
+    }
+
+    static setTagClass(tagClass) {
+        Tag = tagClass;
     }
 
     isBinary() {

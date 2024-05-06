@@ -2,8 +2,12 @@ import {
     IMPLICIT_LITTLE_ENDIAN,
     UNDEFINED_LENGTH
 } from "../src/constants/dicom";
+import "../src/index.js";
 import { ValueRepresentation } from "../src/ValueRepresentation";
+import { DicomMessage } from "../src/DicomMessage";
 import { DicomDataReadBufferStreamBuilder } from "./helper/DicomDataReadBufferStreamBuilder";
+
+ValueRepresentation.setDicomMessageClass(DicomMessage);
 
 describe("SequenceOfItems extends ValueRepresentation", () => {
     const sequenceOfItems = ValueRepresentation.createByTypeString("SQ");
