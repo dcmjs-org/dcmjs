@@ -230,8 +230,15 @@ class ImageNormalizer extends Normalizer {
                 "Cannot populate shared groups uniquely without multiple frames"
             );
         }
+
         let [distance0, dataset0] = distanceDatasetPairs[0];
-        let distance1 = distanceDatasetPairs[1][0];
+
+        // If the frame is one, it is zero
+        let distance1 = 0;
+
+        if (ds.NumberOfFrames > 1) {
+            distance1 = distanceDatasetPairs[1][0];
+        }
 
         //
         // make the functional groups
@@ -347,10 +354,6 @@ class ImageNormalizer extends Normalizer {
         };
         let frameNumber = 1;
         this.datasets.forEach(dataset => {
-            if (ds.NumberOfFrames === 1)
-                ds.PerFrameFunctionalGroupsSequence = [
-                    ds.PerFrameFunctionalGroupsSequence
-                ];
             ds.PerFrameFunctionalGroupsSequence[
                 frameNumber - 1
             ].FrameContentSequence = {
