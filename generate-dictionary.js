@@ -4,7 +4,7 @@
  * Based on https://github.com/pydicom/pydicom/blob/8112bb69bfc0423c3a08cb89e7960defbe7237bf/source/generate_dict/generate_dicom_dict.py
  */
 const fs = require('fs/promises');
-const http = require('http');
+const https = require('https');
 const xml2js = require('xml2js');
 
 require('@babel/register');
@@ -108,7 +108,7 @@ export default dictionary;
 }
 
 async function getDocbook(part) {
-  const source = await getUrl(`http://dicom.nema.org/medical/dicom/current/source/docbook/${part}`);
+  const source = await getUrl(`https://dicom.nema.org/medical/dicom/current/source/docbook/${part}`);
   return xml2js.parseStringPromise(source);
 }
 
@@ -123,7 +123,7 @@ function getCellData(td) {
 
 function getUrl(url) {
   return new Promise((resolve, reject) => {
-    http.get(url, request => {
+    https.get(url, request => {
       let data = '';
       request.on('error', () => {
         reject(error);
