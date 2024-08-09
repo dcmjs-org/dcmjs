@@ -646,13 +646,10 @@ class DecimalString extends AsciiStringRepresentation {
 
         if (ds.indexOf(BACKSLASH) !== -1) {
             // handle decimal string with multiplicity
-            const dsArray = ds.split(BACKSLASH);
-            ds = dsArray.map(ds => (ds === "" ? null : ds));
+            return ds.split(BACKSLASH);
         } else {
-            ds = [ds === "" ? null : ds];
+           return [ds];
         }
-
-        return ds;
     }
 
     applyFormatting(value) {
@@ -787,13 +784,11 @@ class IntegerString extends AsciiStringRepresentation {
 
         if (is.indexOf(BACKSLASH) !== -1) {
             // handle integer string with multiplicity
-            const integerStringArray = is.split(BACKSLASH);
-            is = integerStringArray.map(is => (is === "" ? null : is));
+            return is.split(BACKSLASH);
         } else {
-            is = [is === "" ? null : is];
+            return [is];
         }
 
-        return is;
     }
 
     applyFormatting(value) {

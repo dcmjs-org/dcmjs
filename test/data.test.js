@@ -1149,7 +1149,7 @@ it.each([
     "A converted decimal string should not exceed 16 bytes in length",
     (a, expected) => {
         const decimalString = ValueRepresentation.createByTypeString("DS");
-        let value = decimalString.formatValue(a);
+        let value = decimalString.convertToString(a);
         expect(value.length).toBeLessThanOrEqual(16);
         expect(value).toBe(expected);
     }
