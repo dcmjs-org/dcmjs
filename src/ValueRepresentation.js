@@ -137,7 +137,11 @@ class ValueRepresentation {
                         length
                 );
         }
-        return this.readBytes(stream, length, syntax);
+        return this.applyFormatting(this.readBytes(stream, length, syntax));
+    }
+
+    applyFormatting(value) {
+        return value;
     }
 
     readBytes(stream, length) {
@@ -562,7 +566,11 @@ class ApplicationEntity extends AsciiStringRepresentation {
     }
 
     readBytes(stream, length) {
-        return stream.readAsciiString(length).trim();
+        return stream.readAsciiString(length);
+    }
+
+    applyFormatting(value) {
+        return value.trim();
     }
 }
 
@@ -574,7 +582,11 @@ class CodeString extends AsciiStringRepresentation {
     }
 
     readBytes(stream, length) {
-        return stream.readAsciiString(length).trim();
+        return stream.readAsciiString(length);
+    }
+
+    applyFormatting(value) {
+        return value.trim();
     }
 }
 
@@ -631,19 +643,32 @@ class DecimalString extends AsciiStringRepresentation {
     readBytes(stream, length) {
         const BACKSLASH = String.fromCharCode(VM_DELIMITER);
         let ds = stream.readAsciiString(length);
-        ds = ds.replace(/[^0-9.\\\-+e]/gi, "");
+
         if (ds.indexOf(BACKSLASH) !== -1) {
             // handle decimal string with multiplicity
             const dsArray = ds.split(BACKSLASH);
-            ds = dsArray.map(ds => (ds === "" ? null : Number(ds)));
+            ds = dsArray.map(ds => (ds === "" ? null : ds));
         } else {
-            ds = [ds === "" ? null : Number(ds)];
+            ds = [ds === "" ? null : ds];
         }
 
         return ds;
     }
 
-    formatValue(value) {
+    applyFormatting(value) {
+        const formatNumber = (numberStr) => {
+            let returnVal = numberStr.replace(/[^0-9.\\\-+e]/gi, "");
+            return returnVal === "" ? null : Number(returnVal);
+        }
+
+        if (Array.isArray(value)) {
+            return value.map(formatNumber);
+        }
+
+        return formatNumber(value);
+    }
+
+    convertToString(value) {
         if (value === null) return "";
 
         let str = String(value);
@@ -681,8 +706,8 @@ class DecimalString extends AsciiStringRepresentation {
 
     writeBytes(stream, value, writeOptions) {
         const val = Array.isArray(value)
-            ? value.map(ds => this.formatValue(ds))
-            : [this.formatValue(value)];
+            ? value.map(ds => this.convertToString(ds))
+            : [this.convertToString(value)];
         return super.writeBytes(stream, val, writeOptions);
     }
 }
@@ -705,7 +730,11 @@ class FloatingPointSingle extends ValueRepresentation {
     }
 
     readBytes(stream) {
-        return Number(stream.readFloat());
+        return stream.readFloat();
+    }
+
+    applyFormatting(value) {
+        return Number(value);
     }
 
     writeBytes(stream, value, writeOptions) {
@@ -728,7 +757,11 @@ class FloatingPointDouble extends ValueRepresentation {
     }
 
     readBytes(stream) {
-        return Number(stream.readDouble());
+        return stream.readDouble();
+    }
+
+    applyFormatting(value) {
+        return Number(value);
     }
 
     writeBytes(stream, value, writeOptions) {
@@ -752,27 +785,38 @@ class IntegerString extends AsciiStringRepresentation {
         const BACKSLASH = String.fromCharCode(VM_DELIMITER);
         let is = stream.readAsciiString(length).trim();
 
-        is = is.replace(/[^0-9.\\\-+e]/gi, "");
-
         if (is.indexOf(BACKSLASH) !== -1) {
             // handle integer string with multiplicity
             const integerStringArray = is.split(BACKSLASH);
-            is = integerStringArray.map(is => (is === "" ? null : Number(is)));
+            is = integerStringArray.map(is => (is === "" ? null : is));
         } else {
-            is = [is === "" ? null : Number(is)];
+            is = [is === "" ? null : is];
         }
 
         return is;
     }
 
-    formatValue(value) {
+    applyFormatting(value) {
+        const formatNumber = (numberStr) => {
+            let returnVal = numberStr.replace(/[^0-9.\\\-+e]/gi, "");
+            return returnVal === "" ? null : Number(returnVal);
+        }
+
+        if (Array.isArray(value)) {
+            return value.map(formatNumber);
+        }
+
+        return formatNumber(value);
+    }
+
+    convertToString(value) {
         return value === null ? "" : String(value);
     }
 
     writeBytes(stream, value, writeOptions) {
         const val = Array.isArray(value)
-            ? value.map(is => this.formatValue(is))
-            : [this.formatValue(value)];
+            ? value.map(is => this.convertToString(is))
+            : [this.convertToString(value)];
         return super.writeBytes(stream, val, writeOptions);
     }
 }
@@ -785,7 +829,11 @@ class LongString extends EncodedStringRepresentation {
     }
 
     readBytes(stream, length) {
-        return stream.readEncodedString(length).trim();
+        return stream.readEncodedString(length);
+    }
+
+    applyFormatting(value) {
+        return value.trim();
     }
 }
 
@@ -797,7 +845,11 @@ class LongText extends EncodedStringRepresentation {
     }
 
     readBytes(stream, length) {
-        return rtrim(stream.readEncodedString(length));
+        return stream.readEncodedString(length);
+    }
+
+    applyFormatting(value) {
+        return rtrim(value);
     }
 }
 
@@ -870,8 +922,11 @@ class PersonName extends EncodedStringRepresentation {
     }
 
     readBytes(stream, length) {
-        const result = this.readPaddedEncodedString(stream, length);
-        return dicomJson.pnConvertToJsonObject(result);
+        return this.readPaddedEncodedString(stream, length);
+    }
+
+    applyFormatting(value) {
+        return dicomJson.pnConvertToJsonObject(value);
     }
 
     writeBytes(stream, value, writeOptions) {
@@ -891,7 +946,11 @@ class ShortString extends EncodedStringRepresentation {
     }
 
     readBytes(stream, length) {
-        return stream.readEncodedString(length).trim();
+        return stream.readEncodedString(length);
+    }
+
+    applyFormatting(value) {
+        return value.trim();
     }
 }
 
@@ -926,6 +985,7 @@ class SequenceOfItems extends ValueRepresentation {
         this.noMultiple = true;
     }
 
+    // TODO Craig: potentially need special logic for sequences when writing
     readBytes(stream, sqlength, syntax) {
         if (sqlength == 0x0) {
             return []; //contains no dataset
@@ -1086,7 +1146,11 @@ class ShortText extends EncodedStringRepresentation {
     }
 
     readBytes(stream, length) {
-        return rtrim(stream.readEncodedString(length));
+        return stream.readEncodedString(length);
+    }
+
+    applyFormatting(value) {
+        return rtrim(value);
     }
 }
 
@@ -1098,7 +1162,11 @@ class TimeValue extends AsciiStringRepresentation {
     }
 
     readBytes(stream, length) {
-        return rtrim(stream.readAsciiString(length));
+        return stream.readAsciiString(length);
+    }
+
+    applyFormatting(value) {
+        return rtrim(value);
     }
 }
 
@@ -1111,7 +1179,11 @@ class UnlimitedCharacters extends EncodedStringRepresentation {
     }
 
     readBytes(stream, length) {
-        return rtrim(stream.readEncodedString(length));
+        return stream.readEncodedString(length);
+    }
+
+    applyFormatting(value) {
+        return rtrim(value);
     }
 }
 
@@ -1123,7 +1195,11 @@ class UnlimitedText extends EncodedStringRepresentation {
     }
 
     readBytes(stream, length) {
-        return rtrim(stream.readEncodedString(length));
+        return stream.readEncodedString(length);
+    }
+
+    applyFormatting(value) {
+        return rtrim(value);
     }
 }
 
@@ -1184,7 +1260,6 @@ class UniqueIdentifier extends AsciiStringRepresentation {
         const result = this.readPaddedAsciiString(stream, length);
 
         const BACKSLASH = String.fromCharCode(VM_DELIMITER);
-        const uidRegExp = /[^0-9.]/g;
 
         // Treat backslashes as a delimiter for multiple UIDs, in which case an
         // array of UIDs is returned. This is used by DICOM Q&R to support
@@ -1195,12 +1270,22 @@ class UniqueIdentifier extends AsciiStringRepresentation {
         // https://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_6.4.html
 
         if (result.indexOf(BACKSLASH) === -1) {
-            return result.replace(uidRegExp, "");
-        } else {
             return result
-                .split(BACKSLASH)
-                .map(uid => uid.replace(uidRegExp, ""));
+        } else {
+            return result.split(BACKSLASH)
         }
+    }
+
+    applyFormatting(value) {
+        const removeInvalidUidChars = (uidStr) => {
+            return uidStr.replace(/[^0-9.]/g, "");
+        }
+
+        if (Array.isArray(value)) {
+            return value.map(removeInvalidUidChars);
+        }
+
+        return removeInvalidUidChars(value);
     }
 }
 
@@ -1225,6 +1310,7 @@ class UnknownValue extends BinaryRepresentation {
     }
 }
 
+// TODO Craig: Need to come back and analyze this
 class ParsedUnknownValue extends BinaryRepresentation {
     constructor(vr) {
         super(vr);
