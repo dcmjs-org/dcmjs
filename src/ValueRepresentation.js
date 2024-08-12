@@ -68,7 +68,7 @@ function toWindows(inputArray, size) {
 let DicomMessage, Tag;
 
 var binaryVRs = ["FL", "FD", "SL", "SS", "UL", "US", "AT"],
-    explicitVRs = ["OB", "OW", "OF", "SQ", "UC", "UR", "UT", "UN"],
+    explicitVRs = ["OB", "OW", "OF", "SQ", "UC", "UR", "UT", "UN", "OD"],
     singleVRs = ["SQ", "OF", "OW", "OB", "UN"];
 
 class ValueRepresentation {
