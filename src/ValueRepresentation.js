@@ -137,7 +137,7 @@ class ValueRepresentation {
                         length
                 );
         }
-        return this.applyFormatting(this.readBytes(stream, length, syntax));
+        return this.readBytes(stream, length, syntax);
     }
 
     applyFormatting(value) {
@@ -641,20 +641,12 @@ class DecimalString extends AsciiStringRepresentation {
     }
 
     readBytes(stream, length) {
-        const BACKSLASH = String.fromCharCode(VM_DELIMITER);
-        let ds = stream.readAsciiString(length);
-
-        if (ds.indexOf(BACKSLASH) !== -1) {
-            // handle decimal string with multiplicity
-            return ds.split(BACKSLASH);
-        } else {
-           return [ds];
-        }
+        return stream.readAsciiString(length);
     }
 
     applyFormatting(value) {
         const formatNumber = (numberStr) => {
-            let returnVal = numberStr.replace(/[^0-9.\\\-+e]/gi, "");
+            let returnVal = numberStr.trim().replace(/[^0-9.\\\-+e]/gi, "");
             return returnVal === "" ? null : Number(returnVal);
         }
 
@@ -779,21 +771,12 @@ class IntegerString extends AsciiStringRepresentation {
     }
 
     readBytes(stream, length) {
-        const BACKSLASH = String.fromCharCode(VM_DELIMITER);
-        let is = stream.readAsciiString(length).trim();
-
-        if (is.indexOf(BACKSLASH) !== -1) {
-            // handle integer string with multiplicity
-            return is.split(BACKSLASH);
-        } else {
-            return [is];
-        }
-
+        return stream.readAsciiString(length);
     }
 
     applyFormatting(value) {
         const formatNumber = (numberStr) => {
-            let returnVal = numberStr.replace(/[^0-9.\\\-+e]/gi, "");
+            let returnVal = numberStr.trim().replace(/[^0-9.\\\-+e]/gi, "");
             return returnVal === "" ? null : Number(returnVal);
         }
 
@@ -1252,23 +1235,23 @@ class UniqueIdentifier extends AsciiStringRepresentation {
     }
 
     readBytes(stream, length) {
-        const result = this.readPaddedAsciiString(stream, length);
-
-        const BACKSLASH = String.fromCharCode(VM_DELIMITER);
-
-        // Treat backslashes as a delimiter for multiple UIDs, in which case an
-        // array of UIDs is returned. This is used by DICOM Q&R to support
-        // querying and matching multiple items on a UID field in a single
-        // query. For more details see:
+        return this.readPaddedAsciiString(stream, length);
         //
-        // https://dicom.nema.org/medical/dicom/current/output/chtml/part04/sect_C.2.2.2.2.html
-        // https://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_6.4.html
-
-        if (result.indexOf(BACKSLASH) === -1) {
-            return result
-        } else {
-            return result.split(BACKSLASH)
-        }
+        // const BACKSLASH = String.fromCharCode(VM_DELIMITER);
+        //
+        // // Treat backslashes as a delimiter for multiple UIDs, in which case an
+        // // array of UIDs is returned. This is used by DICOM Q&R to support
+        // // querying and matching multiple items on a UID field in a single
+        // // query. For more details see:
+        // //
+        // // https://dicom.nema.org/medical/dicom/current/output/chtml/part04/sect_C.2.2.2.2.html
+        // // https://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_6.4.html
+        //
+        // if (result.indexOf(BACKSLASH) === -1) {
+        //     return result
+        // } else {
+        //     return result.split(BACKSLASH)
+        // }
     }
 
     applyFormatting(value) {

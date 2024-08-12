@@ -156,6 +156,7 @@ class DicomMessage {
                     vr: readInfo.vr.type
                 });
                 dict[cleanTagString].Value = readInfo.values;
+                dict[cleanTagString]._rawValue = readInfo.rawValues;
 
                 if (untilTag && untilTag === cleanTagString) {
                     break;
@@ -340,25 +341,34 @@ class DicomMessage {
         }
 
         var values = [];
+        var rawValues = [];
         if (vr.isBinary() && length > vr.maxLength && !vr.noMultiple) {
             var times = length / vr.maxLength,
                 i = 0;
             while (i++ < times) {
-                values.push(vr.read(stream, vr.maxLength, syntax));
+                const rawValue = vr.read(stream, vr.maxLength, syntax);
+                rawValues.push(rawValue);
+                values.push(vr.applyFormatting(rawValue));
             }
         } else {
-            var val = vr.read(stream, length, syntax);
+            var rawVal = vr.read(stream, length, syntax);
             if (!vr.isBinary() && singleVRs.indexOf(vr.type) == -1) {
-                values = val;
-                if (typeof val === "string") {
-                    values = val.split(String.fromCharCode(VM_DELIMITER));
+                rawValues = rawVal;
+                if (vr.type == 'PN') {
+                    values = vr.applyFormatting(rawVal);
+                } else if (typeof rawVal === "string") {
+                    rawValues = rawVal.split(String.fromCharCode(VM_DELIMITER));
+                    values = rawValues.map(str => vr.applyFormatting(str));
                 }
             } else if (vr.type == "SQ") {
-                values = val;
+                rawValues = rawVal;
+                values = vr.applyFormatting(rawVal);
             } else if (vr.type == "OW" || vr.type == "OB") {
-                values = val;
+                rawValues = rawVal;
+                values = vr.applyFormatting(rawVal);
             } else {
-                Array.isArray(val) ? (values = val) : values.push(val);
+                Array.isArray(rawVal) ? (values = rawVal.map(str => vr.applyFormatting(str))) : values.push(rawVal);
+                Array.isArray(rawVal) ? (rawValues = rawVal) : rawValues.push(vr.applyFormatting(rawVal));
             }
         }
         stream.setEndian(oldEndian);
@@ -368,6 +378,7 @@ class DicomMessage {
             vr: vr
         });
         retObj.values = values;
+        retObj.rawValues = rawValues;
         return retObj;
     }
 
