@@ -1154,3 +1154,25 @@ it.each([
         expect(value).toBe(expected);
     }
 );
+
+describe('test OtherDouble ValueRepresentation', () => {
+    it('Treat OD as explicit VR with correct length', async () => {
+        const url =
+            "https://github.com/dcmjs-org/data/releases/download/od-encoding-data/OD-single-word-example.dcm";
+        const dcmPath = await getTestDataset(
+            url,
+            "OD-single-word-example"
+        );
+        const file = fs.readFileSync(dcmPath);
+        const data = dcmjs.data.DicomMessage.readFile(new Uint8Array(file).buffer);
+
+        // expect OD VR data element (VolumetricCurveUpDirections) to be read with expected value
+        expect(data.dict['00701A07']).toBeTruthy();
+        const odBuffer = data.dict['00701A07'].Value[0]
+        expect(new Uint8Array(odBuffer)).toEqual(new Uint8Array([0, 0, 0, 0, 0, 0, 0, 64]))
+
+        // expect arbitrary tag (BlendingInputNumber, US VR) after OD VR to be read without issue
+        expect(data.dict['00701B02']).toBeTruthy();
+        expect(data.dict['00701B02'].Value[0]).toBe(1);
+    })
+});
