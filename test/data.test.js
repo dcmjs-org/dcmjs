@@ -1156,8 +1156,14 @@ it.each([
 );
 
 describe('test OtherDouble ValueRepresentation', () => {
-    test('Treat OD as explicit VR with correct length', () => {
-        const file = fs.readFileSync(`test/OD-single-word-example.dcm`);
+    it('Treat OD as explicit VR with correct length', async () => {
+        const url =
+            "https://github.com/dcmjs-org/data/releases/download/od-encoding-data/OD-single-word-example.dcm";
+        const dcmPath = await getTestDataset(
+            url,
+            "OD-single-word-example"
+        );
+        const file = fs.readFileSync(dcmPath);
         const data = dcmjs.data.DicomMessage.readFile(new Uint8Array(file).buffer);
 
         // expect OD VR data element (VolumetricCurveUpDirections) to be read with expected value
