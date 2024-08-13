@@ -348,6 +348,7 @@ it("test_null_number_vrs", () => {
     expect(dataset.InstanceNumber).toEqual(null);
 });
 
+// TODO Craig: Fix writing logic then compare actual differences (need to look at specific character set)
 it("test_exponential_notation", () => {
     const file = fs.readFileSync("test/sample-dicom.dcm");
     const data = dcmjs.data.DicomMessage.readFile(file.buffer, {
@@ -1106,6 +1107,7 @@ describe("The same DICOM file loaded from both DCM and JSON", () => {
     });
 });
 
+// TODO Craig: Need to add more tests here
 describe("test_un_vr", () => {
     it("Tag with UN vr should be parsed according VR in dictionary", async () => {
         const expectedExposureIndex = 662;

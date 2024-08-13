@@ -346,29 +346,28 @@ class DicomMessage {
             var times = length / vr.maxLength,
                 i = 0;
             while (i++ < times) {
-                const rawValue = vr.read(stream, vr.maxLength, syntax);
+                const { rawValue, value } = vr.read(stream, vr.maxLength, syntax);
                 rawValues.push(rawValue);
-                values.push(vr.applyFormatting(rawValue));
+                values.push(value);
             }
         } else {
-            var rawVal = vr.read(stream, length, syntax);
+            const { rawValue, value } = vr.read(stream, length, syntax);
             if (!vr.isBinary() && singleVRs.indexOf(vr.type) == -1) {
-                rawValues = rawVal;
-                if (vr.type == 'PN') {
-                    values = vr.applyFormatting(rawVal);
-                } else if (typeof rawVal === "string") {
-                    rawValues = rawVal.split(String.fromCharCode(VM_DELIMITER));
-                    values = rawValues.map(str => vr.applyFormatting(str));
+                rawValues = rawValue;
+                values = value
+                if (typeof value === "string") {
+                    rawValues = rawValue.split(String.fromCharCode(VM_DELIMITER));
+                    values = value.split(String.fromCharCode(VM_DELIMITER));
                 }
             } else if (vr.type == "SQ") {
-                rawValues = rawVal;
-                values = vr.applyFormatting(rawVal);
+                rawValues = rawValue;
+                values = value;
             } else if (vr.type == "OW" || vr.type == "OB") {
-                rawValues = rawVal;
-                values = vr.applyFormatting(rawVal);
+                rawValues = rawValue;
+                values = value;
             } else {
-                Array.isArray(rawVal) ? (values = rawVal.map(str => vr.applyFormatting(str))) : values.push(rawVal);
-                Array.isArray(rawVal) ? (rawValues = rawVal) : rawValues.push(vr.applyFormatting(rawVal));
+                Array.isArray(value) ? (values = value) : values.push(value);
+                Array.isArray(rawValue) ? (rawValues = rawValue) : rawValues.push(rawValue);
             }
         }
         stream.setEndian(oldEndian);

@@ -137,7 +137,8 @@ class ValueRepresentation {
                         length
                 );
         }
-        return this.readBytes(stream, length, syntax);
+        const rawValue = this.readBytes(stream, length, syntax);
+        return { rawValue, value: this.applyFormatting(rawValue) };
     }
 
     applyFormatting(value) {
@@ -641,7 +642,14 @@ class DecimalString extends AsciiStringRepresentation {
     }
 
     readBytes(stream, length) {
-        return stream.readAsciiString(length);
+        const BACKSLASH = String.fromCharCode(VM_DELIMITER);
+        const ds = stream.readAsciiString(length);
+        if (ds.indexOf(BACKSLASH) !== -1) {
+            // handle decimal string with multiplicity
+            return ds.split(BACKSLASH);
+        }
+
+        return [ds];
     }
 
     applyFormatting(value) {
@@ -771,7 +779,15 @@ class IntegerString extends AsciiStringRepresentation {
     }
 
     readBytes(stream, length) {
-        return stream.readAsciiString(length);
+        const BACKSLASH = String.fromCharCode(VM_DELIMITER);
+        const is = stream.readAsciiString(length);
+
+        if (is.indexOf(BACKSLASH) !== -1) {
+            // handle integer string with multiplicity
+            return is.split(BACKSLASH);
+        }
+
+        return [is];
     }
 
     applyFormatting(value) {
@@ -900,11 +916,17 @@ class PersonName extends EncodedStringRepresentation {
     }
 
     readBytes(stream, length) {
-        return this.readPaddedEncodedString(stream, length);
+        return this.readPaddedEncodedString(stream, length).split(String.fromCharCode(VM_DELIMITER));
     }
 
     applyFormatting(value) {
-        return dicomJson.pnConvertToJsonObject(value);
+        const parsePersonName = (valueStr) => dicomJson.pnConvertToJsonObject(valueStr, false);
+
+        if (Array.isArray(value)) {
+            return value.map((valueStr) => parsePersonName(valueStr));
+        }
+
+        return parsePersonName(value);
     }
 
     writeBytes(stream, value, writeOptions) {
@@ -1235,25 +1257,25 @@ class UniqueIdentifier extends AsciiStringRepresentation {
     }
 
     readBytes(stream, length) {
-        return this.readPaddedAsciiString(stream, length);
+        const result = this.readPaddedAsciiString(stream, length);
+        const BACKSLASH = String.fromCharCode(VM_DELIMITER);
+
+        // Treat backslashes as a delimiter for multiple UIDs, in which case an
+        // array of UIDs is returned. This is used by DICOM Q&R to support
+        // querying and matching multiple items on a UID field in a single
+        // query. For more details see:
         //
-        // const BACKSLASH = String.fromCharCode(VM_DELIMITER);
-        //
-        // // Treat backslashes as a delimiter for multiple UIDs, in which case an
-        // // array of UIDs is returned. This is used by DICOM Q&R to support
-        // // querying and matching multiple items on a UID field in a single
-        // // query. For more details see:
-        // //
-        // // https://dicom.nema.org/medical/dicom/current/output/chtml/part04/sect_C.2.2.2.2.html
-        // // https://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_6.4.html
-        //
-        // if (result.indexOf(BACKSLASH) === -1) {
-        //     return result
-        // } else {
-        //     return result.split(BACKSLASH)
-        // }
+        // https://dicom.nema.org/medical/dicom/current/output/chtml/part04/sect_C.2.2.2.2.html
+        // https://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_6.4.html
+
+        if (result.indexOf(BACKSLASH) === -1) {
+            return result
+        } else {
+            return result.split(BACKSLASH)
+        }
     }
 
+    // TODO: Can we make the array formatting generic in value representaiton base
     applyFormatting(value) {
         const removeInvalidUidChars = (uidStr) => {
             return uidStr.replace(/[^0-9.]/g, "");
