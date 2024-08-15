@@ -583,11 +583,18 @@ class CodeString extends AsciiStringRepresentation {
     }
 
     readBytes(stream, length) {
-        return stream.readAsciiString(length);
+        const BACKSLASH = String.fromCharCode(VM_DELIMITER);
+        return stream.readAsciiString(length).split(BACKSLASH);
     }
 
     applyFormatting(value) {
-        return value.trim();
+        const trim = (str) => str.trim();
+
+        if (Array.isArray(value)) {
+            return value.map((str) => trim(str));
+        }
+
+        return trim(value);
     }
 }
 

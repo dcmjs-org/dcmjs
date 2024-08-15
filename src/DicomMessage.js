@@ -10,6 +10,7 @@ import { DicomDict } from "./DicomDict.js";
 import { DicomMetaDictionary } from "./DicomMetaDictionary.js";
 import { Tag } from "./Tag.js";
 import { log } from "./log.js";
+import { deepEqual } from "./utilities/deepEqual";
 import { ValueRepresentation } from "./ValueRepresentation.js";
 
 const singleVRs = ["SQ", "OF", "OW", "OB", "UN", "LT"];
@@ -252,8 +253,9 @@ class DicomMessage {
         sortedTags.forEach(function (tagString) {
             var tag = Tag.fromString(tagString),
                 tagObject = jsonObjects[tagString],
-                vrType = tagObject.vr,
-                values = tagObject.Value;
+                vrType = tagObject.vr;
+
+            var values = DicomMessage._getTagWriteValue(vrType, tagObject);
 
             written += tag.write(
                 useStream,
@@ -265,6 +267,22 @@ class DicomMessage {
         });
 
         return written;
+    }
+
+    static _getTagWriteValue(vrType, tagObject) {
+        const vr = ValueRepresentation.createByTypeString(vrType);
+
+        if (!tagObject._rawValue) {
+            return tagObject.Value;
+        }
+        const compareValue = tagObject._rawValue.map((val) => vr.applyFormatting(val))
+
+        // if the _rawValue is unchanged, write it unformatted back to the file
+        if (deepEqual(compareValue, tagObject.Value)) {
+            return tagObject._rawValue;
+        } else {
+            return tagObject.Value;
+        }
     }
 
     static _readTag(
