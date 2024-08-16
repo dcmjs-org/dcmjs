@@ -15,7 +15,7 @@ describe('deepEqual', () => {
         expect(deepEqual(null, undefined)).toBe(false);
     });
 
-    test('verify special mathematical numbers', () => {
+    test('returns same value check for signed zeros and special numbers', () => {
         expect(deepEqual(Math.NaN, Math.NaN)).toBe(true);
         expect(deepEqual(-0, 0)).toBe(false);
         expect(deepEqual(-0, +0)).toBe(false);

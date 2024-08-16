@@ -1317,7 +1317,6 @@ class UnknownValue extends BinaryRepresentation {
     }
 }
 
-// TODO Craig: Need to come back and analyze this
 class ParsedUnknownValue extends BinaryRepresentation {
     constructor(vr) {
         super(vr);

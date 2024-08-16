@@ -1108,7 +1108,6 @@ describe("The same DICOM file loaded from both DCM and JSON", () => {
     });
 });
 
-// TODO Craig: Need to add more tests here
 describe("test_un_vr", () => {
     it("Tag with UN vr should be parsed according VR in dictionary", async () => {
         const expectedExposureIndex = 662;

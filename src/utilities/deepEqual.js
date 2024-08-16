@@ -1,26 +1,35 @@
-
+/**
+ * Performs a deep equality check between two objects. Used primarily during DICOM write operations
+ * to determine whether a data element underlying value has changed since it was initially read.
+ *
+ * @param {Object} obj1 - The first object to compare.
+ * @param {Object} obj2 - The second object to compare.
+ * @returns {boolean} - Returns `true` if the structures and values of the objects are deeply equal, `false` otherwise.
+ */
 export function deepEqual(obj1, obj2) {
-    // Base case: If both objects are identical, return true.
+    // Use Object.is to consider for treatment of `NaN` and signed 0's i.e. `+0` or `-0` in IS/DS
     if (Object.is(obj1, obj2)) {
         return true;
     }
-    // Check if both objects are objects and not null.
+
+    // expect objects or a null instance if initial check failed
     if (typeof obj1 !== 'object' || typeof obj2 !== 'object' || obj1 === null || obj2 === null) {
         return false;
     }
-    // Get the keys of both objects.
+
+    // all keys should match a deep equality check
     const keys1 = Object.keys(obj1);
     const keys2 = Object.keys(obj2);
-    // Check if the number of keys is the same.
+
     if (keys1.length !== keys2.length) {
         return false;
     }
-    // Iterate through the keys and compare their values recursively.
+
     for (const key of keys1) {
         if (!keys2.includes(key) || !deepEqual(obj1[key], obj2[key])) {
             return false;
         }
     }
-    // If all checks pass, the objects are deep equal.
+
     return true;
 }
