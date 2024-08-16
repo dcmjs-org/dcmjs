@@ -1281,6 +1281,55 @@ describe("test_un_vr", () => {
                 ["  Feeling nauseous  "],
                 ["  Feeling nauseous"]
             ],
+            [
+                '21000050',
+                'TM',
+                new Uint8Array([0x34,0x32,0x35,0x33,0x30,0x2E,0x31,0x32,0x33,0x34,0x35,0x36]).buffer,
+                ["42530.123456"],
+                ["42530.123456"]
+            ],
+            [
+                '3010001B',
+                'UC',
+                new Uint8Array([0x54, 0x72, 0x61, 0x69, 0x6C, 0x69, 0x6E, 0x67, 0x20, 0x73, 0x70, 0x61, 0x63, 0x65, 0x73, 0x20, 0x61, 0x6C, 0x6C, 0x6F, 0x77, 0x65, 0x64, 0x20, 0x20, 0x20]).buffer,
+                ["Trailing spaces allowed   "],
+                ["Trailing spaces allowed"]
+            ],
+            [
+                '00041510',
+                'UI',
+                new Uint8Array([0x31,0x2E,0x32,0x2E,0x38,0x34,0x30,0x2E,0x31,0x30,0x30,0x30,0x38,0x2E,0x31,0x2E,0x32,0x2E,0x31]).buffer,
+                ["1.2.840.10008.1.2.1"],
+                ["1.2.840.10008.1.2.1"]
+            ],
+            [
+                '30100092',
+                'UL',
+                new Uint8Array([0x40, 0xE2, 0x01, 0x00]).buffer,
+                [123456],
+                [123456]
+            ],
+            [
+                '0008010E',
+                'UR',
+                new Uint8Array([0x68,0x74,0x74,0x70,0x3A,0x2F,0x2F,0x64,0x69,0x63,0x6F,0x6D,0x2E,0x6E,0x65,0x6D,0x61,0x2E,0x6F,0x72,0x67, 0x20]).buffer,
+                ["http://dicom.nema.org "],
+                ["http://dicom.nema.org "],
+            ],
+            [
+                '00080301',
+                'US',
+                new Uint8Array([0xD2, 0x04]).buffer,
+                [1234],
+                [1234],
+            ],
+            [
+                '0008030E',
+                'UT',
+                new Uint8Array([0x20,0x20,0x46,0x65,0x65,0x6C,0x69,0x6E,0x67,0x20,0x6E,0x61,0x75,0x73,0x65,0x6F,0x75,0x73,0x20,0x20]).buffer,
+                ["  Feeling nauseous  "],
+                ["  Feeling nauseous"]
+            ],
         ])(
             "for tag %s with expected VR %p",
             (tag, vr, byteArray, expectedRawValue, expectedValue) => {
