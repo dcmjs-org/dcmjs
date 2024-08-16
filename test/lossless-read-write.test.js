@@ -80,8 +80,8 @@ describe('lossless-read-write', () => {
         },
         {
             vr: "AT",
-            _rawValue: [0x00207E14],
-            Value: [0x00207E14],
+            _rawValue: [0x00207E14, 0x0012839A],
+            Value: [0x00207E14, 0x0012839A],
         },
         {
             vr: "CS",
@@ -176,8 +176,8 @@ describe('lossless-read-write', () => {
         },
         {
             vr: 'SS',
-            _rawValue: [-32768],
-            Value: [-32768],
+            _rawValue: [-32768, 1234, 832],
+            Value: [-32768, 1234, 832],
         },
         {
             vr: 'ST',

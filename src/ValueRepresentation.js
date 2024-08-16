@@ -1334,30 +1334,21 @@ class ParsedUnknownValue extends BinaryRepresentation {
         const streamFromBuffer = new ReadBufferStream(arrayBuffer, true);
         const vr = ValueRepresentation.createByTypeString(this.type);
 
-        var values = [];
         if (vr.isBinary() && length > vr.maxLength && !vr.noMultiple) {
+            var values = [];
+            var rawValues = [];
             var times = length / vr.maxLength,
                 i = 0;
-            while (i++ < times) {
-                values.push(vr.read(streamFromBuffer, vr.maxLength, syntax));
-            }
-        } else {
-            var val = vr.read(streamFromBuffer, length, syntax);
-            if (!vr.isBinary() && singleVRs.indexOf(vr.type) == -1) {
-                values = val;
-                if (typeof val === "string") {
-                    values = val.split(String.fromCharCode(VM_DELIMITER));
-                }
-            } else if (vr.type == "SQ") {
-                values = val;
-            } else if (vr.type == "OW" || vr.type == "OB") {
-                values = val;
-            } else {
-                Array.isArray(val) ? (values = val) : values.push(val);
-            }
-        }
 
-        return values;
+            while (i++ < times) {
+                const { rawValue, value } = vr.read(streamFromBuffer, vr.maxLength, syntax);
+                rawValues.push(rawValue);
+                values.push(value);
+            }
+            return { rawValue: rawValues, value: values };
+        } else {
+            return vr.read(streamFromBuffer, length, syntax);
+        }
     }
 }
 
@@ -1431,4 +1422,4 @@ let VRinstances = {
     UT: new UnlimitedText()
 };
 
-export { ValueRepresentation };
+export {ValueRepresentation};
