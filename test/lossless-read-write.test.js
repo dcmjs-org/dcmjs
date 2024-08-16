@@ -26,39 +26,133 @@ const { DicomMetaDictionary, DicomDict, DicomMessage, ReadBufferStream } =
 // };
 
 describe('lossless-read-write', () => {
-    // test('reading and writing a file should not change the underlying data', async () => {
-    //     // const url = "https://github.com/dcmjs-org/data/releases/download/encapsulation/encapsulation.dcm";
-    //     // const dcmPath = await getTestDataset(url, "encapsulation.dcm");
-    //
-    //     const inputBuffer = fs.readFileSync("test/terumo.dcm").buffer;
-    //
-    //     // given
-    //     // const inputBuffer = fs.readFileSync(dcmPath).buffer;
-    //     const dicomDict = DicomMessage.readFile(inputBuffer);
-    //
-    //     const outputBuffer = dicomDict.write({ fragmentMultiframe: true, allowInvalidVRLength: false });
-    //     const outputDicomDict = DicomMessage.readFile(outputBuffer);
-    //
-    //
-    //
-    //     fs.writeFile(`terumo-dcmjs-multifragment.dcm`, Buffer.from(outputBuffer), function (err) {
-    //         if (err) {
-    //             return console.log(err);
-    //         }
-    //         console.log("The file was saved!");
-    //     });
-    //
-    //     expect(
-    //         compareArrayBuffers(
-    //             dicomDict.dict[PIXEL_DATA_HEX_TAG].Value[0],
-    //             outputDicomDict.dict[PIXEL_DATA_HEX_TAG].Value[0]
-    //         )
-    //     ).toEqual(true);
-    //
-    //     expect(compareArrayBuffers(inputBuffer, outputBuffer)).toEqual(true);
-    // });
 
-    test('test', async () => {
+    test('test DS value with additional allowed characters is written to file', () => {
+        const dataset = {
+            '00181041': {
+                _rawValue: [" +1.4000  ", "-0.00", "1.2345e2", "1E34"],
+                Value: [1.4, -0, 123.45, 1e+34],
+                vr: 'DS'
+            },
+        };
+
+        const dicomDict = new DicomDict({});
+        dicomDict.dict = dataset;
+
+        // write and re-read
+        const outputDicomDict = DicomMessage.readFile(dicomDict.write());
+
+        // expect raw value to be unchanged, and Value parsed as Number to lose precision
+        expect(outputDicomDict.dict['00181041']._rawValue).toEqual([" +1.4000  ", "-0.00", "1.2345e2", "1E34"])
+        expect(outputDicomDict.dict['00181041'].Value).toEqual([1.4, -0, 123.45, 1e+34])
+    });
+
+    test('test DS value that exceeds Number.MAX_SAFE_INTEGER is written to file', () => {
+        const dataset = {
+            '00181041': {
+                _rawValue: ["9007199254740993"],
+                Value: [9007199254740993],
+                vr: 'DS'
+            },
+        };
+
+        const dicomDict = new DicomDict({});
+        dicomDict.dict = dataset;
+
+        // write and re-read
+        const outputDicomDict = DicomMessage.readFile(dicomDict.write());
+
+        // expect raw value to be unchanged, and Value parsed as Number to lose precision
+        expect(outputDicomDict.dict['00181041']._rawValue).toEqual(["9007199254740993"])
+        expect(outputDicomDict.dict['00181041'].Value).toEqual([9007199254740992])
+    });
+
+    const unchangedTestCases = [
+        {
+            vr: "AE",
+            _rawValue: ["  TEST_AE "], // spaces non-significant for interpretation but allowed
+            Value: ["TEST_AE"],
+        },
+        {
+            vr: "AS",
+            _rawValue: ["045Y"],
+            Value: ["045Y"],
+        },
+        {
+            vr: "AT",
+            _rawValue: [0x00207E14],
+            Value: [0x00207E14],
+        },
+        {
+            vr: "CS",
+            _rawValue: ["ORIGINAL  ", " PRIMARY "], // spaces non-significant for interpretation but allowed
+            Value: ["ORIGINAL", "PRIMARY"],
+        },
+        {
+            vr: "DA",
+            _rawValue: ["20240101"],
+            Value: ["20240101"],
+        },
+        {
+            vr: "DS",
+            _rawValue: ["0000123.45"], // leading zeros allowed
+            Value: [123.45],
+        },
+        {
+            vr: 'DT',
+            _rawValue: ["20240101123045.1  "], // trailing spaces allowed
+            Value: ["20240101123045.1  "],
+        },
+        {
+            vr: 'FL',
+            _rawValue: [3.125],
+            Value: [3.125],
+        },
+        {
+            vr: 'FD',
+            _rawValue: [3.14159265358979], // trailing spaces allowed
+            Value: [3.14159265358979],
+        },
+        {
+            vr: 'IS',
+            _rawValue: [" -123   "], // leading/trailing spaces & sign allowed
+            Value: [-123],
+        },
+        {
+            vr: 'LO',
+            _rawValue: [" A long string with spaces    "], // leading/trailing spaces allowed
+            Value: ["A long string with spaces"],
+        },
+        // {
+        //     vr: 'LT',
+        //     _rawValue: ["It may contain the Graphic Character set and the Control Characters, CR\r, LF\n, FF\f, and ESC\x1b."],
+        //     Value: ["It may contain the Graphic Character set and the Control Characters, CR\r, LF\n, FF\f, and ESC\x1b."],
+        // },
+    ];
+
+
+    test.each(unchangedTestCases)(
+        "Test unchanged value is retained following read and write",
+        (dataElement) => {
+            const dataset = {
+                '00181041': {
+                    ...dataElement
+                },
+            };
+
+            const dicomDict = new DicomDict({});
+            dicomDict.dict = dataset;
+
+            // write and re-read
+            const outputDicomDict = DicomMessage.readFile(dicomDict.write());
+
+            // expect raw value to be unchanged, and Value parsed as Number to lose precision
+            expect(outputDicomDict.dict['00181041']._rawValue).toEqual(dataElement._rawValue)
+            expect(outputDicomDict.dict['00181041'].Value).toEqual(dataElement.Value)
+        }
+    )
+
+    test('File dataset should be equal after read and write', async () => {
         const inputBuffer = await getDcmjsDataFile("unknown-VR", "sample-dicom-with-un-vr.dcm");
         const dicomDict = DicomMessage.readFile(inputBuffer);
 
