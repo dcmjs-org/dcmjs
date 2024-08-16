@@ -123,16 +123,118 @@ describe('lossless-read-write', () => {
             _rawValue: [" A long string with spaces    "], // leading/trailing spaces allowed
             Value: ["A long string with spaces"],
         },
+        {
+            vr: 'LT',
+            _rawValue: ["  It may contain the Graphic Character set and the Control Characters, CR\r, LF\n, FF\f, and ESC\x1b. "], // leading spaces significant, trailing spaces allowed
+            Value: ["  It may contain the Graphic Character set and the Control Characters, CR\r, LF\n, FF\f, and ESC\x1b."],
+        },
+        {
+            vr: 'OB',
+            _rawValue: [new Uint8Array([0x13, 0x40, 0x80, 0x88, 0x88, 0x90, 0x88, 0x88]).buffer],
+            Value: [new Uint8Array([0x13, 0x40, 0x80, 0x88, 0x88, 0x90, 0x88, 0x88]).buffer],
+        },
+        {
+            vr: 'OD',
+            _rawValue: [new Uint8Array([0x00, 0x00, 0x00, 0x54, 0x34, 0x6F, 0x9D, 0x41]).buffer],
+            Value: [new Uint8Array([0x00, 0x00, 0x00, 0x54, 0x34, 0x6F, 0x9D, 0x41]).buffer],
+        },
+        {
+            vr: 'OF',
+            _rawValue: [new Uint8Array([0x00, 0x00, 0x28, 0x41, 0x00, 0x00, 0x30, 0xC0, 0x00, 0x00, 0xF6, 0x42]).buffer],
+            Value: [new Uint8Array([0x00, 0x00, 0x28, 0x41, 0x00, 0x00, 0x30, 0xC0, 0x00, 0x00, 0xF6, 0x42]).buffer],
+        },
+        // TODO: VRs currently unimplemented
         // {
-        //     vr: 'LT',
-        //     _rawValue: ["It may contain the Graphic Character set and the Control Characters, CR\r, LF\n, FF\f, and ESC\x1b."],
-        //     Value: ["It may contain the Graphic Character set and the Control Characters, CR\r, LF\n, FF\f, and ESC\x1b."],
+        //     vr: 'OL',
+        //     _rawValue: [new Uint8Array([0x00, 0x00, 0x30, 0xC0, 0x00, 0x00, 0x28, 0x41, 0x00, 0x00, 0xF6, 0x42, 0x00, 0x00, 0x28, 0x41]).buffer],
+        //     Value: [new Uint8Array([0x00, 0x00, 0x30, 0xC0, 0x00, 0x00, 0x28, 0x41, 0x00, 0x00, 0xF6, 0x42, 0x00, 0x00, 0x28, 0x41]).buffer],
+        // },
+        // {
+        //     vr: 'OV',
+        //     _rawValue: [new Uint8Array([0x00, 0x00, 0x30, 0xC0, 0x00, 0x00, 0x28, 0x41]).buffer],
+        //     Value: [new Uint8Array([0x00, 0x00, 0x30, 0xC0, 0x00, 0x00, 0x28, 0x41]).buffer],
+        // },
+        {
+            vr: 'OW',
+            _rawValue: [new Uint8Array([0x13, 0x40, 0x80, 0x88, 0x88, 0x90, 0x88, 0x88]).buffer],
+            Value: [new Uint8Array([0x13, 0x40, 0x80, 0x88, 0x88, 0x90, 0x88, 0x88]).buffer],
+        },
+        {
+            vr: 'PN',
+            _rawValue: ["Doe^John^A^Jr.^MD  "], // trailing spaces allowed
+            Value: [{"Alphabetic": "Doe^John^A^Jr.^MD  "}],
+        },
+        {
+            vr: 'SH',
+            _rawValue: [" CT_SCAN_01 "], // leading/trailing spaces allowed
+            Value: ["CT_SCAN_01"],
+        },
+        {
+            vr: 'SL',
+            _rawValue: [-2147483648],
+            Value: [-2147483648],
+        },
+        {
+            vr: 'SS',
+            _rawValue: [-32768],
+            Value: [-32768],
+        },
+        {
+            vr: 'ST',
+            _rawValue: ["Patient complains of headaches over the last week.    "], // trailing spaces allowed
+            Value: ["Patient complains of headaches over the last week."],
+        },
+        // TODO: VR currently unimplemented
+        // {
+        //     vr: 'SV',
+        //     _rawValue: [9007199254740993], // trailing spaces allowed
+        //     Value: [9007199254740993],
+        // },
+        {
+            vr: 'TM',
+            _rawValue: ["42530.123456  "], // trailing spaces allowed
+            Value: ["42530.123456"],
+        },
+        {
+            vr: 'UC',
+            _rawValue: ["Detailed description of procedure or clinical notes that could be very long.  "], // trailing spaces allowed
+            Value: ["Detailed description of procedure or clinical notes that could be very long."],
+        },
+        {
+            vr: 'UI',
+            _rawValue: ["1.2.840.10008.1.2.1"],
+            Value: ["1.2.840.10008.1.2.1"],
+        },
+        {
+            vr: 'UL',
+            _rawValue: [4294967295],
+            Value: [4294967295],
+        },
+        {
+            vr: 'UR',
+            _rawValue: ["http://dicom.nema.org "], // trailing spaces ignored but allowed
+            Value: ["http://dicom.nema.org "],
+        },
+        {
+            vr: 'US',
+            _rawValue: [65535],
+            Value: [65535],
+        },
+        {
+            vr: 'UT',
+            _rawValue: ["    This is a detailed explanation that can span multiple lines and paragraphs in the DICOM dataset.  "], // leading spaces significant, trailing spaces allowed
+            Value: ["    This is a detailed explanation that can span multiple lines and paragraphs in the DICOM dataset."],
+        },
+        // TODO: VR currently unimplemented
+        // {
+        //     vr: 'UV',
+        //     _rawValue: [18446744073709551616], // 2^64
+        //     Value: [18446744073709551616],
         // },
     ];
 
-
     test.each(unchangedTestCases)(
-        "Test unchanged value is retained following read and write",
+        `Test unchanged value is retained following read and write - $vr`,
         (dataElement) => {
             const dataset = {
                 '00181041': {
