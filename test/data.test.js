@@ -1345,7 +1345,7 @@ describe("test_un_vr", () => {
                 dicomDict.dict = dataset;
 
                 // Write and re-read
-                const outputDicomDict = DicomMessage.readFile(dicomDict.write());
+                const outputDicomDict = DicomMessage.readFile(dicomDict.write(), { forceStoreRaw: true });
 
                 // Expect tag to be parsed correctly based on meta dictionary vr lookup
                 expect(outputDicomDict.dict[tag].vr).toEqual(vr);

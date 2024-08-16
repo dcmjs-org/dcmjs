@@ -195,7 +195,8 @@ class DicomMessage {
             ignoreErrors: false,
             untilTag: null,
             includeUntilTagValue: false,
-            noCopy: false
+            noCopy: false,
+            forceStoreRaw: false
         }
     ) {
         var stream = new ReadBufferStream(buffer, null, {
@@ -270,11 +271,11 @@ class DicomMessage {
     }
 
     static _getTagWriteValue(vrType, tagObject) {
-        const vr = ValueRepresentation.createByTypeString(vrType);
-
         if (!tagObject._rawValue) {
             return tagObject.Value;
         }
+
+        const vr = ValueRepresentation.createByTypeString(vrType);
         const compareValue = tagObject._rawValue.map((val) => vr.applyFormatting(val))
 
         // if the _rawValue is unchanged, write it unformatted back to the file
@@ -364,12 +365,12 @@ class DicomMessage {
             var times = length / vr.maxLength,
                 i = 0;
             while (i++ < times) {
-                const { rawValue, value } = vr.read(stream, vr.maxLength, syntax);
+                const { rawValue, value } = vr.read(stream, vr.maxLength, syntax, options);
                 rawValues.push(rawValue);
                 values.push(value);
             }
         } else {
-            const { rawValue, value } = vr.read(stream, length, syntax);
+            const { rawValue, value } = vr.read(stream, length, syntax, options);
             if (!vr.isBinary() && singleVRs.indexOf(vr.type) == -1) {
                 rawValues = rawValue;
                 values = value

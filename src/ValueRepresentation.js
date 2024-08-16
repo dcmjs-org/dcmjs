@@ -79,6 +79,7 @@ class ValueRepresentation {
         this._allowMultiple =
             !this._isBinary && singleVRs.indexOf(this.type) == -1;
         this._isExplicit = explicitVRs.indexOf(this.type) != -1;
+        this._storeRaw = true;
     }
 
     static setDicomMessageClass(dicomMessageClass) {
@@ -99,6 +100,17 @@ class ValueRepresentation {
 
     isExplicit() {
         return this._isExplicit;
+    }
+
+    /**
+     * Flag that specifies whether to store the original unformatted value that is read from the dicom input buffer.
+     * The `_rawValue` is used for lossless round trip processing, which preserves data (whitespace, special chars) on write
+     * that may be lost after casting to other data structures like Number, or applying formatting for readability.
+     *
+     * Example: DecimalString: _rawValue: ["-0.000"], Value: [0]
+     */
+    storeRaw() {
+        return this._storeRaw;
     }
 
     addValueAccessors(value) {
@@ -124,7 +136,7 @@ class ValueRepresentation {
         return tag;
     }
 
-    read(stream, length, syntax) {
+    read(stream, length, syntax, readOptions = { forceStoreRaw: false }) {
         if (this.fixed && this.maxLength) {
             if (!length) return this.defaultValue;
             if (this.maxLength != length)
@@ -137,8 +149,15 @@ class ValueRepresentation {
                         length
                 );
         }
-        const rawValue = this.readBytes(stream, length, syntax);
-        return { rawValue, value: this.applyFormatting(rawValue) };
+        let rawValue = this.readBytes(stream, length, syntax);
+        const value = this.applyFormatting(rawValue);
+
+        // avoid duplicating large binary data structures like pixel data which are unlikely to be formatted or directly manipulated
+        if (!this.storeRaw() && !readOptions.forceStoreRaw) {
+            rawValue = undefined;
+        }
+
+        return { rawValue, value };
     }
 
     applyFormatting(value) {
@@ -327,6 +346,7 @@ class EncodedStringRepresentation extends ValueRepresentation {
 class BinaryRepresentation extends ValueRepresentation {
     constructor(type) {
         super(type);
+        this._storeRaw = false;
     }
 
     writeBytes(stream, value, syntax, isEncapsulated, writeOptions = {}) {
@@ -990,6 +1010,7 @@ class SequenceOfItems extends ValueRepresentation {
         this.maxLength = null;
         this.padByte = PADDING_NULL;
         this.noMultiple = true;
+        this._storeRaw = false;
     }
 
     // TODO Craig: potentially need special logic for sequences when writing
@@ -1326,9 +1347,10 @@ class ParsedUnknownValue extends BinaryRepresentation {
         this._isBinary = true;
         this._allowMultiple = false;
         this._isExplicit = true;
+        this._storeRaw = true;
     }
 
-    read(stream, length, syntax) {
+    read(stream, length, syntax, readOptions) {
         const arrayBuffer = this.readBytes(stream, length, syntax)[0];
         const streamFromBuffer = new ReadBufferStream(arrayBuffer, true);
         const vr = ValueRepresentation.createByTypeString(this.type);
@@ -1340,13 +1362,13 @@ class ParsedUnknownValue extends BinaryRepresentation {
                 i = 0;
 
             while (i++ < times) {
-                const { rawValue, value } = vr.read(streamFromBuffer, vr.maxLength, syntax);
+                const { rawValue, value } = vr.read(streamFromBuffer, vr.maxLength, syntax, readOptions);
                 rawValues.push(rawValue);
                 values.push(value);
             }
             return { rawValue: rawValues, value: values };
         } else {
-            return vr.read(streamFromBuffer, length, syntax);
+            return vr.read(streamFromBuffer, length, syntax, readOptions);
         }
     }
 }

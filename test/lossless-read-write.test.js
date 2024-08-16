@@ -13,6 +13,84 @@ const { DicomMetaDictionary, DicomDict, DicomMessage, ReadBufferStream } =
 
 describe('lossless-read-write', () => {
 
+    describe('storeRaw option', () => {
+        const dataset = {
+            '00080008': {
+                "vr": "CS",
+                "Value": ["DERIVED"],
+            },
+            "00082112": {
+                "vr": "SQ",
+                "Value": [
+                    {
+                        "00081150": {
+                            "vr": "UI",
+                            "Value": [
+                                "1.2.840.10008.5.1.4.1.1.7"
+                            ],
+                        },
+                    }
+                ]
+            },
+            "00180050": {
+                "vr": "DS",
+                "Value": [1],
+            },
+            "00181708": {
+                "vr": "IS",
+                "Value": [426],
+            },
+            "00189328": {
+                "vr": "FD",
+                "Value": [30.98],
+            },
+            "0020000D": {
+                "vr": "UI",
+                "Value": ["1.3.6.1.4.1.5962.99.1.2280943358.716200484.1363785608958.3.0"],
+            },
+            "00400254": {
+                "vr": "LO",
+                "Value": ["DUCTO/GALACTOGRAM 1 DUCT LT"],
+            },
+            "7FE00010": {
+                "vr": "OW",
+                "Value": [new Uint8Array([0x00, 0x00]).buffer]
+            }
+        };
+
+        test('storeRaw flag on VR should be respected by read', () => {
+            const tagsWithoutRaw = ['00082112', '7FE00010'];
+
+            const dicomDict = new DicomDict({});
+            dicomDict.dict = dataset;
+
+            // write and re-read
+            const outputDicomDict = DicomMessage.readFile(dicomDict.write());
+            for (const tag in outputDicomDict.dict ) {
+                if (tagsWithoutRaw.includes(tag)) {
+                    expect(outputDicomDict.dict[tag]._rawValue).toBeFalsy();
+                } else {
+                    expect(outputDicomDict.dict[tag]._rawValue).toBeTruthy();
+                }
+            }
+        });
+
+        test('forceStoreRaw read option should override VR setting', () => {
+            const tagsWithoutRaw = ['00082112', '7FE00010'];
+
+            const dicomDict = new DicomDict({});
+            dicomDict.dict = dataset;
+
+            // write and re-read
+            const outputDicomDict = DicomMessage.readFile(dicomDict.write(), { forceStoreRaw: true});
+
+            for (const tag in outputDicomDict.dict ) {
+                expect(outputDicomDict.dict[tag]._rawValue).toBeTruthy();
+            }
+        });
+    });
+
+
     test('test DS value with additional allowed characters is written to file', () => {
         const dataset = {
             '00181041': {
@@ -232,7 +310,7 @@ describe('lossless-read-write', () => {
             dicomDict.dict = dataset;
 
             // write and re-read
-            const outputDicomDict = DicomMessage.readFile(dicomDict.write());
+            const outputDicomDict = DicomMessage.readFile(dicomDict.write(), { forceStoreRaw: true });
 
             // expect raw value to be unchanged, and Value parsed as Number to lose precision
             expect(outputDicomDict.dict['00181041']._rawValue).toEqual(dataElement._rawValue)
@@ -419,7 +497,7 @@ describe('lossless-read-write', () => {
             dicomDict.dict = dataset;
 
             // write and re-read
-            const outputDicomDict = DicomMessage.readFile(dicomDict.write());
+            const outputDicomDict = DicomMessage.readFile(dicomDict.write(), { forceStoreRaw: true });
 
             // expect raw value to be updated to match new Value parsed as Number to lose precision
             expect(outputDicomDict.dict['00181041']._rawValue).toEqual(dataElement.newRawValue ?? dataElement.Value)
