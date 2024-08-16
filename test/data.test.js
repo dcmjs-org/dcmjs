@@ -348,7 +348,6 @@ it("test_null_number_vrs", () => {
     expect(dataset.InstanceNumber).toEqual(null);
 });
 
-// TODO Craig: Fix writing logic then compare actual differences (need to look at specific character set)
 it("test_exponential_notation", () => {
     const file = fs.readFileSync("test/sample-dicom.dcm");
     const data = dcmjs.data.DicomMessage.readFile(file.buffer, {
@@ -358,7 +357,9 @@ it("test_exponential_notation", () => {
     dataset.ImagePositionPatient[2] = 7.1945578383e-5;
     const buffer = data.write();
     const copy = dcmjs.data.DicomMessage.readFile(buffer);
-    expect(JSON.stringify(data)).toEqual(JSON.stringify(copy));
+    const datasetCopy = dcmjs.data.DicomMetaDictionary.naturalizeDataset(copy.dict);
+
+    expect(dataset.ImagePositionPatient).toEqual(datasetCopy.ImagePositionPatient);
 });
 
 it("test_output_equality", () => {
