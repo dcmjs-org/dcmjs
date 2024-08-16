@@ -256,7 +256,7 @@ class DicomMessage {
                 tagObject = jsonObjects[tagString],
                 vrType = tagObject.vr;
 
-            var values = DicomMessage._getTagWriteValue(vrType, tagObject);
+            var values = DicomMessage._getTagWriteValues(vrType, tagObject);
 
             written += tag.write(
                 useStream,
@@ -270,16 +270,17 @@ class DicomMessage {
         return written;
     }
 
-    static _getTagWriteValue(vrType, tagObject) {
+    static _getTagWriteValues(vrType, tagObject) {
         if (!tagObject._rawValue) {
             return tagObject.Value;
         }
 
+        // apply VR specific formatting to the original _rawValue and compare to the Value
         const vr = ValueRepresentation.createByTypeString(vrType);
-        const compareValue = tagObject._rawValue.map((val) => vr.applyFormatting(val))
+        const originalValue = tagObject._rawValue.map((val) => vr.applyFormatting(val))
 
-        // if the _rawValue is unchanged, write it unformatted back to the file
-        if (deepEqual(compareValue, tagObject.Value)) {
+        // if Value has not changed, write _rawValue unformatted back into the file
+        if (deepEqual(tagObject.Value, originalValue)) {
             return tagObject._rawValue;
         } else {
             return tagObject.Value;

@@ -107,7 +107,7 @@ class ValueRepresentation {
      * The `_rawValue` is used for lossless round trip processing, which preserves data (whitespace, special chars) on write
      * that may be lost after casting to other data structures like Number, or applying formatting for readability.
      *
-     * Example: DecimalString: _rawValue: ["-0.000"], Value: [0]
+     * Example DecimalString: _rawValue: ["-0.000"], Value: [0]
      */
     storeRaw() {
         return this._storeRaw;
@@ -1013,7 +1013,6 @@ class SequenceOfItems extends ValueRepresentation {
         this._storeRaw = false;
     }
 
-    // TODO Craig: potentially need special logic for sequences when writing
     readBytes(stream, sqlength, syntax) {
         if (sqlength == 0x0) {
             return []; //contains no dataset
@@ -1286,6 +1285,7 @@ class UniqueIdentifier extends AsciiStringRepresentation {
 
     readBytes(stream, length) {
         const result = this.readPaddedAsciiString(stream, length);
+
         const BACKSLASH = String.fromCharCode(VM_DELIMITER);
 
         // Treat backslashes as a delimiter for multiple UIDs, in which case an
@@ -1303,7 +1303,6 @@ class UniqueIdentifier extends AsciiStringRepresentation {
         }
     }
 
-    // TODO: Can we make the array formatting generic in value representaiton base
     applyFormatting(value) {
         const removeInvalidUidChars = (uidStr) => {
             return uidStr.replace(/[^0-9.]/g, "");
