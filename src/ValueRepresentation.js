@@ -661,22 +661,33 @@ class DateValue extends AsciiStringRepresentation {
     }
 }
 
-class DecimalString extends AsciiStringRepresentation {
+class NumericStringRepresentation extends AsciiStringRepresentation {
+
+    readBytes(stream, length) {
+        const BACKSLASH = String.fromCharCode(VM_DELIMITER);
+        const numStr = stream.readAsciiString(length);
+        const nums = numStr.split(BACKSLASH);
+
+        // final element in list may have a padding byte for even length, this should be removed as it is not part of
+        // the original value and prevents max length issues during write
+        if (nums.length > 1) {
+            const last = nums[nums.length - 1];
+
+            // trim padding byte if last element exceeds length
+            if (last.length > this.maxLength) {
+                nums[nums.length - 1] = last.substring(0, this.maxLength);
+            }
+        }
+
+        return nums;
+    }
+}
+
+class DecimalString extends NumericStringRepresentation {
     constructor() {
         super("DS");
         this.maxLength = 16;
         this.padByte = PADDING_SPACE;
-    }
-
-    readBytes(stream, length) {
-        const BACKSLASH = String.fromCharCode(VM_DELIMITER);
-        const ds = stream.readAsciiString(length);
-        if (ds.indexOf(BACKSLASH) !== -1) {
-            // handle decimal string with multiplicity
-            return ds.split(BACKSLASH);
-        }
-
-        return [ds];
     }
 
     applyFormatting(value) {
@@ -694,6 +705,7 @@ class DecimalString extends AsciiStringRepresentation {
 
     convertToString(value) {
         if (value === null) return "";
+        if (typeof value === 'string') return value;
 
         let str = String(value);
         if (str.length > this.maxLength) {
@@ -798,23 +810,11 @@ class FloatingPointDouble extends ValueRepresentation {
     }
 }
 
-class IntegerString extends AsciiStringRepresentation {
+class IntegerString extends NumericStringRepresentation {
     constructor() {
         super("IS");
         this.maxLength = 12;
         this.padByte = PADDING_SPACE;
-    }
-
-    readBytes(stream, length) {
-        const BACKSLASH = String.fromCharCode(VM_DELIMITER);
-        const is = stream.readAsciiString(length);
-
-        if (is.indexOf(BACKSLASH) !== -1) {
-            // handle integer string with multiplicity
-            return is.split(BACKSLASH);
-        }
-
-        return [is];
     }
 
     applyFormatting(value) {
@@ -831,6 +831,7 @@ class IntegerString extends AsciiStringRepresentation {
     }
 
     convertToString(value) {
+        if (typeof value === 'string') return value;
         return value === null ? "" : String(value);
     }
 

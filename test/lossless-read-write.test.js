@@ -128,6 +128,70 @@ describe('lossless-read-write', () => {
         expect(outputDicomDict.dict['00181041'].Value).toEqual([9007199254740992])
     });
 
+    test('test DS with multiplicity > 1 and added space for even padding is read and written correctly', () => {
+        const dataset = {
+            '00200037': {
+                vr: 'DS',
+                Value: [0.99924236548978, -0.0322633220972, -0.0217663285287, 0.02949870928067, 0.99267261121054, -0.1171789789306]
+            }
+        };
+
+        const dicomDict = new DicomDict({});
+        dicomDict.dict = dataset;
+
+        // write and re-read
+        const outputDicomDict = DicomMessage.readFile(dicomDict.write());
+
+        // ensure _rawValue strings have no added trailing spaces
+        const expectedDataset = {
+            '00200037': {
+                vr: 'DS',
+                Value: [0.99924236548978, -0.0322633220972, -0.0217663285287, 0.02949870928067, 0.99267261121054, -0.1171789789306],
+                _rawValue: ["0.99924236548978", "-0.0322633220972", "-0.0217663285287", "0.02949870928067", "0.99267261121054", "-0.1171789789306"]
+            }
+        };
+
+        expect(deepEqual(expectedDataset, outputDicomDict.dict)).toBeTruthy();
+
+        // re-write should succeeed
+        const outputDicomDictPass2 = DicomMessage.readFile(dicomDict.write());
+
+        // dataset should still be equal
+        expect(deepEqual(expectedDataset, outputDicomDictPass2.dict)).toBeTruthy();
+    });
+
+    test('test IS with multiplicity > 1 and added space for even padding is read and written correctly', () => {
+        const dataset = {
+            '00081160': {
+                vr: 'IS',
+                Value: [1234, 5678]
+            }
+        };
+
+        const dicomDict = new DicomDict({});
+        dicomDict.dict = dataset;
+
+        // write and re-read
+        const outputDicomDict = DicomMessage.readFile(dicomDict.write());
+
+        // ensure _rawValue strings have no added trailing spaces
+        const expectedDataset = {
+            '00081160': {
+                vr: 'IS',
+                Value: [1234, 5678],
+                _rawValue: ["1234", "5678 "]
+            }
+        };
+
+        expect(deepEqual(expectedDataset, outputDicomDict.dict)).toBeTruthy();
+
+        // re-write should succeeed
+        const outputDicomDictPass2 = DicomMessage.readFile(dicomDict.write());
+
+        // dataset should still be equal
+        expect(deepEqual(expectedDataset, outputDicomDictPass2.dict)).toBeTruthy();
+    });
+
     describe('Individual VR comparisons', () => {
 
         const unchangedTestCases = [
