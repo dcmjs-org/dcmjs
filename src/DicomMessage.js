@@ -10,6 +10,7 @@ import { DicomDict } from "./DicomDict.js";
 import { DicomMetaDictionary } from "./DicomMetaDictionary.js";
 import { Tag } from "./Tag.js";
 import { log } from "./log.js";
+import { deepEqual } from "./utilities/deepEqual";
 import { ValueRepresentation } from "./ValueRepresentation.js";
 
 const singleVRs = ["SQ", "OF", "OW", "OB", "UN", "LT"];
@@ -156,6 +157,7 @@ class DicomMessage {
                     vr: readInfo.vr.type
                 });
                 dict[cleanTagString].Value = readInfo.values;
+                dict[cleanTagString]._rawValue = readInfo.rawValues;
 
                 if (untilTag && untilTag === cleanTagString) {
                     break;
@@ -193,7 +195,8 @@ class DicomMessage {
             ignoreErrors: false,
             untilTag: null,
             includeUntilTagValue: false,
-            noCopy: false
+            noCopy: false,
+            forceStoreRaw: false
         }
     ) {
         var stream = new ReadBufferStream(buffer, null, {
@@ -251,8 +254,9 @@ class DicomMessage {
         sortedTags.forEach(function (tagString) {
             var tag = Tag.fromString(tagString),
                 tagObject = jsonObjects[tagString],
-                vrType = tagObject.vr,
-                values = tagObject.Value;
+                vrType = tagObject.vr;
+
+            var values = DicomMessage._getTagWriteValues(vrType, tagObject);
 
             written += tag.write(
                 useStream,
@@ -264,6 +268,23 @@ class DicomMessage {
         });
 
         return written;
+    }
+
+    static _getTagWriteValues(vrType, tagObject) {
+        if (!tagObject._rawValue) {
+            return tagObject.Value;
+        }
+
+        // apply VR specific formatting to the original _rawValue and compare to the Value
+        const vr = ValueRepresentation.createByTypeString(vrType);
+        const originalValue = tagObject._rawValue.map((val) => vr.applyFormatting(val))
+
+        // if Value has not changed, write _rawValue unformatted back into the file
+        if (deepEqual(tagObject.Value, originalValue)) {
+            return tagObject._rawValue;
+        } else {
+            return tagObject.Value;
+        }
     }
 
     static _readTag(
@@ -340,25 +361,33 @@ class DicomMessage {
         }
 
         var values = [];
+        var rawValues = [];
         if (vr.isBinary() && length > vr.maxLength && !vr.noMultiple) {
             var times = length / vr.maxLength,
                 i = 0;
             while (i++ < times) {
-                values.push(vr.read(stream, vr.maxLength, syntax));
+                const { rawValue, value } = vr.read(stream, vr.maxLength, syntax, options);
+                rawValues.push(rawValue);
+                values.push(value);
             }
         } else {
-            var val = vr.read(stream, length, syntax);
+            const { rawValue, value } = vr.read(stream, length, syntax, options);
             if (!vr.isBinary() && singleVRs.indexOf(vr.type) == -1) {
-                values = val;
-                if (typeof val === "string") {
-                    values = val.split(String.fromCharCode(VM_DELIMITER));
+                rawValues = rawValue;
+                values = value
+                if (typeof value === "string") {
+                    rawValues = rawValue.split(String.fromCharCode(VM_DELIMITER));
+                    values = value.split(String.fromCharCode(VM_DELIMITER));
                 }
             } else if (vr.type == "SQ") {
-                values = val;
+                rawValues = rawValue;
+                values = value;
             } else if (vr.type == "OW" || vr.type == "OB") {
-                values = val;
+                rawValues = rawValue;
+                values = value;
             } else {
-                Array.isArray(val) ? (values = val) : values.push(val);
+                Array.isArray(value) ? (values = value) : values.push(value);
+                Array.isArray(rawValue) ? (rawValues = rawValue) : rawValues.push(rawValue);
             }
         }
         stream.setEndian(oldEndian);
@@ -368,6 +397,7 @@ class DicomMessage {
             vr: vr
         });
         retObj.values = values;
+        retObj.rawValues = rawValues;
         return retObj;
     }
 

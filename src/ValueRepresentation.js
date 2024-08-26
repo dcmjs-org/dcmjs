@@ -68,7 +68,7 @@ function toWindows(inputArray, size) {
 let DicomMessage, Tag;
 
 var binaryVRs = ["FL", "FD", "SL", "SS", "UL", "US", "AT"],
-    explicitVRs = ["OB", "OW", "OF", "SQ", "UC", "UR", "UT", "UN"],
+    explicitVRs = ["OB", "OW", "OF", "SQ", "UC", "UR", "UT", "UN", "OD"],
     singleVRs = ["SQ", "OF", "OW", "OB", "UN"];
 
 class ValueRepresentation {
@@ -79,6 +79,7 @@ class ValueRepresentation {
         this._allowMultiple =
             !this._isBinary && singleVRs.indexOf(this.type) == -1;
         this._isExplicit = explicitVRs.indexOf(this.type) != -1;
+        this._storeRaw = true;
     }
 
     static setDicomMessageClass(dicomMessageClass) {
@@ -99,6 +100,17 @@ class ValueRepresentation {
 
     isExplicit() {
         return this._isExplicit;
+    }
+
+    /**
+     * Flag that specifies whether to store the original unformatted value that is read from the dicom input buffer.
+     * The `_rawValue` is used for lossless round trip processing, which preserves data (whitespace, special chars) on write
+     * that may be lost after casting to other data structures like Number, or applying formatting for readability.
+     *
+     * Example DecimalString: _rawValue: ["-0.000"], Value: [0]
+     */
+    storeRaw() {
+        return this._storeRaw;
     }
 
     addValueAccessors(value) {
@@ -124,7 +136,7 @@ class ValueRepresentation {
         return tag;
     }
 
-    read(stream, length, syntax) {
+    read(stream, length, syntax, readOptions = { forceStoreRaw: false }) {
         if (this.fixed && this.maxLength) {
             if (!length) return this.defaultValue;
             if (this.maxLength != length)
@@ -137,7 +149,19 @@ class ValueRepresentation {
                         length
                 );
         }
-        return this.readBytes(stream, length, syntax);
+        let rawValue = this.readBytes(stream, length, syntax);
+        const value = this.applyFormatting(rawValue);
+
+        // avoid duplicating large binary data structures like pixel data which are unlikely to be formatted or directly manipulated
+        if (!this.storeRaw() && !readOptions.forceStoreRaw) {
+            rawValue = undefined;
+        }
+
+        return { rawValue, value };
+    }
+
+    applyFormatting(value) {
+        return value;
     }
 
     readBytes(stream, length) {
@@ -322,6 +346,7 @@ class EncodedStringRepresentation extends ValueRepresentation {
 class BinaryRepresentation extends ValueRepresentation {
     constructor(type) {
         super(type);
+        this._storeRaw = false;
     }
 
     writeBytes(stream, value, syntax, isEncapsulated, writeOptions = {}) {
@@ -562,7 +587,11 @@ class ApplicationEntity extends AsciiStringRepresentation {
     }
 
     readBytes(stream, length) {
-        return stream.readAsciiString(length).trim();
+        return stream.readAsciiString(length);
+    }
+
+    applyFormatting(value) {
+        return value.trim();
     }
 }
 
@@ -574,7 +603,18 @@ class CodeString extends AsciiStringRepresentation {
     }
 
     readBytes(stream, length) {
-        return stream.readAsciiString(length).trim();
+        const BACKSLASH = String.fromCharCode(VM_DELIMITER);
+        return stream.readAsciiString(length).split(BACKSLASH);
+    }
+
+    applyFormatting(value) {
+        const trim = (str) => str.trim();
+
+        if (Array.isArray(value)) {
+            return value.map((str) => trim(str));
+        }
+
+        return trim(value);
     }
 }
 
@@ -630,20 +670,29 @@ class DecimalString extends AsciiStringRepresentation {
 
     readBytes(stream, length) {
         const BACKSLASH = String.fromCharCode(VM_DELIMITER);
-        let ds = stream.readAsciiString(length);
-        ds = ds.replace(/[^0-9.\\\-+e]/gi, "");
+        const ds = stream.readAsciiString(length);
         if (ds.indexOf(BACKSLASH) !== -1) {
             // handle decimal string with multiplicity
-            const dsArray = ds.split(BACKSLASH);
-            ds = dsArray.map(ds => (ds === "" ? null : Number(ds)));
-        } else {
-            ds = [ds === "" ? null : Number(ds)];
+            return ds.split(BACKSLASH);
         }
 
-        return ds;
+        return [ds];
     }
 
-    formatValue(value) {
+    applyFormatting(value) {
+        const formatNumber = (numberStr) => {
+            let returnVal = numberStr.trim().replace(/[^0-9.\\\-+e]/gi, "");
+            return returnVal === "" ? null : Number(returnVal);
+        }
+
+        if (Array.isArray(value)) {
+            return value.map(formatNumber);
+        }
+
+        return formatNumber(value);
+    }
+
+    convertToString(value) {
         if (value === null) return "";
 
         let str = String(value);
@@ -681,8 +730,8 @@ class DecimalString extends AsciiStringRepresentation {
 
     writeBytes(stream, value, writeOptions) {
         const val = Array.isArray(value)
-            ? value.map(ds => this.formatValue(ds))
-            : [this.formatValue(value)];
+            ? value.map(ds => this.convertToString(ds))
+            : [this.convertToString(value)];
         return super.writeBytes(stream, val, writeOptions);
     }
 }
@@ -705,7 +754,11 @@ class FloatingPointSingle extends ValueRepresentation {
     }
 
     readBytes(stream) {
-        return Number(stream.readFloat());
+        return stream.readFloat();
+    }
+
+    applyFormatting(value) {
+        return Number(value);
     }
 
     writeBytes(stream, value, writeOptions) {
@@ -728,7 +781,11 @@ class FloatingPointDouble extends ValueRepresentation {
     }
 
     readBytes(stream) {
-        return Number(stream.readDouble());
+        return stream.readDouble();
+    }
+
+    applyFormatting(value) {
+        return Number(value);
     }
 
     writeBytes(stream, value, writeOptions) {
@@ -750,29 +807,37 @@ class IntegerString extends AsciiStringRepresentation {
 
     readBytes(stream, length) {
         const BACKSLASH = String.fromCharCode(VM_DELIMITER);
-        let is = stream.readAsciiString(length).trim();
-
-        is = is.replace(/[^0-9.\\\-+e]/gi, "");
+        const is = stream.readAsciiString(length);
 
         if (is.indexOf(BACKSLASH) !== -1) {
             // handle integer string with multiplicity
-            const integerStringArray = is.split(BACKSLASH);
-            is = integerStringArray.map(is => (is === "" ? null : Number(is)));
-        } else {
-            is = [is === "" ? null : Number(is)];
+            return is.split(BACKSLASH);
         }
 
-        return is;
+        return [is];
     }
 
-    formatValue(value) {
+    applyFormatting(value) {
+        const formatNumber = (numberStr) => {
+            let returnVal = numberStr.trim().replace(/[^0-9.\\\-+e]/gi, "");
+            return returnVal === "" ? null : Number(returnVal);
+        }
+
+        if (Array.isArray(value)) {
+            return value.map(formatNumber);
+        }
+
+        return formatNumber(value);
+    }
+
+    convertToString(value) {
         return value === null ? "" : String(value);
     }
 
     writeBytes(stream, value, writeOptions) {
         const val = Array.isArray(value)
-            ? value.map(is => this.formatValue(is))
-            : [this.formatValue(value)];
+            ? value.map(is => this.convertToString(is))
+            : [this.convertToString(value)];
         return super.writeBytes(stream, val, writeOptions);
     }
 }
@@ -785,7 +850,11 @@ class LongString extends EncodedStringRepresentation {
     }
 
     readBytes(stream, length) {
-        return stream.readEncodedString(length).trim();
+        return stream.readEncodedString(length);
+    }
+
+    applyFormatting(value) {
+        return value.trim();
     }
 }
 
@@ -797,7 +866,11 @@ class LongText extends EncodedStringRepresentation {
     }
 
     readBytes(stream, length) {
-        return rtrim(stream.readEncodedString(length));
+        return stream.readEncodedString(length);
+    }
+
+    applyFormatting(value) {
+        return rtrim(value);
     }
 }
 
@@ -870,8 +943,17 @@ class PersonName extends EncodedStringRepresentation {
     }
 
     readBytes(stream, length) {
-        const result = this.readPaddedEncodedString(stream, length);
-        return dicomJson.pnConvertToJsonObject(result);
+        return this.readPaddedEncodedString(stream, length).split(String.fromCharCode(VM_DELIMITER));
+    }
+
+    applyFormatting(value) {
+        const parsePersonName = (valueStr) => dicomJson.pnConvertToJsonObject(valueStr, false);
+
+        if (Array.isArray(value)) {
+            return value.map((valueStr) => parsePersonName(valueStr));
+        }
+
+        return parsePersonName(value);
     }
 
     writeBytes(stream, value, writeOptions) {
@@ -891,7 +973,11 @@ class ShortString extends EncodedStringRepresentation {
     }
 
     readBytes(stream, length) {
-        return stream.readEncodedString(length).trim();
+        return stream.readEncodedString(length);
+    }
+
+    applyFormatting(value) {
+        return value.trim();
     }
 }
 
@@ -924,6 +1010,7 @@ class SequenceOfItems extends ValueRepresentation {
         this.maxLength = null;
         this.padByte = PADDING_NULL;
         this.noMultiple = true;
+        this._storeRaw = false;
     }
 
     readBytes(stream, sqlength, syntax) {
@@ -1086,7 +1173,11 @@ class ShortText extends EncodedStringRepresentation {
     }
 
     readBytes(stream, length) {
-        return rtrim(stream.readEncodedString(length));
+        return stream.readEncodedString(length);
+    }
+
+    applyFormatting(value) {
+        return rtrim(value);
     }
 }
 
@@ -1098,7 +1189,11 @@ class TimeValue extends AsciiStringRepresentation {
     }
 
     readBytes(stream, length) {
-        return rtrim(stream.readAsciiString(length));
+        return stream.readAsciiString(length);
+    }
+
+    applyFormatting(value) {
+        return rtrim(value);
     }
 }
 
@@ -1111,7 +1206,11 @@ class UnlimitedCharacters extends EncodedStringRepresentation {
     }
 
     readBytes(stream, length) {
-        return rtrim(stream.readEncodedString(length));
+        return stream.readEncodedString(length);
+    }
+
+    applyFormatting(value) {
+        return rtrim(value);
     }
 }
 
@@ -1123,7 +1222,11 @@ class UnlimitedText extends EncodedStringRepresentation {
     }
 
     readBytes(stream, length) {
-        return rtrim(stream.readEncodedString(length));
+        return stream.readEncodedString(length);
+    }
+
+    applyFormatting(value) {
+        return rtrim(value);
     }
 }
 
@@ -1184,7 +1287,6 @@ class UniqueIdentifier extends AsciiStringRepresentation {
         const result = this.readPaddedAsciiString(stream, length);
 
         const BACKSLASH = String.fromCharCode(VM_DELIMITER);
-        const uidRegExp = /[^0-9.]/g;
 
         // Treat backslashes as a delimiter for multiple UIDs, in which case an
         // array of UIDs is returned. This is used by DICOM Q&R to support
@@ -1195,12 +1297,22 @@ class UniqueIdentifier extends AsciiStringRepresentation {
         // https://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_6.4.html
 
         if (result.indexOf(BACKSLASH) === -1) {
-            return result.replace(uidRegExp, "");
-        } else {
             return result
-                .split(BACKSLASH)
-                .map(uid => uid.replace(uidRegExp, ""));
+        } else {
+            return result.split(BACKSLASH)
         }
+    }
+
+    applyFormatting(value) {
+        const removeInvalidUidChars = (uidStr) => {
+            return uidStr.replace(/[^0-9.]/g, "");
+        }
+
+        if (Array.isArray(value)) {
+            return value.map(removeInvalidUidChars);
+        }
+
+        return removeInvalidUidChars(value);
     }
 }
 
@@ -1234,37 +1346,29 @@ class ParsedUnknownValue extends BinaryRepresentation {
         this._isBinary = true;
         this._allowMultiple = false;
         this._isExplicit = true;
+        this._storeRaw = true;
     }
 
-    read(stream, length, syntax) {
+    read(stream, length, syntax, readOptions) {
         const arrayBuffer = this.readBytes(stream, length, syntax)[0];
         const streamFromBuffer = new ReadBufferStream(arrayBuffer, true);
         const vr = ValueRepresentation.createByTypeString(this.type);
 
-        var values = [];
         if (vr.isBinary() && length > vr.maxLength && !vr.noMultiple) {
+            var values = [];
+            var rawValues = [];
             var times = length / vr.maxLength,
                 i = 0;
-            while (i++ < times) {
-                values.push(vr.read(streamFromBuffer, vr.maxLength, syntax));
-            }
-        } else {
-            var val = vr.read(streamFromBuffer, length, syntax);
-            if (!vr.isBinary() && singleVRs.indexOf(vr.type) == -1) {
-                values = val;
-                if (typeof val === "string") {
-                    values = val.split(String.fromCharCode(VM_DELIMITER));
-                }
-            } else if (vr.type == "SQ") {
-                values = val;
-            } else if (vr.type == "OW" || vr.type == "OB") {
-                values = val;
-            } else {
-                Array.isArray(val) ? (values = val) : values.push(val);
-            }
-        }
 
-        return values;
+            while (i++ < times) {
+                const { rawValue, value } = vr.read(streamFromBuffer, vr.maxLength, syntax, readOptions);
+                rawValues.push(rawValue);
+                values.push(value);
+            }
+            return { rawValue: rawValues, value: values };
+        } else {
+            return vr.read(streamFromBuffer, length, syntax, readOptions);
+        }
     }
 }
 
@@ -1338,4 +1442,4 @@ let VRinstances = {
     UT: new UnlimitedText()
 };
 
-export { ValueRepresentation };
+export {ValueRepresentation};
