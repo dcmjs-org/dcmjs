@@ -668,8 +668,8 @@ class NumericStringRepresentation extends AsciiStringRepresentation {
         const numStr = stream.readAsciiString(length);
         const nums = numStr.split(BACKSLASH);
 
-        // final element in list may have a padding byte for even length, this should be removed as it is not part of
-        // the original value and prevents max length issues during write
+        // final element in multiplicity array may have a padding byte for even length, remove if this exceeds the max
+        // allowed length to prevent errors during write
         if (nums.length > 1) {
             const last = nums[nums.length - 1];
 
