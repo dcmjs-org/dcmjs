@@ -65,19 +65,6 @@ function toWindows(inputArray, size) {
     );
 }
 
-// TODO: Move into value representation?
-export function dropPadByte(values, vr) {
-    if (values.length > 1) {
-        const last = values[values.length - 1];
-
-        // trim padding byte if last element exceeds length by exactly 1
-        if (last.length === vr.maxLength + 1 && last.charAt(vr.maxLength) === String.fromCharCode(vr.padByte)) {
-            values[values.length - 1] = last.substring(0, vr.maxLength);
-        }
-    }
-    return values;
-}
-
 let DicomMessage, Tag;
 
 var binaryVRs = ["FL", "FD", "SL", "SS", "UL", "US", "AT"],
@@ -148,6 +135,41 @@ class ValueRepresentation {
         }
         return tag;
     }
+
+    /**
+     * Removes padding byte, if it exists, from the last value in a multiple-value data element.
+     *
+     * This function ensures that data elements with multiple values maintain their integrity for lossless
+     * read/write operations. In cases where the last value of a multi-valued data element is at the maximum allowed length,
+     * an odd-length total can result in a padding byte being added. This padding byte, can cause a length violation
+     * when writing back to the file. To prevent this, we remove the padding byte if it is the only additional character
+     * in the last element. Otherwise, it leaves the values as-is to minimize changes to the original data.
+     *
+     * @param {string[]} values - An array of strings representing the values of a DICOM data element.
+     * @returns {string[]} The modified array, with the padding byte potentially removed from the last value.
+     */
+    dropPadByte(values) {
+        if (!Array.isArray(values) || !this.maxLength || !this.padByte) {
+            return values;
+        }
+
+        // Only consider multiple-value data elements, as max length issues arise from a delimiter
+        // making the total length odd and necessitating a padding byte.
+        if (values.length > 1) {
+            const padChar = String.fromCharCode(this.padByte);
+            const lastIdx = values.length - 1;
+            const lastValue = values[lastIdx];
+
+            // If the last element exceeds the max length by exactly one character and ends with the padding byte,
+            // trim the padding byte to avoid a max length violation during write.
+            if (lastValue.length === this.maxLength + 1 && lastValue.endsWith(padChar)) {
+                values[lastIdx] = lastValue.substring(0, this.maxLength); // Trim the padding byte
+            }
+        }
+
+        return values;
+    }
+
 
     read(stream, length, syntax, readOptions = { forceStoreRaw: false }) {
         if (this.fixed && this.maxLength) {
@@ -621,7 +643,7 @@ class CodeString extends AsciiStringRepresentation {
 
     readBytes(stream, length) {
         const BACKSLASH = String.fromCharCode(VM_DELIMITER);
-        return dropPadByte(stream.readAsciiString(length).split(BACKSLASH), this);
+        return this.dropPadByte(stream.readAsciiString(length).split(BACKSLASH));
     }
 
     applyFormatting(value) {
@@ -684,7 +706,7 @@ class NumericStringRepresentation extends AsciiStringRepresentation {
         const BACKSLASH = String.fromCharCode(VM_DELIMITER);
         const numStr = stream.readAsciiString(length);
 
-        return dropPadByte(numStr.split(BACKSLASH), this);
+        return this.dropPadByte(numStr.split(BACKSLASH));
     }
 }
 
@@ -1305,7 +1327,7 @@ class UniqueIdentifier extends AsciiStringRepresentation {
         if (result.indexOf(BACKSLASH) === -1) {
             return result
         } else {
-            return dropPadByte(result.split(BACKSLASH), this);
+            return this.dropPadByte(result.split(BACKSLASH));
         }
     }
 
