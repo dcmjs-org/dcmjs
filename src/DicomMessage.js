@@ -11,7 +11,7 @@ import { DicomMetaDictionary } from "./DicomMetaDictionary.js";
 import { Tag } from "./Tag.js";
 import { log } from "./log.js";
 import { deepEqual } from "./utilities/deepEqual";
-import { ValueRepresentation } from "./ValueRepresentation.js";
+import { dropPadByte, ValueRepresentation } from "./ValueRepresentation.js";
 
 const singleVRs = ["SQ", "OF", "OW", "OB", "UN", "LT"];
 
@@ -376,7 +376,7 @@ class DicomMessage {
                 rawValues = rawValue;
                 values = value
                 if (typeof value === "string") {
-                    rawValues = rawValue.split(String.fromCharCode(VM_DELIMITER));
+                    rawValues = dropPadByte(rawValue.split(String.fromCharCode(VM_DELIMITER)), vr);
                     values = value.split(String.fromCharCode(VM_DELIMITER));
                 }
             } else if (vr.type == "SQ") {

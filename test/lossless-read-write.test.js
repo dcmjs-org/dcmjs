@@ -154,7 +154,7 @@ describe('lossless-read-write', () => {
         expect(deepEqual(expectedDataset, outputDicomDict.dict)).toBeTruthy();
 
         // re-write should succeeed
-        const outputDicomDictPass2 = DicomMessage.readFile(dicomDict.write());
+        const outputDicomDictPass2 = DicomMessage.readFile(outputDicomDict.write());
 
         // dataset should still be equal
         expect(deepEqual(expectedDataset, outputDicomDictPass2.dict)).toBeTruthy();
@@ -174,7 +174,7 @@ describe('lossless-read-write', () => {
         // write and re-read
         const outputDicomDict = DicomMessage.readFile(dicomDict.write());
 
-        // ensure _rawValue strings have no added trailing spaces
+        // last _rawValue strings does allow trailing space as it does not exceed max length
         const expectedDataset = {
             '00081160': {
                 vr: 'IS',
@@ -186,11 +186,104 @@ describe('lossless-read-write', () => {
         expect(deepEqual(expectedDataset, outputDicomDict.dict)).toBeTruthy();
 
         // re-write should succeeed
-        const outputDicomDictPass2 = DicomMessage.readFile(dicomDict.write());
+        const outputDicomDictPass2 = DicomMessage.readFile(outputDicomDict.write());
 
         // dataset should still be equal
         expect(deepEqual(expectedDataset, outputDicomDictPass2.dict)).toBeTruthy();
     });
+
+    test('test DA with multiplicity > 1 and added space for even padding is read and written correctly', () => {
+        const dataset = {
+            '00081160': {
+                vr: 'DA',
+                Value: ["20140601", "20140601 "],
+            }
+        };
+
+        const dicomDict = new DicomDict({});
+        dicomDict.dict = dataset;
+
+        // write and re-read
+        const outputDicomDict = DicomMessage.readFile(dicomDict.write());
+    });
+
+    describe('Multiplicity for non-binary String VRs', () => {
+        const maxLengthCases = [
+            {
+                vr: 'AE',
+                Value: ["MAX_LENGTH_CHARS", "MAX_LENGTH_CHARS"],
+                _rawValue: ["MAX_LENGTH_CHARS", "MAX_LENGTH_CHARS"]
+            },
+            {
+                vr: 'AS',
+                Value: ["120D", "045Y"],
+                _rawValue: ["120D", "045Y"]
+            },
+            {
+                vr: 'AT',
+                Value: [0x00207E14, 0x0012839A],
+                _rawValue: [0x00207E14, 0x0012839A],
+            },
+            {
+                vr: 'CS',
+                Value: ["MAX_LENGTH_CHARS", "MAX_LENGTH_CHARS"],
+                _rawValue: ["MAX_LENGTH_CHARS", "MAX_LENGTH_CHARS"]
+            },
+            {
+                vr: 'DA',
+                Value: ["20230826", "20230826"],
+                _rawValue: ["20230826", "20230826"]
+            },
+            {
+                vr: 'DS',
+                Value: [123456789012.345, 123456789012.345],
+                _rawValue: ["123456789012.345", "123456789012.345"]
+            },
+            {
+                vr: 'DT',
+                Value: ["20230826123045.123456+0100", "20230826123045.123456+0100"],
+                _rawValue: ["20230826123045.123456+0100", "20230826123045.123456+0100"]
+            },
+            {
+                vr: 'IS',
+                Value: [123456789012, 123456789012],
+                _rawValue: ["123456789012", "123456789012"]
+            },
+        ];
+
+        test.each(maxLengthCases)(
+            `Test multiple values with VR max length handle pad byte correctly during read and write - $vr`,
+            (dataElement) => {
+                const dataset = {
+                    '00081160': {
+                        vr: dataElement.vr,
+                        Value: dataElement.Value,
+                    }
+                };
+
+                const dicomDict = new DicomDict({});
+                dicomDict.dict = dataset;
+
+                // write and re-read
+                const outputDicomDict = DicomMessage.readFile(dicomDict.write());
+
+                // expect full _rawValue to match following read
+                const expectedDataset = {
+                    '00081160': {
+                        ...dataElement,
+                    }
+                };
+
+                expect(expectedDataset).toEqual(outputDicomDict.dict);
+
+                // re-write should succeed without max length issues
+                const outputDicomDictPass2 = DicomMessage.readFile(outputDicomDict.write());
+
+                // dataset should still be equal
+                expect(expectedDataset).toEqual(outputDicomDictPass2.dict);
+            }
+        );
+    })
 
     describe('Individual VR comparisons', () => {
 

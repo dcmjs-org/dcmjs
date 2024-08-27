@@ -65,6 +65,19 @@ function toWindows(inputArray, size) {
     );
 }
 
+// TODO: Move into value representation?
+export function dropPadByte(values, vr) {
+    if (values.length > 1) {
+        const last = values[values.length - 1];
+
+        // trim padding byte if last element exceeds length by exactly 1
+        if (last.length === vr.maxLength + 1 && last.charAt(vr.maxLength) === String.fromCharCode(vr.padByte)) {
+            values[values.length - 1] = last.substring(0, vr.maxLength);
+        }
+    }
+    return values;
+}
+
 let DicomMessage, Tag;
 
 var binaryVRs = ["FL", "FD", "SL", "SS", "UL", "US", "AT"],
@@ -318,6 +331,10 @@ class AsciiStringRepresentation extends ValueRepresentation {
 
     readBytes(stream, length) {
         return stream.readAsciiString(length);
+    }
+
+    applyFormatting(value) {
+        return value.trim();
     }
 
     writeBytes(stream, value, writeOptions) {
@@ -604,7 +621,7 @@ class CodeString extends AsciiStringRepresentation {
 
     readBytes(stream, length) {
         const BACKSLASH = String.fromCharCode(VM_DELIMITER);
-        return stream.readAsciiString(length).split(BACKSLASH);
+        return dropPadByte(stream.readAsciiString(length).split(BACKSLASH), this);
     }
 
     applyFormatting(value) {
@@ -654,7 +671,7 @@ class AttributeTag extends ValueRepresentation {
 class DateValue extends AsciiStringRepresentation {
     constructor(value) {
         super("DA", value);
-        this.maxLength = 18;
+        this.maxLength = 8;
         this.padByte = PADDING_SPACE;
         //this.fixed = true;
         this.defaultValue = "";
@@ -666,20 +683,8 @@ class NumericStringRepresentation extends AsciiStringRepresentation {
     readBytes(stream, length) {
         const BACKSLASH = String.fromCharCode(VM_DELIMITER);
         const numStr = stream.readAsciiString(length);
-        const nums = numStr.split(BACKSLASH);
 
-        // final element in multiplicity array may have a padding byte for even length, remove if this exceeds the max
-        // allowed length to prevent errors during write
-        if (nums.length > 1) {
-            const last = nums[nums.length - 1];
-
-            // trim padding byte if last element exceeds length
-            if (last.length > this.maxLength) {
-                nums[nums.length - 1] = last.substring(0, this.maxLength);
-            }
-        }
-
-        return nums;
+        return dropPadByte(numStr.split(BACKSLASH), this);
     }
 }
 
@@ -1300,7 +1305,7 @@ class UniqueIdentifier extends AsciiStringRepresentation {
         if (result.indexOf(BACKSLASH) === -1) {
             return result
         } else {
-            return result.split(BACKSLASH)
+            return dropPadByte(result.split(BACKSLASH), this);
         }
     }
 
