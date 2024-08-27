@@ -149,7 +149,8 @@ class ValueRepresentation {
      * @returns {string[]} The modified array, with the padding byte potentially removed from the last value.
      */
     dropPadByte(values) {
-        if (!Array.isArray(values) || !this.maxLength || !this.padByte) {
+        const maxLength = this.maxLength ?? this.maxCharLength;
+        if (!Array.isArray(values) || !maxLength || !this.padByte) {
             return values;
         }
 
@@ -162,8 +163,8 @@ class ValueRepresentation {
 
             // If the last element exceeds the max length by exactly one character and ends with the padding byte,
             // trim the padding byte to avoid a max length violation during write.
-            if (lastValue.length === this.maxLength + 1 && lastValue.endsWith(padChar)) {
-                values[lastIdx] = lastValue.substring(0, this.maxLength); // Trim the padding byte
+            if (lastValue.length === maxLength + 1 && lastValue.endsWith(padChar)) {
+                values[lastIdx] = lastValue.substring(0, maxLength); // Trim the padding byte
             }
         }
 
@@ -353,10 +354,6 @@ class AsciiStringRepresentation extends ValueRepresentation {
 
     readBytes(stream, length) {
         return stream.readAsciiString(length);
-    }
-
-    applyFormatting(value) {
-        return value.trim();
     }
 
     writeBytes(stream, value, writeOptions) {

@@ -2,11 +2,11 @@ import "regenerator-runtime/runtime.js";
 
 import fs from "fs";
 import dcmjs from "../src/index.js";
-import {deepEqual} from "../src/utilities/deepEqual";
+import { deepEqual } from "../src/utilities/deepEqual";
 
-import {getTestDataset} from "./testUtils";
+import { getTestDataset } from "./testUtils";
 
-const {DicomDict, DicomMessage} = dcmjs.data;
+const { DicomDict, DicomMessage } = dcmjs.data;
 
 
 describe('lossless-read-write', () => {
@@ -192,21 +192,6 @@ describe('lossless-read-write', () => {
         expect(deepEqual(expectedDataset, outputDicomDictPass2.dict)).toBeTruthy();
     });
 
-    test('test DA with multiplicity > 1 and added space for even padding is read and written correctly', () => {
-        const dataset = {
-            '00081160': {
-                vr: 'DA',
-                Value: ["20140601", "20140601 "],
-            }
-        };
-
-        const dicomDict = new DicomDict({});
-        dicomDict.dict = dataset;
-
-        // write and re-read
-        const outputDicomDict = DicomMessage.readFile(dicomDict.write());
-    });
-
     describe('Multiplicity for non-binary String VRs', () => {
         const maxLengthCases = [
             {
@@ -249,6 +234,27 @@ describe('lossless-read-write', () => {
                 Value: [123456789012, 123456789012],
                 _rawValue: ["123456789012", "123456789012"]
             },
+            {
+                vr: 'LO',
+                Value: ["ABCDEFGHIJKLMNOPQRSTUVWXABCDEFGHIJKLMNOPQRSTUVWXABCDEFGHIJKLMNOP", "ABCDEFGHIJKLMNOPQRSTUVWXABCDEFGHIJKLMNOPQRSTUVWXABCDEFGHIJKLMNOP"],
+                _rawValue: ["ABCDEFGHIJKLMNOPQRSTUVWXABCDEFGHIJKLMNOPQRSTUVWXABCDEFGHIJKLMNOP", "ABCDEFGHIJKLMNOPQRSTUVWXABCDEFGHIJKLMNOPQRSTUVWXABCDEFGHIJKLMNOP"]
+            },
+            {
+                vr: 'SH',
+                Value: ["ABCDEFGHIJKLMNOP", "ABCDEFGHIJKLMNOP"],
+                _rawValue: ["ABCDEFGHIJKLMNOP", "ABCDEFGHIJKLMNOP"]
+            },
+            {
+                vr: 'UI',
+                Value: ["1.2.840.12345678901234567890123456789012345678901234567890123456", "1.2.840.12345678901234567890123456789012345678901234567890123456"],
+                _rawValue: ["1.2.840.12345678901234567890123456789012345678901234567890123456", "1.2.840.12345678901234567890123456789012345678901234567890123456"]
+            },
+            {
+                vr: 'TM',
+                Value: ["142530.1234567", "142530.1234567"],
+                _rawValue: ["142530.1234567", "142530.1234567"],
+            },
+
         ];
 
         test.each(maxLengthCases)(
@@ -274,7 +280,7 @@ describe('lossless-read-write', () => {
                     }
                 };
 
-                expect(expectedDataset).toEqual(outputDicomDict.dict);
+                expect(outputDicomDict.dict).toEqual(expectedDataset);
 
                 // re-write should succeed without max length issues
                 const outputDicomDictPass2 = DicomMessage.readFile(outputDicomDict.write());
