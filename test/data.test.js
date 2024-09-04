@@ -1158,7 +1158,7 @@ describe("test_un_vr", () => {
                 '00041130',
                 'CS',
                 new Uint8Array([0x4F, 0x52, 0x49, 0x47, 0x49, 0x4E, 0x41, 0x4C, 0x20, 0x20, 0x5C, 0x20, 0x50, 0x52, 0x49, 0x4D, 0x41, 0x52, 0x59, 0x20]).buffer,
-                ["ORIGINAL  ", " PRIMARY "],
+                ["ORIGINAL  ", " PRIMARY"],
                 ["ORIGINAL", "PRIMARY"]
             ],
             [

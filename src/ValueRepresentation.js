@@ -161,10 +161,9 @@ class ValueRepresentation {
             const lastIdx = values.length - 1;
             const lastValue = values[lastIdx];
 
-            // If the last element exceeds the max length by exactly one character and ends with the padding byte,
-            // trim the padding byte to avoid a max length violation during write.
-            if (lastValue.length === maxLength + 1 && lastValue.endsWith(padChar)) {
-                values[lastIdx] = lastValue.substring(0, maxLength); // Trim the padding byte
+            // If the last element is odd and ends with the padding byte trim to avoid potential max length violations during write
+            if (lastValue.length % 2 !== 0 && lastValue.endsWith(padChar)) {
+                values[lastIdx] = lastValue.substring(0, lastValue.length - 1); // Trim the padding byte
             }
         }
 

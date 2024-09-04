@@ -160,6 +160,39 @@ describe('lossless-read-write', () => {
         expect(deepEqual(expectedDataset, outputDicomDictPass2.dict)).toBeTruthy();
     });
 
+    test('test DS with multiplicity > 1 with padding byte on last element within VR max length is losslessly read', () => {
+        const dataset = {
+            '00200037': {
+                vr: 'DS',
+                Value: [0.99924236548978, -0.0322633220972, -0.0217663285287, 0],
+                _rawValue: ["0.99924236548978", "-0.0322633220972", "-0.0217663285287", " +0.00 "]
+            }
+        };
+
+        const dicomDict = new DicomDict({});
+        dicomDict.dict = dataset;
+
+        // write and re-read
+        const outputDicomDict = DicomMessage.readFile(dicomDict.write());
+
+        // ensure _rawValue strings have no added trailing spaces and retain original encoding details for + and spaces
+        const expectedDataset = {
+            '00200037': {
+                vr: 'DS',
+                Value: [0.99924236548978, -0.0322633220972, -0.0217663285287, 0],
+                _rawValue: ["0.99924236548978", "-0.0322633220972", "-0.0217663285287", " +0.00"]
+            }
+        };
+
+        expect(outputDicomDict.dict).toEqual(expectedDataset);
+
+        // re-write should succeeed
+        const outputDicomDictPass2 = DicomMessage.readFile(outputDicomDict.write());
+
+        // dataset should still be equal
+        expect(outputDicomDictPass2.dict).toEqual(expectedDataset);
+    });
+
     test('test IS with multiplicity > 1 and added space for even padding is read and written correctly', () => {
         const dataset = {
             '00081160': {
@@ -179,17 +212,17 @@ describe('lossless-read-write', () => {
             '00081160': {
                 vr: 'IS',
                 Value: [1234, 5678],
-                _rawValue: ["1234", "5678 "]
+                _rawValue: ["1234", "5678"]
             }
         };
 
-        expect(deepEqual(expectedDataset, outputDicomDict.dict)).toBeTruthy();
+        expect(outputDicomDict.dict).toEqual(expectedDataset);
 
         // re-write should succeeed
         const outputDicomDictPass2 = DicomMessage.readFile(outputDicomDict.write());
 
         // dataset should still be equal
-        expect(deepEqual(expectedDataset, outputDicomDictPass2.dict)).toBeTruthy();
+        expect(outputDicomDictPass2.dict).toEqual(expectedDataset);
     });
 
     describe('Multiplicity for non-binary String VRs', () => {
@@ -311,7 +344,7 @@ describe('lossless-read-write', () => {
             },
             {
                 vr: "CS",
-                _rawValue: ["ORIGINAL  ", " PRIMARY "], // spaces non-significant for interpretation but allowed
+                _rawValue: ["ORIGINAL  ", " PRIMARY"], // spaces non-significant for interpretation but allowed
                 Value: ["ORIGINAL", "PRIMARY"],
             },
             {
