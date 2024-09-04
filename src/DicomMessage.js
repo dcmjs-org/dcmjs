@@ -376,8 +376,9 @@ class DicomMessage {
                 rawValues = rawValue;
                 values = value
                 if (typeof value === "string") {
-                    rawValues = rawValue.split(String.fromCharCode(VM_DELIMITER));
-                    values = value.split(String.fromCharCode(VM_DELIMITER));
+                    const delimiterChar = String.fromCharCode(VM_DELIMITER);
+                    rawValues = vr.dropPadByte(rawValue.split(delimiterChar))
+                    values = vr.dropPadByte(value.split(delimiterChar));
                 }
             } else if (vr.type == "SQ") {
                 rawValues = rawValue;

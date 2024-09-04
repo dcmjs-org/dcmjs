@@ -136,6 +136,41 @@ class ValueRepresentation {
         return tag;
     }
 
+    /**
+     * Removes padding byte, if it exists, from the last value in a multiple-value data element.
+     *
+     * This function ensures that data elements with multiple values maintain their integrity for lossless
+     * read/write operations. In cases where the last value of a multi-valued data element is at the maximum allowed length,
+     * an odd-length total can result in a padding byte being added. This padding byte, can cause a length violation
+     * when writing back to the file. To prevent this, we remove the padding byte if it is the only additional character
+     * in the last element. Otherwise, it leaves the values as-is to minimize changes to the original data.
+     *
+     * @param {string[]} values - An array of strings representing the values of a DICOM data element.
+     * @returns {string[]} The modified array, with the padding byte potentially removed from the last value.
+     */
+    dropPadByte(values) {
+        const maxLength = this.maxLength ?? this.maxCharLength;
+        if (!Array.isArray(values) || !maxLength || !this.padByte) {
+            return values;
+        }
+
+        // Only consider multiple-value data elements, as max length issues arise from a delimiter
+        // making the total length odd and necessitating a padding byte.
+        if (values.length > 1) {
+            const padChar = String.fromCharCode(this.padByte);
+            const lastIdx = values.length - 1;
+            const lastValue = values[lastIdx];
+
+            // If the last element is odd and ends with the padding byte trim to avoid potential max length violations during write
+            if (lastValue.length % 2 !== 0 && lastValue.endsWith(padChar)) {
+                values[lastIdx] = lastValue.substring(0, lastValue.length - 1); // Trim the padding byte
+            }
+        }
+
+        return values;
+    }
+
+
     read(stream, length, syntax, readOptions = { forceStoreRaw: false }) {
         if (this.fixed && this.maxLength) {
             if (!length) return this.defaultValue;
@@ -604,7 +639,7 @@ class CodeString extends AsciiStringRepresentation {
 
     readBytes(stream, length) {
         const BACKSLASH = String.fromCharCode(VM_DELIMITER);
-        return stream.readAsciiString(length).split(BACKSLASH);
+        return this.dropPadByte(stream.readAsciiString(length).split(BACKSLASH));
     }
 
     applyFormatting(value) {
@@ -654,29 +689,28 @@ class AttributeTag extends ValueRepresentation {
 class DateValue extends AsciiStringRepresentation {
     constructor(value) {
         super("DA", value);
-        this.maxLength = 18;
+        this.maxLength = 8;
         this.padByte = PADDING_SPACE;
         //this.fixed = true;
         this.defaultValue = "";
     }
 }
 
-class DecimalString extends AsciiStringRepresentation {
+class NumericStringRepresentation extends AsciiStringRepresentation {
+
+    readBytes(stream, length) {
+        const BACKSLASH = String.fromCharCode(VM_DELIMITER);
+        const numStr = stream.readAsciiString(length);
+
+        return this.dropPadByte(numStr.split(BACKSLASH));
+    }
+}
+
+class DecimalString extends NumericStringRepresentation {
     constructor() {
         super("DS");
         this.maxLength = 16;
         this.padByte = PADDING_SPACE;
-    }
-
-    readBytes(stream, length) {
-        const BACKSLASH = String.fromCharCode(VM_DELIMITER);
-        const ds = stream.readAsciiString(length);
-        if (ds.indexOf(BACKSLASH) !== -1) {
-            // handle decimal string with multiplicity
-            return ds.split(BACKSLASH);
-        }
-
-        return [ds];
     }
 
     applyFormatting(value) {
@@ -694,6 +728,7 @@ class DecimalString extends AsciiStringRepresentation {
 
     convertToString(value) {
         if (value === null) return "";
+        if (typeof value === 'string') return value;
 
         let str = String(value);
         if (str.length > this.maxLength) {
@@ -798,23 +833,11 @@ class FloatingPointDouble extends ValueRepresentation {
     }
 }
 
-class IntegerString extends AsciiStringRepresentation {
+class IntegerString extends NumericStringRepresentation {
     constructor() {
         super("IS");
         this.maxLength = 12;
         this.padByte = PADDING_SPACE;
-    }
-
-    readBytes(stream, length) {
-        const BACKSLASH = String.fromCharCode(VM_DELIMITER);
-        const is = stream.readAsciiString(length);
-
-        if (is.indexOf(BACKSLASH) !== -1) {
-            // handle integer string with multiplicity
-            return is.split(BACKSLASH);
-        }
-
-        return [is];
     }
 
     applyFormatting(value) {
@@ -831,6 +854,7 @@ class IntegerString extends AsciiStringRepresentation {
     }
 
     convertToString(value) {
+        if (typeof value === 'string') return value;
         return value === null ? "" : String(value);
     }
 
@@ -1299,7 +1323,7 @@ class UniqueIdentifier extends AsciiStringRepresentation {
         if (result.indexOf(BACKSLASH) === -1) {
             return result
         } else {
-            return result.split(BACKSLASH)
+            return this.dropPadByte(result.split(BACKSLASH));
         }
     }
 
