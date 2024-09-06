@@ -299,10 +299,10 @@ class MeasurementStatisticalProperties extends Template {
                     schemeDesignator: "DCM",
                     meaning: "Population Description"
                 }),
-                value: options.authority,
+                value: options.description,
                 relationshipType: RelationshipTypes.HAS_PROPERTIES
             });
-            this.push(authorityItem);
+            this.push(descriptionItem);
         }
         if (options.authority !== undefined) {
             const authorityItem = new TextContentItem({
@@ -353,10 +353,10 @@ class NormalRangeProperties extends Template {
                     schemeDesignator: "DCM",
                     meaning: "Normal Range Description"
                 }),
-                value: options.authority,
+                value: options.description,
                 relationshipType: RelationshipTypes.HAS_PROPERTIES
             });
-            this.push(authorityItem);
+            this.push(descriptionItem);
         }
         if (options.authority !== undefined) {
             const authorityItem = new TextContentItem({
