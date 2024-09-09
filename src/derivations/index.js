@@ -4,6 +4,7 @@ import DerivedImage from "./DerivedImage";
 import Segmentation from "./Segmentation";
 import ParametricMap from "./ParametricMap";
 import StructuredReport from "./StructuredReport";
+import RTSS from "./RTSS";
 
 export {
     DerivedDataset,
@@ -11,5 +12,6 @@ export {
     DerivedImage,
     Segmentation,
     ParametricMap,
-    StructuredReport
+    StructuredReport,
+    RTSS
 };
