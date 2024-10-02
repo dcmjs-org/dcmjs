@@ -51,6 +51,8 @@ class Normalizer {
             PETImageNormalizer;
         sopClassUIDMap[toUID.Segmentation] = SEGImageNormalizer;
         sopClassUIDMap[toUID.DeformableSpatialRegistration] = DSRNormalizer;
+        sopClassUIDMap[toUID.OphthalmicPhotography8BitImage] =
+            OPImageNormalizer;
         return sopClassUIDMap[sopClassUID];
     }
 
@@ -531,6 +533,12 @@ class DSRNormalizer extends Normalizer {
     }
 }
 
+class OPImageNormalizer extends Normalizer {
+    normalize() {
+        this.dataset = this.datasets[0]; // only one dataset per series and for now we assume it is normalized
+    }
+}
+
 export { Normalizer };
 export { ImageNormalizer };
 export { MRImageNormalizer };
@@ -543,3 +551,4 @@ export { PETImageNormalizer };
 export { SEGImageNormalizer };
 export { PMImageNormalizer };
 export { DSRNormalizer };
+export { OPImageNormalizer };
