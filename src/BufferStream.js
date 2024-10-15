@@ -370,7 +370,7 @@ class ReadBufferStream extends BufferStream {
         throw new Error(value, "writeUint8 not implemented");
     }
 
-    writeUint8Repeat(value) {
+    writeUint8Repeat(value, count) {
         throw new Error(value, "writeUint8Repeat not implemented");
     }
 
