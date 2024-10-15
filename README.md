@@ -163,3 +163,7 @@ The developers gratefully acknowledge their research support:
 - The [Neuroimage Analysis Center](http://nac.spl.harvard.edu)
 - The [National Center for Image Guided Therapy](http://ncigt.org)
 - The [NCI Imaging Data Commons](https://imagingdatacommons.github.io/) NCI Imaging Data Commons: contract number 19X037Q from Leidos Biomedical Research under Task Order HHSN26100071 from NCI
+
+## Logging
+
+This library uses [loglevel](https://github.com/pimterry/loglevel) for logging. By default, the log level is set to "warn". You can change the log level by setting the `LOG_LEVEL` environment variable or by using the `setLevel` method in your code.

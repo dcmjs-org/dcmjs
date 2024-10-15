@@ -170,7 +170,6 @@ class ValueRepresentation {
         return values;
     }
 
-
     read(stream, length, syntax, readOptions = { forceStoreRaw: false }) {
         if (this.fixed && this.maxLength) {
             if (!length) return this.defaultValue;
@@ -293,7 +292,7 @@ class ValueRepresentation {
                     checkValue +
                     ", length: " +
                     displaylen;
-                if (isString) log.log(errmsg);
+                if (isString) log.info(errmsg);
                 else throw new Error(errmsg);
             }
             total += checklen;
@@ -639,14 +638,16 @@ class CodeString extends AsciiStringRepresentation {
 
     readBytes(stream, length) {
         const BACKSLASH = String.fromCharCode(VM_DELIMITER);
-        return this.dropPadByte(stream.readAsciiString(length).split(BACKSLASH));
+        return this.dropPadByte(
+            stream.readAsciiString(length).split(BACKSLASH)
+        );
     }
 
     applyFormatting(value) {
-        const trim = (str) => str.trim();
+        const trim = str => str.trim();
 
         if (Array.isArray(value)) {
-            return value.map((str) => trim(str));
+            return value.map(str => trim(str));
         }
 
         return trim(value);
@@ -697,7 +698,6 @@ class DateValue extends AsciiStringRepresentation {
 }
 
 class NumericStringRepresentation extends AsciiStringRepresentation {
-
     readBytes(stream, length) {
         const BACKSLASH = String.fromCharCode(VM_DELIMITER);
         const numStr = stream.readAsciiString(length);
@@ -714,10 +714,10 @@ class DecimalString extends NumericStringRepresentation {
     }
 
     applyFormatting(value) {
-        const formatNumber = (numberStr) => {
+        const formatNumber = numberStr => {
             let returnVal = numberStr.trim().replace(/[^0-9.\\\-+e]/gi, "");
             return returnVal === "" ? null : Number(returnVal);
-        }
+        };
 
         if (Array.isArray(value)) {
             return value.map(formatNumber);
@@ -728,7 +728,7 @@ class DecimalString extends NumericStringRepresentation {
 
     convertToString(value) {
         if (value === null) return "";
-        if (typeof value === 'string') return value;
+        if (typeof value === "string") return value;
 
         let str = String(value);
         if (str.length > this.maxLength) {
@@ -841,10 +841,10 @@ class IntegerString extends NumericStringRepresentation {
     }
 
     applyFormatting(value) {
-        const formatNumber = (numberStr) => {
+        const formatNumber = numberStr => {
             let returnVal = numberStr.trim().replace(/[^0-9.\\\-+e]/gi, "");
             return returnVal === "" ? null : Number(returnVal);
-        }
+        };
 
         if (Array.isArray(value)) {
             return value.map(formatNumber);
@@ -854,7 +854,7 @@ class IntegerString extends NumericStringRepresentation {
     }
 
     convertToString(value) {
-        if (typeof value === 'string') return value;
+        if (typeof value === "string") return value;
         return value === null ? "" : String(value);
     }
 
@@ -967,14 +967,17 @@ class PersonName extends EncodedStringRepresentation {
     }
 
     readBytes(stream, length) {
-        return this.readPaddedEncodedString(stream, length).split(String.fromCharCode(VM_DELIMITER));
+        return this.readPaddedEncodedString(stream, length).split(
+            String.fromCharCode(VM_DELIMITER)
+        );
     }
 
     applyFormatting(value) {
-        const parsePersonName = (valueStr) => dicomJson.pnConvertToJsonObject(valueStr, false);
+        const parsePersonName = valueStr =>
+            dicomJson.pnConvertToJsonObject(valueStr, false);
 
         if (Array.isArray(value)) {
-            return value.map((valueStr) => parsePersonName(valueStr));
+            return value.map(valueStr => parsePersonName(valueStr));
         }
 
         return parsePersonName(value);
@@ -1321,16 +1324,16 @@ class UniqueIdentifier extends AsciiStringRepresentation {
         // https://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_6.4.html
 
         if (result.indexOf(BACKSLASH) === -1) {
-            return result
+            return result;
         } else {
             return this.dropPadByte(result.split(BACKSLASH));
         }
     }
 
     applyFormatting(value) {
-        const removeInvalidUidChars = (uidStr) => {
+        const removeInvalidUidChars = uidStr => {
             return uidStr.replace(/[^0-9.]/g, "");
-        }
+        };
 
         if (Array.isArray(value)) {
             return value.map(removeInvalidUidChars);
@@ -1385,7 +1388,12 @@ class ParsedUnknownValue extends BinaryRepresentation {
                 i = 0;
 
             while (i++ < times) {
-                const { rawValue, value } = vr.read(streamFromBuffer, vr.maxLength, syntax, readOptions);
+                const { rawValue, value } = vr.read(
+                    streamFromBuffer,
+                    vr.maxLength,
+                    syntax,
+                    readOptions
+                );
                 rawValues.push(rawValue);
                 values.push(value);
             }
@@ -1466,4 +1474,4 @@ let VRinstances = {
     UT: new UnlimitedText()
 };
 
-export {ValueRepresentation};
+export { ValueRepresentation };
