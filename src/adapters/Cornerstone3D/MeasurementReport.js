@@ -379,7 +379,7 @@ export default class MeasurementReport {
             measurementData[key] = [];
         });
 
-        measurementGroups.forEach((measurementGroup, index) => {
+        measurementGroups.forEach(measurementGroup => {
             const measurementGroupContentSequence = toArray(
                 measurementGroup.ContentSequence
             );

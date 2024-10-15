@@ -56022,7 +56022,7 @@ const dictionary = {
         name: "Unknown",
         vm: "1-n",
         version: "PrivateTag"
-    },
+    }
 };
 
 export default dictionary;

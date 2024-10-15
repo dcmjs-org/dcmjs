@@ -1,11 +1,8 @@
 import MeasurementReport from "./MeasurementReport";
 import TID300Ellipse from "../../utilities/TID300/Ellipse";
 import CORNERSTONE_4_TAG from "./cornerstone4Tag";
-import { toArray } from "../helpers.js";
 
 const ELLIPTICALROI = "EllipticalRoi";
-const FINDING = "121071";
-const FINDING_SITE = "G-C0E3";
 
 class EllipticalRoi {
     constructor() {}

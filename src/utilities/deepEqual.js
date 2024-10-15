@@ -13,7 +13,12 @@ export function deepEqual(obj1, obj2) {
     }
 
     // expect objects or a null instance if initial check failed
-    if (typeof obj1 !== 'object' || typeof obj2 !== 'object' || obj1 === null || obj2 === null) {
+    if (
+        typeof obj1 !== "object" ||
+        typeof obj2 !== "object" ||
+        obj1 === null ||
+        obj2 === null
+    ) {
         return false;
     }
 

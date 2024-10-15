@@ -9,8 +9,6 @@ import ndarray from "ndarray";
 export default function (matrix) {
     const [rows, cols] = matrix.shape;
 
-    //debugPrintMatrix(matrix);
-
     let result = ndarray(new Uint8Array(rows * cols), [cols, rows]);
 
     let resultColsMinus1 = result.shape[1] - 1;
@@ -21,19 +19,5 @@ export default function (matrix) {
         }
     }
 
-    //debugPrintMatrix(result);
-
     return result;
-}
-
-function debugPrintMatrix(m) {
-    console.log(`shape: (${m.shape[0]}, ${m.shape[1]})`);
-
-    for (let i = 0; i < m.shape[0]; i++) {
-        let row = "";
-        for (let j = 0; j < m.shape[1]; j++) {
-            row += `${m.get(i, j)} `;
-        }
-        console.log(row);
-    }
 }

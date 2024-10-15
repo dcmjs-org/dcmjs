@@ -371,7 +371,9 @@ class ReadBufferStream extends BufferStream {
     }
 
     writeUint8Repeat(value, count) {
-        throw new Error(value, "writeUint8Repeat not implemented");
+        throw new Error(
+            `writeUint8Repeat not implemented (value: ${value}, count: ${count})`
+        );
     }
 
     writeInt8(value) {

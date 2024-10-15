@@ -50,7 +50,7 @@ class Colors {
         if (n <= 0.0031306684425005883) {
             return 12.92 * n;
         } else {
-            return 1.055 * Math.pow(n, 0.416666666666666667) - 0.055;
+            return 1.055 * Math.pow(n, 1 / 2.4) - 0.055;
         }
     }
 

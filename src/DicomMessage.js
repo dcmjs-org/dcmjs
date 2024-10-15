@@ -277,7 +277,9 @@ class DicomMessage {
 
         // apply VR specific formatting to the original _rawValue and compare to the Value
         const vr = ValueRepresentation.createByTypeString(vrType);
-        const originalValue = tagObject._rawValue.map((val) => vr.applyFormatting(val))
+        const originalValue = tagObject._rawValue.map(val =>
+            vr.applyFormatting(val)
+        );
 
         // if Value has not changed, write _rawValue unformatted back into the file
         if (deepEqual(tagObject.Value, originalValue)) {
@@ -366,18 +368,28 @@ class DicomMessage {
             var times = length / vr.maxLength,
                 i = 0;
             while (i++ < times) {
-                const { rawValue, value } = vr.read(stream, vr.maxLength, syntax, options);
+                const { rawValue, value } = vr.read(
+                    stream,
+                    vr.maxLength,
+                    syntax,
+                    options
+                );
                 rawValues.push(rawValue);
                 values.push(value);
             }
         } else {
-            const { rawValue, value } = vr.read(stream, length, syntax, options);
+            const { rawValue, value } = vr.read(
+                stream,
+                length,
+                syntax,
+                options
+            );
             if (!vr.isBinary() && singleVRs.indexOf(vr.type) == -1) {
                 rawValues = rawValue;
-                values = value
+                values = value;
                 if (typeof value === "string") {
                     const delimiterChar = String.fromCharCode(VM_DELIMITER);
-                    rawValues = vr.dropPadByte(rawValue.split(delimiterChar))
+                    rawValues = vr.dropPadByte(rawValue.split(delimiterChar));
                     values = vr.dropPadByte(value.split(delimiterChar));
                 }
             } else if (vr.type == "SQ") {
@@ -388,7 +400,9 @@ class DicomMessage {
                 values = value;
             } else {
                 Array.isArray(value) ? (values = value) : values.push(value);
-                Array.isArray(rawValue) ? (rawValues = rawValue) : rawValues.push(rawValue);
+                Array.isArray(rawValue)
+                    ? (rawValues = rawValue)
+                    : rawValues.push(rawValue);
             }
         }
         stream.setEndian(oldEndian);

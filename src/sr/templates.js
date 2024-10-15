@@ -1,32 +1,22 @@
 import { Code, CodedConcept } from "./coding.js";
 import {
     CodeContentItem,
-    CompositeContentItem,
     ContainerContentItem,
     ContentSequence,
-    GraphicTypes,
-    GraphicTypes3D,
-    ImageContentItem,
     NumContentItem,
-    PixelOriginInterpretations,
     PNameContentItem,
     RelationshipTypes,
-    ScoordContentItem,
-    Scoord3DContentItem,
     TextContentItem,
     UIDRefContentItem
 } from "./valueTypes.js";
 import {
     FindingSite,
-    LongitudinalTemporalOffsetFromEvent,
     ImageRegion,
     ImageRegion3D,
     ReferencedSegmentation,
     ReferencedSegmentationFrame,
     VolumeSurface,
-    ReferencedRealWorldValueMap,
-    SourceImageForSegmentation,
-    SourceSeriesForSegmentation
+    ReferencedRealWorldValueMap
 } from "./contentItems.js";
 
 class Template extends ContentSequence {
@@ -201,7 +191,7 @@ class MeasurementProperties extends Template {
                         "MeasurementStatisticalProperties."
                 );
             }
-            this.push(...measurementStatisticalProperties);
+            this.push(...options.measurementStatisticalProperties);
         }
         if (options.normalRangeProperties !== undefined) {
             if (
@@ -212,7 +202,7 @@ class MeasurementProperties extends Template {
                     "Option 'normalRangeProperties' must have type NormalRangeProperties."
                 );
             }
-            this.push(...normalRangeProperties);
+            this.push(...options.normalRangeProperties);
         }
         if (options.levelOfSignificance !== undefined) {
             const levelOfSignificanceItem = new CodeContentItem({
@@ -302,7 +292,7 @@ class MeasurementStatisticalProperties extends Template {
                 value: options.authority,
                 relationshipType: RelationshipTypes.HAS_PROPERTIES
             });
-            this.push(authorityItem);
+            this.push(descriptionItem);
         }
         if (options.authority !== undefined) {
             const authorityItem = new TextContentItem({
@@ -321,7 +311,7 @@ class MeasurementStatisticalProperties extends Template {
 
 class NormalRangeProperties extends Template {
     constructor(options) {
-        super();
+        super(options);
         if (options.values === undefined) {
             throw new Error(
                 "Option 'values' is required for NormalRangeProperties."
@@ -356,7 +346,7 @@ class NormalRangeProperties extends Template {
                 value: options.authority,
                 relationshipType: RelationshipTypes.HAS_PROPERTIES
             });
-            this.push(authorityItem);
+            this.push(descriptionItem);
         }
         if (options.authority !== undefined) {
             const authorityItem = new TextContentItem({
@@ -786,6 +776,7 @@ class SubjectContextSpecimen extends Template {
 
 class SubjectContextDevice extends Template {
     constructor(options) {
+        super(options);
         if (options.name === undefined) {
             throw new Error(
                 "Option 'name' is required for SubjectContextDevice."
@@ -947,7 +938,7 @@ class _MeasurementsAndQualitatitiveEvaluations extends Template {
                     "Option 'timePointContext' must have type TimePointContext."
                 );
             }
-            groupItem.ContentSequence.push(...timePointContext);
+            groupItem.ContentSequence.push(...options.timePointContext);
         }
         if (options.referencedRealWorldValueMap !== undefined) {
             if (
@@ -1077,7 +1068,7 @@ class _ROIMeasurementsAndQualitativeEvaluations extends _MeasurementsAndQualitat
                     "Items of option 'referencedVolume' must have type VolumeSurface."
                 );
             }
-            groupItem.ContentSequence.push(referencedVolume);
+            groupItem.ContentSequence.push(options.referencedVolume);
         } else if (options.referencedSegmentation !== undefined) {
             if (
                 options.referencedSegmentation.constructor !==
@@ -1090,7 +1081,7 @@ class _ROIMeasurementsAndQualitativeEvaluations extends _MeasurementsAndQualitat
                         "ReferencedSegmentation or ReferencedSegmentationFrame."
                 );
             }
-            groupItem.ContentSequence.push(referencedSegmentation);
+            groupItem.ContentSequence.push(options.referencedSegmentation);
         }
         this[0] = groupItem;
     }
@@ -1146,6 +1137,7 @@ class VolumetricROIMeasurementsAndQualitativeEvaluations extends _ROIMeasurement
 
 class MeasurementsDerivedFromMultipleROIMeasurements extends Template {
     constructor(options) {
+        super(options);
         if (options.derivation === undefined) {
             throw new Error(
                 "Option 'derivation' is required for " +
@@ -1406,6 +1398,7 @@ class MeasurementReport extends Template {
 
 class TimePointContext extends Template {
     constructor(options) {
+        super(options);
         if (options.timePoint === undefined) {
             throw new Error(
                 "Option 'timePoint' is required for TimePointContext."
@@ -1470,22 +1463,23 @@ class TimePointContext extends Template {
             this.push(protocolTimePointIdentifierItem);
         }
         if (options.temporalOffsetFromEvent !== undefined) {
-            if (
-                options.temporalOffsetFromEvent.constructor !==
-                LongitudinalTemporalOffsetFromEventContentItem
-            ) {
-                throw new Error(
-                    "Option 'temporalOffsetFromEvent' must have type " +
-                        "LongitudinalTemporalOffsetFromEventContentItem."
-                );
-            }
-            this.push(temporalOffsetFromEvent);
+            // TODO: Missing LongitudinalTemporalOffsetFromEventContentItem
+            // if (
+            //     options.temporalOffsetFromEvent.constructor !==
+            //     LongitudinalTemporalOffsetFromEventContentItem
+            // ) {
+            //     throw new Error(
+            //         "Option 'temporalOffsetFromEvent' must have type " +
+            //             "LongitudinalTemporalOffsetFromEventContentItem."
+            //     );
+            // }
+            this.push(options.temporalOffsetFromEvent);
         }
     }
 }
 
 class ImageLibrary extends Template {
-    constructor(options) {
+    constructor() {
         super();
         const libraryItem = new ContainerContentItem({
             name: new CodedConcept({
@@ -1548,7 +1542,7 @@ class AlgorithmIdentification extends Template {
                         meaning: "Algorithm Parameter",
                         schemeDesignator: "DCM"
                     }),
-                    value: param,
+                    value: parameter,
                     relationshipType: RelationshipTypes.HAS_CONCEPT_MOD
                 });
                 this.push(parameterItem);
@@ -1559,7 +1553,7 @@ class AlgorithmIdentification extends Template {
 
 class TrackingIdentifier extends Template {
     constructor(options) {
-        super();
+        super(options);
         if (options.uid === undefined) {
             throw new Error("Option 'uid' is required for TrackingIdentifier.");
         }
