@@ -139,7 +139,6 @@ it("noCopy test_multiframe_1", async () => {
     const mrHeadPath = path.join(unzipPath, "MRHead");
     const fileNames = await fsPromises.readdir(mrHeadPath);
 
-    const datasets = [];
     fileNames.forEach(fileName => {
         const arrayBuffer = fs.readFileSync(
             path.join(mrHeadPath, fileName)

@@ -161,6 +161,7 @@ export default class Segmentation {
             dataset.SegmentSequence = [dataset.SegmentSequence];
         }
 
+        const segments = {};
         dataset.SegmentSequence.forEach(segment => {
             // TODO: other interesting fields could be extracted from the segment
             // TODO: Read SegmentsOverlay field

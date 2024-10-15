@@ -1,4 +1,3 @@
-import { DicomMetaDictionary } from "../../DicomMetaDictionary.js";
 import TID300Measurement from "./TID300Measurement.js";
 
 export default class CobbAngle extends TID300Measurement {

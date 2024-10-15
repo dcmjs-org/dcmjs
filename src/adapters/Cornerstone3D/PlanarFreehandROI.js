@@ -4,9 +4,6 @@ import CORNERSTONE_3D_TAG from "./cornerstone3DTag";
 import { vec3 } from "gl-matrix";
 
 const PLANARFREEHANDROI = "PlanarFreehandROI";
-const perimeterCodeValue = "131191004";
-const sctCodingSchemeDesignator = "SCT";
-const polylineGraphicType = "POLYLINE";
 const trackingIdentifierTextValue = `${CORNERSTONE_3D_TAG}:${PLANARFREEHANDROI}`;
 const closedContourThreshold = 1e-5;
 

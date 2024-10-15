@@ -29,7 +29,6 @@ function unzip(zipFilePath, targetPath) {
         try {
             // reading archives
             var zip = new AdmZip(zipFilePath);
-            var zipEntries = zip.getEntries(); // an array of ZipEntry records
             // extracts everything
             zip.extractAllTo(targetPath, true);
             resolve();
@@ -76,7 +75,7 @@ async function getTestDataset(url, filename) {
     let filePromise = asyncDownloadMap.get(targetPath);
     if (!filePromise && !fs.existsSync(targetPath)) {
         filePromise = downloadToFile(url, targetPath);
-        asyncDownloadMap.set(targetPath,filePromise);
+        asyncDownloadMap.set(targetPath, filePromise);
     }
     // This returns immediately if filePromise is undefined - eg if the file already downloaded.
     await filePromise;

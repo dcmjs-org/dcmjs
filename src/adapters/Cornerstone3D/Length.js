@@ -3,8 +3,6 @@ import TID300Length from "../../utilities/TID300/Length.js";
 import CORNERSTONE_3D_TAG from "./cornerstone3DTag";
 
 const LENGTH = "Length";
-const FINDING = "121071";
-const FINDING_SITE = "G-C0E3";
 const trackingIdentifierTextValue = `${CORNERSTONE_3D_TAG}:${LENGTH}`;
 
 class Length {

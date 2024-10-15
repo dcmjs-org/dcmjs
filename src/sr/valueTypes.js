@@ -70,10 +70,6 @@ function isFloat(n) {
     return n === +n && n !== (n | 0);
 }
 
-function isInteger(n) {
-    return n === +n && n === (n | 0);
-}
-
 function zeroPad(value) {
     return (value > 9 ? "" : "0") + value;
 }
@@ -271,7 +267,7 @@ class DateTimeContentItem extends ContentItem {
         ) {
             throw new Error("Option 'value' must have type Date.");
         }
-        this.DateTime = DT(otions.value);
+        this.DateTime = DT(options.value);
     }
 }
 
@@ -641,7 +637,7 @@ class Scoord3DContentItem extends ContentItem {
             ) {
                 throw new Error("Option 'fiducialUID' must have type String.");
             }
-            this.FiducialUID = fiducialUID;
+            this.FiducialUID = options.fiducialUID;
         }
     }
 }

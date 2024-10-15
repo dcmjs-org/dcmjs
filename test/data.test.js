@@ -357,9 +357,13 @@ it("test_exponential_notation", () => {
     dataset.ImagePositionPatient[2] = 7.1945578383e-5;
     const buffer = data.write();
     const copy = dcmjs.data.DicomMessage.readFile(buffer);
-    const datasetCopy = dcmjs.data.DicomMetaDictionary.naturalizeDataset(copy.dict);
+    const datasetCopy = dcmjs.data.DicomMetaDictionary.naturalizeDataset(
+        copy.dict
+    );
 
-    expect(dataset.ImagePositionPatient).toEqual(datasetCopy.ImagePositionPatient);
+    expect(dataset.ImagePositionPatient).toEqual(
+        datasetCopy.ImagePositionPatient
+    );
 });
 
 it("test_output_equality", () => {
@@ -1113,15 +1117,19 @@ describe("test_un_vr", () => {
         const expectedExposureIndex = 662;
         const expectedDeviationIndex = -1.835;
 
-        const url = "https://github.com/dcmjs-org/data/releases/download/unknown-VR/sample-dicom-with-un-vr.dcm";
-        const dcmPath = await getTestDataset(url, "sample-dicom-with-un-vr.dcm");
+        const url =
+            "https://github.com/dcmjs-org/data/releases/download/unknown-VR/sample-dicom-with-un-vr.dcm";
+        const dcmPath = await getTestDataset(
+            url,
+            "sample-dicom-with-un-vr.dcm"
+        );
 
         const file = await promisify(fs.readFile)(dcmPath);
         const dicomData = dcmjs.data.DicomMessage.readFile(file.buffer, {
             ignoreErrors: false,
             untilTag: null,
             includeUntilTagValue: false,
-            noCopy: false,
+            noCopy: false
         });
         const dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(
             dicomData.dict
@@ -1134,201 +1142,294 @@ describe("test_un_vr", () => {
     describe("Test other VRs encoded as UN", () => {
         test.each([
             [
-                '00000600',
-                'AE',
-                new Uint8Array([0x20, 0x20, 0x54, 0x45, 0x53, 0x54, 0x5F, 0x41, 0x45, 0x20]).buffer,
+                "00000600",
+                "AE",
+                new Uint8Array([
+                    0x20, 0x20, 0x54, 0x45, 0x53, 0x54, 0x5f, 0x41, 0x45, 0x20
+                ]).buffer,
                 ["  TEST_AE "],
                 ["TEST_AE"]
             ],
             [
-                '00101010',
-                'AS',
+                "00101010",
+                "AS",
                 new Uint8Array([0x30, 0x34, 0x35, 0x59]).buffer,
                 ["045Y"],
                 ["045Y"]
             ],
             [
-                '00280009',
-                'AT',
+                "00280009",
+                "AT",
                 new Uint8Array([0x63, 0x10, 0x18, 0x00]).buffer,
                 [0x10630018],
                 [0x10630018]
             ],
             [
-                '00041130',
-                'CS',
-                new Uint8Array([0x4F, 0x52, 0x49, 0x47, 0x49, 0x4E, 0x41, 0x4C, 0x20, 0x20, 0x5C, 0x20, 0x50, 0x52, 0x49, 0x4D, 0x41, 0x52, 0x59, 0x20]).buffer,
+                "00041130",
+                "CS",
+                new Uint8Array([
+                    0x4f, 0x52, 0x49, 0x47, 0x49, 0x4e, 0x41, 0x4c, 0x20, 0x20,
+                    0x5c, 0x20, 0x50, 0x52, 0x49, 0x4d, 0x41, 0x52, 0x59, 0x20
+                ]).buffer,
                 ["ORIGINAL  ", " PRIMARY"],
                 ["ORIGINAL", "PRIMARY"]
             ],
             [
-                '00181012',
-                'DA',
-                new Uint8Array([0x32, 0x30, 0x32, 0x34, 0x30, 0x31, 0x30, 0x31]).buffer,
+                "00181012",
+                "DA",
+                new Uint8Array([0x32, 0x30, 0x32, 0x34, 0x30, 0x31, 0x30, 0x31])
+                    .buffer,
                 ["20240101"],
                 ["20240101"]
             ],
             [
-                '00181041',
-                'DS',
-                new Uint8Array([0x30, 0x30, 0x30, 0x30, 0x31, 0x32, 0x33, 0x2E, 0x34, 0x35]).buffer,
+                "00181041",
+                "DS",
+                new Uint8Array([
+                    0x30, 0x30, 0x30, 0x30, 0x31, 0x32, 0x33, 0x2e, 0x34, 0x35
+                ]).buffer,
                 ["0000123.45"],
                 [123.45]
             ],
             [
-                '00181078',
-                'DT',
-                new Uint8Array([0x32, 0x30, 0x32, 0x34, 0x30, 0x31, 0x30, 0x31, 0x31, 0x32, 0x33, 0x30, 0x34, 0x35, 0x2E, 0x31, 0x20, 0x20]).buffer,
+                "00181078",
+                "DT",
+                new Uint8Array([
+                    0x32, 0x30, 0x32, 0x34, 0x30, 0x31, 0x30, 0x31, 0x31, 0x32,
+                    0x33, 0x30, 0x34, 0x35, 0x2e, 0x31, 0x20, 0x20
+                ]).buffer,
                 ["20240101123045.1  "],
                 ["20240101123045.1  "]
             ],
             [
-                '00182043',
-                'FL',
-                new Uint8Array([0x66, 0x66, 0xA6, 0x3F, 0x66, 0x66, 0xA6, 0x3F]).buffer,
+                "00182043",
+                "FL",
+                new Uint8Array([0x66, 0x66, 0xa6, 0x3f, 0x66, 0x66, 0xa6, 0x3f])
+                    .buffer,
                 [1.2999999523162842, 1.2999999523162842],
                 [1.2999999523162842, 1.2999999523162842]
             ],
             [
-                '00186028',
-                'FD',
-                new Uint8Array([0x11, 0x2D, 0x44, 0x54, 0xFB, 0x21, 0x09, 0x40]).buffer,
+                "00186028",
+                "FD",
+                new Uint8Array([0x11, 0x2d, 0x44, 0x54, 0xfb, 0x21, 0x09, 0x40])
+                    .buffer,
                 [3.14159265358979],
                 [3.14159265358979]
             ],
             [
-                '00200012',
-                'IS',
-                new Uint8Array([0x20,0x2B,0x32,0x37,0x38,0x39,0x33,0x20]).buffer,
+                "00200012",
+                "IS",
+                new Uint8Array([0x20, 0x2b, 0x32, 0x37, 0x38, 0x39, 0x33, 0x20])
+                    .buffer,
                 [" +27893 "],
                 [27893]
             ],
             [
-                '0018702A',
-                'LO',
-                new Uint8Array([0x20,0x20,0x46,0x65,0x65,0x6C,0x69,0x6E,0x67,0x20,0x6E,0x61,0x75,0x73,0x65,0x6F,0x75,0x73,0x20,0x20]).buffer,
+                "0018702A",
+                "LO",
+                new Uint8Array([
+                    0x20, 0x20, 0x46, 0x65, 0x65, 0x6c, 0x69, 0x6e, 0x67, 0x20,
+                    0x6e, 0x61, 0x75, 0x73, 0x65, 0x6f, 0x75, 0x73, 0x20, 0x20
+                ]).buffer,
                 ["  Feeling nauseous  "],
                 ["Feeling nauseous"]
             ],
             [
-                '00187040',
-                'LT',
-                new Uint8Array([0x20,0x20,0x46,0x65,0x65,0x6C,0x69,0x6E,0x67,0x20,0x6E,0x61,0x75,0x73,0x65,0x6F,0x75,0x73,0x20,0x20]).buffer,
+                "00187040",
+                "LT",
+                new Uint8Array([
+                    0x20, 0x20, 0x46, 0x65, 0x65, 0x6c, 0x69, 0x6e, 0x67, 0x20,
+                    0x6e, 0x61, 0x75, 0x73, 0x65, 0x6f, 0x75, 0x73, 0x20, 0x20
+                ]).buffer,
                 ["  Feeling nauseous  "],
                 ["  Feeling nauseous"]
             ],
             [
-                '00282000',
-                'OB',
-                new Uint8Array([0x13, 0x40, 0x80, 0x88, 0x88, 0x90, 0x88, 0x88]).buffer,
-                [new Uint8Array([0x13, 0x40, 0x80, 0x88, 0x88, 0x90, 0x88, 0x88]).buffer],
-                [new Uint8Array([0x13, 0x40, 0x80, 0x88, 0x88, 0x90, 0x88, 0x88]).buffer]
+                "00282000",
+                "OB",
+                new Uint8Array([0x13, 0x40, 0x80, 0x88, 0x88, 0x90, 0x88, 0x88])
+                    .buffer,
+                [
+                    new Uint8Array([
+                        0x13, 0x40, 0x80, 0x88, 0x88, 0x90, 0x88, 0x88
+                    ]).buffer
+                ],
+                [
+                    new Uint8Array([
+                        0x13, 0x40, 0x80, 0x88, 0x88, 0x90, 0x88, 0x88
+                    ]).buffer
+                ]
             ],
             [
-                '00701A07',
-                'OD',
-                new Uint8Array([0x00, 0x00, 0x00, 0x54, 0x34, 0x6F, 0x9D, 0x41]).buffer,
-                [new Uint8Array([0x00, 0x00, 0x00, 0x54, 0x34, 0x6F, 0x9D, 0x41]).buffer],
-                [new Uint8Array([0x00, 0x00, 0x00, 0x54, 0x34, 0x6F, 0x9D, 0x41]).buffer]
+                "00701A07",
+                "OD",
+                new Uint8Array([0x00, 0x00, 0x00, 0x54, 0x34, 0x6f, 0x9d, 0x41])
+                    .buffer,
+                [
+                    new Uint8Array([
+                        0x00, 0x00, 0x00, 0x54, 0x34, 0x6f, 0x9d, 0x41
+                    ]).buffer
+                ],
+                [
+                    new Uint8Array([
+                        0x00, 0x00, 0x00, 0x54, 0x34, 0x6f, 0x9d, 0x41
+                    ]).buffer
+                ]
             ],
             [
-                '00720067',
-                'OF',
-                new Uint8Array([0x00, 0x00, 0x28, 0x41, 0x00, 0x00, 0x30, 0xC0, 0x00, 0x00, 0xF6, 0x42]).buffer,
-                [new Uint8Array([0x00, 0x00, 0x28, 0x41, 0x00, 0x00, 0x30, 0xC0, 0x00, 0x00, 0xF6, 0x42]).buffer],
-                [new Uint8Array([0x00, 0x00, 0x28, 0x41, 0x00, 0x00, 0x30, 0xC0, 0x00, 0x00, 0xF6, 0x42]).buffer]
+                "00720067",
+                "OF",
+                new Uint8Array([
+                    0x00, 0x00, 0x28, 0x41, 0x00, 0x00, 0x30, 0xc0, 0x00, 0x00,
+                    0xf6, 0x42
+                ]).buffer,
+                [
+                    new Uint8Array([
+                        0x00, 0x00, 0x28, 0x41, 0x00, 0x00, 0x30, 0xc0, 0x00,
+                        0x00, 0xf6, 0x42
+                    ]).buffer
+                ],
+                [
+                    new Uint8Array([
+                        0x00, 0x00, 0x28, 0x41, 0x00, 0x00, 0x30, 0xc0, 0x00,
+                        0x00, 0xf6, 0x42
+                    ]).buffer
+                ]
             ],
             [
-                '00281224',
-                'OW',
-                new Uint8Array([0x13, 0x40, 0x80, 0x88, 0x88, 0x90, 0x88, 0x88]).buffer,
-                [new Uint8Array([0x13, 0x40, 0x80, 0x88, 0x88, 0x90, 0x88, 0x88]).buffer],
-                [new Uint8Array([0x13, 0x40, 0x80, 0x88, 0x88, 0x90, 0x88, 0x88]).buffer]
+                "00281224",
+                "OW",
+                new Uint8Array([0x13, 0x40, 0x80, 0x88, 0x88, 0x90, 0x88, 0x88])
+                    .buffer,
+                [
+                    new Uint8Array([
+                        0x13, 0x40, 0x80, 0x88, 0x88, 0x90, 0x88, 0x88
+                    ]).buffer
+                ],
+                [
+                    new Uint8Array([
+                        0x13, 0x40, 0x80, 0x88, 0x88, 0x90, 0x88, 0x88
+                    ]).buffer
+                ]
             ],
             [
-                '00080090',
-                'PN',
-                new Uint8Array([0x44, 0x6F, 0x65, 0x5E, 0x4A, 0x6F, 0x68, 0x6E, 0x5E, 0x41, 0x5E, 0x4A, 0x72, 0x2E, 0x5E, 0x4D, 0x44, 0x3D, 0x44, 0x6F, 0x65, 0x5E, 0x4A, 0x61, 0x79, 0x5E, 0x41, 0x5E, 0x4A, 0x72, 0x2E, 0x20]).buffer,
+                "00080090",
+                "PN",
+                new Uint8Array([
+                    0x44, 0x6f, 0x65, 0x5e, 0x4a, 0x6f, 0x68, 0x6e, 0x5e, 0x41,
+                    0x5e, 0x4a, 0x72, 0x2e, 0x5e, 0x4d, 0x44, 0x3d, 0x44, 0x6f,
+                    0x65, 0x5e, 0x4a, 0x61, 0x79, 0x5e, 0x41, 0x5e, 0x4a, 0x72,
+                    0x2e, 0x20
+                ]).buffer,
                 ["Doe^John^A^Jr.^MD=Doe^Jay^A^Jr."],
-                [{"Alphabetic": "Doe^John^A^Jr.^MD", "Ideographic": "Doe^Jay^A^Jr."}]
+                [
+                    {
+                        Alphabetic: "Doe^John^A^Jr.^MD",
+                        Ideographic: "Doe^Jay^A^Jr."
+                    }
+                ]
             ],
             [
-                '00080094',
-                'SH',
-                new Uint8Array([0x43,0x54,0x5F,0x53,0x43,0x41,0x4E,0x5F,0x30,0x31]).buffer,
+                "00080094",
+                "SH",
+                new Uint8Array([
+                    0x43, 0x54, 0x5f, 0x53, 0x43, 0x41, 0x4e, 0x5f, 0x30, 0x31
+                ]).buffer,
                 ["CT_SCAN_01"],
                 ["CT_SCAN_01"]
             ],
             [
-                '00186020',
-                'SL',
-                new Uint8Array([0x40, 0xE2, 0x01, 0x00, 0x40, 0xE2, 0x01, 0x00]).buffer,
+                "00186020",
+                "SL",
+                new Uint8Array([0x40, 0xe2, 0x01, 0x00, 0x40, 0xe2, 0x01, 0x00])
+                    .buffer,
                 [123456, 123456],
                 [123456, 123456]
             ],
             [
-                '00189219',
-                'SS',
-                new Uint8Array([0xD2, 0x04, 0xD2, 0x04, 0xD2, 0x04]).buffer,
+                "00189219",
+                "SS",
+                new Uint8Array([0xd2, 0x04, 0xd2, 0x04, 0xd2, 0x04]).buffer,
                 [1234, 1234, 1234],
                 [1234, 1234, 1234]
             ],
             [
-                '00189373',
-                'ST',
-                new Uint8Array([0x20,0x20,0x46,0x65,0x65,0x6C,0x69,0x6E,0x67,0x20,0x6E,0x61,0x75,0x73,0x65,0x6F,0x75,0x73,0x20,0x20]).buffer,
+                "00189373",
+                "ST",
+                new Uint8Array([
+                    0x20, 0x20, 0x46, 0x65, 0x65, 0x6c, 0x69, 0x6e, 0x67, 0x20,
+                    0x6e, 0x61, 0x75, 0x73, 0x65, 0x6f, 0x75, 0x73, 0x20, 0x20
+                ]).buffer,
                 ["  Feeling nauseous  "],
                 ["  Feeling nauseous"]
             ],
             [
-                '21000050',
-                'TM',
-                new Uint8Array([0x34,0x32,0x35,0x33,0x30,0x2E,0x31,0x32,0x33,0x34,0x35,0x36]).buffer,
+                "21000050",
+                "TM",
+                new Uint8Array([
+                    0x34, 0x32, 0x35, 0x33, 0x30, 0x2e, 0x31, 0x32, 0x33, 0x34,
+                    0x35, 0x36
+                ]).buffer,
                 ["42530.123456"],
                 ["42530.123456"]
             ],
             [
-                '3010001B',
-                'UC',
-                new Uint8Array([0x54, 0x72, 0x61, 0x69, 0x6C, 0x69, 0x6E, 0x67, 0x20, 0x73, 0x70, 0x61, 0x63, 0x65, 0x73, 0x20, 0x61, 0x6C, 0x6C, 0x6F, 0x77, 0x65, 0x64, 0x20, 0x20, 0x20]).buffer,
+                "3010001B",
+                "UC",
+                new Uint8Array([
+                    0x54, 0x72, 0x61, 0x69, 0x6c, 0x69, 0x6e, 0x67, 0x20, 0x73,
+                    0x70, 0x61, 0x63, 0x65, 0x73, 0x20, 0x61, 0x6c, 0x6c, 0x6f,
+                    0x77, 0x65, 0x64, 0x20, 0x20, 0x20
+                ]).buffer,
                 ["Trailing spaces allowed   "],
                 ["Trailing spaces allowed"]
             ],
             [
-                '00041510',
-                'UI',
-                new Uint8Array([0x31,0x2E,0x32,0x2E,0x38,0x34,0x30,0x2E,0x31,0x30,0x30,0x30,0x38,0x2E,0x31,0x2E,0x32,0x2E,0x31]).buffer,
+                "00041510",
+                "UI",
+                new Uint8Array([
+                    0x31, 0x2e, 0x32, 0x2e, 0x38, 0x34, 0x30, 0x2e, 0x31, 0x30,
+                    0x30, 0x30, 0x38, 0x2e, 0x31, 0x2e, 0x32, 0x2e, 0x31
+                ]).buffer,
                 ["1.2.840.10008.1.2.1"],
                 ["1.2.840.10008.1.2.1"]
             ],
             [
-                '30100092',
-                'UL',
-                new Uint8Array([0x40, 0xE2, 0x01, 0x00]).buffer,
+                "30100092",
+                "UL",
+                new Uint8Array([0x40, 0xe2, 0x01, 0x00]).buffer,
                 [123456],
                 [123456]
             ],
             [
-                '0008010E',
-                'UR',
-                new Uint8Array([0x68,0x74,0x74,0x70,0x3A,0x2F,0x2F,0x64,0x69,0x63,0x6F,0x6D,0x2E,0x6E,0x65,0x6D,0x61,0x2E,0x6F,0x72,0x67, 0x20]).buffer,
+                "0008010E",
+                "UR",
+                new Uint8Array([
+                    0x68, 0x74, 0x74, 0x70, 0x3a, 0x2f, 0x2f, 0x64, 0x69, 0x63,
+                    0x6f, 0x6d, 0x2e, 0x6e, 0x65, 0x6d, 0x61, 0x2e, 0x6f, 0x72,
+                    0x67, 0x20
+                ]).buffer,
                 ["http://dicom.nema.org "],
-                ["http://dicom.nema.org "],
+                ["http://dicom.nema.org "]
             ],
             [
-                '00080301',
-                'US',
-                new Uint8Array([0xD2, 0x04]).buffer,
+                "00080301",
+                "US",
+                new Uint8Array([0xd2, 0x04]).buffer,
                 [1234],
-                [1234],
+                [1234]
             ],
             [
-                '0008030E',
-                'UT',
-                new Uint8Array([0x20,0x20,0x46,0x65,0x65,0x6C,0x69,0x6E,0x67,0x20,0x6E,0x61,0x75,0x73,0x65,0x6F,0x75,0x73,0x20,0x20]).buffer,
+                "0008030E",
+                "UT",
+                new Uint8Array([
+                    0x20, 0x20, 0x46, 0x65, 0x65, 0x6c, 0x69, 0x6e, 0x67, 0x20,
+                    0x6e, 0x61, 0x75, 0x73, 0x65, 0x6f, 0x75, 0x73, 0x20, 0x20
+                ]).buffer,
                 ["  Feeling nauseous  "],
                 ["  Feeling nauseous"]
-            ],
+            ]
         ])(
             "for tag %s with expected VR %p",
             (tag, vr, byteArray, expectedRawValue, expectedValue) => {
@@ -1337,19 +1438,24 @@ describe("test_un_vr", () => {
                     [tag]: {
                         vr: "UN",
                         _rawValue: [byteArray],
-                        Value: [byteArray],
-                    },
+                        Value: [byteArray]
+                    }
                 };
 
                 const dicomDict = new DicomDict({});
                 dicomDict.dict = dataset;
 
                 // Write and re-read
-                const outputDicomDict = DicomMessage.readFile(dicomDict.write(), { forceStoreRaw: true });
+                const outputDicomDict = DicomMessage.readFile(
+                    dicomDict.write(),
+                    { forceStoreRaw: true }
+                );
 
                 // Expect tag to be parsed correctly based on meta dictionary vr lookup
                 expect(outputDicomDict.dict[tag].vr).toEqual(vr);
-                expect(outputDicomDict.dict[tag]._rawValue).toEqual(expectedRawValue);
+                expect(outputDicomDict.dict[tag]._rawValue).toEqual(
+                    expectedRawValue
+                );
                 expect(outputDicomDict.dict[tag].Value).toEqual(expectedValue);
             }
         );
@@ -1381,24 +1487,25 @@ it.each([
     }
 );
 
-describe('test OtherDouble ValueRepresentation', () => {
-    it('Treat OD as explicit VR with correct length', async () => {
+describe("test OtherDouble ValueRepresentation", () => {
+    it("Treat OD as explicit VR with correct length", async () => {
         const url =
             "https://github.com/dcmjs-org/data/releases/download/od-encoding-data/OD-single-word-example.dcm";
-        const dcmPath = await getTestDataset(
-            url,
-            "OD-single-word-example"
-        );
+        const dcmPath = await getTestDataset(url, "OD-single-word-example");
         const file = fs.readFileSync(dcmPath);
-        const data = dcmjs.data.DicomMessage.readFile(new Uint8Array(file).buffer);
+        const data = dcmjs.data.DicomMessage.readFile(
+            new Uint8Array(file).buffer
+        );
 
         // expect OD VR data element (VolumetricCurveUpDirections) to be read with expected value
-        expect(data.dict['00701A07']).toBeTruthy();
-        const odBuffer = data.dict['00701A07'].Value[0]
-        expect(new Uint8Array(odBuffer)).toEqual(new Uint8Array([0, 0, 0, 0, 0, 0, 0, 64]))
+        expect(data.dict["00701A07"]).toBeTruthy();
+        const odBuffer = data.dict["00701A07"].Value[0];
+        expect(new Uint8Array(odBuffer)).toEqual(
+            new Uint8Array([0, 0, 0, 0, 0, 0, 0, 64])
+        );
 
         // expect arbitrary tag (BlendingInputNumber, US VR) after OD VR to be read without issue
-        expect(data.dict['00701B02']).toBeTruthy();
-        expect(data.dict['00701B02'].Value[0]).toBe(1);
-    })
+        expect(data.dict["00701B02"]).toBeTruthy();
+        expect(data.dict["00701B02"].Value[0]).toBe(1);
+    });
 });

@@ -1,15 +1,12 @@
 ﻿import "regenerator-runtime/runtime.js";
 
-import { jest } from "@jest/globals";
 import { getZippedTestDataset } from "./testUtils.js";
 import dcmjs from "../src/index.js";
 import fs from "fs";
 import fsPromises from "fs/promises";
-import os from "os";
 import path from "path";
 
-const { DicomMetaDictionary, DicomDict, DicomMessage, ReadBufferStream } =
-    dcmjs.data;
+const { DicomMetaDictionary, DicomMessage } = dcmjs.data;
 
 const expectedPatientNames = {
     SCSARAB: "قباني^لنزار",
