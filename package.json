@@ -69,5 +69,9 @@
   },
   "jest": {
     "setupFilesAfterEnv": ["<rootDir>/jest.setup.js"]
+  },
+  "resolutions": {
+    "@babel/traverse": "^7.23.2",
+    "semver": "^6.3.1"
   }
 }
