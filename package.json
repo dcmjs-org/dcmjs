@@ -51,7 +51,7 @@
     "adm-zip": "^0.5.10",
     "gl-matrix": "^3.1.0",
     "lodash.clonedeep": "^4.5.0",
-    "loglevelnext": "^3.0.1",
+    "loglevel": "^1.8.1",
     "ndarray": "^1.0.19",
     "pako": "^2.0.4"
   },
@@ -65,5 +65,8 @@
       "prettier --write",
       "git add"
     ]
+  },
+  "jest": {
+    "setupFilesAfterEnv": ["<rootDir>/jest.setup.js"]
   }
 }

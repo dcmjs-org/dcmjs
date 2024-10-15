@@ -108,7 +108,7 @@ class DICOMWEB {
 
         new DICOMWEB(testOptions).patients().then(responses => {
             responses.forEach(patient => {
-                log.log(patient);
+                log.info(patient);
             });
         });
     }
