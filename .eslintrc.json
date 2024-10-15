@@ -14,5 +14,9 @@
   "parserOptions": {
     "ecmaVersion": 11,
     "sourceType": "module"
+  },
+
+  "rules": {
+    "no-loss-of-precision": "off"
   }
 }
