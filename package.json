@@ -13,6 +13,7 @@
     "build:examples": "npm run build && npx cpx 'build/**/*.{js,map}' examples/js",
     "start": "rollup -c -w",
     "format": "prettier --write 'src/**/*.js' 'test/**/*.js'",
+    "format:check": "prettier --check 'src/**/*.js' 'test/**/*.js'",
     "lint": "eslint --fix 'src/**/*.js' 'test/**/*.js'"
   },
   "repository": {
