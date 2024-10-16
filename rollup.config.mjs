@@ -5,34 +5,41 @@ import resolve from "@rollup/plugin-node-resolve";
 import commonjs from "@rollup/plugin-commonjs";
 // import babelRuntime from "@rollup/plugin-transform-runtime"
 import json from "@rollup/plugin-json";
+import replace from "@rollup/plugin-replace";
 import pkg from "./package.json" assert { type: "json" };
 
 export default {
-  input: "src/index.js",
-  output: [
-    {
-      file: pkg.main,
-      format: "umd",
-      name: "dcmjs",
-      sourcemap: true
-    },
-    {
-      file: pkg.module,
-      format: "es",
-      sourcemap: true
-    }
-  ],
-  plugins: [
-    resolve({
-      browser: true
-    }),
-       commonjs(),
-    //  globals(),
-    //builtins(),
-    // babelRuntime(),
-    babel({
-      exclude: "node_modules/**"
-    }),
-    json()
-  ]
+    input: "src/index.js",
+    output: [
+        {
+            file: pkg.main,
+            format: "umd",
+            name: "dcmjs",
+            sourcemap: true
+        },
+        {
+            file: pkg.module,
+            format: "es",
+            sourcemap: true
+        }
+    ],
+    plugins: [
+        replace({
+            "process.env.LOG_LEVEL": JSON.stringify(
+                process.env.LOG_LEVEL || "warn"
+            ),
+            preventAssignment: true
+        }),
+        resolve({
+            browser: true
+        }),
+        commonjs(),
+        //  globals(),
+        //builtins(),
+        // babelRuntime(),
+        babel({
+            exclude: "node_modules/**"
+        }),
+        json()
+    ]
 };

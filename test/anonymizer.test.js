@@ -3,7 +3,7 @@ import fs from "fs";
 import { validationLog } from "./../src/log.js";
 
 // Ignore validation errors
-validationLog.level = 5;
+validationLog.setLevel(5);
 
 const { DicomMessage } = dcmjs.data;
 const { cleanTags, getTagsNameToEmpty } = dcmjs.anonymizer;

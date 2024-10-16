@@ -8,7 +8,7 @@ import { validationLog } from "./../src/log.js";
 const { https } = followRedirects;
 
 // Don't show validation errors, as those are normally tested
-validationLog.level = 5;
+validationLog.setLevel(5);
 
 function downloadToFile(url, filePath) {
     return new Promise((resolve, reject) => {
