@@ -723,14 +723,14 @@ describe("With a SpecificCharacterSet tag", () => {
     });
 
     it("Throws an exception on an unsupported character set", async () => {
-        log.level = 5;
+        log.setLevel(5);
         expect(() => readEncodedLongString("nope", [])).toThrow(
             new Error("Unsupported character set: nope")
         );
     });
 
     it("Doesn't throw an exception on an unsupported character set when ignoring errors", async () => {
-        log.level = 5;
+        log.setLevel(5);
         expect(
             readEncodedLongString("nope", [0x68, 0x69], { ignoreErrors: true })
         ).toEqual("hi");

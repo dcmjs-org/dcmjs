@@ -9,7 +9,7 @@ const createMockLogger = () => ({
 
 const mockLog = createMockLogger();
 
-mockLog.create = jest.fn(name => {
+mockLog.getLogger = jest.fn(name => {
     const namedLogger = createMockLogger();
     namedLogger.name = name;
     return namedLogger;
