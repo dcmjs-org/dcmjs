@@ -53,6 +53,7 @@ class Normalizer {
         sopClassUIDMap[toUID.DeformableSpatialRegistration] = DSRNormalizer;
         sopClassUIDMap[toUID.OphthalmicPhotography8BitImage] =
             OPImageNormalizer;
+        sopClassUIDMap[toUID.OphthalmicTomographyImage] = OCTImageNormalizer;
         return sopClassUIDMap[sopClassUID];
     }
 
@@ -68,7 +69,8 @@ class Normalizer {
             toUID.EnhancedPETImage,
             toUID.LegacyConvertedEnhancedPETImage,
             toUID.Segmentation,
-            toUID.ParametricMapStorage
+            toUID.ParametricMapStorage,
+            toUID.OphthalmicTomographyImage
         ];
         return multiframeSOPClasses.indexOf(sopClassUID) !== -1;
     }
@@ -539,6 +541,12 @@ class OPImageNormalizer extends Normalizer {
     }
 }
 
+class OCTImageNormalizer extends ImageNormalizer {
+    normalize() {
+        super.normalize();
+    }
+}
+
 export { Normalizer };
 export { ImageNormalizer };
 export { MRImageNormalizer };
@@ -552,3 +560,4 @@ export { SEGImageNormalizer };
 export { PMImageNormalizer };
 export { DSRNormalizer };
 export { OPImageNormalizer };
+export { OCTImageNormalizer };
