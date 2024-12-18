@@ -126,6 +126,10 @@ class DicomMetaDictionary {
                     // when the vr is data-dependent, keep track of the original type
                     naturalDataset._vrMap[naturalName] = data.vr;
                 }
+                if (data.vr !== entry.vr) {
+                    // save origin vr if it different that in dictionary
+                    naturalDataset._vrMap[naturalName] = data.vr;
+                }
             }
 
             if (data.Value === undefined) {
@@ -217,9 +221,13 @@ class DicomMetaDictionary {
                     return;
                 }
                 // process this one entry
-                var dataItem = ValueRepresentation.addTagAccessors({
-                    vr: entry.vr
-                });
+                const vr =
+                    dataset._vrMap && dataset._vrMap[naturalName]
+                        ? dataset._vrMap[naturalName]
+                        : entry.vr;
+
+                var dataItem = ValueRepresentation.addTagAccessors({ vr });
+
                 dataItem.Value = dataset[naturalName];
 
                 if (dataValue !== null) {
