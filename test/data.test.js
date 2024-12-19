@@ -1462,6 +1462,136 @@ describe("test_un_vr", () => {
     });
 });
 
+describe("Save original non-standard VR and check dataset after denaturalized", () => {
+    const dicomTagsWithNonStandardVr = {
+        dict: {
+            "00283010": {
+                vr: "SQ",
+                Value: [
+                    {
+                        "00283002": {
+                            vr: "US",
+                            Value: [0, 0, 16]
+                        },
+                        "00283003": {
+                            vr: "LO",
+                            Value: ["NORMAL"]
+                        },
+                        "00283006": {
+                            vr: "OW", // US by standard
+                            Value: [new ArrayBuffer()]
+                        }
+                    },
+                    {
+                        "00283002": {
+                            vr: "US",
+                            Value: [0, 0, 16]
+                        },
+                        "00283003": {
+                            vr: "LO",
+                            Value: ["HARDER"]
+                        },
+                        "00283006": {
+                            vr: "OW", // US by standard
+                            Value: [new ArrayBuffer()]
+                        }
+                    },
+                    {
+                        "00283002": {
+                            vr: "US",
+                            Value: [0, 0, 16]
+                        },
+                        "00283003": {
+                            vr: "LO",
+                            Value: ["SOFTER"]
+                        },
+                        "00283006": {
+                            vr: "OW", // US by standard
+                            Value: [new ArrayBuffer()]
+                        }
+                    }
+                ]
+            },
+            "00180015": {
+                vr: "CS",
+                Value: ["CHEST"]
+            },
+            "00080060": {
+                vr: "CS",
+                Value: ["DX"]
+            },
+            "00100010": {
+                vr: "PN",
+                Value: [
+                    {
+                        Alphabetic: "Qure Two"
+                    }
+                ]
+            },
+            "00100020": {
+                vr: "LO",
+                Value: ["ENM1-M0012260"]
+            },
+            "00100040": {
+                vr: "CS",
+                Value: ["M"]
+            },
+            "00104000": {
+                vr: "LO", // LT by standard
+                Value: ["Patient comment"]
+            }
+        }
+    };
+
+    const addedCustomDictionaryNameMap = {
+        LUTData: {
+            tag: "(0028,3006)",
+            vr: "US",
+            name: "LUTData",
+            vm: "1-n",
+            version: "DICOM"
+        },
+        LUTDescriptor: {
+            tag: "(0028,3002)",
+            vr: "US",
+            name: "LUTDescriptor",
+            vm: "3",
+            version: "DICOM"
+        }
+    };
+
+    for (const key in addedCustomDictionaryNameMap) {
+        const element = addedCustomDictionaryNameMap[key];
+        DicomMetaDictionary.dictionary[element.tag] = element;
+    }
+    DicomMetaDictionary._generateNameMap();
+
+    const dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(
+        dicomTagsWithNonStandardVr.dict
+    );
+
+    expect(Object.keys(dataset._vrMap)).toContain("PatientComments");
+    expect(dataset._vrMap.PatientComments).not.toEqual(
+        DicomMetaDictionary.nameMap.PatientComments.vr
+    );
+    expect(dataset._vrMap.PatientComments).toEqual("LO");
+
+    dataset.VOILUTSequence.forEach(sequenceItem => {
+        expect(sequenceItem._vrMap).toBeDefined();
+        expect(Object.keys(sequenceItem._vrMap).length).toBe(1);
+        expect(sequenceItem._vrMap.LUTData).toBe("OW"); // saved origin vr in _vrMap (by standard in addedCustomDictionaryNameMap is US)
+    });
+
+    const denaturalizedDataset =
+        dcmjs.data.DicomMetaDictionary.denaturalizeDataset(dataset);
+
+    expect(denaturalizedDataset["00104000"].vr).toBe("LO");
+
+    denaturalizedDataset["00283010"].Value.forEach(sequenceItem => {
+        expect(sequenceItem["00283006"].vr).toBe("OW");
+    });
+});
+
 it.each([
     [1.0, "1"],
     [0.0, "0"],
