@@ -7,7 +7,7 @@
 
 [![CI](https://github.com/dcmjs-org/dcmjs/actions/workflows/publish-package.yml/badge.svg)](https://github.com/dcmjs-org/dcmjs/actions?query=workflow:publish-package)
 
-**Note: this code is a work-in-progress and should not be used for production or clinical purposes**
+**Note: this code is a work-in-progress**
 
 This is a community effort so please help improve support for a wide range of DICOM data and use cases.
 
