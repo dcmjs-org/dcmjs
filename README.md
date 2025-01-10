@@ -152,6 +152,8 @@ Currently dcmjs is an early-stage development experiment, but already has valuab
     with the community to define some example use cases to mix the pure JavaScript DICOM code with Cornerstone and [CornerstoneTools](https://github.com/chafey/cornerstoneTools).
 - 2018-2022
   - Work continues to develop SR and SEG support to [OHIFViewer](http://ohif.org) allow interoperability with [DICOM4QI](https://legacy.gitbook.com/book/qiicr/dicom4qi/details)
+- 2022-present
+  - dcmjs is used by a number of projects and as of January 2025 has about 15,000 weekly [downloads from npm]([url](https://www.npmjs.com/package/dcmjs)).
 
 # Support
 
