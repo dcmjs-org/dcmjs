@@ -383,7 +383,7 @@ class DicomMessage {
                 length,
                 syntax,
                 options
-            );
+            ) || {};
             if (!vr.isBinary() && singleVRs.indexOf(vr.type) == -1) {
                 rawValues = rawValue;
                 values = value;
