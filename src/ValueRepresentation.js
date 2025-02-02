@@ -967,14 +967,12 @@ class PersonName extends EncodedStringRepresentation {
     }
 
     readBytes(stream, length) {
-        return this.readPaddedEncodedString(stream, length).split(
-            String.fromCharCode(VM_DELIMITER)
-        );
+        return this.readPaddedEncodedString(stream, length)
     }
 
     applyFormatting(value) {
         const parsePersonName = valueStr =>
-            dicomJson.pnConvertToJsonObject(valueStr, false);
+            dicomJson.pnConvertToJsonObject(valueStr);
 
         if (Array.isArray(value)) {
             return value.map(valueStr => parsePersonName(valueStr));
