@@ -283,7 +283,7 @@ class DicomMessage {
             originalValue = tagObject._rawValue.map(val =>
                 vr.applyFormatting(val)
             );
-        }  else {
+        } else {
             originalValue = vr.applyFormatting(tagObject._rawValue);
         }
 

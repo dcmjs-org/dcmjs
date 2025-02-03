@@ -5,7 +5,7 @@ import dcmjs from "../src/index.js";
 import { deepEqual } from "../src/utilities/deepEqual";
 
 import { getTestDataset } from "./testUtils";
-import {DicomMetaDictionary} from "../src/DicomMetaDictionary";
+import { DicomMetaDictionary } from "../src/DicomMetaDictionary";
 
 const { DicomDict, DicomMessage } = dcmjs.data;
 
@@ -978,28 +978,34 @@ describe("lossless-read-write", () => {
         deepEqual(dicomDict.dict, outputDicomDict.dict);
     });
 
-    test('0 length PN tag should be retained following naturalize and de-naturalize', () => {
+    test("0 length PN tag should be retained following naturalize and de-naturalize", () => {
         const file = fs.readFileSync("test/empty-person-name.dcm");
         const origDicomDict = DicomMessage.readFile(file.buffer);
-        const origNaturalizedDataset = DicomMetaDictionary.naturalizeDataset(origDicomDict.dict);
+        const origNaturalizedDataset = DicomMetaDictionary.naturalizeDataset(
+            origDicomDict.dict
+        );
 
         // confirm starting dataset contains empty tag value for referring physician person name
-        expect(origDicomDict.dict["00080090"]._rawValue).toEqual("")
+        expect(origDicomDict.dict["00080090"]._rawValue).toEqual("");
         expect(origNaturalizedDataset.ReferringPhysicianName).toEqual([]);
 
         // re-encode the unnaturalized object
-        origDicomDict.dict = DicomMetaDictionary.denaturalizeDataset(origNaturalizedDataset);
+        origDicomDict.dict = DicomMetaDictionary.denaturalizeDataset(
+            origNaturalizedDataset
+        );
         const outputBuffer = origDicomDict.write();
         const newDicomDict = DicomMessage.readFile(outputBuffer);
-        const newNaturalizedDataset = DicomMetaDictionary.naturalizeDataset(origDicomDict.dict);
+        const newNaturalizedDataset = DicomMetaDictionary.naturalizeDataset(
+            origDicomDict.dict
+        );
 
         // confirm output referring physican name remains the same
-        expect(newDicomDict.dict["00080090"]._rawValue).toEqual("")
+        expect(newDicomDict.dict["00080090"]._rawValue).toEqual("");
         expect(newNaturalizedDataset.ReferringPhysicianName).toEqual([]);
 
         // confirm no other changes to the rest of the file
         deepEqual(origDicomDict, newDicomDict);
-    })
+    });
 });
 
 const getDcmjsDataFile = async (release, fileName) => {

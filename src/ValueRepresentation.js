@@ -967,7 +967,7 @@ class PersonName extends EncodedStringRepresentation {
     }
 
     readBytes(stream, length) {
-        return this.readPaddedEncodedString(stream, length)
+        return this.readPaddedEncodedString(stream, length);
     }
 
     applyFormatting(value) {
