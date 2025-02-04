@@ -1007,7 +1007,7 @@ describe("lossless-read-write", () => {
         deepEqual(origDicomDict, newDicomDict);
     });
 
-    test('0 length US should use default value for both Value and rawValue', () => {
+    test("0 length US should use default value for both Value and rawValue", () => {
         const file = fs.readFileSync("test/zero-length-US.dcm");
         const origDicomDict = DicomMessage.readFile(file.buffer);
 
@@ -1015,12 +1015,12 @@ describe("lossless-read-write", () => {
         expect(origDicomDict.dict["00180012"].Value).toBeTruthy();
 
         // Fetch bolus agent number from first sequence element
-        const contrastBolusAgentSq = origDicomDict.dict["00180012"].Value
+        const contrastBolusAgentSq = origDicomDict.dict["00180012"].Value;
         const bolusAgentNum = contrastBolusAgentSq[0]["00189337"];
 
         // verify default values parsed correctly
-        expect(bolusAgentNum.Value).toEqual([0])
-        expect(bolusAgentNum._rawValue).toEqual([0])
+        expect(bolusAgentNum.Value).toEqual([0]);
+        expect(bolusAgentNum._rawValue).toEqual([0]);
     });
 });
 
