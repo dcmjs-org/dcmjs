@@ -999,12 +999,28 @@ describe("lossless-read-write", () => {
             origDicomDict.dict
         );
 
-        // confirm output referring physican name remains the same
+        // confirm output referring physician name remains the same
         expect(newDicomDict.dict["00080090"]._rawValue).toEqual("");
         expect(newNaturalizedDataset.ReferringPhysicianName).toEqual([]);
 
         // confirm no other changes to the rest of the file
         deepEqual(origDicomDict, newDicomDict);
+    });
+
+    test('0 length US should use default value for both Value and rawValue', () => {
+        const file = fs.readFileSync("test/zero-length-US.dcm");
+        const origDicomDict = DicomMessage.readFile(file.buffer);
+
+        // expect sequence to be in file
+        expect(origDicomDict.dict["00180012"].Value).toBeTruthy();
+
+        // Fetch bolus agent number from first sequence element
+        const contrastBolusAgentSq = origDicomDict.dict["00180012"].Value
+        const bolusAgentNum = contrastBolusAgentSq[0]["00189337"];
+
+        // verify default values parsed correctly
+        expect(bolusAgentNum.Value).toEqual([0])
+        expect(bolusAgentNum._rawValue).toEqual([0])
     });
 });
 

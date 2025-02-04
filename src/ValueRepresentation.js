@@ -172,7 +172,7 @@ class ValueRepresentation {
 
     read(stream, length, syntax, readOptions = { forceStoreRaw: false }) {
         if (this.fixed && this.maxLength) {
-            if (!length) return this.defaultValue;
+            if (!length) return { rawValue: this.defaultValue, value: this.defaultValue };
             if (this.maxLength != length)
                 log.error(
                     "Invalid length for fixed length tag, vr " +
