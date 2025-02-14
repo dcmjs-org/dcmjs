@@ -978,9 +978,12 @@ describe("lossless-read-write", () => {
         deepEqual(dicomDict.dict, outputDicomDict.dict);
     });
 
-    test("0 length PN tag should be retained following naturalize and de-naturalize", () => {
-        const file = fs.readFileSync("test/empty-person-name.dcm");
-        const origDicomDict = DicomMessage.readFile(file.buffer);
+    test("0 length PN tag should be retained following naturalize and de-naturalize", async () => {
+        const inputBuffer = await getDcmjsDataFile(
+            "empty-tag-round-trip",
+            "empty-person-name.dcm"
+        );
+        const origDicomDict = DicomMessage.readFile(inputBuffer);
         const origNaturalizedDataset = DicomMetaDictionary.naturalizeDataset(
             origDicomDict.dict
         );
@@ -1007,9 +1010,12 @@ describe("lossless-read-write", () => {
         deepEqual(origDicomDict, newDicomDict);
     });
 
-    test("0 length US should use default value for both Value and rawValue", () => {
-        const file = fs.readFileSync("test/zero-length-US.dcm");
-        const origDicomDict = DicomMessage.readFile(file.buffer);
+    test("0 length US should use default value for both Value and rawValue", async () => {
+        const inputBuffer = await getDcmjsDataFile(
+            "empty-tag-round-trip",
+            "zero-length-US.dcm"
+        );
+        const origDicomDict = DicomMessage.readFile(inputBuffer);
 
         // expect sequence to be in file
         expect(origDicomDict.dict["00180012"].Value).toBeTruthy();
