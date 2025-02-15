@@ -172,7 +172,11 @@ class ValueRepresentation {
 
     read(stream, length, syntax, readOptions = { forceStoreRaw: false }) {
         if (this.fixed && this.maxLength) {
-            if (!length) return this.defaultValue;
+            if (!length)
+                return {
+                    rawValue: this.defaultValue,
+                    value: this.defaultValue
+                };
             if (this.maxLength != length)
                 log.error(
                     "Invalid length for fixed length tag, vr " +
@@ -967,14 +971,12 @@ class PersonName extends EncodedStringRepresentation {
     }
 
     readBytes(stream, length) {
-        return this.readPaddedEncodedString(stream, length).split(
-            String.fromCharCode(VM_DELIMITER)
-        );
+        return this.readPaddedEncodedString(stream, length);
     }
 
     applyFormatting(value) {
         const parsePersonName = valueStr =>
-            dicomJson.pnConvertToJsonObject(valueStr, false);
+            dicomJson.pnConvertToJsonObject(valueStr);
 
         if (Array.isArray(value)) {
             return value.map(valueStr => parsePersonName(valueStr));

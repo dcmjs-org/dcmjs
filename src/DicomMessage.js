@@ -277,9 +277,15 @@ class DicomMessage {
 
         // apply VR specific formatting to the original _rawValue and compare to the Value
         const vr = ValueRepresentation.createByTypeString(vrType);
-        const originalValue = tagObject._rawValue.map(val =>
-            vr.applyFormatting(val)
-        );
+
+        let originalValue;
+        if (Array.isArray(tagObject._rawValue)) {
+            originalValue = tagObject._rawValue.map(val =>
+                vr.applyFormatting(val)
+            );
+        } else {
+            originalValue = vr.applyFormatting(tagObject._rawValue);
+        }
 
         // if Value has not changed, write _rawValue unformatted back into the file
         if (deepEqual(tagObject.Value, originalValue)) {

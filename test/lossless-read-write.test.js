@@ -5,6 +5,7 @@ import dcmjs from "../src/index.js";
 import { deepEqual } from "../src/utilities/deepEqual";
 
 import { getTestDataset } from "./testUtils";
+import { DicomMetaDictionary } from "../src/DicomMetaDictionary";
 
 const { DicomDict, DicomMessage } = dcmjs.data;
 
@@ -522,7 +523,7 @@ describe("lossless-read-write", () => {
             },
             {
                 vr: "PN",
-                _rawValue: ["Doe^John^A^Jr.^MD  "], // trailing spaces allowed
+                _rawValue: "Doe^John^A^Jr.^MD  ", // trailing spaces allowed
                 Value: [{ Alphabetic: "Doe^John^A^Jr.^MD  " }]
             },
             {
@@ -757,9 +758,9 @@ describe("lossless-read-write", () => {
             },
             {
                 vr: "PN",
-                _rawValue: ["Doe^John^A^Jr.^MD  "], // trailing spaces allowed
+                _rawValue: "Doe^John^A^Jr.^MD  ", // trailing spaces allowed
                 Value: [{ Alphabetic: "Doe^Jane^A^Jr.^MD" }],
-                newRawValue: ["Doe^Jane^A^Jr.^MD"]
+                newRawValue: "Doe^Jane^A^Jr.^MD"
             },
             {
                 vr: "SH",
@@ -975,6 +976,57 @@ describe("lossless-read-write", () => {
 
         // lossless read/write should match entire data set
         deepEqual(dicomDict.dict, outputDicomDict.dict);
+    });
+
+    test("0 length PN tag should be retained following naturalize and de-naturalize", async () => {
+        const inputBuffer = await getDcmjsDataFile(
+            "empty-tag-round-trip",
+            "empty-person-name.dcm"
+        );
+        const origDicomDict = DicomMessage.readFile(inputBuffer);
+        const origNaturalizedDataset = DicomMetaDictionary.naturalizeDataset(
+            origDicomDict.dict
+        );
+
+        // confirm starting dataset contains empty tag value for referring physician person name
+        expect(origDicomDict.dict["00080090"]._rawValue).toEqual("");
+        expect(origNaturalizedDataset.ReferringPhysicianName).toEqual([]);
+
+        // re-encode the unnaturalized object
+        origDicomDict.dict = DicomMetaDictionary.denaturalizeDataset(
+            origNaturalizedDataset
+        );
+        const outputBuffer = origDicomDict.write();
+        const newDicomDict = DicomMessage.readFile(outputBuffer);
+        const newNaturalizedDataset = DicomMetaDictionary.naturalizeDataset(
+            origDicomDict.dict
+        );
+
+        // confirm output referring physician name remains the same
+        expect(newDicomDict.dict["00080090"]._rawValue).toEqual("");
+        expect(newNaturalizedDataset.ReferringPhysicianName).toEqual([]);
+
+        // confirm no other changes to the rest of the file
+        deepEqual(origDicomDict, newDicomDict);
+    });
+
+    test("0 length US should use default value for both Value and rawValue", async () => {
+        const inputBuffer = await getDcmjsDataFile(
+            "empty-tag-round-trip",
+            "zero-length-US.dcm"
+        );
+        const origDicomDict = DicomMessage.readFile(inputBuffer);
+
+        // expect sequence to be in file
+        expect(origDicomDict.dict["00180012"].Value).toBeTruthy();
+
+        // Fetch bolus agent number from first sequence element
+        const contrastBolusAgentSq = origDicomDict.dict["00180012"].Value;
+        const bolusAgentNum = contrastBolusAgentSq[0]["00189337"];
+
+        // verify default values parsed correctly
+        expect(bolusAgentNum.Value).toEqual([0]);
+        expect(bolusAgentNum._rawValue).toEqual([0]);
     });
 });
 
