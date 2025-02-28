@@ -6,7 +6,11 @@ import commonjs from "@rollup/plugin-commonjs";
 // import babelRuntime from "@rollup/plugin-transform-runtime"
 import json from "@rollup/plugin-json";
 import replace from "@rollup/plugin-replace";
-import pkg from "./package.json" assert { type: "json" };
+import { readFileSync } from "fs";
+
+const pkg = JSON.parse(
+    readFileSync(new URL("./package.json", import.meta.url), "utf8")
+);
 
 export default {
     input: "src/index.js",
