@@ -1,14 +1,13 @@
-import { validationLog, log } from "./log.js";
-import { ReadBufferStream } from "./BufferStream.js";
-import { WriteBufferStream } from "./BufferStream.js";
+import { ReadBufferStream, WriteBufferStream } from "./BufferStream.js";
 import {
     PADDING_NULL,
     PADDING_SPACE,
-    VM_DELIMITER,
-    PN_COMPONENT_DELIMITER
+    PN_COMPONENT_DELIMITER,
+    VM_DELIMITER
 } from "./constants/dicom.js";
-import dicomJson from "./utilities/dicomJson.js";
 import { DicomMetaDictionary } from "./DicomMetaDictionary.js";
+import { log, validationLog } from "./log.js";
+import dicomJson from "./utilities/dicomJson.js";
 
 // We replace the tag with a Proxy which intercepts assignments to obj[valueProp]
 // and adds additional overrides/accessors to the value if need be. If valueProp
@@ -699,6 +698,24 @@ class DateValue extends AsciiStringRepresentation {
         //this.fixed = true;
         this.defaultValue = "";
     }
+
+    writeBytes(stream, value, writeOptions = {}) {
+        // Check if this is a query with range matching (contains a hyphen)
+        const isRangeQuery = typeof value === "string" && value.includes("-");
+
+        // For query with range matching, temporarily adjust maxLength
+        const originalMaxLength = this.maxLength;
+        if (isRangeQuery) {
+            this.maxLength = 18;
+        }
+
+        const result = super.writeBytes(stream, value, writeOptions);
+
+        // Restore original maxLength
+        this.maxLength = originalMaxLength;
+
+        return result;
+    }
 }
 
 class NumericStringRepresentation extends AsciiStringRepresentation {
@@ -780,6 +797,24 @@ class DateTime extends AsciiStringRepresentation {
         super("DT");
         this.maxLength = 26;
         this.padByte = PADDING_SPACE;
+    }
+
+    writeBytes(stream, value, writeOptions = {}) {
+        // Check if this is a query with range matching (contains a hyphen)
+        const isRangeQuery = typeof value === "string" && value.includes("-");
+
+        // For range queries, temporarily adjust maxLength
+        const originalMaxLength = this.maxLength;
+        if (isRangeQuery) {
+            this.maxLength = 54;
+        }
+
+        const result = super.writeBytes(stream, value, writeOptions);
+
+        // Restore original maxLength
+        this.maxLength = originalMaxLength;
+
+        return result;
     }
 }
 
@@ -1213,7 +1248,7 @@ class ShortText extends EncodedStringRepresentation {
 class TimeValue extends AsciiStringRepresentation {
     constructor() {
         super("TM");
-        this.maxLength = 14;
+        this.maxLength = 16;
         this.padByte = PADDING_SPACE;
     }
 
@@ -1223,6 +1258,24 @@ class TimeValue extends AsciiStringRepresentation {
 
     applyFormatting(value) {
         return rtrim(value);
+    }
+
+    writeBytes(stream, value, writeOptions = {}) {
+        // Check if this is a query with range matching (contains a hyphen)
+        const isRangeQuery = typeof value === "string" && value.includes("-");
+
+        // For range queries, temporarily adjust maxLength
+        const originalMaxLength = this.maxLength;
+        if (isRangeQuery) {
+            this.maxLength = 28;
+        }
+
+        const result = super.writeBytes(stream, value, writeOptions);
+
+        // Restore original maxLength
+        this.maxLength = originalMaxLength;
+
+        return result;
     }
 }
 
