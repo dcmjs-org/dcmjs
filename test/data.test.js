@@ -6,22 +6,22 @@ import fsPromises from "fs/promises";
 import path from "path";
 import { WriteBufferStream } from "../src/BufferStream";
 import dcmjs from "../src/index.js";
-import { getTestDataset, getZippedTestDataset } from "./testUtils.js";
 import { log } from "./../src/log.js";
+import { getTestDataset, getZippedTestDataset } from "./testUtils.js";
 
 import { promisify } from "util";
 import arrayItem from "./arrayItem.json";
 import minimalDataset from "./mocks/minimal_fields_dataset.json";
 import datasetWithNullNumberVRs from "./mocks/null_number_vrs_dataset.json";
-import sampleDicomSR from "./sample-sr.json";
 import { rawTags } from "./rawTags";
+import sampleDicomSR from "./sample-sr.json";
 
+import { ValueRepresentation } from "../src/ValueRepresentation";
 import {
     EXPLICIT_LITTLE_ENDIAN,
     IMPLICIT_LITTLE_ENDIAN,
     PADDING_SPACE
 } from "./../src/constants/dicom.js";
-import { ValueRepresentation } from "../src/ValueRepresentation";
 
 const { DicomMetaDictionary, DicomDict, DicomMessage, ReadBufferStream } =
     dcmjs.data;
