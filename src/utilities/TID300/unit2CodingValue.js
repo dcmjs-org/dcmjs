@@ -21,6 +21,13 @@ const NO_UNIT = {
     CodeMeaning: "px"
 };
 
+const HU_UNIT = {
+    CodeValue: "HU",
+    CodingSchemeDesignator: "UCUM",
+    CodingSchemeVersion: "1.4",
+    CodeMeaning: "HU"
+};
+
 const NO2_UNIT = NO_UNIT;
 
 const measurementMap = {
@@ -28,7 +35,8 @@ const measurementMap = {
     mm: MM_UNIT,
     mm2: MM2_UNIT,
     "mm\xB2": MM2_UNIT,
-    "px\xB2": NO2_UNIT
+    "px\xB2": NO2_UNIT,
+    HU: HU_UNIT
 };
 
 /** Converts the given unit into the
