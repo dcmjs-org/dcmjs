@@ -68,7 +68,8 @@ let DicomMessage, Tag;
 
 var binaryVRs = ["FL", "FD", "SL", "SS", "UL", "US", "AT"],
     explicitVRs = ["OB", "OW", "OF", "SQ", "UC", "UR", "UT", "UN", "OD"],
-    singleVRs = ["SQ", "OF", "OW", "OB", "UN"];
+    singleVRs = ["SQ", "OF", "OW", "OB", "UN"],
+    rangeMatchingVRs = ["DA", "DT", "TM"];
 
 class ValueRepresentation {
     constructor(type) {
@@ -78,6 +79,7 @@ class ValueRepresentation {
         this._allowMultiple =
             !this._isBinary && singleVRs.indexOf(this.type) == -1;
         this._isExplicit = explicitVRs.indexOf(this.type) != -1;
+        this._allowRangeMatching = rangeMatchingVRs.includes(this.type) != -1;
         this._storeRaw = true;
     }
 
@@ -99,6 +101,10 @@ class ValueRepresentation {
 
     isExplicit() {
         return this._isExplicit;
+    }
+
+    allowRangeMatching() {
+        return this._allowRangeMatching;
     }
 
     /**
@@ -694,27 +700,10 @@ class DateValue extends AsciiStringRepresentation {
     constructor(value) {
         super("DA", value);
         this.maxLength = 8;
+        this.rangeMatchingMaxLength = 18;
         this.padByte = PADDING_SPACE;
         //this.fixed = true;
         this.defaultValue = "";
-    }
-
-    writeBytes(stream, value, writeOptions = {}) {
-        // Check if this is a query with range matching (contains a hyphen)
-        const isRangeQuery = typeof value === "string" && value.includes("-");
-
-        // For query with range matching, temporarily adjust maxLength
-        const originalMaxLength = this.maxLength;
-        if (isRangeQuery) {
-            this.maxLength = 18;
-        }
-
-        const result = super.writeBytes(stream, value, writeOptions);
-
-        // Restore original maxLength
-        this.maxLength = originalMaxLength;
-
-        return result;
     }
 }
 
@@ -796,25 +785,8 @@ class DateTime extends AsciiStringRepresentation {
     constructor() {
         super("DT");
         this.maxLength = 26;
+        this.rangeMatchingMaxLength = 54;
         this.padByte = PADDING_SPACE;
-    }
-
-    writeBytes(stream, value, writeOptions = {}) {
-        // Check if this is a query with range matching (contains a hyphen)
-        const isRangeQuery = typeof value === "string" && value.includes("-");
-
-        // For range queries, temporarily adjust maxLength
-        const originalMaxLength = this.maxLength;
-        if (isRangeQuery) {
-            this.maxLength = 54;
-        }
-
-        const result = super.writeBytes(stream, value, writeOptions);
-
-        // Restore original maxLength
-        this.maxLength = originalMaxLength;
-
-        return result;
     }
 }
 
@@ -1249,6 +1221,7 @@ class TimeValue extends AsciiStringRepresentation {
     constructor() {
         super("TM");
         this.maxLength = 16;
+        this.rangeMatchingMaxLength = 28;
         this.padByte = PADDING_SPACE;
     }
 
@@ -1258,24 +1231,6 @@ class TimeValue extends AsciiStringRepresentation {
 
     applyFormatting(value) {
         return rtrim(value);
-    }
-
-    writeBytes(stream, value, writeOptions = {}) {
-        // Check if this is a query with range matching (contains a hyphen)
-        const isRangeQuery = typeof value === "string" && value.includes("-");
-
-        // For range queries, temporarily adjust maxLength
-        const originalMaxLength = this.maxLength;
-        if (isRangeQuery) {
-            this.maxLength = 28;
-        }
-
-        const result = super.writeBytes(stream, value, writeOptions);
-
-        // Restore original maxLength
-        this.maxLength = originalMaxLength;
-
-        return result;
     }
 }
 
