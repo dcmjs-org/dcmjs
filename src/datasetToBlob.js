@@ -6,11 +6,7 @@ function datasetToDict(dataset) {
     fileMetaInformationVersionArray[1] = 1;
 
     const TransferSyntaxUID =
-        dataset._meta.TransferSyntaxUID &&
-        dataset._meta.TransferSyntaxUID.Value &&
-        dataset._meta.TransferSyntaxUID.Value[0]
-            ? dataset._meta.TransferSyntaxUID.Value[0]
-            : "1.2.840.10008.1.2.1";
+        dataset._meta?.TransferSyntaxUID?.Value?.[0] ?? "1.2.840.10008.1.2.1";
 
     dataset._meta = {
         MediaStorageSOPClassUID: dataset.SOPClassUID,
