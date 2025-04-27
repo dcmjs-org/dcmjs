@@ -44,6 +44,7 @@ _Parts of DICOM that dcmjs *will not* focus on:_
 - Encapsulated transfer syntax transcoding. See [dcmjs-codecs](https://github.com/PantelisGeorgiadis/dcmjs-codecs) for this.
 - 3D rendering.  See [vtk.js](https://kitware.github.io/vtk-js/index.html).
 - Radiology review application - see [OHIF](https://ohif.org).
+- Deidentification and data organization - see [dcm-organize](https://github.com/bebbi/dcm-organize) for this.
 
 # Usage
 
