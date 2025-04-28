@@ -5,15 +5,19 @@ import unit2CodingValue from "./unit2CodingValue.js";
  * Expand an array of points stored as objects into
  * a flattened array of points
  *
- * @param points
+ * @param params.points
+ * @param params.use3DSpatialCoordinates indicates if it's 3D coordinates or not
  * @return {Array}
  */
-function expandPoints(points) {
+function expandPoints({ points, use3DSpatialCoordinates }) {
     const allPoints = [];
 
     points.forEach(point => {
         allPoints.push(point.x);
         allPoints.push(point.y);
+        if (use3DSpatialCoordinates) {
+            allPoints.push(point.z);
+        }
     });
 
     return allPoints;
@@ -21,9 +25,15 @@ function expandPoints(points) {
 
 export default class Ellipse extends TID300Measurement {
     contentItem() {
-        const { points, ReferencedSOPSequence, area, areaUnit } = this.props;
+        const {
+            points,
+            use3DSpatialCoordinates = false,
+            ReferencedSOPSequence,
+            area,
+            areaUnit
+        } = this.props;
 
-        const GraphicData = expandPoints(points);
+        const GraphicData = expandPoints({ points, use3DSpatialCoordinates });
 
         return this.getMeasurement([
             {
@@ -40,14 +50,16 @@ export default class Ellipse extends TID300Measurement {
                 },
                 ContentSequence: {
                     RelationshipType: "INFERRED FROM",
-                    ValueType: "SCOORD",
+                    ValueType: use3DSpatialCoordinates ? "SCOORD3D" : "SCOORD",
                     GraphicType: "ELLIPSE",
                     GraphicData,
-                    ContentSequence: {
-                        RelationshipType: "SELECTED FROM",
-                        ValueType: "IMAGE",
-                        ReferencedSOPSequence
-                    }
+                    ContentSequence: use3DSpatialCoordinates
+                        ? undefined
+                        : {
+                              RelationshipType: "SELECTED FROM",
+                              ValueType: "IMAGE",
+                              ReferencedSOPSequence
+                          }
                 }
             }
         ]);

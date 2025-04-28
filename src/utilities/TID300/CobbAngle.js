@@ -8,8 +8,35 @@ export default class CobbAngle extends TID300Measurement {
             point3,
             point4,
             rAngle,
+            use3DSpatialCoordinates,
             ReferencedSOPSequence
         } = this.props;
+
+        const GraphicData = use3DSpatialCoordinates
+            ? [
+                  point1.x,
+                  point1.y,
+                  point1.z,
+                  point2.x,
+                  point2.y,
+                  point2.z,
+                  point3.x,
+                  point3.y,
+                  point3.z,
+                  point4.x,
+                  point4.y,
+                  point4.z
+              ]
+            : [
+                  point1.x,
+                  point1.y,
+                  point2.x,
+                  point2.y,
+                  point3.x,
+                  point3.y,
+                  point4.x,
+                  point4.y
+              ];
 
         return this.getMeasurement([
             {
@@ -31,23 +58,16 @@ export default class CobbAngle extends TID300Measurement {
                 },
                 ContentSequence: {
                     RelationshipType: "INFERRED FROM",
-                    ValueType: "SCOORD",
+                    ValueType: use3DSpatialCoordinates ? "SCOORD3D" : "SCOORD",
                     GraphicType: "POLYLINE",
-                    GraphicData: [
-                        point1.x,
-                        point1.y,
-                        point2.x,
-                        point2.y,
-                        point3.x,
-                        point3.y,
-                        point4.x,
-                        point4.y
-                    ],
-                    ContentSequence: {
-                        RelationshipType: "SELECTED FROM",
-                        ValueType: "IMAGE",
-                        ReferencedSOPSequence
-                    }
+                    GraphicData,
+                    ContentSequence: use3DSpatialCoordinates
+                        ? undefined
+                        : {
+                              RelationshipType: "SELECTED FROM",
+                              ValueType: "IMAGE",
+                              ReferencedSOPSequence
+                          }
                 }
             }
         ]);
