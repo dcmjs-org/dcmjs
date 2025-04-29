@@ -6,14 +6,18 @@ import unit2CodingValue from "./unit2CodingValue.js";
  * a flattened array of points
  *
  * @param points [{x: 0, y: 1}, {x: 1, y: 2}] or [{x: 0, y: 1, z: 0}, {x: 1, y: 2, z: 0}]
+ * @param use3DSpatialCoordinates boolean: true for 3D points and false for 2D points.
  * @return {Array} [point1x, point1y, point2x, point2y] or [point1x, point1y, point1z, point2x, point2y, point2z]
  */
-function expandPoints(points) {
+function expandPoints(points, use3DSpatialCoordinates) {
     const allPoints = [];
 
     points.forEach(point => {
         allPoints.push(point.x);
         allPoints.push(point.y);
+        if (use3DSpatialCoordinates) {
+            allPoints.push(point.z);
+        }
     });
 
     return allPoints;
@@ -35,7 +39,7 @@ export default class Circle extends TID300Measurement {
         // @ToDO The permiter has to be implemented
         // const reducer = (accumulator, currentValue) => accumulator + currentValue;
         // const perimeter = lengths.reduce(reducer);
-        const GraphicData = expandPoints(points);
+        const GraphicData = expandPoints(points, use3DSpatialCoordinates);
 
         // TODO: Add Mean and STDev value of (modality?) pixels
 
