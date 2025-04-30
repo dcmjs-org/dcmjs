@@ -12,31 +12,10 @@ export default class CobbAngle extends TID300Measurement {
             ReferencedSOPSequence
         } = this.props;
 
-        const GraphicData = use3DSpatialCoordinates
-            ? [
-                  point1.x,
-                  point1.y,
-                  point1.z,
-                  point2.x,
-                  point2.y,
-                  point2.z,
-                  point3.x,
-                  point3.y,
-                  point3.z,
-                  point4.x,
-                  point4.y,
-                  point4.z
-              ]
-            : [
-                  point1.x,
-                  point1.y,
-                  point2.x,
-                  point2.y,
-                  point3.x,
-                  point3.y,
-                  point4.x,
-                  point4.y
-              ];
+        const GraphicData = this.flattenPoints({
+            points: [point1, point2, point3, point4],
+            use3DSpatialCoordinates
+        });
 
         return this.getMeasurement([
             {
