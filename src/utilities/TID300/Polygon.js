@@ -10,7 +10,8 @@ export default class Polygon extends TID300Measurement {
             area,
             areaUnit,
             ReferencedSOPSequence,
-            use3DSpatialCoordinates = false
+            use3DSpatialCoordinates = false,
+            ReferencedFrameOfReferenceUID
         } = this.props;
 
         const GraphicData = this.flattenPoints({
@@ -36,6 +37,9 @@ export default class Polygon extends TID300Measurement {
                     ValueType: use3DSpatialCoordinates ? "SCOORD3D" : "SCOORD",
                     GraphicType: "POLYGON",
                     GraphicData,
+                    ReferencedFrameOfReferenceUID: use3DSpatialCoordinates
+                        ? ReferencedFrameOfReferenceUID
+                        : undefined,
                     ContentSequence: use3DSpatialCoordinates
                         ? undefined
                         : {
@@ -62,6 +66,9 @@ export default class Polygon extends TID300Measurement {
                     ValueType: use3DSpatialCoordinates ? "SCOORD3D" : "SCOORD",
                     GraphicType: "POLYGON",
                     GraphicData,
+                    ReferencedFrameOfReferenceUID: use3DSpatialCoordinates
+                        ? ReferencedFrameOfReferenceUID
+                        : undefined,
                     ContentSequence: use3DSpatialCoordinates
                         ? undefined
                         : {

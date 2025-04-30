@@ -5,7 +5,8 @@ export default class Point extends TID300Measurement {
         const {
             points,
             ReferencedSOPSequence,
-            use3DSpatialCoordinates = false
+            use3DSpatialCoordinates = false,
+            ReferencedFrameOfReferenceUID
         } = this.props;
 
         const GraphicData = this.flattenPoints({
@@ -29,6 +30,9 @@ export default class Point extends TID300Measurement {
                     ValueType: use3DSpatialCoordinates ? "SCOORD3D" : "SCOORD",
                     GraphicType: "POINT",
                     GraphicData,
+                    ReferencedFrameOfReferenceUID: use3DSpatialCoordinates
+                        ? ReferencedFrameOfReferenceUID
+                        : undefined,
                     ContentSequence: use3DSpatialCoordinates
                         ? undefined
                         : {

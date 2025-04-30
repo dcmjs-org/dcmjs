@@ -10,7 +10,8 @@ export default class Circle extends TID300Measurement {
             perimeter,
             area,
             areaUnit = "mm2",
-            unit = "mm"
+            unit = "mm",
+            ReferencedFrameOfReferenceUID
         } = this.props;
 
         // Combine all lengths to save the perimeter
@@ -42,6 +43,9 @@ export default class Circle extends TID300Measurement {
                     ValueType: use3DSpatialCoordinates ? "SCOORD3D" : "SCOORD",
                     GraphicType: "CIRCLE",
                     GraphicData,
+                    ReferencedFrameOfReferenceUID: use3DSpatialCoordinates
+                        ? ReferencedFrameOfReferenceUID
+                        : undefined,
                     ContentSequence: use3DSpatialCoordinates
                         ? undefined
                         : {

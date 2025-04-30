@@ -8,7 +8,8 @@ export default class Ellipse extends TID300Measurement {
             use3DSpatialCoordinates = false,
             ReferencedSOPSequence,
             area,
-            areaUnit
+            areaUnit,
+            ReferencedFrameOfReferenceUID
         } = this.props;
 
         const GraphicData = this.flattenPoints({
@@ -34,6 +35,9 @@ export default class Ellipse extends TID300Measurement {
                     ValueType: use3DSpatialCoordinates ? "SCOORD3D" : "SCOORD",
                     GraphicType: "ELLIPSE",
                     GraphicData,
+                    ReferencedFrameOfReferenceUID: use3DSpatialCoordinates
+                        ? ReferencedFrameOfReferenceUID
+                        : undefined,
                     ContentSequence: use3DSpatialCoordinates
                         ? undefined
                         : {
