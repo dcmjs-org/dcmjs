@@ -564,7 +564,7 @@ it("test_date_time_vr_range_matching_not_truncated", () => {
     const dateTime = "20230131083000.000+0000-20230131090000.000+0000";
     const studyDate = "20230101-20230301";
     const studyTime = "080000.000-143000.000";
-    
+
     const padIfRequired = value => {
         return value.length & 1 ? value + " " : value;
     };
