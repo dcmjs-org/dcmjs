@@ -270,11 +270,16 @@ class DicomMetaDictionary {
 
                     if (!vr.isBinary() && vr.maxLength) {
                         dataItem.Value = dataItem.Value.map(value => {
-                            if (value.length > vr.maxLength) {
+                            let maxLength = vr.maxLength;
+                            if (vr.rangeMatchingMaxLength) {
+                                maxLength = vr.rangeMatchingMaxLength;
+                            }
+
+                            if (value.length > maxLength) {
                                 log.warn(
-                                    `Truncating value ${value} of ${naturalName} because it is longer than ${vr.maxLength}`
+                                    `Truncating value ${value} of ${naturalName} because it is longer than ${maxLength}`
                                 );
-                                return value.slice(0, vr.maxLength);
+                                return value.slice(0, maxLength);
                             } else {
                                 return value;
                             }
