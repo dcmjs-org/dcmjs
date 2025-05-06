@@ -545,6 +545,68 @@ it("test_custom_dictionary", () => {
     expect(Object.keys(dataset).length).toEqual(17);
 });
 
+it("test_code_string_vr_truncated", () => {
+    // Create a dataset with a CS value that exceeds the 16-character limit and gets truncated
+    const testDataset = {
+        Modality: "MAGNETICRESONANCE"
+    };
+
+    const denaturalizedDataset =
+        DicomMetaDictionary.denaturalizeDataset(testDataset);
+
+    expect(denaturalizedDataset["00080060"].vr).toEqual("CS");
+    expect(denaturalizedDataset["00080060"].Value[0]).toEqual(
+        "MAGNETICRESONANC"
+    );
+});
+
+it("test_date_time_vr_range_matching_not_truncated", () => {
+    const dateTime = "20230131083000.000+0000-20230131090000.000+0000";
+    const studyDate = "20230101-20230301";
+    const studyTime = "080000.000-143000.000";
+
+    const padIfRequired = value => {
+        return value.length & 1 ? value + " " : value;
+    };
+
+    // Create a dataset with DA, TM and DT value representations with range matching
+    const testDataset = {
+        // 2023-01-31 08:30 AM to 09:00 AM UTC
+        DateTime: dateTime,
+        // January 1, 2023 to March 1, 2023
+        StudyDate: studyDate,
+        // 08:00 AM to 02:30 PM
+        StudyTime: studyTime
+    };
+
+    // Roundtrip the dataset through denaturalization, naturalization and denaturalization
+    const dicomDict = new DicomDict({
+        TransferSynxtaxUID: EXPLICIT_LITTLE_ENDIAN
+    });
+    dicomDict.dict = DicomMetaDictionary.denaturalizeDataset(testDataset);
+    const part10Buffer = dicomDict.write();
+
+    const dicomData = dcmjs.data.DicomMessage.readFile(part10Buffer);
+    const dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(
+        dicomData.dict
+    );
+
+    const denaturalizedDataset =
+        DicomMetaDictionary.denaturalizeDataset(dataset);
+
+    // Check the VR and values (pad if required)
+    expect(denaturalizedDataset["0040A120"].vr).toEqual("DT");
+    expect(denaturalizedDataset["0040A120"].Value[0]).toEqual(
+        padIfRequired(dateTime)
+    );
+    expect(denaturalizedDataset["00080020"].vr).toEqual("DA");
+    expect(denaturalizedDataset["00080020"].Value[0]).toEqual(
+        padIfRequired(studyDate)
+    );
+    expect(denaturalizedDataset["00080030"].vr).toEqual("TM");
+    expect(denaturalizedDataset["00080030"].Value[0]).toEqual(studyTime); // No padding because of 'applyFormatting'
+});
+
 it("Reads DICOM with multiplicity", async () => {
     const url =
         "https://github.com/dcmjs-org/data/releases/download/multiplicity/multiplicity.dcm";
