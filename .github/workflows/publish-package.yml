@@ -7,7 +7,7 @@ on:
 
 jobs:
   publish-package:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     environment: publish
 
     steps:
