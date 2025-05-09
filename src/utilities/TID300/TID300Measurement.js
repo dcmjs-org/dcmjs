@@ -92,4 +92,26 @@ export default class TID300Measurement {
             };
         });
     }
+
+    /**
+     * Expands an array of points stored as objects into a flattened array of points
+     *
+     * @param param.points [{x: 0, y: 1}, {x: 1, y: 2}] or [{x: 0, y: 1, z: 0}, {x: 1, y: 2, z: 0}]
+     * @param param.use3DSpatialCoordinates boolean: true for 3D points and false for 2D points.
+     *
+     * @return {Array} [point1x, point1y, point2x, point2y] or [point1x, point1y, point1z, point2x, point2y, point2z]
+     */
+    flattenPoints({ points, use3DSpatialCoordinates = false }) {
+        const flattenedCoordinates = [];
+
+        points.forEach(point => {
+            flattenedCoordinates.push(point[0] || point.x);
+            flattenedCoordinates.push(point[1] || point.y);
+            if (use3DSpatialCoordinates) {
+                flattenedCoordinates.push(point[2] || point.z);
+            }
+        });
+
+        return flattenedCoordinates;
+    }
 }

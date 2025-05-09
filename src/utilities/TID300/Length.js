@@ -7,9 +7,16 @@ export default class Length extends TID300Measurement {
             point1,
             point2,
             unit = "mm",
+            use3DSpatialCoordinates = false,
             distance,
-            ReferencedSOPSequence
+            ReferencedSOPSequence,
+            ReferencedFrameOfReferenceUID
         } = this.props;
+
+        const GraphicData = this.flattenPoints({
+            points: [point1, point2],
+            use3DSpatialCoordinates
+        });
 
         return this.getMeasurement([
             {
@@ -26,14 +33,19 @@ export default class Length extends TID300Measurement {
                 },
                 ContentSequence: {
                     RelationshipType: "INFERRED FROM",
-                    ValueType: "SCOORD",
+                    ValueType: use3DSpatialCoordinates ? "SCOORD3D" : "SCOORD",
                     GraphicType: "POLYLINE",
-                    GraphicData: [point1.x, point1.y, point2.x, point2.y],
-                    ContentSequence: {
-                        RelationshipType: "SELECTED FROM",
-                        ValueType: "IMAGE",
-                        ReferencedSOPSequence
-                    }
+                    GraphicData,
+                    ReferencedFrameOfReferenceUID: use3DSpatialCoordinates
+                        ? ReferencedFrameOfReferenceUID
+                        : undefined,
+                    ContentSequence: use3DSpatialCoordinates
+                        ? undefined
+                        : {
+                              RelationshipType: "SELECTED FROM",
+                              ValueType: "IMAGE",
+                              ReferencedSOPSequence
+                          }
                 }
             }
         ]);

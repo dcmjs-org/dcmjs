@@ -171,6 +171,10 @@ export default class TID1500MeasurementReport {
         // with the proper ReferencedSOPSequence
         TID1501MeasurementGroups.forEach(measurementGroup => {
             measurementGroup.TID300Measurements.forEach(measurement => {
+                if (!measurement.ReferencedSOPSequence) {
+                    return;
+                }
+
                 const { ReferencedSOPInstanceUID } =
                     measurement.ReferencedSOPSequence;
 
