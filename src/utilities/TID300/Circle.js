@@ -1,24 +1,6 @@
 import TID300Measurement from "./TID300Measurement.js";
 import unit2CodingValue from "./unit2CodingValue.js";
 
-/**
- * Expand an array of points stored as objects into
- * a flattened array of points
- *
- * @param points [{x: 0, y: 1}, {x: 1, y: 2}] or [{x: 0, y: 1, z: 0}, {x: 1, y: 2, z: 0}]
- * @return {Array} [point1x, point1y, point2x, point2y] or [point1x, point1y, point1z, point2x, point2y, point2z]
- */
-function expandPoints(points) {
-    const allPoints = [];
-
-    points.forEach(point => {
-        allPoints.push(point.x);
-        allPoints.push(point.y);
-    });
-
-    return allPoints;
-}
-
 export default class Circle extends TID300Measurement {
     contentItem() {
         const {
@@ -28,14 +10,18 @@ export default class Circle extends TID300Measurement {
             perimeter,
             area,
             areaUnit = "mm2",
-            unit = "mm"
+            unit = "mm",
+            ReferencedFrameOfReferenceUID
         } = this.props;
 
         // Combine all lengths to save the perimeter
         // @ToDO The permiter has to be implemented
         // const reducer = (accumulator, currentValue) => accumulator + currentValue;
         // const perimeter = lengths.reduce(reducer);
-        const GraphicData = expandPoints(points);
+        const GraphicData = this.flattenPoints({
+            points,
+            use3DSpatialCoordinates
+        });
 
         // TODO: Add Mean and STDev value of (modality?) pixels
 
@@ -57,6 +43,9 @@ export default class Circle extends TID300Measurement {
                     ValueType: use3DSpatialCoordinates ? "SCOORD3D" : "SCOORD",
                     GraphicType: "CIRCLE",
                     GraphicData,
+                    ReferencedFrameOfReferenceUID: use3DSpatialCoordinates
+                        ? ReferencedFrameOfReferenceUID
+                        : undefined,
                     ContentSequence: use3DSpatialCoordinates
                         ? undefined
                         : {
