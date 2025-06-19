@@ -109,7 +109,7 @@ class ImageRegion extends ScoordContentItem {
         if (
             !(
                 options.sourceImage ||
-                options.sourceImage.constructor === SourceImageForRegion
+                options.sourceImage instanceof SourceImageForRegion
             )
         ) {
             throw new Error(
@@ -169,7 +169,7 @@ class VolumeSurface extends Scoord3DContentItem {
         this.ContentSequence = new ContentSequence();
         if (options.sourceImages) {
             options.sourceImages.forEach(image => {
-                if (!(image || image.constructor === SourceImageForRegion)) {
+                if (!(image instanceof SourceImageForRegion)) {
                     throw new Error(
                         "Items of option 'sourceImages' of VolumeSurface " +
                             "must have type SourceImageForRegion."
@@ -179,15 +179,11 @@ class VolumeSurface extends Scoord3DContentItem {
             });
         } else if (options.sourceSeries) {
             if (
-                !(
-                    options.sourceSeries
-                    // TODO: Missing SourceSeriesForRegion
-                    // || options.sourceSeries.constructor === SourceSeriesForRegion
-                )
+                !(options.sourceSeries instanceof SourceSeriesForSegmentation)
             ) {
                 throw new Error(
                     "Option 'sourceSeries' of VolumeSurface " +
-                        "must have type SourceSeriesForRegion."
+                        "must have type SourceSeriesForSegmentation."
                 );
             }
             this.ContentSequence.push(options.sourceSeries);
@@ -294,7 +290,7 @@ class ReferencedSegmentationFrame extends ContentSequence {
             referencedSegmentNumber: options.segmentNumber
         });
         this.push(segmentationItem);
-        if (options.sourceImage.constructor !== SourceImageForSegmentation) {
+        if (!(options.sourceImage instanceof SourceImageForSegmentation)) {
             throw new Error(
                 "Option 'sourceImage' must have type SourceImageForSegmentation."
             );
@@ -340,10 +336,7 @@ class ReferencedSegmentation extends ContentSequence {
         this.push(segmentationItem);
         if (options.sourceImages !== undefined) {
             options.sourceImages.forEach(image => {
-                if (
-                    !image ||
-                    image.constructor !== SourceImageForSegmentation
-                ) {
+                if (!image || !(image instanceof SourceImageForSegmentation)) {
                     throw new Error(
                         "Items of option 'sourceImages' must have type " +
                             "SourceImageForSegmentation."
@@ -353,7 +346,7 @@ class ReferencedSegmentation extends ContentSequence {
             });
         } else if (options.sourceSeries !== undefined) {
             if (
-                options.sourceSeries.constructor !== SourceSeriesForSegmentation
+                !(options.sourceSeries instanceof SourceSeriesForSegmentation)
             ) {
                 throw new Error(
                     "Option 'sourceSeries' must have type SourceSeriesForSegmentation."
