@@ -71,7 +71,8 @@ class Normalizer {
             toUID.LegacyConvertedEnhancedPETImage,
             toUID.Segmentation,
             toUID.ParametricMapStorage,
-            toUID.OphthalmicTomographyImage
+            toUID.OphthalmicTomographyImage,
+            toUID.LabelmapSegmentation // Labelmap Segmentation SOP Class UID
         ];
         return multiframeSOPClasses.indexOf(sopClassUID) !== -1;
     }
