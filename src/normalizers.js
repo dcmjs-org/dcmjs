@@ -54,6 +54,7 @@ class Normalizer {
         sopClassUIDMap[toUID.OphthalmicPhotography8BitImage] =
             OPImageNormalizer;
         sopClassUIDMap[toUID.OphthalmicTomographyImage] = OCTImageNormalizer;
+        sopClassUIDMap[toUID.LabelmapSegmentation] = SEGImageNormalizer; // Labelmap Segmentation uses the same normalizer as Segmentation
         return sopClassUIDMap[sopClassUID];
     }
 
