@@ -54,6 +54,7 @@ class Normalizer {
         sopClassUIDMap[toUID.OphthalmicPhotography8BitImage] =
             OPImageNormalizer;
         sopClassUIDMap[toUID.OphthalmicTomographyImage] = OCTImageNormalizer;
+        sopClassUIDMap[toUID.LabelmapSegmentation] = SEGImageNormalizer; // Labelmap Segmentation uses the same normalizer as Segmentation
         return sopClassUIDMap[sopClassUID];
     }
 
@@ -70,7 +71,8 @@ class Normalizer {
             toUID.LegacyConvertedEnhancedPETImage,
             toUID.Segmentation,
             toUID.ParametricMapStorage,
-            toUID.OphthalmicTomographyImage
+            toUID.OphthalmicTomographyImage,
+            toUID.LabelmapSegmentation // Labelmap Segmentation SOP Class UID
         ];
         return multiframeSOPClasses.indexOf(sopClassUID) !== -1;
     }

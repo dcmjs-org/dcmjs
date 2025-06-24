@@ -389,6 +389,7 @@ DicomMetaDictionary.sopClassNamesByUID = {
     "1.2.840.10008.5.1.4.1.1.66.2": "SpatialFiducials",
     "1.2.840.10008.5.1.4.1.1.66.3": "DeformableSpatialRegistration",
     "1.2.840.10008.5.1.4.1.1.66.4": "Segmentation",
+    "1.2.840.10008.5.1.4.1.1.66.7": "LabelmapSegmentation", // Labelmap Segmentation SOP Class UID
     "1.2.840.10008.5.1.4.1.1.67": "RealWorldValueMapping",
     "1.2.840.10008.5.1.4.1.1.88.11": "BasicTextSR",
     "1.2.840.10008.5.1.4.1.1.88.22": "EnhancedSR",
