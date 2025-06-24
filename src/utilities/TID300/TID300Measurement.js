@@ -12,8 +12,40 @@ export default class TID300Measurement {
             ...this.getTrackingGroups(),
             ...this.getFindingGroup(),
             ...this.getFindingSiteGroups(),
-            ...contentSequenceEntries
+            ...contentSequenceEntries,
+            ...this.getTextBoxGroups()
         ];
+    }
+
+    getTextBoxGroups() {
+        const { textBoxPoint } = this.props;
+
+        if (
+            !textBoxPoint ||
+            typeof textBoxPoint.x !== "number" ||
+            typeof textBoxPoint.y !== "number"
+        ) {
+            return [];
+        }
+
+        const textBoxSequence = {
+            RelationshipType: "CONTAINS",
+            ValueType: "SCOORD",
+            ConceptNameCodeSequence: {
+                CodeValue: "111030",
+                CodingSchemeDesignator: "DCM",
+                CodeMeaning: "Annotation Position"
+            },
+            GraphicType: "POINT",
+            GraphicData: [textBoxPoint.x, textBoxPoint.y],
+            ContentSequence: {
+                RelationshipType: "SELECTED FROM",
+                ValueType: "IMAGE",
+                ReferencedSOPSequence: this.ReferencedSOPSequence
+            }
+        };
+
+        return [textBoxSequence];
     }
 
     getTrackingGroups() {
