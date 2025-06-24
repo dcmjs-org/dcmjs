@@ -491,8 +491,8 @@ it("test_encapsulation", async () => {
     // when
     const lengths = [];
     const stream = new ReadBufferStream(
-        dicomDict.write({ fragmentMultiframe: false })
-    ),
+            dicomDict.write({ fragmentMultiframe: false })
+        ),
         useSyntax = EXPLICIT_LITTLE_ENDIAN;
 
     stream.reset();
