@@ -238,6 +238,29 @@ it("test_multiframe_1", async () => {
     expect(roundedSpacing).toEqual(1.3);
 });
 
+it("test_labelmapseg", async () => {
+    const segURL =
+        "https://github.com/dcmjs-org/data/releases/download/labelmap-seg/totalSegmentator.dcm";
+    var segFilePath = await getTestDataset(segURL, "LabelmapSeg.dcm");
+    const arrayBuffer = fs.readFileSync(segFilePath).buffer;
+
+    const datasets = [];
+    const dicomDict = DicomMessage.readFile(arrayBuffer);
+    const dataset = DicomMetaDictionary.naturalizeDataset(dicomDict.dict);
+
+    datasets.push(dataset);
+
+    const multiframe =
+        dcmjs.normalizers.Normalizer.normalizeToDataset(datasets);
+    const spacing =
+        multiframe.SharedFunctionalGroupsSequence.PixelMeasuresSequence
+            .SpacingBetweenSlices;
+    const roundedSpacing = Math.round(100 * spacing) / 100;
+
+    expect(multiframe.NumberOfFrames).toEqual(295);
+    expect(roundedSpacing).toEqual(1.0);
+});
+
 it("test_oneslice_seg", async () => {
     const ctPelvisURL =
         "https://github.com/dcmjs-org/data/releases/download/CTPelvis/CTPelvis.zip";
