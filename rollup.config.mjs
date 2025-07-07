@@ -6,6 +6,7 @@ import commonjs from "@rollup/plugin-commonjs";
 // import babelRuntime from "@rollup/plugin-transform-runtime"
 import json from "@rollup/plugin-json";
 import replace from "@rollup/plugin-replace";
+import terser from "@rollup/plugin-terser";
 import { readFileSync } from "fs";
 
 const pkg = JSON.parse(
@@ -20,6 +21,13 @@ export default {
             format: "umd",
             name: "dcmjs",
             sourcemap: true
+        },
+        {
+            file: pkg.main.replace(/\.js$/, ".min.js"),
+            format: "umd",
+            name: "dcmjs",
+            sourcemap: true,
+            plugins: [terser()]
         },
         {
             file: pkg.module,
