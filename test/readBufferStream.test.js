@@ -9,7 +9,7 @@ for (let i = 0; i < size; i++) {
     createView.setUint8(i, i % 256);
 }
 
-describe("BufferStream Tests", () => {
+describe("ReadBufferStream Tests", () => {
     it("reads single buffer", () => {
         const stream = new ReadBufferStream(buffer, true);
         expect(stream).toBeDefined();

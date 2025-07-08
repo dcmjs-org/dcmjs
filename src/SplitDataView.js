@@ -7,7 +7,7 @@ export default class SplitDataView {
     views = [];
     offsets = [];
     size = 0;
-    availableSize = 0;
+    byteLength = 0;
 
     /** The default size is 256k */
     defaultSize = 256 * 1024;
@@ -17,20 +17,13 @@ export default class SplitDataView {
     }
 
     checkSize(end) {
-        if (!buffers.length) {
-            this.buffers.push(new ArrayBuffer(this.defaultSize));
-            this.views.push(new DataView(this.buffers[0]));
-            this.offsets.push(0);
-            this.availableSize += this.defaultSize;
-        }
-        while (end > this.availableSize) {
+        while (end > this.byteLength) {
             const buffer = new ArrayBuffer(this.defaultSize);
             this.buffers.push(buffer);
             this.views.push(new DataView(buffer));
-            this.offsets.push(
-                this.offsets[this.offsets.length - 1] + buffer.byteLength
-            );
-            this.availableSize += buffer.byteLength;
+            this.offsets.push(this.byteLength);
+
+            this.byteLength += buffer.byteLength;
         }
     }
 
@@ -77,17 +70,20 @@ export default class SplitDataView {
         }
         const createBuffer = new Uint8Array(end - start);
         let offsetStart = 0;
-        while (start < end && index < this.buffers.length) {
+        while (start + offsetStart < end && index < this.buffers.length) {
             buffer = this.buffers[index];
             length = buffer.byteLength;
             offset = this.offsets[index];
 
-            const addLength = Math.min(end - offset, length) - start + offset;
+            const bufStart = start + offsetStart - offset;
+            const addLength = Math.min(
+                end - start - offsetStart,
+                length - bufStart
+            );
             createBuffer.set(
-                new Uint8Array(buffer, start - offset, addLength),
+                new Uint8Array(buffer, bufStart, addLength),
                 offsetStart
             );
-            start = length;
             offsetStart += addLength;
             index++;
         }
@@ -111,7 +107,7 @@ export default class SplitDataView {
         const viewOffset = this.offsets[index];
         const viewLength = buffer.byteLength;
         if (start + length - viewOffset <= viewLength) {
-            return { view: this.views[index], viewOffset };
+            return { view: this.views[index], viewOffset, index };
         }
         const newBuffer = this.slice(start, start + length);
         return {
@@ -121,8 +117,27 @@ export default class SplitDataView {
         };
     }
 
-    writeCommit(start, view, viewOffset, length) {
-        throw new Error("TODO");
+    writeCommit(view, start) {
+        this.writeBuffer(new Uint8Array(view), start);
+    }
+
+    writeBuffer(data, start) {
+        let index = this.findStart(start);
+        let offset = 0;
+        while (offset < data.length) {
+            const buffer = this.buffers[i];
+            const bufferOffset = this.offsets[i];
+            const length = buffer.byteLength;
+            const startWrite = start - bufferOffset;
+            const writeLen = Math.min(
+                buffer.length - offset,
+                length - startWrite
+            );
+            const byteBuffer = new Uint8Array(buffer, startWrite, writeLen);
+            byteBuffer.set(data, offset, offset + writeLen);
+            offset += writeLen;
+            index++;
+        }
     }
 
     getUint8(offset) {
@@ -156,16 +171,46 @@ export default class SplitDataView {
     }
 
     setUint8(offset, value) {
-        const { view, viewOffset } = this.findView(offset, 4);
+        const { view, viewOffset, index } = this.findView(offset, 1);
         view.setUint8(offset - viewOffset, value);
         // Commit is unneeded since 1 byte will always be available
     }
 
     setUint16(offset, value) {
         const { view, viewOffset, writeCommit } = this.findView(offset, 2);
-        view.setUint8(offset - viewOffset, value);
+        view.setUint16(offset - viewOffset, value);
         if (writeCommit) {
-            this.writeCommit(offset, view, viewOffset, 2);
+            this.writeCommit(view, offset);
+        }
+    }
+
+    setUint32(offset, value) {
+        const { view, viewOffset, writeCommit } = this.findView(offset, 4);
+        view.setUint32(offset - viewOffset, value);
+        if (writeCommit) {
+            this.writeCommit(view, offset);
+        }
+    }
+
+    setInt8(offset, value) {
+        const { view, viewOffset } = this.findView(offset, 1);
+        view.setInt8(offset - viewOffset, value);
+        // Commit is unneeded since 1 byte will always be available
+    }
+
+    setInt16(offset, value) {
+        const { view, viewOffset, writeCommit } = this.findView(offset, 2);
+        view.setInt16(offset - viewOffset, value);
+        if (writeCommit) {
+            this.writeCommit(view, offset);
+        }
+    }
+
+    setInt32(offset, value) {
+        const { view, viewOffset, writeCommit } = this.findView(offset, 4);
+        view.setInt32(offset - viewOffset, value);
+        if (writeCommit) {
+            this.writeCommit(view, offset);
         }
     }
 }
