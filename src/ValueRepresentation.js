@@ -1073,7 +1073,6 @@ class SequenceOfItems extends ValueRepresentation {
                 elements = [],
                 read = 0;
 
-            /* eslint-disable-next-line no-constant-condition */
             while (true) {
                 var tag = Tag.readTag(stream),
                     length = null;

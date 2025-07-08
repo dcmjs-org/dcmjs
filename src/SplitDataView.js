@@ -125,8 +125,8 @@ export default class SplitDataView {
         let index = this.findStart(start);
         let offset = 0;
         while (offset < data.length) {
-            const buffer = this.buffers[i];
-            const bufferOffset = this.offsets[i];
+            const buffer = this.buffers[index];
+            const bufferOffset = this.offsets[index];
             const length = buffer.byteLength;
             const startWrite = start - bufferOffset;
             const writeLen = Math.min(
@@ -171,7 +171,7 @@ export default class SplitDataView {
     }
 
     setUint8(offset, value) {
-        const { view, viewOffset, index } = this.findView(offset, 1);
+        const { view, viewOffset } = this.findView(offset, 1);
         view.setUint8(offset - viewOffset, value);
         // Commit is unneeded since 1 byte will always be available
     }
