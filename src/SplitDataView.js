@@ -55,14 +55,21 @@ export default class SplitDataView {
         this.views.push(new DataView(addBuffer));
         this.offsets.push(lastOffset + lastLength);
         this.size += addBuffer.byteLength;
+        this.byteLength += addBuffer.byteLength;
     }
 
     slice(start = 0, end = this.size) {
         let index = this.findStart(start);
         if (index === undefined) {
-            throw new Error(`Start ${start} out of range of 0...${this.size}`);
+            throw new Error(
+                `Start ${start} out of range of 0...${this.byteLength}`
+            );
         }
         let buffer = this.buffers[index];
+        if (!buffer) {
+            console.error("Buffer should be defined here");
+            return;
+        }
         let offset = this.offsets[index];
         let length = buffer.byteLength;
         if (end < offset + length) {
@@ -126,6 +133,9 @@ export default class SplitDataView {
         let offset = 0;
         while (offset < data.byteLength) {
             const buffer = this.buffers[index];
+            if (!buffer) {
+                throw new Error(`Not enough space to write ${data.byteLength}`);
+            }
             const bufferOffset = this.offsets[index];
             const startWrite = start + offset - bufferOffset;
             const writeLen = Math.min(

@@ -44,6 +44,11 @@ class BufferStream {
         return this.slice(start, end);
     }
 
+    get buffer() {
+        console.warn("Deprecated buffer get");
+        return this.getBuffer();
+    }
+
     writeUint8(value) {
         this.checkSize(1);
         this.view.setUint8(this.offset, toInt(value));
@@ -117,7 +122,6 @@ class BufferStream {
     writeUTF8String(value) {
         const encodedString = this.encoder.encode(value);
         this.checkSize(encodedString.byteLength);
-        new Uint8Array(this.buffer).set(encodedString, this.offset);
         this.view.writeBuffer(encodedString, this.offset);
         return this.increment(encodedString.byteLength);
     }
@@ -244,24 +248,11 @@ class BufferStream {
     }
 
     concat(stream) {
-        var available = this.view.byteLength - this.offset;
-        if (stream.size > available) {
-            let newbuf = new ArrayBuffer(this.offset + stream.size);
-            let int8 = new Uint8Array(newbuf);
-            int8.set(new Uint8Array(this.getBuffer(0, this.offset)));
-            int8.set(
-                new Uint8Array(stream.getBuffer(0, stream.size)),
-                this.offset
-            );
-            this.buffer = newbuf;
-            this.view = new DataView(this.buffer);
-        } else {
-            let int8 = new Uint8Array(this.buffer);
-            int8.set(
-                new Uint8Array(stream.getBuffer(0, stream.size)),
-                this.offset
-            );
-        }
+        this.view.checkSize(this.size + stream.size - stream.startOffset);
+        this.view.writeBuffer(
+            new Uint8Array(stream.slice(stream.startOffset, stream.size)),
+            this.offset
+        );
         this.offset += stream.size;
         this.size = this.offset;
         return this.view.availableSize;
@@ -295,10 +286,15 @@ class BufferStream {
             throw new Error("Request more than currently allocated buffer");
         }
 
-        const newBuf = new ReadBufferStream(this.buffer, null, {
-            start: this.offset,
-            stop: this.offset + length
-        });
+        // Optimize the more implementation to choose between a slice and
+        // a sub-string reference to the original set of views.
+        // const newBuf = new ReadBufferStream(this.buffer, null, {
+        //   start: this.offset,
+        //   stop: this.offset + length
+        // });
+        const newBuf = new ReadBufferStream(
+            this.slice(this.offset, this.offset + length)
+        );
         this.increment(length);
 
         return newBuf;
