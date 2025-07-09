@@ -32,19 +32,24 @@ describe("WriteBufferStream Tests", () => {
             stream.writeUint16((i * 511) % 0x10000);
         }
         for (let i = 0; i < 512; i++) {
-            expect(stream.view.getUint16(i * 2)).toBe((i * 511) % 0x10000);
+            expect(stream.view.getUint16(i * 2, stream.isLittleEndian)).toBe(
+                (i * 511) % 0x10000
+            );
         }
     });
 
     it("writeUint32", () => {
         const stream = new WriteBufferStream(25, true);
         expect(stream).toBeDefined();
+        const expected = [];
         for (let i = 0; i < 512; i++) {
-            stream.writeUint32(i * 511);
+            expected[i] = i * 511;
+            stream.writeUint32(expected[i]);
         }
         expect(stream.view.buffers.length).toBe(Math.ceil((512 * 4) / 25));
         for (let i = 0; i < 512; i++) {
-            expect(stream.view.getUint32(i * 4)).toBe(i * 511);
+            const actual = stream.view.getUint32(i * 4, stream.isLittleEndian);
+            expect(actual).toBe(expected[i]);
         }
     });
 

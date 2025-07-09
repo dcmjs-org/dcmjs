@@ -42,10 +42,10 @@ describe("ReadBufferStream Tests", () => {
             expect(stream.readUint8()).toBe(1);
             stream.reset();
             stream.increment(size + 1);
-            expect(stream.readUint16()).toBe(258);
+            expect(stream.readUint16()).toBe(513);
             stream.reset();
             stream.increment(size - 1);
-            expect(stream.readUint32(size - 1)).toBe(2130706690);
+            expect(stream.readUint32(size - 1)).toBe(33620095);
         });
     });
 });

@@ -118,23 +118,23 @@ export default class SplitDataView {
     }
 
     writeCommit(view, start) {
-        this.writeBuffer(new Uint8Array(view), start);
+        this.writeBuffer(view.buffer, start);
     }
 
     writeBuffer(data, start) {
         let index = this.findStart(start);
         let offset = 0;
-        while (offset < data.length) {
+        while (offset < data.byteLength) {
             const buffer = this.buffers[index];
             const bufferOffset = this.offsets[index];
-            const length = buffer.byteLength;
-            const startWrite = start - bufferOffset;
+            const startWrite = start + offset - bufferOffset;
             const writeLen = Math.min(
-                buffer.length - offset,
-                length - startWrite
+                buffer.byteLength - startWrite,
+                data.byteLength - offset
             );
             const byteBuffer = new Uint8Array(buffer, startWrite, writeLen);
-            byteBuffer.set(data, offset, offset + writeLen);
+            const setData = new Uint8Array(data, offset, writeLen);
+            byteBuffer.set(setData);
             offset += writeLen;
             index++;
         }
@@ -145,14 +145,14 @@ export default class SplitDataView {
         return view.getUint8(offset - viewOffset);
     }
 
-    getUint16(offset) {
+    getUint16(offset, isLittleEndian) {
         const { view, viewOffset } = this.findView(offset, 2);
-        return view.getUint16(offset - viewOffset);
+        return view.getUint16(offset - viewOffset, isLittleEndian);
     }
 
-    getUint32(offset) {
+    getUint32(offset, isLittleEndian) {
         const { view, viewOffset } = this.findView(offset, 4);
-        return view.getUint32(offset - viewOffset);
+        return view.getUint32(offset - viewOffset, isLittleEndian);
     }
 
     getInt8(offset) {
@@ -160,14 +160,14 @@ export default class SplitDataView {
         return view.getInt8(offset - viewOffset);
     }
 
-    getInt16(offset) {
+    getInt16(offset, isLittleEndian) {
         const { view, viewOffset } = this.findView(offset, 2);
-        return view.getInt16(offset - viewOffset);
+        return view.getInt16(offset - viewOffset, isLittleEndian);
     }
 
-    getInt32(offset) {
+    getInt32(offset, isLittleEndian) {
         const { view, viewOffset } = this.findView(offset, 4);
-        return view.getInt32(offset - viewOffset);
+        return view.getInt32(offset - viewOffset, isLittleEndian);
     }
 
     setUint8(offset, value) {
@@ -176,17 +176,17 @@ export default class SplitDataView {
         // Commit is unneeded since 1 byte will always be available
     }
 
-    setUint16(offset, value) {
+    setUint16(offset, value, isLittleEndian) {
         const { view, viewOffset, writeCommit } = this.findView(offset, 2);
-        view.setUint16(offset - viewOffset, value);
+        view.setUint16(offset - viewOffset, value, isLittleEndian);
         if (writeCommit) {
             this.writeCommit(view, offset);
         }
     }
 
-    setUint32(offset, value) {
+    setUint32(offset, value, isLittleEndian) {
         const { view, viewOffset, writeCommit } = this.findView(offset, 4);
-        view.setUint32(offset - viewOffset, value);
+        view.setUint32(offset - viewOffset, value, isLittleEndian);
         if (writeCommit) {
             this.writeCommit(view, offset);
         }
@@ -198,17 +198,17 @@ export default class SplitDataView {
         // Commit is unneeded since 1 byte will always be available
     }
 
-    setInt16(offset, value) {
+    setInt16(offset, value, isLittleEndian) {
         const { view, viewOffset, writeCommit } = this.findView(offset, 2);
-        view.setInt16(offset - viewOffset, value);
+        view.setInt16(offset - viewOffset, value, isLittleEndian);
         if (writeCommit) {
             this.writeCommit(view, offset);
         }
     }
 
-    setInt32(offset, value) {
+    setInt32(offset, value, isLittleEndian) {
         const { view, viewOffset, writeCommit } = this.findView(offset, 4);
-        view.setInt32(offset - viewOffset, value);
+        view.setInt32(offset - viewOffset, value, isLittleEndian);
         if (writeCommit) {
             this.writeCommit(view, offset);
         }

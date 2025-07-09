@@ -326,7 +326,7 @@ it("test_multiframe_us", () => {
     const dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(
         dicomData.dict
     );
-     
+
     dataset._meta = dcmjs.data.DicomMetaDictionary.namifyDataset(
         dicomData.meta
     );
@@ -347,7 +347,7 @@ it("test_fragment_multiframe", async () => {
     const dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(
         dicomData.dict
     );
-     
+
     dataset._meta = dcmjs.data.DicomMetaDictionary.namifyDataset(
         dicomData.meta
     );
