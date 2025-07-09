@@ -69,6 +69,9 @@ export default class SplitDataView {
     }
 
     slice(start = 0, end = this.size) {
+        if (start === end) {
+            return new Uint8Array(0).buffer;
+        }
         let index = this.findStart(start);
         if (index === undefined) {
             throw new Error(
@@ -153,7 +156,11 @@ export default class SplitDataView {
                 data.byteLength - offset
             );
             const byteBuffer = new Uint8Array(buffer, startWrite, writeLen);
-            const setData = new Uint8Array(data, offset, writeLen);
+            const setData = new Uint8Array(
+                data.buffer || data,
+                offset,
+                writeLen
+            );
             byteBuffer.set(setData);
             offset += writeLen;
             index++;
@@ -173,6 +180,16 @@ export default class SplitDataView {
     getUint32(offset, isLittleEndian) {
         const { view, viewOffset } = this.findView(offset, 4);
         return view.getUint32(offset - viewOffset, isLittleEndian);
+    }
+
+    getFloat32(offset, isLittleEndian) {
+        const { view, viewOffset } = this.findView(offset, 4);
+        return view.getFloat32(offset - viewOffset, isLittleEndian);
+    }
+
+    getFloat64(offset, isLittleEndian) {
+        const { view, viewOffset } = this.findView(offset, 8);
+        return view.getFloat64(offset - viewOffset, isLittleEndian);
     }
 
     getInt8(offset) {
@@ -207,6 +224,22 @@ export default class SplitDataView {
     setUint32(offset, value, isLittleEndian) {
         const { view, viewOffset, writeCommit } = this.findView(offset, 4);
         view.setUint32(offset - viewOffset, value, isLittleEndian);
+        if (writeCommit) {
+            this.writeCommit(view, offset);
+        }
+    }
+
+    setFloat32(offset, value, isLittleEndian) {
+        const { view, viewOffset, writeCommit } = this.findView(offset, 4);
+        view.setFloat32(offset - viewOffset, value, isLittleEndian);
+        if (writeCommit) {
+            this.writeCommit(view, offset);
+        }
+    }
+
+    setFloat64(offset, value, isLittleEndian) {
+        const { view, viewOffset, writeCommit } = this.findView(offset, 8);
+        view.setFloat64(offset - viewOffset, value, isLittleEndian);
         if (writeCommit) {
             this.writeCommit(view, offset);
         }

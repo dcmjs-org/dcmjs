@@ -17,6 +17,7 @@ function toFloat(val) {
 
 class BufferStream {
     offset = 0;
+    startOffset = 0;
     isLittleEndian = false;
     size = 0;
     view = new SplitDataView();
@@ -45,7 +46,7 @@ class BufferStream {
     }
 
     get buffer() {
-        console.warn("Deprecated buffer get");
+        // console.warn("Deprecated buffer get");
         return this.getBuffer();
     }
 
@@ -165,7 +166,9 @@ class BufferStream {
     }
 
     readUint8Array(length) {
-        const arr = new Uint8Array(this.view.slice(this.offset, length));
+        const arr = new Uint8Array(
+            this.view.slice(this.offset, this.offset + length)
+        );
         this.increment(length);
         return arr;
     }
@@ -179,6 +182,12 @@ class BufferStream {
             this.offset += 2;
         }
         return arr;
+    }
+
+    readInt8() {
+        var val = this.view.getInt8(this.offset, this.isLittleEndian);
+        this.increment(1);
+        return val;
     }
 
     readInt16() {
@@ -251,6 +260,10 @@ class BufferStream {
         this.view.checkSize(this.offset + step);
     }
 
+    /**
+     * Concatenates the stream, starting from the startOffset (to allow concat
+     * on an existing output from the beginning)
+     */
     concat(stream) {
         this.view.checkSize(this.size + stream.size - stream.startOffset);
         this.view.writeBuffer(
@@ -338,7 +351,7 @@ class ReadBufferStream extends BufferStream {
             this.view.addBuffer(buffer);
         }
         this.offset = options.start ?? buffer?.offset ?? 0;
-        this.size = options.stop ?? buffer?.byteLength ?? 0;
+        this.size = options.stop || buffer?.size || buffer?.byteLength || 0;
 
         this.startOffset = this.offset;
         this.endOffset = this.size;
