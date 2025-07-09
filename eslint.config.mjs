@@ -18,7 +18,13 @@ export default [
             }
         },
         rules: {
-            "no-loss-of-precision": "off"
+            "no-loss-of-precision": "off",
+            "no-unused-vars": [
+                "error",
+                {
+                    argsIgnorePattern: "^_" // for function parameters
+                }
+            ]
         }
     }
 ];
