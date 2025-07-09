@@ -11,7 +11,7 @@
   base = ""
   publish = "examples/"
   command = "npm run build:examples"
-  environment = { NODE_VERSION = "18.16.0" }
+  environment = { NODE_VERSION = "18.18.0" }
 
 # Deploy Preview context: all deploys generated from a pull/merge request will
 # inherit these settings.
@@ -19,4 +19,4 @@
   base = ""
   publish = "examples/"
   command = "npm run build:examples"
-  environment = { NODE_VERSION = "18.16.0" }
+  environment = { NODE_VERSION = "18.18.0" }
