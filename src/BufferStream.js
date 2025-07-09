@@ -39,7 +39,7 @@ class BufferStream {
 
     getBuffer(start = 0, end = this.size) {
         if (this.noCopy) {
-            return new Uint8Array(this.slice(start, end), start, end - start);
+            return new Uint8Array(this.slice(start, end));
         }
 
         return this.slice(start, end);
