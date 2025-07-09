@@ -1,5 +1,3 @@
-import "regenerator-runtime/runtime.js";
-
 import { jest } from "@jest/globals";
 import fs from "fs";
 import fsPromises from "fs/promises";

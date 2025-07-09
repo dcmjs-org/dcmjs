@@ -1,6 +1,4 @@
-﻿import "regenerator-runtime/runtime.js";
-
-import { getZippedTestDataset } from "./testUtils.js";
+﻿import { getZippedTestDataset } from "./testUtils.js";
 import dcmjs from "../src/index.js";
 import fs from "fs";
 import fsPromises from "fs/promises";

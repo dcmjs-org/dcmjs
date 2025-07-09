@@ -1,5 +1,3 @@
-import "regenerator-runtime/runtime";
-
 import { ReadBufferStream, WriteBufferStream } from "../src/BufferStream";
 
 describe("WriteBufferStream Tests", () => {

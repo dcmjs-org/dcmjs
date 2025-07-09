@@ -1,5 +1,3 @@
-import "regenerator-runtime/runtime.js";
-
 import fs from "fs";
 import { jest } from "@jest/globals";
 import { getTestDataset } from "./testUtils";

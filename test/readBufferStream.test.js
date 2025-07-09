@@ -1,5 +1,3 @@
-import "regenerator-runtime/runtime";
-
 import { ReadBufferStream } from "../src/BufferStream";
 
 const size = 128;
