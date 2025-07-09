@@ -32,7 +32,7 @@ class BufferStream {
         this.isLittleEndian = isLittle;
     }
 
-    slice(start, end) {
+    slice(start = this.startOffset, end = this.endOffset) {
         return this.view.slice(start, end);
     }
 
@@ -47,6 +47,10 @@ class BufferStream {
     get buffer() {
         console.warn("Deprecated buffer get");
         return this.getBuffer();
+    }
+
+    get available() {
+        return this.endOffset - this.offset;
     }
 
     writeUint8(value) {
@@ -325,15 +329,19 @@ class ReadBufferStream extends BufferStream {
         }
     ) {
         super({ littleEndian });
-        if (buffer) {
+        this.noCopy = options.noCopy;
+        this.decoder = new TextDecoder("latin1");
+
+        if (buffer instanceof BufferStream) {
+            this.view.from(buffer.view, options);
+        } else if (buffer) {
             this.view.addBuffer(buffer);
         }
-        this.offset = options.start || 0;
-        this.size = options.stop || buffer?.byteLength || 0;
-        this.noCopy = options.noCopy;
+        this.offset = options.start ?? buffer?.offset ?? 0;
+        this.size = options.stop ?? buffer?.byteLength ?? 0;
+
         this.startOffset = this.offset;
         this.endOffset = this.size;
-        this.decoder = new TextDecoder("latin1");
     }
 
     setDecoder(decoder) {

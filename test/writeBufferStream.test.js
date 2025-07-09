@@ -62,6 +62,4 @@ describe("WriteBufferStream Tests", () => {
         stream.writeAsciiString(string);
         expect(stream.view.buffers.length).toBe(Math.ceil(string.length / 32));
     });
-
-    it("concats a read stream", () => {});
 });

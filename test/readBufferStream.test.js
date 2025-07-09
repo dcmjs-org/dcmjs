@@ -48,4 +48,52 @@ describe("ReadBufferStream Tests", () => {
             expect(stream.readUint32(size - 1)).toBe(33620095);
         });
     });
+
+    describe("substream", () => {
+        it("gets range of buffer", () => {
+            const stream = new ReadBufferStream(buffer, false, {
+                start: 32,
+                stop: 64
+            });
+            expect(stream.available).toBe(32);
+            expect(stream.startOffset).toBe(32);
+            expect(stream.endOffset).toBe(64);
+            const buf = stream.slice();
+            expect(buf.byteLength).toBe(32);
+            const dv = new DataView(buf);
+            expect(dv.getUint8(0)).toBe(32);
+        });
+
+        it("creates subranges on buffer", () => {
+            const stream = new ReadBufferStream(buffer, false, {
+                start: 32,
+                stop: 64
+            });
+            const subStream = new ReadBufferStream(
+                stream.buffer,
+                stream.isLittleEndian,
+                { start: stream.offset, stop: stream.size }
+            );
+            expect(subStream.startOffset).toBe(32);
+            expect(subStream.endOffset).toBe(64);
+            expect(subStream.size).toBe(64);
+        });
+
+        it("creates subranges on stream", () => {
+            const stream = new ReadBufferStream(buffer, false, {
+                start: 32,
+                stop: 64
+            });
+            // This is the recommended way of creating
+            // a sub-stream as it allows either copying
+            // or referencing the incoming stream data.
+            const subStream = new ReadBufferStream(
+                stream,
+                stream.isLittleEndian,
+                { stop: 48 }
+            );
+            expect(subStream.available).toBe(16);
+            expect(subStream.readUint8()).toBe(32);
+        });
+    });
 });

@@ -58,6 +58,16 @@ export default class SplitDataView {
         this.byteLength += addBuffer.byteLength;
     }
 
+    /** Copies one view contents into this one as a mirror */
+    from(view, _options) {
+        this.size = view.size;
+        this.byteLength = view.byteLength;
+        this.offsets.push(...view.offsets);
+        this.buffers.push(...view.buffers);
+        this.views.push(...view.views);
+        // TODO - use the options to skip copying irrelevant data
+    }
+
     slice(start = 0, end = this.size) {
         let index = this.findStart(start);
         if (index === undefined) {
