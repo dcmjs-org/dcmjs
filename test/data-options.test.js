@@ -1,5 +1,3 @@
-import "regenerator-runtime/runtime.js";
-
 import dcmjs from "../src/index.js";
 import fs from "fs";
 import path from "path";

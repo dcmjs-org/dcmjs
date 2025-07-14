@@ -1,5 +1,3 @@
-import "regenerator-runtime/runtime.js";
-
 import { jest } from "@jest/globals";
 import fs from "fs";
 import fsPromises from "fs/promises";
@@ -326,7 +324,7 @@ it("test_multiframe_us", () => {
     const dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(
         dicomData.dict
     );
-    // eslint-disable-next-line no-underscore-dangle
+
     dataset._meta = dcmjs.data.DicomMetaDictionary.namifyDataset(
         dicomData.meta
     );
@@ -347,7 +345,7 @@ it("test_fragment_multiframe", async () => {
     const dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(
         dicomData.dict
     );
-    // eslint-disable-next-line no-underscore-dangle
+
     dataset._meta = dcmjs.data.DicomMetaDictionary.namifyDataset(
         dicomData.meta
     );
@@ -721,7 +719,7 @@ it("Writes encapsulated OB data which has an odd length with a padding byte in i
     );
 
     expect(bytesWritten).toEqual(44);
-    expect([...new Uint32Array(stream.view.buffer, 0, 11)]).toEqual([
+    expect([...new Uint32Array(stream.buffer, 0, 11)]).toEqual([
         0x00107fe0, // PixelData tag's group & element
         0x0000424f, // VR type "OB"
         0xffffffff, // Value length (0xffffffff here indicates an undefined length)
