@@ -158,6 +158,7 @@ class DicomMessage {
                 });
                 dict[cleanTagString].Value = readInfo.values;
                 dict[cleanTagString]._rawValue = readInfo.rawValues;
+                bufferStream.consume();
 
                 if (untilTag && untilTag === cleanTagString) {
                     break;
@@ -225,11 +226,15 @@ class DicomMessage {
         //get the syntax
         var mainSyntax = metaHeader["00020010"].Value[0];
 
+        stream.consume();
+
         //in case of deflated dataset, decompress and continue
         if (mainSyntax === DEFLATED_EXPLICIT_LITTLE_ENDIAN) {
+            const originalStream = stream;
             stream = new DeflatedReadBufferStream(stream, {
                 noCopy: options.noCopy
             });
+            originalStream.consume();
         }
 
         mainSyntax = DicomMessage._normalizeSyntax(mainSyntax);

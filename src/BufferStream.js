@@ -22,11 +22,22 @@ class BufferStream {
     size = 0;
     view = new SplitDataView();
 
+    isComplete = false;
+
+    /**
+     * Set the option clearBuffers to true to set the buffer objects to null
+     * once they are read or written.
+     */
+    clearBuffers = false;
+
     encoder = new TextEncoder("utf-8");
 
     constructor(options = null) {
         this.isLittleEndian = options?.littleEndian || this.isLittleEndian;
         this.view.defaultSize = options?.defaultSize ?? this.view.defaultSize;
+
+        this.view.clearBuffers = options?.clearBuffers || false;
+        this.view.consumeListener = options?.consumeListener;
     }
 
     setEndian(isLittle) {
@@ -45,13 +56,40 @@ class BufferStream {
         return this.slice(start, end);
     }
 
+    /**
+     * @deprecated Gets the entire buffer at once.  Suggest using the
+     *     view instead, and writing an iterator over the parts to finish
+     *     writing it.
+     */
     get buffer() {
         // console.warn("Deprecated buffer get");
         return this.getBuffer();
     }
 
+    /**
+     * Returns the number of bytes that are currently available for reading
+     */
     get available() {
         return this.endOffset - this.offset;
+    }
+
+    get complete() {
+        return this.isComplete;
+    }
+
+    /**
+     * Mark this stream as having finished being written or read from
+     */
+    setComplete() {
+        this.isComplete = value;
+    }
+
+    /**
+     * Indicates if the value length is currently available in the already
+     * read/defined portion of the stream
+     */
+    isAvailable(length) {
+        return this.offset + length < this.endOffset;
     }
 
     writeUint8(value) {
@@ -256,8 +294,14 @@ class BufferStream {
         return hexString;
     }
 
+    /**
+     * Ensures there is enough data to write the given data, and also write
+     * any filled/completed buffers out.
+     */
     checkSize(step) {
         this.view.checkSize(this.offset + step);
+        // Leave at least 32 bytes free before current
+        this.view.consume(this.offset - 32);
     }
 
     /**
@@ -318,6 +362,16 @@ class BufferStream {
     }
 
     reset() {
+        if (this.clearedBuffer >= 0) {
+            throw new Error(
+                `Buffers have been cleared to ${this.clearedBuffer}, can't reset any longer`
+            );
+        }
+        if (this.writeOffset >= 0) {
+            throw new Error(
+                `Buffers have already been written up to offset ${this.writeOffset}, can no longer reset`
+            );
+        }
         this.offset = 0;
         return this;
     }
@@ -329,6 +383,14 @@ class BufferStream {
     toEnd() {
         this.offset = this.view.byteLength;
     }
+
+    /**
+     * Indicates that data up to the given offset has been consumed or is
+     * ready to be consumed and should be cleared appropriately.
+     */
+    consume(offset = this.offset) {
+        this.view.consume(offset);
+    }
 }
 
 class ReadBufferStream extends BufferStream {
@@ -338,10 +400,11 @@ class ReadBufferStream extends BufferStream {
         options = {
             start: null,
             stop: null,
-            noCopy: false
+            noCopy: false,
+            clearBuffer: false
         }
     ) {
-        super({ littleEndian });
+        super({ littleEndian, ...options });
         this.noCopy = options.noCopy;
         this.decoder = new TextDecoder("latin1");
 
@@ -443,8 +506,15 @@ class DeflatedReadBufferStream extends ReadBufferStream {
 }
 
 class WriteBufferStream extends BufferStream {
-    constructor(defaultSize, littleEndian) {
-        super({ defaultSize, littleEndian });
+    constructor(
+        defaultSize,
+        littleEndian,
+        options = {
+            clearBuffer: false,
+            writeListener: null
+        }
+    ) {
+        super({ ...options, defaultSize, littleEndian });
         this.size = 0;
     }
 }
