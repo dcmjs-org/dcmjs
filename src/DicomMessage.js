@@ -250,7 +250,7 @@ class DicomMessage {
                     );
                     metaHeader[tagString].Value = metaEl.values;
                     metaHeader[tagString]._rawValue = metaEl.rawValues;
-                } catch (err) {
+                } catch {
                     // if we can't read a tag, we've likely reached the end of meta header
                     stream.offset = currentPos;
                     break;
@@ -262,7 +262,7 @@ class DicomMessage {
 
             // read header buffer using the specified meta length
             var metaStream = stream.more(metaLength);
-            var metaHeader = DicomMessage._read(metaStream, useSyntax, options);
+            metaHeader = DicomMessage._read(metaStream, useSyntax, options);
         }
 
         //get the syntax
