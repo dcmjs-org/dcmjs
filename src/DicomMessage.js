@@ -209,18 +209,59 @@ class DicomMessage {
             throw new Error("Invalid DICOM file, expected header is missing");
         }
 
+        // Save position before reading first tag
+        var metaStartPos = stream.position;
+
+        // Read the first tag to check if it's the meta length tag
         var el = DicomMessage._readTag(stream, useSyntax);
+        
         if (el.tag.toCleanString() !== "00020000") {
-            throw new Error(
-                "Invalid DICOM file, meta length tag is malformed or not present."
-            );
+            // meta length tag is missing
+            if (!options.ignoreErrors) {
+                throw new Error(
+                    "Invalid DICOM file, meta length tag is malformed or not present."
+                );
+            }
+            // read meta header elements sequentially
+            var metaHeader = {};
+            // reset stream to the position where we started reading tags
+            stream.position = metaStartPos;
+            
+            // read meta header elements until we encounter a tag outside the 0002 group
+            while (!stream.end()) {
+                var currentPos = stream.position;
+                try {
+                    var metaEl = DicomMessage._readTag(stream, useSyntax);
+                    var tagString = metaEl.tag.toCleanString();
+                    
+                    // check if this tag is still in the meta header group (0002,xxxx)  
+                    if (!tagString.startsWith("0002")) {
+                        // we've reached the main dataset - reset position and break
+                        stream.position = currentPos;
+                        break;
+                    }
+                    
+                    // add this element to the meta header
+                    metaHeader[tagString] = ValueRepresentation.addTagAccessors({
+                        vr: metaEl.vr.type
+                    });
+                    metaHeader[tagString].Value = metaEl.values;
+                    metaHeader[tagString]._rawValue = metaEl.rawValues;
+                    
+                } catch (err) {
+                    // if we can't read a tag, we've likely reached the end of meta header
+                    stream.position = currentPos;
+                    break;
+                }
+            }
+        } else {
+            // meta length tag is present
+            var metaLength = el.values[0];
+            
+            // read header buffer using the specified meta length
+            var metaStream = stream.more(metaLength);
+            var metaHeader = DicomMessage._read(metaStream, useSyntax, options);
         }
-
-        var metaLength = el.values[0];
-
-        //read header buffer
-        var metaStream = stream.more(metaLength);
-        var metaHeader = DicomMessage._read(metaStream, useSyntax, options);
 
         //get the syntax
         var mainSyntax = metaHeader["00020010"].Value[0];
