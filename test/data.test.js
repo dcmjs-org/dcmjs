@@ -903,7 +903,7 @@ it("Reads and writes numbers with NaN and Infinity values of tags with type FD (
     );
 });
 
-it("Tests that reading fails on a DICOM without a meta length tag", () => {
+it("Tests that reading fails on a DICOM without a meta length tag when ignoreErrors is false", () => {
     const rawFile = fs.readFileSync("test/no-meta-length-test.dcm");
 
     let arrayBuffer = rawFile.buffer;
@@ -917,6 +917,7 @@ it("Tests that reading fails on a DICOM without a meta length tag", () => {
         );
     }
 
+    // Should throw an error when ignoreErrors is false
     expect(() => {
         dcmjs.data.DicomMessage.readFile(arrayBuffer, {
             ignoreErrors: false,
@@ -926,6 +927,35 @@ it("Tests that reading fails on a DICOM without a meta length tag", () => {
     }).toThrow(
         "Invalid DICOM file, meta length tag is malformed or not present."
     );
+});
+
+it("Tests that reading succeeds on a DICOM without a meta length tag when ignoreErrors is true", () => {
+    const rawFile = fs.readFileSync("test/no-meta-length-test.dcm");
+
+    let arrayBuffer = rawFile.buffer;
+    if (
+        rawFile.byteOffset !== 0 ||
+        rawFile.byteLength !== arrayBuffer.byteLength
+    ) {
+        arrayBuffer = arrayBuffer.slice(
+            rawFile.byteOffset,
+            rawFile.byteOffset + rawFile.byteLength
+        );
+    }
+
+    // Should not throw an error and should successfully parse the file when ignoreErrors is true
+    expect(() => {
+        const dataset = dcmjs.data.DicomMessage.readFile(arrayBuffer, {
+            ignoreErrors: true,
+            untilTag: "0020000E",
+            includeUntilTagValue: true
+        });
+
+        // Verify that we have a valid dataset with meta header
+        expect(dataset).toBeDefined();
+        expect(dataset.meta).toBeDefined();
+        expect(dataset.meta["00020010"]).toBeDefined(); // Transfer Syntax should be present
+    }).not.toThrow();
 });
 
 describe("The same DICOM file loaded from both DCM and JSON", () => {
