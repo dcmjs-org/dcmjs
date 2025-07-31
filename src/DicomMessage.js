@@ -110,19 +110,26 @@ class DicomMessage {
         options = {
             ignoreErrors: false,
             untilTag: null,
-            includeUntilTagValue: false
+            includeUntilTagValue: false,
+            stopOnGreaterTag: false
         }
     ) {
-        const { ignoreErrors, untilTag } = options;
+        const { ignoreErrors, untilTag, stopOnGreaterTag } = options;
         var dict = {};
         try {
+            let previousTagOffset;
             while (!bufferStream.end()) {
+                previousTagOffset = bufferStream.offset;
                 const readInfo = DicomMessage._readTag(
                     bufferStream,
                     syntax,
                     options
                 );
                 const cleanTagString = readInfo.tag.toCleanString();
+                if (untilTag && stopOnGreaterTag && cleanTagString > untilTag) {
+                    bufferStream.offset = previousTagOffset;
+                    break;
+                }
                 if (cleanTagString === "00080005") {
                     if (readInfo.values.length > 0) {
                         let coding = readInfo.values[0];
@@ -215,6 +222,7 @@ class DicomMessage {
         // read the first tag to check if it's the meta length tag
         var el = DicomMessage._readTag(stream, useSyntax);
 
+        var metaHeader = {};
         if (el.tag.toCleanString() !== "00020000") {
             // meta length tag is missing
             if (!options.ignoreErrors) {
@@ -223,39 +231,15 @@ class DicomMessage {
                 );
             }
 
-            // read meta header elements sequentially
-            var metaHeader = {};
             // reset stream to the position where we started reading tags
             stream.offset = metaStartPos;
 
-            // read meta header elements until we encounter a tag outside the 0002 group
-            while (!stream.end()) {
-                var currentPos = stream.offset;
-                try {
-                    var metaEl = DicomMessage._readTag(stream, useSyntax);
-                    var tagString = metaEl.tag.toCleanString();
-
-                    // check if this tag is still in the meta header group (0002,xxxx)
-                    if (!tagString.startsWith("0002")) {
-                        // we've reached the main dataset - reset position and break
-                        stream.offset = currentPos;
-                        break;
-                    }
-
-                    // add this element to the meta header
-                    metaHeader[tagString] = ValueRepresentation.addTagAccessors(
-                        {
-                            vr: metaEl.vr.type
-                        }
-                    );
-                    metaHeader[tagString].Value = metaEl.values;
-                    metaHeader[tagString]._rawValue = metaEl.rawValues;
-                } catch {
-                    // if we can't read a tag, we've likely reached the end of meta header
-                    stream.offset = currentPos;
-                    break;
-                }
-            }
+            // read meta header elements sequentially
+            metaHeader = DicomMessage._read(stream, useSyntax, {
+                untilTag: "00030000",
+                stopOnGreaterTag: true,
+                ignoreErrors: true
+            });
         } else {
             // meta length tag is present
             var metaLength = el.values[0];

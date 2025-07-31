@@ -946,15 +946,14 @@ it("Tests that reading succeeds on a DICOM without a meta length tag when ignore
     // Should not throw an error and should successfully parse the file when ignoreErrors is true
     expect(() => {
         const dataset = dcmjs.data.DicomMessage.readFile(arrayBuffer, {
-            ignoreErrors: true,
-            untilTag: "0020000E",
-            includeUntilTagValue: true
+            ignoreErrors: true
         });
 
         // Verify that we have a valid dataset with meta header
         expect(dataset).toBeDefined();
         expect(dataset.meta).toBeDefined();
         expect(dataset.meta["00020010"]).toBeDefined(); // Transfer Syntax should be present
+        expect(dataset.dict["0020000E"]).toBeDefined(); // Series Instance UID should be present
     }).not.toThrow();
 });
 
