@@ -456,6 +456,28 @@ it("test_invalid_vr_length", () => {
     }
 });
 
+it("test_long_explicit_vr", () => {
+    const contourData = [];
+    for (let i = 0; i < 65536; i++) {
+        counterData.push(i);
+    }
+
+    const dicomDict = new DicomDict({
+        TransferSynxtaxUID: EXPLICIT_LITTLE_ENDIAN
+    });
+
+    const natural = {
+        ContourData: contourData
+    };
+
+    dicomDict.dict = dicomMetaDictionary.denaturalizeDataset(natural);
+    const part10Buffer = dicomDict.write();
+    const dicomData = DicomMessage.readFile(part10Buffer);
+    const dataset = DicomMetaDictionary.naturalizeDataset(dicomData.dict);
+
+    expect(dataset.ContourData).toEqual(contourData);
+});
+
 it("test_encapsulation", async () => {
     const url =
         "https://github.com/dcmjs-org/data/releases/download/encapsulation/encapsulation.dcm";

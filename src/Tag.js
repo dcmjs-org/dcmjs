@@ -83,19 +83,19 @@ class Tag {
     }
 
     write(stream, vrType, values, syntax, writeOptions) {
-        var vr = ValueRepresentation.createByTypeString(vrType),
-            useSyntax = DicomMessage._normalizeSyntax(syntax);
+        let vr = ValueRepresentation.createByTypeString(vrType);
+        const useSyntax = DicomMessage._normalizeSyntax(syntax);
 
-        var implicit = useSyntax == IMPLICIT_LITTLE_ENDIAN ? true : false,
-            isLittleEndian =
-                useSyntax == IMPLICIT_LITTLE_ENDIAN ||
-                useSyntax == EXPLICIT_LITTLE_ENDIAN
-                    ? true
-                    : false,
-            isEncapsulated =
-                this.isPixelDataTag() && DicomMessage.isEncapsulated(syntax);
+        const implicit = useSyntax == IMPLICIT_LITTLE_ENDIAN ? true : false;
+        const isLittleEndian =
+            useSyntax == IMPLICIT_LITTLE_ENDIAN ||
+            useSyntax == EXPLICIT_LITTLE_ENDIAN
+                ? true
+                : false;
+        const isEncapsulated =
+            this.isPixelDataTag() && DicomMessage.isEncapsulated(syntax);
 
-        var oldEndian = stream.isLittleEndian;
+        const oldEndian = stream.isLittleEndian;
         stream.setEndian(isLittleEndian);
 
         stream.writeUint16(this.group());
@@ -129,12 +129,19 @@ class Tag {
         }
         var written = tagStream.size + 4;
 
+        const isBigExplicit =
+            vr.isExplicit() &&
+            !implicit &&
+            valueLength >= 0x10000 &&
+            valueLength !== 0xffffffff;
+
         if (implicit) {
             stream.writeUint32(valueLength);
             written += 4;
         } else {
-            if (vr.isExplicit()) {
-                stream.writeAsciiString(vr.type);
+            if (vr.isExplicit() || isBigExplicit) {
+                // Write as vr UN for big values
+                stream.writeAsciiString(isBigExplicit ? "UN" : vr.type);
                 stream.writeUint16(0);
                 stream.writeUint32(valueLength);
                 written += 8;
