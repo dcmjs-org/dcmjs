@@ -110,19 +110,26 @@ class DicomMessage {
         options = {
             ignoreErrors: false,
             untilTag: null,
-            includeUntilTagValue: false
+            includeUntilTagValue: false,
+            stopOnGreaterTag: false
         }
     ) {
-        const { ignoreErrors, untilTag } = options;
+        const { ignoreErrors, untilTag, stopOnGreaterTag } = options;
         var dict = {};
         try {
+            let previousTagOffset;
             while (!bufferStream.end()) {
+                previousTagOffset = bufferStream.offset;
                 const readInfo = DicomMessage._readTag(
                     bufferStream,
                     syntax,
                     options
                 );
                 const cleanTagString = readInfo.tag.toCleanString();
+                if (untilTag && stopOnGreaterTag && cleanTagString > untilTag) {
+                    bufferStream.offset = previousTagOffset;
+                    break;
+                }
                 if (cleanTagString === "00080005") {
                     if (readInfo.values.length > 0) {
                         let coding = readInfo.values[0];
@@ -209,18 +216,38 @@ class DicomMessage {
             throw new Error("Invalid DICOM file, expected header is missing");
         }
 
+        // save position before reading first tag
+        var metaStartPos = stream.offset;
+
+        // read the first tag to check if it's the meta length tag
         var el = DicomMessage._readTag(stream, useSyntax);
+
+        var metaHeader = {};
         if (el.tag.toCleanString() !== "00020000") {
-            throw new Error(
-                "Invalid DICOM file, meta length tag is malformed or not present."
-            );
+            // meta length tag is missing
+            if (!options.ignoreErrors) {
+                throw new Error(
+                    "Invalid DICOM file, meta length tag is malformed or not present."
+                );
+            }
+
+            // reset stream to the position where we started reading tags
+            stream.offset = metaStartPos;
+
+            // read meta header elements sequentially
+            metaHeader = DicomMessage._read(stream, useSyntax, {
+                untilTag: "00030000",
+                stopOnGreaterTag: true,
+                ignoreErrors: true
+            });
+        } else {
+            // meta length tag is present
+            var metaLength = el.values[0];
+
+            // read header buffer using the specified meta length
+            var metaStream = stream.more(metaLength);
+            metaHeader = DicomMessage._read(metaStream, useSyntax, options);
         }
-
-        var metaLength = el.values[0];
-
-        //read header buffer
-        var metaStream = stream.more(metaLength);
-        var metaHeader = DicomMessage._read(metaStream, useSyntax, options);
 
         //get the syntax
         var mainSyntax = metaHeader["00020010"].Value[0];
