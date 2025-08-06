@@ -129,16 +129,12 @@ class Tag {
         }
         var written = tagStream.size + 4;
 
-        const isBigExplicit =
-            vr.isExplicit() &&
-            !implicit &&
-            valueLength >= 0x10000 &&
-            valueLength !== 0xffffffff;
-
         if (implicit) {
             stream.writeUint32(valueLength);
             written += 4;
         } else {
+            const isBigExplicit =
+                valueLength >= 0x10000 && valueLength !== 0xffffffff;
             if (vr.isExplicit() || isBigExplicit) {
                 // Write as vr UN for big values
                 stream.writeAsciiString(isBigExplicit ? "UN" : vr.type);
