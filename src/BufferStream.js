@@ -80,7 +80,7 @@ class BufferStream {
     /**
      * Mark this stream as having finished being written or read from
      */
-    setComplete() {
+    setComplete(value = true) {
         this.isComplete = value;
     }
 
