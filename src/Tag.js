@@ -83,7 +83,7 @@ class Tag {
     }
 
     write(stream, vrType, values, syntax, writeOptions) {
-        let vr = ValueRepresentation.createByTypeString(vrType);
+        const vr = ValueRepresentation.createByTypeString(vrType);
         const useSyntax = DicomMessage._normalizeSyntax(syntax);
 
         const implicit = useSyntax == IMPLICIT_LITTLE_ENDIAN ? true : false;
