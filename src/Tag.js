@@ -133,11 +133,11 @@ class Tag {
             stream.writeUint32(valueLength);
             written += 4;
         } else {
-            const isBigExplicit =
+            const isBig16Length =
                 valueLength >= 0x10000 && valueLength !== 0xffffffff;
-            if (vr.isExplicit() || isBigExplicit) {
+            if (vr.isLength32() || isBig16Length) {
                 // Write as vr UN for big values
-                stream.writeAsciiString(isBigExplicit ? "UN" : vr.type);
+                stream.writeAsciiString(isBig16Length ? "UN" : vr.type);
                 stream.writeUint16(0);
                 stream.writeUint32(valueLength);
                 written += 8;

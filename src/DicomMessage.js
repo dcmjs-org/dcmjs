@@ -360,7 +360,7 @@ class DicomMessage {
                 vr = ValueRepresentation.createByTypeString(vrType);
             }
 
-            if (vr.isExplicit()) {
+            if (vr.isLength32()) {
                 stream.increment(2);
                 length = stream.readUint32();
             } else {
