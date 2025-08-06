@@ -133,8 +133,13 @@ class Tag {
             stream.writeUint32(valueLength);
             written += 4;
         } else {
+            // Big 16 length objects are encodings for values larger than
+            // 16 bit lengths which would normally use a 16 bit length field.
+            // This uses a VR=UN instead of the original VR, and a 32 bit length
             const isBig16Length =
-                valueLength >= 0x10000 && valueLength !== 0xffffffff;
+                !vr.isLength32() &&
+                valueLength >= 0x10000 &&
+                valueLength !== 0xffffffff;
             if (vr.isLength32() || isBig16Length) {
                 // Write as vr UN for big values
                 stream.writeAsciiString(isBig16Length ? "UN" : vr.type);
