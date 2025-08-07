@@ -114,144 +114,67 @@ class DicomMessage {
         options = {
             ignoreErrors: false,
             untilTag: null,
-            includeUntilTagValue: false
+            includeUntilTagValue: false,
+            stopOnGreaterTag: false
         }
     ) {
-        const stack = this.createParseStack(bufferStream, syntax, options);
-        bufferStream.setComplete();
-        const result = this.continueParsing(stack);
-        if (result) {
-            throw new Error(
-                `Parsing an input stream needed ${result} more data but is complete`
-            );
-        }
-        return stack.dict;
-    }
-
-    /**
-     * Creates a parse stack to handle parsing incoming data
-     */
-    static createParseStack(bufferStream, syntax, options) {
-        const dict = {};
-        return {
-            dict,
-            bufferStream,
-            syntax,
-            options,
-            handler: [{ item: dict, handler: this.handlerDictTag }]
-        };
-    }
-
-    /** Reads a standard tag adding it to the current stack item dict */
-    static handlerDictTag(stack, top) {
-        const { bufferStream, syntax, options } = stack;
-        if (!bufferStream.isAvailble(12) && !bufferStream.complete) {
-            return 12;
-        }
-
-        const header = DicomMessage._readTagHeader(
-            bufferStream,
-            syntax,
-            options
-        );
-        const handler = this.createHandlerForHeader(stack, header);
-        stack.handler.push({ item: header, handler });
-
-        return 0;
-    }
-
-    static createHandlerForHeader(stack, header) {
-        const { vr, length } = header;
-        if (length >= 0) {
-            return this.handlerLength;
-        }
-        return this.handlerIndefinite;
-    }
-
-    /**
-     * Handles indefinite length items, using the VR handler to deliver
-     * data to the tag object, reading tag values one item at a time
-     */
-    static handlerIndefinite(stack, top) {
-        debugger;
-    }
-
-    /**
-     * Handles specified length objects.
-     * This will read all the data for length into a separate stream reader
-     * and then provide it directly to the VR tag for reading.
-     */
-    static handlerLength(stack, top) {
-        const { streamBuffer } = stack;
-        const { item } = top;
-        const { length } = item;
-        if (!streamBuffer.isAvailable(length)) {
-            return length;
-        }
-    }
-
-    /** Reads a tag body and delivers it to the top of the stack item */
-    static handlerTag(stack, top) {
-        const { item, bufferStream, syntax, options, length } = stack;
-
-        const cleanTagString = item.tag.toCleanString();
-        if (cleanTagString === "00080005") {
-            if (readInfo.values.length > 0) {
-                let coding = readInfo.values[0];
-                coding = coding.replace(/[_ ]/g, "-").toLowerCase();
-                if (coding in encodingMapping) {
-                    coding = encodingMapping[coding];
-                    bufferStream.setDecoder(new TextDecoder(coding));
-                } else if (ignoreErrors) {
-                    log.warn(
-                        `Unsupported character set: ${coding}, using default character set`
-                    );
-                } else {
-                    throw Error(`Unsupported character set: ${coding}`);
-                }
-            }
-            if (readInfo.values.length > 1) {
-                if (ignoreErrors) {
-                    log.warn(
-                        "Using multiple character sets is not supported, proceeding with just the first character set",
-                        readInfo.values
-                    );
-                } else {
-                    throw Error(
-                        `Using multiple character sets is not supported: ${readInfo.values}`
-                    );
-                }
-            }
-            readInfo.values = ["ISO_IR 192"]; // change SpecificCharacterSet to UTF-8
-        }
-
-        dict[cleanTagString] = ValueRepresentation.addTagAccessors({
-            vr: readInfo.vr.type
-        });
-        dict[cleanTagString].Value = readInfo.values;
-        dict[cleanTagString]._rawValue = readInfo.rawValues;
-        bufferStream.consume();
-    }
-
-    /**
-     * continueParsing uses the current stack handling to parse incrementally
-     * This allows parsing to occur as data is received.
-     */
-    static continueParsing(stack) {
-        const { ignoreErrors, untilTag } = stack.options;
-        const { dict, bufferStream, syntax, options, handler } = stack;
-        let top = handler[handler.length - 1];
-
+        const { ignoreErrors, untilTag, stopOnGreaterTag } = options;
+        var dict = {};
         try {
+            let previousTagOffset;
             while (!bufferStream.end()) {
-                const count = top.handler(stack, top);
-                if (count > 0) return count;
-                top = stack[handler.length - 1];
-                // if (untilTag && untilTag === cleanTagString) {
-                //     break;
-                // }
+                previousTagOffset = bufferStream.offset;
+                const readInfo = DicomMessage._readTag(
+                    bufferStream,
+                    syntax,
+                    options
+                );
+                const cleanTagString = readInfo.tag.toCleanString();
+                if (untilTag && stopOnGreaterTag && cleanTagString > untilTag) {
+                    bufferStream.offset = previousTagOffset;
+                    break;
+                }
+                if (cleanTagString === "00080005") {
+                    if (readInfo.values.length > 0) {
+                        let coding = readInfo.values[0];
+                        coding = coding.replace(/[_ ]/g, "-").toLowerCase();
+                        if (coding in encodingMapping) {
+                            coding = encodingMapping[coding];
+                            bufferStream.setDecoder(new TextDecoder(coding));
+                        } else if (ignoreErrors) {
+                            log.warn(
+                                `Unsupported character set: ${coding}, using default character set`
+                            );
+                        } else {
+                            throw Error(`Unsupported character set: ${coding}`);
+                        }
+                    }
+                    if (readInfo.values.length > 1) {
+                        if (ignoreErrors) {
+                            log.warn(
+                                "Using multiple character sets is not supported, proceeding with just the first character set",
+                                readInfo.values
+                            );
+                        } else {
+                            throw Error(
+                                `Using multiple character sets is not supported: ${readInfo.values}`
+                            );
+                        }
+                    }
+                    readInfo.values = ["ISO_IR 192"]; // change SpecificCharacterSet to UTF-8
+                }
+
+                dict[cleanTagString] = ValueRepresentation.addTagAccessors({
+                    vr: readInfo.vr.type
+                });
+                dict[cleanTagString].Value = readInfo.values;
+                dict[cleanTagString]._rawValue = readInfo.rawValues;
+
+                if (untilTag && untilTag === cleanTagString) {
+                    break;
+                }
             }
-            return 0;
+            return dict;
         } catch (err) {
             if (ignoreErrors) {
                 log.warn("WARN:", err);

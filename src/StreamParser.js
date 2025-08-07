@@ -7,9 +7,43 @@ const PART10_PREFIX_LENGTH = 140;
  * A stream parser uses a deliver method to add more data to the input stream,
  * clearing data as it gets read and progressively adding data to a dicom
  * object.
+ *
+ * Basic behaviour:
+ *   * Start with tag handler on empty object
+ *   * Tag handler expects at least 12 bytes or EOF
+ *   * Tag handler reads length/vr/tag value and creates Tag Body Handler
+ *
+ * Tag Body Handler - fixed length
+ *    * Read fixed size blocks as it becomes available, append to overall block handler
+ *
+ * Sequence Tag Body Handler - Create sequence child item and start delivering item/end blocks to it
+ *    * When item block delivered, deliver a Tag Body Handler, set to return on end item
+ *
+ * Fixed Pixel Data Handler
+ *    * Figure out image size, wait for blocks of given size and unpack
+ *
+ * Compressed Pixel Data Handler
+ *    * For single frame, deliver frame blocks to handler to create combined array data
+ *    * For multi frame, deliver each block to handler (TODO - check if JPEG continuation)
+ *         (TODO, check offsets)
+ *
+ * BulkData handler - single tag fixed length handler which writes bulkdata to files
+ *     * Takes existing object to figure out name type, OR uses hash blocks
+ *     * Throws away data once read
+ *
+ * Naturalized Handler - replacement for tag handler which writes naturalized data direct
+ * Study Tree Handler - naturalized handler variant that writes to study tree directly, dedupping en route
+ *
+ * body handlers basically have a list of available handlers, first one claiming to handle it gets it.
+ *
+ * Tag handler calls the body handler for figuring out which one to apply (decides which one to call)
+ *
+ * DICM handler - checks the DICM indicator, expecting EOF or the dicom prefix.
+ *
+ * FMI Handler - reads the FMI prefix data
+ *
  */
 export class StreamParser {
-
     stream = null;
 
     fmi = null;
@@ -20,38 +54,27 @@ export class StreamParser {
         stream = new ReadBufferStream();
     }
 
-
     /**
      * Causes the read stack to be popped so that the next parent element
      * can be appended to instead of this one.
      */
-    pop() {
+    pop() {}
 
-    }
-
-    createTag(tag,vr,length) {
-
-    }
+    createTag(tag, vr, length) {}
 
     /** Delivers data from the tag body to the current tag handler */
-    tagData(buffer, start=0, length=buffer.byteLength) {
+    tagData(buffer, start = 0, length = buffer.byteLength) {}
 
-    }
-
-    push(childStack) {
-
-    }
+    push(childStack) {}
 
     /**
      * Continues parsing the stream for more DICOM data.
-     * 
+     *
      */
-    parse(options=null) {
-
-    }
+    parse(options = null) {}
 
     /**
-     * Identifies the stream.  
+     * Identifies the stream.
      * Returns the TSUID when the stream is understood/identified as the type of
      * the stream, and returns null when more data is still required for identification.
      */
@@ -101,13 +124,12 @@ export class StreamParser {
 
         //get the syntax
         this.tsuid = metaHeader["00020010"].Value[0];
-        
-        if( !this.tsuid ) {
+
+        if (!this.tsuid) {
             throw new Error("Incoming stream doesn't have TSUID value");
         }
 
         stream.consume();
-
 
         //in case of deflated dataset, decompress and continue
         if (mainSyntax === DEFLATED_EXPLICIT_LITTLE_ENDIAN) {
