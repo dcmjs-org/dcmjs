@@ -1,7 +1,8 @@
-export class TagHandler {
-    body = {};
+import { DicomMessage } from "../DicomMessage";
+import { BodyHandler } from "./BodyHandler";
 
-    options = {};
+export class TagHandler {
+    static defaultHandler = new BodyHandler();
 
     constructor(options) {
         this.options = options;
@@ -42,6 +43,6 @@ export class TagHandler {
                 return handler;
             }
         }
-        return defaultHandler;
+        return this.constructor.defaultHandler;
     }
 }
