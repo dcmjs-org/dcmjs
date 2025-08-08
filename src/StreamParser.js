@@ -4,6 +4,10 @@ import {
     DEFLATED_EXPLICIT_LITTLE_ENDIAN,
     EXPLICIT_LITTLE_ENDIAN
 } from "./constants/dicom";
+import { FmiHandler } from "./stream/FmiHandler";
+import { TagHandler } from "./stream/TagHandler";
+import { BodyHandler } from "./stream/BodyHandler";
+import { Part10Handler } from "./stream/Part10Handler";
 
 const PART10_PREFIX_LENGTH = 140;
 
@@ -48,21 +52,64 @@ const PART10_PREFIX_LENGTH = 140;
  *
  */
 export class StreamParser {
-    stream = null;
+    /**
+     * The handlers used for parsing various parts of the file stream
+     */
+    handlers = null;
 
-    fmi = null;
-
-    constructor(options) {
+    constructor(options = {}) {
         this.options = options;
+        this.handlers = {
+            fmi: new FmiHandler(this),
+            tag: new TagHandler(this),
+            tagBody: new BodyHandler(this),
+            part10: new Part10Handler(this)
+        };
     }
 
-    static initReader(options, fmi) {
+    initHandler(handler, parent = null) {
+        return { handler, parent };
+    }
+
+    initPart10() {
         const stack = {
-            options,
-            tsuid: fmi?.TransferSyntaxUID,
-            stream: new ReadBufferStream()
+            options: this.options,
+            tsuid: null,
+            result: null,
+            stream: new ReadBufferStream(),
+            streamParser: this,
+            top: this.initHandler(this.handlers.part10)
         };
         return stack;
+    }
+
+    append(stack, buffer) {
+        stack.stream.addBuffer(buffer, { transfer: true });
+    }
+
+    parse(stack) {
+        const { stream } = stack;
+        while (!stream.complete || !stream.end()) {
+            const { top } = stack;
+            if (!top?.handler) {
+                throw new Error(`stack top not defined: ${stack.top}`);
+            }
+            if (!top.handler.isSufficientLength(stream)) {
+                console.warn(
+                    "Insufficient data at size",
+                    stream.offset,
+                    stream.size
+                );
+                return;
+            }
+            console.warn("Continuing parse");
+            top.handler.parse(stack);
+        }
+        return stack.result;
+    }
+
+    setComplete(stack) {
+        stack.stream.setComplete();
     }
 
     /**

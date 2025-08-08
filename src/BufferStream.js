@@ -70,7 +70,7 @@ class BufferStream {
      * Returns the number of bytes that are currently available for reading
      */
     get available() {
-        return this.endOffset - this.offset;
+        return this.size - this.offset;
     }
 
     get complete() {
@@ -89,6 +89,13 @@ class BufferStream {
      * read/defined portion of the stream
      */
     isAvailable(length) {
+        console.warn(
+            "isAvailable",
+            length,
+            this.offset,
+            this.size,
+            this.endOffset
+        );
         return this.offset + length < this.endOffset;
     }
 
@@ -316,6 +323,7 @@ class BufferStream {
         );
         this.offset += stream.size;
         this.size = this.offset;
+        this.endOffset = this.size;
         return this.view.availableSize;
     }
 
@@ -339,6 +347,7 @@ class BufferStream {
     addBuffer(buffer, options = null) {
         this.view.addBuffer(buffer, options);
         this.size = this.view.size;
+        this.endOffset = this.size;
         return this.size;
     }
 

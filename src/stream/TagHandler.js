@@ -21,7 +21,8 @@ export class TagHandler {
      * Then, the first tag handler matching the tag body to return will
      * get called as the initTag method on it and the current stream.
      */
-    continueParsing(stream, stack) {
+    parse(stack) {
+        const { stream } = stack;
         if (stream.complete) {
             stack.pop();
             return this.body;
