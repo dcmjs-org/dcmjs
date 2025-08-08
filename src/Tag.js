@@ -76,6 +76,10 @@ class Tag {
         return new Tag(((group << 16) | element) >>> 0);
     }
 
+    /**
+     * Reads just a tag element from the stream, advancing the stream
+     * to the endpoint of the stream.
+     */
     static readTag(stream) {
         var group = stream.readUint16(),
             element = stream.readUint16();

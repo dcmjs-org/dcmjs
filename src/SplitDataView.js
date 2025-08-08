@@ -12,8 +12,44 @@ export default class SplitDataView {
     /** The default size is 256k */
     defaultSize = 256 * 1024;
 
+    /**
+     * The set of byte arrays being consumed.
+     * Contains the result of the last consume call.
+     */
+    consumed = [];
+    /** The last byte index not already consumed */
+    consumeOffset = -1;
+
     constructor(options = { defaultSize: 256 * 1024 }) {
         this.defaultSize = options.defaultSize || this.defaultSize;
+    }
+
+    /**
+     * Consumes the already read data
+     */
+    consume(offset) {
+        this.consumeOffset = Math.max(offset, this.consumeOffset);
+        if (!this.consumeBuffers || !this.offsets.length) {
+            return;
+        }
+        const nextOffset = this.offsets[this.consumed.length];
+        if (nextOffset === undefined) {
+            return;
+        }
+        if (nextOffset < this.consumeOffset && !this.complete) {
+            // Can't provide the entire block.
+            return;
+        }
+        // Consume the entire buffer for now
+        this.consumed.push(
+            this.consumeListener?.(
+                this.buffers,
+                0,
+                Math.min(this.buffers.length, nextOffset - this.consumeOffset)
+            )
+        );
+        this.buffers[this.consumed.length - 1] = null;
+        this.consume(offset);
     }
 
     checkSize(end) {

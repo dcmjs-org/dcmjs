@@ -104,6 +104,10 @@ class DicomMessage {
         });
     }
 
+    /**
+     * Parses a DICOM binary stream, starting at the current position.
+     *
+     */
     static _read(
         bufferStream,
         syntax,
@@ -252,11 +256,15 @@ class DicomMessage {
         //get the syntax
         var mainSyntax = metaHeader["00020010"].Value[0];
 
+        stream.consume();
+
         //in case of deflated dataset, decompress and continue
         if (mainSyntax === DEFLATED_EXPLICIT_LITTLE_ENDIAN) {
+            const originalStream = stream;
             stream = new DeflatedReadBufferStream(stream, {
                 noCopy: options.noCopy
             });
+            originalStream.consume();
         }
 
         mainSyntax = DicomMessage._normalizeSyntax(mainSyntax);
@@ -322,15 +330,25 @@ class DicomMessage {
         }
     }
 
-    static _readTag(
-        stream,
-        syntax,
-        options = {
-            untilTag: null,
-            includeUntilTagValue: false
-        }
-    ) {
-        const { untilTag, includeUntilTagValue } = options;
+    /**
+     * Reads the tag, vr and contents, returning it.
+     * This internally is just a call to the read tag header and the
+     * read tag body.  It gets split up that way in order to allow
+     * the body to be read separately by a handler that may end up doing
+     * other actions.
+     */
+    static _readTag(stream, syntax, options) {
+        const header = this._readTagHeader(stream, syntax, options);
+        return this._readTagBody(header, stream, syntax, options);
+    }
+
+    /**
+     * Reads just the tag header, leaving the stream positioned to read the body.
+     */
+    static _readTagHeader(stream, syntax, options) {
+        const untilTag = options?.untilTag || null;
+        const includeUntilTagValue = options?.includeUntilTagValue || false;
+
         var implicit = syntax == IMPLICIT_LITTLE_ENDIAN ? true : false,
             isLittleEndian =
                 syntax == IMPLICIT_LITTLE_ENDIAN ||
@@ -344,7 +362,12 @@ class DicomMessage {
 
         if (untilTag === tag.toCleanString() && untilTag !== null) {
             if (!includeUntilTagValue) {
-                return { tag: tag, vr: 0, values: 0 };
+                return {
+                    retObj: { tag: tag, vr: 0, values: 0 },
+                    tag,
+                    vr,
+                    length: null
+                };
             }
         }
 
@@ -395,8 +418,29 @@ class DicomMessage {
             }
         }
 
-        var values = [];
-        var rawValues = [];
+        const retObj = ValueRepresentation.addTagAccessors({
+            tag: tag,
+            vr: vr
+        });
+
+        const header = {
+            oldEndian,
+            tag,
+            vr,
+            length,
+            retObj
+        };
+        return header;
+    }
+
+    static _readTagBody(header, stream, syntax, options) {
+        let values = [];
+        let rawValues = [];
+        const { length, vr, retObj, oldEndian } = header;
+        if (length === null) {
+            return retObj;
+        }
+
         if (vr.isBinary() && length > vr.maxLength && !vr.noMultiple) {
             var times = length / vr.maxLength,
                 i = 0;
@@ -436,10 +480,6 @@ class DicomMessage {
         }
         stream.setEndian(oldEndian);
 
-        const retObj = ValueRepresentation.addTagAccessors({
-            tag: tag,
-            vr: vr
-        });
         retObj.values = values;
         retObj.rawValues = rawValues;
         return retObj;
