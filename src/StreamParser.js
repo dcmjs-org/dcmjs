@@ -94,15 +94,9 @@ export class StreamParser {
             if (!top?.handler) {
                 throw new Error(`stack top not defined: ${stack.top}`);
             }
-            if (!top.handler.isSufficientLength(stream)) {
-                console.warn(
-                    "Insufficient data at size",
-                    stream.offset,
-                    stream.size
-                );
+            if (!top.handler.isSufficientLength(stack)) {
                 return;
             }
-            console.warn("Continuing parse");
             top.handler.parse(stack);
         }
         return stack.result;

@@ -14,7 +14,7 @@ export class Part10Handler {
         this.streamParser = streamParser;
     }
 
-    isSufficientLength(stream) {
+    isSufficientLength({ stream }) {
         return stream.isAvailable(132) || stream.complete;
     }
 

@@ -1,6 +1,9 @@
 import { DicomMessage } from "../DicomMessage";
 import { BodyHandler } from "./BodyHandler";
 
+/**
+ * Handles the creation of the tag header values
+ */
 export class TagHandler {
     static defaultHandler = new BodyHandler();
 
@@ -11,8 +14,8 @@ export class TagHandler {
     /**
      * Indicates if the stream currently has enough data to continue parsing.
      */
-    isSufficientLength(stream) {
-        return stream.isAvailble(12) || stream.complete;
+    isSufficientLength({ stream }) {
+        return stream.isAvailable(16) || stream.complete;
     }
 
     /**
@@ -23,10 +26,6 @@ export class TagHandler {
      */
     parse(stack) {
         const { stream } = stack;
-        if (stream.complete) {
-            stack.pop();
-            return this.body;
-        }
 
         const header = DicomMessage._readTagHeader(
             stream,
@@ -34,8 +33,18 @@ export class TagHandler {
             this.options
         );
 
-        const handler = this.getHandler(header, stream, stack);
-        handler.init(header, stream, stack, this.options);
+        console.warn("tag header=", header.tag.toString(), header.tag.length);
+
+        // Cases to handle:
+        //   4 Undefined length pixel data handler
+        //   3 Defined length Pixel Data
+        //   5 Bulk data - check if it is bulk applicable and switch to bulk handler
+        //   2 SQ - switch to sequence generation as child
+        //   1 Use TagBody handler
+
+        stack.top = this.streamParser.initHandler(
+            this.streamParser.handlers.tag
+        );
     }
 
     getHandler(header) {
