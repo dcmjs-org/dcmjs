@@ -67,7 +67,7 @@ function toWindows(inputArray, size) {
 let DicomMessage, Tag;
 
 var binaryVRs = ["FL", "FD", "SL", "SS", "UL", "US", "AT"],
-    explicitVRs = ["OB", "OW", "OF", "SQ", "UC", "UR", "UT", "UN", "OD"],
+    length32VRs = ["OB", "OW", "OF", "SQ", "UC", "UR", "UT", "UN", "OD"],
     singleVRs = ["SQ", "OF", "OW", "OB", "UN"];
 
 class ValueRepresentation {
@@ -77,7 +77,7 @@ class ValueRepresentation {
         this._isBinary = binaryVRs.indexOf(this.type) != -1;
         this._allowMultiple =
             !this._isBinary && singleVRs.indexOf(this.type) == -1;
-        this._isExplicit = explicitVRs.indexOf(this.type) != -1;
+        this._isLength32 = length32VRs.indexOf(this.type) != -1;
         this._storeRaw = true;
     }
 
@@ -97,8 +97,25 @@ class ValueRepresentation {
         return this._allowMultiple;
     }
 
+    /**
+     * Returns if the length is 32 bits.  This has nothing to do with being
+     * explicit or not, it only has to do with encoding.
+     * @deprecated  Replaced by isLength32
+     */
     isExplicit() {
-        return this._isExplicit;
+        return this._isLength32;
+    }
+
+    /**
+     * Returns if the length is 32 bits.  This has nothing to do with being
+     * explicit or not, it only has to do with encoding.
+     *
+     * This used to be isExplicit, which was wrong as both encodings are explicit,
+     * just one uses a single 4 byte word to encode both VR and length, and
+     * the isLength32 always use a separate 32 bit length.
+     */
+    isLength32() {
+        return this._isLength32;
     }
 
     /**
@@ -1408,7 +1425,7 @@ class ParsedUnknownValue extends BinaryRepresentation {
         this.noMultiple = true;
         this._isBinary = true;
         this._allowMultiple = false;
-        this._isExplicit = true;
+        this._isLength32 = true;
         this._storeRaw = true;
     }
 
