@@ -12,6 +12,7 @@ import { Tag } from "./Tag.js";
 import { log } from "./log.js";
 import { deepEqual } from "./utilities/deepEqual";
 import { ValueRepresentation } from "./ValueRepresentation.js";
+import { DictCreator } from "./DictCreator.js";
 
 const singleVRs = ["SQ", "OF", "OW", "OB", "UN", "LT"];
 
@@ -114,8 +115,11 @@ class DicomMessage {
             stopOnGreaterTag: false
         }
     ) {
-        const { ignoreErrors, untilTag, stopOnGreaterTag } = options;
-        var dict = {};
+        if (!options.dictCreator) {
+            options = { ...options, dictCreator: new DictCreator() };
+        }
+        const { ignoreErrors, untilTag, stopOnGreaterTag, dictCreator } =
+            options;
         try {
             let previousTagOffset;
             while (!bufferStream.end()) {
@@ -160,21 +164,16 @@ class DicomMessage {
                     readInfo.values = ["ISO_IR 192"]; // change SpecificCharacterSet to UTF-8
                 }
 
-                dict[cleanTagString] = ValueRepresentation.addTagAccessors({
-                    vr: readInfo.vr.type
-                });
-                dict[cleanTagString].Value = readInfo.values;
-                dict[cleanTagString]._rawValue = readInfo.rawValues;
-
+                dictCreator.setValue(cleanTagString, readInfo);
                 if (untilTag && untilTag === cleanTagString) {
                     break;
                 }
             }
-            return dict;
+            return dictCreator.dict;
         } catch (err) {
             if (ignoreErrors) {
                 log.warn("WARN:", err);
-                return dict;
+                return dictCreator.dict;
             }
             throw err;
         }

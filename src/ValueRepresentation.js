@@ -3,7 +3,8 @@ import {
     PADDING_NULL,
     PADDING_SPACE,
     PN_COMPONENT_DELIMITER,
-    VM_DELIMITER
+    VM_DELIMITER,
+    UNDEFINED_LENGTH
 } from "./constants/dicom.js";
 import { DicomMetaDictionary } from "./DicomMetaDictionary.js";
 import { log, validationLog } from "./log.js";
@@ -488,7 +489,7 @@ class BinaryRepresentation extends ValueRepresentation {
             stream.writeUint16(0xe0dd);
             stream.writeUint32(0x0);
 
-            return 0xffffffff;
+            return UNDEFINED_LENGTH;
         } else {
             var binaryData = value[0];
             binaryStream = new ReadBufferStream(binaryData);
@@ -503,7 +504,7 @@ class BinaryRepresentation extends ValueRepresentation {
     }
 
     readBytes(stream, length) {
-        if (length == 0xffffffff) {
+        if (length == UNDEFINED_LENGTH) {
             var itemTagValue = Tag.readTag(stream),
                 frames = [];
 
@@ -582,7 +583,7 @@ class BinaryRepresentation extends ValueRepresentation {
                         // Ensure the parent stream's offset is kept up to date
                         stream.offset = rangeStream.offset;
 
-                        // If there's only one buffer thne just return it directly
+                        // If there's only one buffer then just return it directly
                         if (fragments.length === 1) {
                             return fragments[0];
                         }
@@ -1086,7 +1087,7 @@ class SequenceOfItems extends ValueRepresentation {
         if (sqlength == 0x0) {
             return []; //contains no dataset
         } else {
-            var undefLength = sqlength == 0xffffffff,
+            var undefLength = sqlength == UNDEFINED_LENGTH,
                 elements = [],
                 read = 0;
 
@@ -1105,13 +1106,12 @@ class SequenceOfItems extends ValueRepresentation {
                     read += 4;
                     var itemStream = null,
                         toRead = 0,
-                        undef = length == 0xffffffff;
+                        undef = length == UNDEFINED_LENGTH;
 
                     if (undef) {
                         var stack = 0;
 
-                        /* eslint-disable-next-line no-constant-condition */
-                        while (1) {
+                        while (true) {
                             var g = stream.readUint16();
                             if (g == 0xfffe) {
                                 // some control tag is about to be read
@@ -1141,7 +1141,7 @@ class SequenceOfItems extends ValueRepresentation {
                                     // a new item has been found
                                     toRead += 4;
 
-                                    if (itemLength == 0xffffffff) {
+                                    if (itemLength == UNDEFINED_LENGTH) {
                                         // a new item with undefined length has been found
                                         stack++;
                                     }
@@ -1185,7 +1185,7 @@ class SequenceOfItems extends ValueRepresentation {
                 var item = value[i];
                 super.write(stream, "Uint16", 0xfffe);
                 super.write(stream, "Uint16", 0xe000);
-                super.write(stream, "Uint32", 0xffffffff);
+                super.write(stream, "Uint32", UNDEFINED_LENGTH);
 
                 written += DicomMessage.write(
                     item,
