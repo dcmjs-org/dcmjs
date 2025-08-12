@@ -27,7 +27,24 @@ export class DictCreator {
         this.dict[cleanTagString]._rawValue = readInfo.rawValues;
     }
 
-    handleTagBody() {
+    /**
+     * Parses the tag body instead of the default handling.  This allows
+     * direct streaming from the stream to bulkdata files, as well as
+     * allow restarting the overall parse.
+     */
+    handleTagBody(_header, _stream, _tsuid, _options) {
+        // const { tag, vr, length } = header;
+        // console.warn("handleTagBody", tag.toString(), length, vr);
+        // Handle SQ by creating a new tag body that parses to the child element, and has a callback on pop at end
+
+        // Then, add some example handlers for pixel data streams
+        // Handle content length pixel data by getting the rows/columns from current.dict and chunking bundles
+        // Handle undefined length pixel data by reading chunks and adding.
+        // Have options callback for pixel data
+
+        // Then, add example callback for bulkdata write
+
+        // Do all of this in context of this.setValue to assign values.
         return null;
     }
 }
