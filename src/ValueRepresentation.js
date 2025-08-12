@@ -503,6 +503,14 @@ class BinaryRepresentation extends ValueRepresentation {
         }
     }
 
+    /**
+     * Reads a binary representation of bytes, handling defined and
+     * undefined lengths by iterating over the items and tag delimeters to
+     * split the binary data up into the values.
+     *
+     * @returns  For defined length, returns an array containing the byte buffer.
+     *      For undefined length, returns an array of ArrayBuffers, one per content item.
+     */
     readBytes(stream, length) {
         if (length == UNDEFINED_LENGTH) {
             var itemTagValue = Tag.readTag(stream),
@@ -522,32 +530,6 @@ class BinaryRepresentation extends ValueRepresentation {
                 } else {
                     offsets = [];
                 }
-
-                const SequenceItemTag = 0xfffee000;
-                const SequenceDelimiterTag = 0xfffee0dd;
-
-                const getNextSequenceItemData = stream => {
-                    const nextTag = Tag.readTag(stream);
-                    if (nextTag.is(SequenceItemTag)) {
-                        const itemLength = stream.readUint32();
-                        const buffer = stream.getBuffer(
-                            stream.offset,
-                            stream.offset + itemLength
-                        );
-                        stream.increment(itemLength);
-                        return buffer;
-                    } else if (nextTag.is(SequenceDelimiterTag)) {
-                        // Read SequenceDelimiterItem value for the SequenceDelimiterTag
-                        if (stream.readUint32() !== 0) {
-                            throw Error(
-                                "SequenceDelimiterItem tag value was not zero"
-                            );
-                        }
-                        return null;
-                    }
-
-                    throw Error("Invalid tag in sequence");
-                };
 
                 // If there is an offset table, use that to loop through pixel data sequence
                 if (offsets.length > 0) {
@@ -572,7 +554,8 @@ class BinaryRepresentation extends ValueRepresentation {
 
                         let frameSize = 0;
                         while (!rangeStream.end()) {
-                            const buf = getNextSequenceItemData(rangeStream);
+                            const buf =
+                                Tag.getNextSequenceItemData(rangeStream);
                             if (buf === null) {
                                 break;
                             }
@@ -607,7 +590,7 @@ class BinaryRepresentation extends ValueRepresentation {
                 // If no offset table, loop through remainder of stream looking for termination tag
                 else {
                     while (!stream.end()) {
-                        const buffer = getNextSequenceItemData(stream);
+                        const buffer = Tag.getNextSequenceItemData(stream);
                         if (buffer === null) {
                             break;
                         }
@@ -621,14 +604,12 @@ class BinaryRepresentation extends ValueRepresentation {
             }
             return frames;
         } else {
-            var bytes;
-            /*if (this.type == 'OW') {
-                bytes = stream.readUint16Array(length);
-            } else if (this.type == 'OB') {
-                bytes = stream.readUint8Array(length);
-            }*/
-            bytes = stream.getBuffer(stream.offset, stream.offset + length);
+            const bytes = stream.getBuffer(
+                stream.offset,
+                stream.offset + length
+            );
             stream.increment(length);
+            // Any conversion to specific vr types will be handled by the "formatting"
             return [bytes];
         }
     }

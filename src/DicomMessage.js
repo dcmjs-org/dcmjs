@@ -124,11 +124,32 @@ class DicomMessage {
             let previousTagOffset;
             while (!bufferStream.end()) {
                 previousTagOffset = bufferStream.offset;
-                const readInfo = DicomMessage._readTag(
+                const header = this._readTagHeader(
                     bufferStream,
                     syntax,
                     options
                 );
+                const handledByCreator =
+                    header.value !== 0 &&
+                    dictCreator.handleTagBody(
+                        header,
+                        bufferStream,
+                        syntax,
+                        options
+                    );
+                if (handledByCreator) {
+                    continue;
+                }
+                const readInfo =
+                    header.value === 0
+                        ? header
+                        : this._readTagBody(
+                              header,
+                              bufferStream,
+                              syntax,
+                              options
+                          );
+
                 const cleanTagString = readInfo.tag.toCleanString();
                 if (untilTag && stopOnGreaterTag && cleanTagString > untilTag) {
                     bufferStream.offset = previousTagOffset;
@@ -321,7 +342,32 @@ class DicomMessage {
         }
     }
 
+    /**
+     * Reads the next tag instance and the tag instance body.  This is
+     * equivalent to _readTagHeader and _readTagBody.
+     */
     static _readTag(
+        stream,
+        syntax,
+        options = {
+            untilTag: null,
+            includeUntilTagValue: false
+        }
+    ) {
+        const header = this._readTagHeader(stream, syntax, options);
+        if (!header || header.values === 0) {
+            return header;
+        }
+        return this._readTagBody(header, stream, syntax, options);
+    }
+
+    /**
+     * Reads the tag header information, leaving the stream at the start
+     * of the data stream.  This allows a dict creator to take control
+     * of the stream reading and split the handling off for specific tags
+     * such as pixel data tags.
+     */
+    static _readTagHeader(
         stream,
         syntax,
         options = {
@@ -394,8 +440,32 @@ class DicomMessage {
             }
         }
 
+        const header = {
+            retObj: ValueRepresentation.addTagAccessors({
+                tag,
+                vr
+            }),
+            vr,
+            tag,
+            length,
+            oldEndian
+        };
+        return header;
+    }
+
+    /**
+     * Default tag body reading.
+     */
+    static _readTagBody(header, stream, syntax, options) {
         var values = [];
         var rawValues = [];
+
+        // This is an exit by header tag reading.
+        if (header.values === 0) {
+            return header;
+        }
+        const { length, vr, retObj, oldEndian } = header;
+
         if (vr.isBinary() && length > vr.maxLength && !vr.noMultiple) {
             var times = length / vr.maxLength,
                 i = 0;
@@ -435,10 +505,6 @@ class DicomMessage {
         }
         stream.setEndian(oldEndian);
 
-        const retObj = ValueRepresentation.addTagAccessors({
-            tag: tag,
-            vr: vr
-        });
         retObj.values = values;
         retObj.rawValues = rawValues;
         return retObj;

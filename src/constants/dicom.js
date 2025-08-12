@@ -18,3 +18,6 @@ export const PADDING_SPACE = 0x20;
 
 // PersonName delimeters
 export const PN_COMPONENT_DELIMITER = 0x3d;
+
+export const SEQUENCE_ITEM_TAG = 0xfffee000;
+export const SEQUENCE_DELIMITER_TAG = 0xfffee0dd;

@@ -26,4 +26,8 @@ export class DictCreator {
         this.dict[cleanTagString].Value = readInfo.values;
         this.dict[cleanTagString]._rawValue = readInfo.rawValues;
     }
+
+    handleTagBody() {
+        return null;
+    }
 }
