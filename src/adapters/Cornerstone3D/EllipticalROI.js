@@ -1,11 +1,9 @@
-import { vec2, vec3 } from "gl-matrix";
+import { vec3 } from "gl-matrix";
 import MeasurementReport from "./MeasurementReport";
 import TID300Ellipse from "../../utilities/TID300/Ellipse";
 import CORNERSTONE_3D_TAG from "./cornerstone3DTag";
 
 const ELLIPTICALROI = "EllipticalROI";
-const FINDING = "121071";
-const FINDING_SITE = "G-C0E3";
 const EPSILON = 1e-4;
 
 const trackingIdentifierTextValue = `${CORNERSTONE_3D_TAG}:${ELLIPTICALROI}`;

@@ -1,3 +1,8 @@
+const _value = Symbol("value");
+const _meaning = Symbol("meaning");
+const _schemeDesignator = Symbol("schemeDesignator");
+const _schemeVersion = Symbol("schemeVersion");
+
 class Code {
     constructor(options) {
         this[_value] = options.value;

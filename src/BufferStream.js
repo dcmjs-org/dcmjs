@@ -1,4 +1,5 @@
 import pako from "pako";
+import SplitDataView from "./SplitDataView";
 
 function toInt(val) {
     if (isNaN(val)) {
@@ -15,23 +16,42 @@ function toFloat(val) {
 }
 
 class BufferStream {
-    constructor(sizeOrBuffer, littleEndian) {
-        this.buffer =
-            typeof sizeOrBuffer == "number"
-                ? new ArrayBuffer(sizeOrBuffer)
-                : sizeOrBuffer;
-        if (!this.buffer) {
-            this.buffer = new ArrayBuffer(0);
-        }
-        this.view = new DataView(this.buffer);
-        this.offset = 0;
-        this.isLittleEndian = littleEndian || false;
-        this.size = 0;
-        this.encoder = new TextEncoder("utf-8");
+    offset = 0;
+    startOffset = 0;
+    isLittleEndian = false;
+    size = 0;
+    view = new SplitDataView();
+
+    encoder = new TextEncoder("utf-8");
+
+    constructor(options = null) {
+        this.isLittleEndian = options?.littleEndian || this.isLittleEndian;
+        this.view.defaultSize = options?.defaultSize ?? this.view.defaultSize;
     }
 
     setEndian(isLittle) {
         this.isLittleEndian = isLittle;
+    }
+
+    slice(start = this.startOffset, end = this.endOffset) {
+        return this.view.slice(start, end);
+    }
+
+    getBuffer(start = 0, end = this.size) {
+        if (this.noCopy) {
+            return new Uint8Array(this.slice(start, end));
+        }
+
+        return this.slice(start, end);
+    }
+
+    get buffer() {
+        // console.warn("Deprecated buffer get");
+        return this.getBuffer();
+    }
+
+    get available() {
+        return this.endOffset - this.offset;
     }
 
     writeUint8(value) {
@@ -107,7 +127,7 @@ class BufferStream {
     writeUTF8String(value) {
         const encodedString = this.encoder.encode(value);
         this.checkSize(encodedString.byteLength);
-        new Uint8Array(this.buffer).set(encodedString, this.offset);
+        this.view.writeBuffer(encodedString, this.offset);
         return this.increment(encodedString.byteLength);
     }
 
@@ -117,8 +137,8 @@ class BufferStream {
         this.checkSize(len);
         var startOffset = this.offset;
         for (let i = 0; i < len; i++) {
-            var charcode = value.charCodeAt(i);
-            this.view.setUint8(startOffset + i, charcode);
+            const charCode = value.charCodeAt(i);
+            this.view.setUint8(startOffset + i, charCode);
         }
         return this.increment(len);
     }
@@ -146,7 +166,9 @@ class BufferStream {
     }
 
     readUint8Array(length) {
-        var arr = new Uint8Array(this.buffer, this.offset, length);
+        const arr = new Uint8Array(
+            this.view.slice(this.offset, this.offset + length)
+        );
         this.increment(length);
         return arr;
     }
@@ -160,6 +182,12 @@ class BufferStream {
             this.offset += 2;
         }
         return arr;
+    }
+
+    readInt8() {
+        var val = this.view.getInt8(this.offset, this.isLittleEndian);
+        this.increment(1);
+        return val;
     }
 
     readInt16() {
@@ -190,8 +218,8 @@ class BufferStream {
         var result = "";
         var start = this.offset;
         var end = this.offset + length;
-        if (end >= this.buffer.byteLength) {
-            end = this.buffer.byteLength;
+        if (end >= this.view.byteLength) {
+            end = this.view.byteLength;
         }
         for (let i = start; i < end; ++i) {
             result += String.fromCharCode(this.view.getUint8(i));
@@ -209,10 +237,12 @@ class BufferStream {
     }
 
     readEncodedString(length) {
-        if (this.offset + length >= this.buffer.byteLength) {
-            length = this.buffer.byteLength - this.offset;
+        if (this.offset + length >= this.view.byteLength) {
+            length = this.view.byteLength - this.offset;
         }
-        const view = new DataView(this.buffer, this.offset, length);
+        const view = new DataView(
+            this.slice(this.offset, this.offset + length)
+        );
         const result = this.decoder.decode(view);
         this.increment(length);
         return result;
@@ -227,50 +257,22 @@ class BufferStream {
     }
 
     checkSize(step) {
-        if (this.offset + step > this.buffer.byteLength) {
-            //throw new Error("Writing exceeded the size of buffer");
-            //
-            // Resize the buffer.
-            // The idea is that when it is necessary to increase the buffer size,
-            // there will likely be more bytes which need to be written to the
-            // buffer in the future. Buffer allocation is costly.
-            // So we increase the buffer size right now
-            // by a larger amount than necessary, to reserve space for later
-            // writes which then can be done much faster. The current size of
-            // the buffer is the best estimate of the scale by which the size
-            // should increase.
-            // So approximately doubling the size of the buffer
-            // (while ensuring it fits the new data) is a simple but effective strategy.
-            var dstSize = this.offset + step + this.buffer.byteLength;
-            var dst = new ArrayBuffer(dstSize);
-            new Uint8Array(dst).set(new Uint8Array(this.buffer));
-            this.buffer = dst;
-            this.view = new DataView(this.buffer);
-        }
+        this.view.checkSize(this.offset + step);
     }
 
+    /**
+     * Concatenates the stream, starting from the startOffset (to allow concat
+     * on an existing output from the beginning)
+     */
     concat(stream) {
-        var available = this.buffer.byteLength - this.offset;
-        if (stream.size > available) {
-            let newbuf = new ArrayBuffer(this.offset + stream.size);
-            let int8 = new Uint8Array(newbuf);
-            int8.set(new Uint8Array(this.getBuffer(0, this.offset)));
-            int8.set(
-                new Uint8Array(stream.getBuffer(0, stream.size)),
-                this.offset
-            );
-            this.buffer = newbuf;
-            this.view = new DataView(this.buffer);
-        } else {
-            let int8 = new Uint8Array(this.buffer);
-            int8.set(
-                new Uint8Array(stream.getBuffer(0, stream.size)),
-                this.offset
-            );
-        }
+        this.view.checkSize(this.size + stream.size - stream.startOffset);
+        this.view.writeBuffer(
+            new Uint8Array(stream.slice(stream.startOffset, stream.size)),
+            this.offset
+        );
         this.offset += stream.size;
         this.size = this.offset;
-        return this.buffer.byteLength;
+        return this.view.availableSize;
     }
 
     increment(step) {
@@ -281,13 +283,19 @@ class BufferStream {
         return step;
     }
 
-    getBuffer(start, end) {
-        if (!start && !end) {
-            start = 0;
-            end = this.size;
-        }
-
-        return this.buffer.slice(start, end);
+    /**
+     * Adds the buffer to the end of the current buffers list,
+     * updating the size etc.
+     *
+     * @param {*} buffer
+     * @param {*} options.start for the start of the new buffer to use
+     * @param {*} options.end for the end of the buffer to use
+     * @param {*} options.transfer to transfer the buffer to be owned
+     */
+    addBuffer(buffer, options = null) {
+        this.view.addBuffer(buffer, options);
+        this.size = this.view.size;
+        return this.size;
     }
 
     more(length) {
@@ -295,10 +303,15 @@ class BufferStream {
             throw new Error("Request more than currently allocated buffer");
         }
 
-        const newBuf = new ReadBufferStream(this.buffer, null, {
-            start: this.offset,
-            stop: this.offset + length
-        });
+        // Optimize the more implementation to choose between a slice and
+        // a sub-string reference to the original set of views.
+        // const newBuf = new ReadBufferStream(this.buffer, null, {
+        //   start: this.offset,
+        //   stop: this.offset + length
+        // });
+        const newBuf = new ReadBufferStream(
+            this.slice(this.offset, this.offset + length)
+        );
         this.increment(length);
 
         return newBuf;
@@ -310,11 +323,11 @@ class BufferStream {
     }
 
     end() {
-        return this.offset >= this.buffer.byteLength;
+        return this.offset >= this.view.byteLength;
     }
 
     toEnd() {
-        this.offset = this.buffer.byteLength;
+        this.offset = this.view.byteLength;
     }
 }
 
@@ -328,29 +341,24 @@ class ReadBufferStream extends BufferStream {
             noCopy: false
         }
     ) {
-        super(buffer, littleEndian);
-        this.offset = options.start || 0;
-        this.size = options.stop || this.buffer.byteLength;
+        super({ littleEndian });
         this.noCopy = options.noCopy;
+        this.decoder = new TextDecoder("latin1");
+
+        if (buffer instanceof BufferStream) {
+            this.view.from(buffer.view, options);
+        } else if (buffer) {
+            this.view.addBuffer(buffer);
+        }
+        this.offset = options.start ?? buffer?.offset ?? 0;
+        this.size = options.stop || buffer?.size || buffer?.byteLength || 0;
+
         this.startOffset = this.offset;
         this.endOffset = this.size;
-        this.decoder = new TextDecoder("latin1");
     }
 
     setDecoder(decoder) {
         this.decoder = decoder;
-    }
-
-    getBuffer(start, end) {
-        if (this.noCopy) {
-            return new Uint8Array(this.buffer, start, end - start);
-        }
-        if (!start && !end) {
-            start = 0;
-            end = this.size;
-        }
-
-        return this.buffer.slice(start, end);
     }
 
     reset() {
@@ -371,7 +379,9 @@ class ReadBufferStream extends BufferStream {
     }
 
     writeUint8Repeat(value, count) {
-        throw new Error(value, "writeUint8Repeat not implemented");
+        throw new Error(
+            `writeUint8Repeat not implemented (value: ${value}, count: ${count})`
+        );
     }
 
     writeInt8(value) {
@@ -433,8 +443,8 @@ class DeflatedReadBufferStream extends ReadBufferStream {
 }
 
 class WriteBufferStream extends BufferStream {
-    constructor(buffer, littleEndian) {
-        super(buffer, littleEndian);
+    constructor(defaultSize, littleEndian) {
+        super({ defaultSize, littleEndian });
         this.size = 0;
     }
 }

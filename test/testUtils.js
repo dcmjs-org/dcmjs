@@ -8,7 +8,7 @@ import { validationLog } from "./../src/log.js";
 const { https } = followRedirects;
 
 // Don't show validation errors, as those are normally tested
-validationLog.level = 5;
+validationLog.setLevel(5);
 
 function downloadToFile(url, filePath) {
     return new Promise((resolve, reject) => {
@@ -29,7 +29,6 @@ function unzip(zipFilePath, targetPath) {
         try {
             // reading archives
             var zip = new AdmZip(zipFilePath);
-            var zipEntries = zip.getEntries(); // an array of ZipEntry records
             // extracts everything
             zip.extractAllTo(targetPath, true);
             resolve();
@@ -55,9 +54,9 @@ function ensureTestDataDir() {
 }
 
 async function getZippedTestDataset(url, filename, unpackDirectory) {
-    var dir = ensureTestDataDir();
-    var targetPath = path.join(dir, filename);
-    var unpackPath = path.join(dir, unpackDirectory);
+    const dir = ensureTestDataDir();
+    const targetPath = path.join(dir, filename);
+    const unpackPath = path.join(dir, unpackDirectory);
     if (!fs.existsSync(unpackPath)) {
         await downloadToFile(url, targetPath);
         await unzip(targetPath, unpackPath);
@@ -65,12 +64,21 @@ async function getZippedTestDataset(url, filename, unpackDirectory) {
     return unpackPath;
 }
 
+/**
+ * Stores the required downloads to prevent async reading before download completed.
+ */
+const asyncDownloadMap = new Map();
+
 async function getTestDataset(url, filename) {
-    var dir = ensureTestDataDir();
-    var targetPath = path.join(dir, filename);
-    if (!fs.existsSync(targetPath)) {
-        await downloadToFile(url, targetPath);
+    const dir = ensureTestDataDir();
+    const targetPath = path.join(dir, filename);
+    let filePromise = asyncDownloadMap.get(targetPath);
+    if (!filePromise && !fs.existsSync(targetPath)) {
+        filePromise = downloadToFile(url, targetPath);
+        asyncDownloadMap.set(targetPath, filePromise);
     }
+    // This returns immediately if filePromise is undefined - eg if the file already downloaded.
+    await filePromise;
     return targetPath;
 }
 

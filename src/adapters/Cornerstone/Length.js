@@ -1,11 +1,8 @@
 import MeasurementReport from "./MeasurementReport.js";
 import TID300Length from "../../utilities/TID300/Length.js";
 import CORNERSTONE_4_TAG from "./cornerstone4Tag";
-import { toArray } from "../helpers.js";
 
 const LENGTH = "Length";
-const FINDING = "121071";
-const FINDING_SITE = "G-C0E3";
 
 class Length {
     constructor() {}

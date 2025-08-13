@@ -98,6 +98,11 @@ const dcmjs = {
     anonymizer
 };
 
+DicomDict.setDicomMessageClass(DicomMessage);
+ValueRepresentation.setDicomMessageClass(DicomMessage);
+ValueRepresentation.setTagClass(Tag);
+Tag.setDicomMessageClass(DicomMessage);
+
 export {
     DICOMWEB,
     adapters,
@@ -110,4 +115,4 @@ export {
     anonymizer
 };
 
-export default dcmjs;
+export { dcmjs as default };

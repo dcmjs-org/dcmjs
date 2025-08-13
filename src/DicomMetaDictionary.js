@@ -126,6 +126,10 @@ class DicomMetaDictionary {
                     // when the vr is data-dependent, keep track of the original type
                     naturalDataset._vrMap[naturalName] = data.vr;
                 }
+                if (data.vr !== entry.vr) {
+                    // save origin vr if it different that in dictionary
+                    naturalDataset._vrMap[naturalName] = data.vr;
+                }
             }
 
             if (data.Value === undefined) {
@@ -217,9 +221,13 @@ class DicomMetaDictionary {
                     return;
                 }
                 // process this one entry
-                var dataItem = ValueRepresentation.addTagAccessors({
-                    vr: entry.vr
-                });
+                const vr =
+                    dataset._vrMap && dataset._vrMap[naturalName]
+                        ? dataset._vrMap[naturalName]
+                        : entry.vr;
+
+                var dataItem = ValueRepresentation.addTagAccessors({ vr });
+
                 dataItem.Value = dataset[naturalName];
 
                 if (dataValue !== null) {
@@ -262,11 +270,16 @@ class DicomMetaDictionary {
 
                     if (!vr.isBinary() && vr.maxLength) {
                         dataItem.Value = dataItem.Value.map(value => {
-                            if (value.length > vr.maxLength) {
+                            let maxLength = vr.maxLength;
+                            if (vr.rangeMatchingMaxLength) {
+                                maxLength = vr.rangeMatchingMaxLength;
+                            }
+
+                            if (value.length > maxLength) {
                                 log.warn(
-                                    `Truncating value ${value} of ${naturalName} because it is longer than ${vr.maxLength}`
+                                    `Truncating value ${value} of ${naturalName} because it is longer than ${maxLength}`
                                 );
-                                return value.slice(0, vr.maxLength);
+                                return value.slice(0, maxLength);
                             } else {
                                 return value;
                             }
@@ -376,13 +389,17 @@ DicomMetaDictionary.sopClassNamesByUID = {
     "1.2.840.10008.5.1.4.1.1.66.2": "SpatialFiducials",
     "1.2.840.10008.5.1.4.1.1.66.3": "DeformableSpatialRegistration",
     "1.2.840.10008.5.1.4.1.1.66.4": "Segmentation",
+    "1.2.840.10008.5.1.4.1.1.66.7": "LabelmapSegmentation", // Labelmap Segmentation SOP Class UID
     "1.2.840.10008.5.1.4.1.1.67": "RealWorldValueMapping",
     "1.2.840.10008.5.1.4.1.1.88.11": "BasicTextSR",
     "1.2.840.10008.5.1.4.1.1.88.22": "EnhancedSR",
     "1.2.840.10008.5.1.4.1.1.88.33": "ComprehensiveSR",
+    "1.2.840.10008.5.1.4.1.1.88.34": "Comprehensive3DSR",
     "1.2.840.10008.5.1.4.1.1.128": "PETImage",
     "1.2.840.10008.5.1.4.1.1.130": "EnhancedPETImage",
-    "1.2.840.10008.5.1.4.1.1.128.1": "LegacyConvertedEnhancedPETImage"
+    "1.2.840.10008.5.1.4.1.1.128.1": "LegacyConvertedEnhancedPETImage",
+    "1.2.840.10008.5.1.4.1.1.77.1.5.1": "OphthalmicPhotography8BitImage",
+    "1.2.840.10008.5.1.4.1.1.77.1.5.4": "OphthalmicTomographyImage"
 };
 
 DicomMetaDictionary.dictionary = dictionary;

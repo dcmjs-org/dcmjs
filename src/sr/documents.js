@@ -1,5 +1,5 @@
 import { DicomMetaDictionary } from "../DicomMetaDictionary.js";
-
+import { ContentSequence } from "./valueTypes.js";
 const _attributesToInclude = [
     // Patient
     "00080054",
@@ -297,7 +297,7 @@ class Comprehensive3DSR {
             ovserver_item.VerifyingObserverName = options.verifyingObserverName;
             ovserver_item.VerifyingOrganization = options.verifyingOrganization;
             ovserver_item.VerificationDateTime = DicomMetaDictionary.dateTime();
-            this.VerifyingObserverSequence = [observer_item];
+            this.VerifyingObserverSequence = [ovserver_item];
         } else {
             this.VerificationFlag = "UNVERIFIED";
         }

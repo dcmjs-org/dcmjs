@@ -415,8 +415,6 @@ function addImageIdSpecificBrushToolState(
 
     const cToolsPixelData = brushDataI.pixelData;
 
-    const [rows, cols] = pixelData2D.shape;
-
     for (let p = 0; p < cToolsPixelData.length; p++) {
         if (pixelData2D.data[p]) {
             cToolsPixelData[p] = 1;

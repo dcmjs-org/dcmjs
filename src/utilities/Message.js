@@ -139,8 +139,6 @@ function multipartEncode(
     // Write each dataset into the multipart array
     let position = 0;
     contentArrays.forEach(contentArray => {
-        const contentLength = contentArray.length;
-
         multipartArray.set(headerArray, position);
         multipartArray.set(contentArray, position + headerLength);
 
@@ -183,7 +181,6 @@ function multipartDecode(response) {
     }
 
     const boundary = stringToUint8Array(boundaryString);
-    const boundaryLength = boundary.length;
     const components = [];
 
     let offset = headerIndex + separator.length;

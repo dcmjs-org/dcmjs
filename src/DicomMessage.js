@@ -10,6 +10,7 @@ import { DicomDict } from "./DicomDict.js";
 import { DicomMetaDictionary } from "./DicomMetaDictionary.js";
 import { Tag } from "./Tag.js";
 import { log } from "./log.js";
+import { deepEqual } from "./utilities/deepEqual";
 import { ValueRepresentation } from "./ValueRepresentation.js";
 
 const singleVRs = ["SQ", "OF", "OW", "OB", "UN", "LT"];
@@ -109,19 +110,26 @@ class DicomMessage {
         options = {
             ignoreErrors: false,
             untilTag: null,
-            includeUntilTagValue: false
+            includeUntilTagValue: false,
+            stopOnGreaterTag: false
         }
     ) {
-        const { ignoreErrors, untilTag } = options;
+        const { ignoreErrors, untilTag, stopOnGreaterTag } = options;
         var dict = {};
         try {
+            let previousTagOffset;
             while (!bufferStream.end()) {
+                previousTagOffset = bufferStream.offset;
                 const readInfo = DicomMessage._readTag(
                     bufferStream,
                     syntax,
                     options
                 );
                 const cleanTagString = readInfo.tag.toCleanString();
+                if (untilTag && stopOnGreaterTag && cleanTagString > untilTag) {
+                    bufferStream.offset = previousTagOffset;
+                    break;
+                }
                 if (cleanTagString === "00080005") {
                     if (readInfo.values.length > 0) {
                         let coding = readInfo.values[0];
@@ -156,6 +164,7 @@ class DicomMessage {
                     vr: readInfo.vr.type
                 });
                 dict[cleanTagString].Value = readInfo.values;
+                dict[cleanTagString]._rawValue = readInfo.rawValues;
 
                 if (untilTag && untilTag === cleanTagString) {
                     break;
@@ -193,7 +202,8 @@ class DicomMessage {
             ignoreErrors: false,
             untilTag: null,
             includeUntilTagValue: false,
-            noCopy: false
+            noCopy: false,
+            forceStoreRaw: false
         }
     ) {
         var stream = new ReadBufferStream(buffer, null, {
@@ -206,18 +216,38 @@ class DicomMessage {
             throw new Error("Invalid DICOM file, expected header is missing");
         }
 
+        // save position before reading first tag
+        var metaStartPos = stream.offset;
+
+        // read the first tag to check if it's the meta length tag
         var el = DicomMessage._readTag(stream, useSyntax);
+
+        var metaHeader = {};
         if (el.tag.toCleanString() !== "00020000") {
-            throw new Error(
-                "Invalid DICOM file, meta length tag is malformed or not present."
-            );
+            // meta length tag is missing
+            if (!options.ignoreErrors) {
+                throw new Error(
+                    "Invalid DICOM file, meta length tag is malformed or not present."
+                );
+            }
+
+            // reset stream to the position where we started reading tags
+            stream.offset = metaStartPos;
+
+            // read meta header elements sequentially
+            metaHeader = DicomMessage._read(stream, useSyntax, {
+                untilTag: "00030000",
+                stopOnGreaterTag: true,
+                ignoreErrors: true
+            });
+        } else {
+            // meta length tag is present
+            var metaLength = el.values[0];
+
+            // read header buffer using the specified meta length
+            var metaStream = stream.more(metaLength);
+            metaHeader = DicomMessage._read(metaStream, useSyntax, options);
         }
-
-        var metaLength = el.values[0];
-
-        //read header buffer
-        var metaStream = stream.more(metaLength);
-        var metaHeader = DicomMessage._read(metaStream, useSyntax, options);
 
         //get the syntax
         var mainSyntax = metaHeader["00020010"].Value[0];
@@ -251,8 +281,9 @@ class DicomMessage {
         sortedTags.forEach(function (tagString) {
             var tag = Tag.fromString(tagString),
                 tagObject = jsonObjects[tagString],
-                vrType = tagObject.vr,
-                values = tagObject.Value;
+                vrType = tagObject.vr;
+
+            var values = DicomMessage._getTagWriteValues(vrType, tagObject);
 
             written += tag.write(
                 useStream,
@@ -264,6 +295,31 @@ class DicomMessage {
         });
 
         return written;
+    }
+
+    static _getTagWriteValues(vrType, tagObject) {
+        if (!tagObject._rawValue) {
+            return tagObject.Value;
+        }
+
+        // apply VR specific formatting to the original _rawValue and compare to the Value
+        const vr = ValueRepresentation.createByTypeString(vrType);
+
+        let originalValue;
+        if (Array.isArray(tagObject._rawValue)) {
+            originalValue = tagObject._rawValue.map(val =>
+                vr.applyFormatting(val)
+            );
+        } else {
+            originalValue = vr.applyFormatting(tagObject._rawValue);
+        }
+
+        // if Value has not changed, write _rawValue unformatted back into the file
+        if (deepEqual(tagObject.Value, originalValue)) {
+            return tagObject._rawValue;
+        } else {
+            return tagObject.Value;
+        }
     }
 
     static _readTag(
@@ -331,7 +387,7 @@ class DicomMessage {
                 vr = ValueRepresentation.createByTypeString(vrType);
             }
 
-            if (vr.isExplicit()) {
+            if (vr.isLength32()) {
                 stream.increment(2);
                 length = stream.readUint32();
             } else {
@@ -340,25 +396,42 @@ class DicomMessage {
         }
 
         var values = [];
+        var rawValues = [];
         if (vr.isBinary() && length > vr.maxLength && !vr.noMultiple) {
             var times = length / vr.maxLength,
                 i = 0;
             while (i++ < times) {
-                values.push(vr.read(stream, vr.maxLength, syntax));
+                const { rawValue, value } = vr.read(
+                    stream,
+                    vr.maxLength,
+                    syntax,
+                    options
+                );
+                rawValues.push(rawValue);
+                values.push(value);
             }
         } else {
-            var val = vr.read(stream, length, syntax);
+            const { rawValue, value } =
+                vr.read(stream, length, syntax, options) || {};
             if (!vr.isBinary() && singleVRs.indexOf(vr.type) == -1) {
-                values = val;
-                if (typeof val === "string") {
-                    values = val.split(String.fromCharCode(VM_DELIMITER));
+                rawValues = rawValue;
+                values = value;
+                if (typeof value === "string") {
+                    const delimiterChar = String.fromCharCode(VM_DELIMITER);
+                    rawValues = vr.dropPadByte(rawValue.split(delimiterChar));
+                    values = vr.dropPadByte(value.split(delimiterChar));
                 }
             } else if (vr.type == "SQ") {
-                values = val;
+                rawValues = rawValue;
+                values = value;
             } else if (vr.type == "OW" || vr.type == "OB") {
-                values = val;
+                rawValues = rawValue;
+                values = value;
             } else {
-                Array.isArray(val) ? (values = val) : values.push(val);
+                Array.isArray(value) ? (values = value) : values.push(value);
+                Array.isArray(rawValue)
+                    ? (rawValues = rawValue)
+                    : rawValues.push(rawValue);
             }
         }
         stream.setEndian(oldEndian);
@@ -368,6 +441,7 @@ class DicomMessage {
             vr: vr
         });
         retObj.values = values;
+        retObj.rawValues = rawValues;
         return retObj;
     }
 

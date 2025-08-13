@@ -7,11 +7,11 @@
 
 [![CI](https://github.com/dcmjs-org/dcmjs/actions/workflows/publish-package.yml/badge.svg)](https://github.com/dcmjs-org/dcmjs/actions?query=workflow:publish-package)
 
-**Note: this code is a work-in-progress and should not be used for production or clinical purposes**
+**Note: this code is a work-in-progress**
 
 This is a community effort so please help improve support for a wide range of DICOM data and use cases.
 
-See [live examples here](https://dcmjs.netlify.com/)
+See [live examples here](https://master--dcmjs2.netlify.app/)
 
 # Goals
 
@@ -41,8 +41,10 @@ _Parts of DICOM that dcmjs *will not* focus on:_
 - DIMSE (legacy networking like C-STORE, C-FIND, C-MOVE, etc). See the [dcmjs-dimse](https://github.com/PantelisGeorgiadis/dcmjs-dimse) project for that.
 - Physical Media (optical disks). See [this FAQ](https://www.dclunie.com/medical-image-faq/html/index.html) if you need to work with those.
 - Image rendering. See [dcmjs-imaging](https://github.com/PantelisGeorgiadis/dcmjs-imaging) for this.
+- Encapsulated transfer syntax transcoding. See [dcmjs-codecs](https://github.com/PantelisGeorgiadis/dcmjs-codecs) for this.
 - 3D rendering.  See [vtk.js](https://kitware.github.io/vtk-js/index.html).
 - Radiology review application - see [OHIF](https://ohif.org).
+- Deidentification and data organization - see [dcm-organize](https://github.com/bebbi/dcm-organize) for this.
 
 # Usage
 
@@ -152,6 +154,8 @@ Currently dcmjs is an early-stage development experiment, but already has valuab
     with the community to define some example use cases to mix the pure JavaScript DICOM code with Cornerstone and [CornerstoneTools](https://github.com/chafey/cornerstoneTools).
 - 2018-2022
   - Work continues to develop SR and SEG support to [OHIFViewer](http://ohif.org) allow interoperability with [DICOM4QI](https://legacy.gitbook.com/book/qiicr/dicom4qi/details)
+- 2022-present
+  - dcmjs is used by a number of projects and as of January 2025 has about 15,000 weekly [downloads from npm]([url](https://www.npmjs.com/package/dcmjs)).
 
 # Support
 
@@ -163,3 +167,7 @@ The developers gratefully acknowledge their research support:
 - The [Neuroimage Analysis Center](http://nac.spl.harvard.edu)
 - The [National Center for Image Guided Therapy](http://ncigt.org)
 - The [NCI Imaging Data Commons](https://imagingdatacommons.github.io/) NCI Imaging Data Commons: contract number 19X037Q from Leidos Biomedical Research under Task Order HHSN26100071 from NCI
+
+## Logging
+
+This library uses [loglevel](https://github.com/pimterry/loglevel) for logging. By default, the log level is set to "warn". You can change the log level by setting the `LOG_LEVEL` environment variable or by using the `setLevel` method in your code.

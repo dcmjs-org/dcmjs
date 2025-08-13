@@ -1,4 +1,3 @@
-import { DicomMetaDictionary } from "../DicomMetaDictionary.js";
 import DerivedDataset from "./DerivedDataset.js";
 
 export default class ParametricMap extends DerivedDataset {

@@ -1,27 +1,25 @@
-import "regenerator-runtime/runtime.js";
-
 import { jest } from "@jest/globals";
 import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
 import { WriteBufferStream } from "../src/BufferStream";
 import dcmjs from "../src/index.js";
-import { getTestDataset, getZippedTestDataset } from "./testUtils.js";
 import { log } from "./../src/log.js";
+import { getTestDataset, getZippedTestDataset } from "./testUtils.js";
 
 import { promisify } from "util";
 import arrayItem from "./arrayItem.json";
 import minimalDataset from "./mocks/minimal_fields_dataset.json";
 import datasetWithNullNumberVRs from "./mocks/null_number_vrs_dataset.json";
-import sampleDicomSR from "./sample-sr.json";
 import { rawTags } from "./rawTags";
+import sampleDicomSR from "./sample-sr.json";
 
+import { ValueRepresentation } from "../src/ValueRepresentation";
 import {
     EXPLICIT_LITTLE_ENDIAN,
     IMPLICIT_LITTLE_ENDIAN,
     PADDING_SPACE
 } from "./../src/constants/dicom.js";
-import { ValueRepresentation } from "../src/ValueRepresentation";
 
 const { DicomMetaDictionary, DicomDict, DicomMessage, ReadBufferStream } =
     dcmjs.data;
@@ -238,6 +236,29 @@ it("test_multiframe_1", async () => {
     expect(roundedSpacing).toEqual(1.3);
 });
 
+it("test_labelmapseg", async () => {
+    const segURL =
+        "https://github.com/dcmjs-org/data/releases/download/labelmap-seg/totalSegmentator.dcm";
+    var segFilePath = await getTestDataset(segURL, "LabelmapSeg.dcm");
+    const arrayBuffer = fs.readFileSync(segFilePath).buffer;
+
+    const datasets = [];
+    const dicomDict = DicomMessage.readFile(arrayBuffer);
+    const dataset = DicomMetaDictionary.naturalizeDataset(dicomDict.dict);
+
+    datasets.push(dataset);
+
+    const multiframe =
+        dcmjs.normalizers.Normalizer.normalizeToDataset(datasets);
+    const spacing =
+        multiframe.SharedFunctionalGroupsSequence.PixelMeasuresSequence
+            .SpacingBetweenSlices;
+    const roundedSpacing = Math.round(100 * spacing) / 100;
+
+    expect(multiframe.NumberOfFrames).toEqual(295);
+    expect(roundedSpacing).toEqual(1.0);
+});
+
 it("test_oneslice_seg", async () => {
     const ctPelvisURL =
         "https://github.com/dcmjs-org/data/releases/download/CTPelvis/CTPelvis.zip";
@@ -303,7 +324,7 @@ it("test_multiframe_us", () => {
     const dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(
         dicomData.dict
     );
-    // eslint-disable-next-line no-underscore-dangle
+
     dataset._meta = dcmjs.data.DicomMetaDictionary.namifyDataset(
         dicomData.meta
     );
@@ -324,7 +345,7 @@ it("test_fragment_multiframe", async () => {
     const dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(
         dicomData.dict
     );
-    // eslint-disable-next-line no-underscore-dangle
+
     dataset._meta = dcmjs.data.DicomMetaDictionary.namifyDataset(
         dicomData.meta
     );
@@ -357,7 +378,13 @@ it("test_exponential_notation", () => {
     dataset.ImagePositionPatient[2] = 7.1945578383e-5;
     const buffer = data.write();
     const copy = dcmjs.data.DicomMessage.readFile(buffer);
-    expect(JSON.stringify(data)).toEqual(JSON.stringify(copy));
+    const datasetCopy = dcmjs.data.DicomMetaDictionary.naturalizeDataset(
+        copy.dict
+    );
+
+    expect(dataset.ImagePositionPatient).toEqual(
+        datasetCopy.ImagePositionPatient
+    );
 });
 
 it("test_output_equality", () => {
@@ -427,6 +454,29 @@ it("test_invalid_vr_length", () => {
     function writeToBuffer(dicomDict, options) {
         return dicomDict.write(options);
     }
+});
+
+it("test_long_explicit_vr", () => {
+    const contourData = [];
+    for (let i = 0; i < 65536; i++) {
+        contourData.push(String(i));
+    }
+
+    const dicomDict = new DicomDict({
+        TransferSynxtaxUID: EXPLICIT_LITTLE_ENDIAN
+    });
+
+    const natural = {
+        ContourData: contourData
+    };
+
+    dicomDict.dict = DicomMetaDictionary.denaturalizeDataset(natural);
+
+    const part10Buffer = dicomDict.write();
+    const dicomData = DicomMessage.readFile(part10Buffer);
+    const dataset = DicomMetaDictionary.naturalizeDataset(dicomData.dict);
+
+    expect(dataset.ContourData.length).toBe(contourData.length);
 });
 
 it("test_encapsulation", async () => {
@@ -539,6 +589,68 @@ it("test_custom_dictionary", () => {
     expect(Object.keys(dataset).length).toEqual(17);
 });
 
+it("test_code_string_vr_truncated", () => {
+    // Create a dataset with a CS value that exceeds the 16-character limit and gets truncated
+    const testDataset = {
+        Modality: "MAGNETICRESONANCE"
+    };
+
+    const denaturalizedDataset =
+        DicomMetaDictionary.denaturalizeDataset(testDataset);
+
+    expect(denaturalizedDataset["00080060"].vr).toEqual("CS");
+    expect(denaturalizedDataset["00080060"].Value[0]).toEqual(
+        "MAGNETICRESONANC"
+    );
+});
+
+it("test_date_time_vr_range_matching_not_truncated", () => {
+    const dateTime = "20230131083000.000+0000-20230131090000.000+0000";
+    const studyDate = "20230101-20230301";
+    const studyTime = "080000.000-143000.000";
+
+    const padIfRequired = value => {
+        return value.length & 1 ? value + " " : value;
+    };
+
+    // Create a dataset with DA, TM and DT value representations with range matching
+    const testDataset = {
+        // 2023-01-31 08:30 AM to 09:00 AM UTC
+        DateTime: dateTime,
+        // January 1, 2023 to March 1, 2023
+        StudyDate: studyDate,
+        // 08:00 AM to 02:30 PM
+        StudyTime: studyTime
+    };
+
+    // Roundtrip the dataset through denaturalization, naturalization and denaturalization
+    const dicomDict = new DicomDict({
+        TransferSynxtaxUID: EXPLICIT_LITTLE_ENDIAN
+    });
+    dicomDict.dict = DicomMetaDictionary.denaturalizeDataset(testDataset);
+    const part10Buffer = dicomDict.write();
+
+    const dicomData = dcmjs.data.DicomMessage.readFile(part10Buffer);
+    const dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(
+        dicomData.dict
+    );
+
+    const denaturalizedDataset =
+        DicomMetaDictionary.denaturalizeDataset(dataset);
+
+    // Check the VR and values (pad if required)
+    expect(denaturalizedDataset["0040A120"].vr).toEqual("DT");
+    expect(denaturalizedDataset["0040A120"].Value[0]).toEqual(
+        padIfRequired(dateTime)
+    );
+    expect(denaturalizedDataset["00080020"].vr).toEqual("DA");
+    expect(denaturalizedDataset["00080020"].Value[0]).toEqual(
+        padIfRequired(studyDate)
+    );
+    expect(denaturalizedDataset["00080030"].vr).toEqual("TM");
+    expect(denaturalizedDataset["00080030"].Value[0]).toEqual(studyTime); // No padding because of 'applyFormatting'
+});
+
 it("Reads DICOM with multiplicity", async () => {
     const url =
         "https://github.com/dcmjs-org/data/releases/download/multiplicity/multiplicity.dcm";
@@ -630,7 +742,7 @@ it("Writes encapsulated OB data which has an odd length with a padding byte in i
     );
 
     expect(bytesWritten).toEqual(44);
-    expect([...new Uint32Array(stream.view.buffer, 0, 11)]).toEqual([
+    expect([...new Uint32Array(stream.buffer, 0, 11)]).toEqual([
         0x00107fe0, // PixelData tag's group & element
         0x0000424f, // VR type "OB"
         0xffffffff, // Value length (0xffffffff here indicates an undefined length)
@@ -717,14 +829,14 @@ describe("With a SpecificCharacterSet tag", () => {
     });
 
     it("Throws an exception on an unsupported character set", async () => {
-        log.level = 5;
+        log.setLevel(5);
         expect(() => readEncodedLongString("nope", [])).toThrow(
             new Error("Unsupported character set: nope")
         );
     });
 
     it("Doesn't throw an exception on an unsupported character set when ignoring errors", async () => {
-        log.level = 5;
+        log.setLevel(5);
         expect(
             readEncodedLongString("nope", [0x68, 0x69], { ignoreErrors: true })
         ).toEqual("hi");
@@ -814,7 +926,7 @@ it("Reads and writes numbers with NaN and Infinity values of tags with type FD (
     );
 });
 
-it("Tests that reading fails on a DICOM without a meta length tag", () => {
+it("Tests that reading fails on a DICOM without a meta length tag when ignoreErrors is false", () => {
     const rawFile = fs.readFileSync("test/no-meta-length-test.dcm");
 
     let arrayBuffer = rawFile.buffer;
@@ -828,6 +940,7 @@ it("Tests that reading fails on a DICOM without a meta length tag", () => {
         );
     }
 
+    // Should throw an error when ignoreErrors is false
     expect(() => {
         dcmjs.data.DicomMessage.readFile(arrayBuffer, {
             ignoreErrors: false,
@@ -837,6 +950,34 @@ it("Tests that reading fails on a DICOM without a meta length tag", () => {
     }).toThrow(
         "Invalid DICOM file, meta length tag is malformed or not present."
     );
+});
+
+it("Tests that reading succeeds on a DICOM without a meta length tag when ignoreErrors is true", () => {
+    const rawFile = fs.readFileSync("test/no-meta-length-test.dcm");
+
+    let arrayBuffer = rawFile.buffer;
+    if (
+        rawFile.byteOffset !== 0 ||
+        rawFile.byteLength !== arrayBuffer.byteLength
+    ) {
+        arrayBuffer = arrayBuffer.slice(
+            rawFile.byteOffset,
+            rawFile.byteOffset + rawFile.byteLength
+        );
+    }
+
+    // Should not throw an error and should successfully parse the file when ignoreErrors is true
+    expect(() => {
+        const dataset = dcmjs.data.DicomMessage.readFile(arrayBuffer, {
+            ignoreErrors: true
+        });
+
+        // Verify that we have a valid dataset with meta header
+        expect(dataset).toBeDefined();
+        expect(dataset.meta).toBeDefined();
+        expect(dataset.meta["00020010"]).toBeDefined(); // Transfer Syntax should be present
+        expect(dataset.dict["0020000E"]).toBeDefined(); // Series Instance UID should be present
+    }).not.toThrow();
 });
 
 describe("The same DICOM file loaded from both DCM and JSON", () => {
@@ -1111,15 +1252,19 @@ describe("test_un_vr", () => {
         const expectedExposureIndex = 662;
         const expectedDeviationIndex = -1.835;
 
-        const url = "https://github.com/dcmjs-org/data/releases/download/unknown-VR/sample-dicom-with-un-vr.dcm";
-        const dcmPath = await getTestDataset(url, "sample-dicom-with-un-vr.dcm");
+        const url =
+            "https://github.com/dcmjs-org/data/releases/download/unknown-VR/sample-dicom-with-un-vr.dcm";
+        const dcmPath = await getTestDataset(
+            url,
+            "sample-dicom-with-un-vr.dcm"
+        );
 
         const file = await promisify(fs.readFile)(dcmPath);
         const dicomData = dcmjs.data.DicomMessage.readFile(file.buffer, {
             ignoreErrors: false,
             untilTag: null,
             includeUntilTagValue: false,
-            noCopy: false,
+            noCopy: false
         });
         const dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(
             dicomData.dict
@@ -1127,6 +1272,458 @@ describe("test_un_vr", () => {
 
         expect(dataset.ExposureIndex).toEqual(expectedExposureIndex);
         expect(dataset.DeviationIndex).toEqual(expectedDeviationIndex);
+    });
+
+    describe("Test other VRs encoded as UN", () => {
+        test.each([
+            [
+                "00000600",
+                "AE",
+                new Uint8Array([
+                    0x20, 0x20, 0x54, 0x45, 0x53, 0x54, 0x5f, 0x41, 0x45, 0x20
+                ]).buffer,
+                ["  TEST_AE "],
+                ["TEST_AE"]
+            ],
+            [
+                "00101010",
+                "AS",
+                new Uint8Array([0x30, 0x34, 0x35, 0x59]).buffer,
+                ["045Y"],
+                ["045Y"]
+            ],
+            [
+                "00280009",
+                "AT",
+                new Uint8Array([0x63, 0x10, 0x18, 0x00]).buffer,
+                [0x10630018],
+                [0x10630018]
+            ],
+            [
+                "00041130",
+                "CS",
+                new Uint8Array([
+                    0x4f, 0x52, 0x49, 0x47, 0x49, 0x4e, 0x41, 0x4c, 0x20, 0x20,
+                    0x5c, 0x20, 0x50, 0x52, 0x49, 0x4d, 0x41, 0x52, 0x59, 0x20
+                ]).buffer,
+                ["ORIGINAL  ", " PRIMARY"],
+                ["ORIGINAL", "PRIMARY"]
+            ],
+            [
+                "00181012",
+                "DA",
+                new Uint8Array([0x32, 0x30, 0x32, 0x34, 0x30, 0x31, 0x30, 0x31])
+                    .buffer,
+                ["20240101"],
+                ["20240101"]
+            ],
+            [
+                "00181041",
+                "DS",
+                new Uint8Array([
+                    0x30, 0x30, 0x30, 0x30, 0x31, 0x32, 0x33, 0x2e, 0x34, 0x35
+                ]).buffer,
+                ["0000123.45"],
+                [123.45]
+            ],
+            [
+                "00181078",
+                "DT",
+                new Uint8Array([
+                    0x32, 0x30, 0x32, 0x34, 0x30, 0x31, 0x30, 0x31, 0x31, 0x32,
+                    0x33, 0x30, 0x34, 0x35, 0x2e, 0x31, 0x20, 0x20
+                ]).buffer,
+                ["20240101123045.1  "],
+                ["20240101123045.1  "]
+            ],
+            [
+                "00182043",
+                "FL",
+                new Uint8Array([0x66, 0x66, 0xa6, 0x3f, 0x66, 0x66, 0xa6, 0x3f])
+                    .buffer,
+                [1.2999999523162842, 1.2999999523162842],
+                [1.2999999523162842, 1.2999999523162842]
+            ],
+            [
+                "00186028",
+                "FD",
+                new Uint8Array([0x11, 0x2d, 0x44, 0x54, 0xfb, 0x21, 0x09, 0x40])
+                    .buffer,
+                [3.14159265358979],
+                [3.14159265358979]
+            ],
+            [
+                "00200012",
+                "IS",
+                new Uint8Array([0x20, 0x2b, 0x32, 0x37, 0x38, 0x39, 0x33, 0x20])
+                    .buffer,
+                [" +27893 "],
+                [27893]
+            ],
+            [
+                "0018702A",
+                "LO",
+                new Uint8Array([
+                    0x20, 0x20, 0x46, 0x65, 0x65, 0x6c, 0x69, 0x6e, 0x67, 0x20,
+                    0x6e, 0x61, 0x75, 0x73, 0x65, 0x6f, 0x75, 0x73, 0x20, 0x20
+                ]).buffer,
+                ["  Feeling nauseous  "],
+                ["Feeling nauseous"]
+            ],
+            [
+                "00187040",
+                "LT",
+                new Uint8Array([
+                    0x20, 0x20, 0x46, 0x65, 0x65, 0x6c, 0x69, 0x6e, 0x67, 0x20,
+                    0x6e, 0x61, 0x75, 0x73, 0x65, 0x6f, 0x75, 0x73, 0x20, 0x20
+                ]).buffer,
+                ["  Feeling nauseous  "],
+                ["  Feeling nauseous"]
+            ],
+            [
+                "00282000",
+                "OB",
+                new Uint8Array([0x13, 0x40, 0x80, 0x88, 0x88, 0x90, 0x88, 0x88])
+                    .buffer,
+                [
+                    new Uint8Array([
+                        0x13, 0x40, 0x80, 0x88, 0x88, 0x90, 0x88, 0x88
+                    ]).buffer
+                ],
+                [
+                    new Uint8Array([
+                        0x13, 0x40, 0x80, 0x88, 0x88, 0x90, 0x88, 0x88
+                    ]).buffer
+                ]
+            ],
+            [
+                "00701A07",
+                "OD",
+                new Uint8Array([0x00, 0x00, 0x00, 0x54, 0x34, 0x6f, 0x9d, 0x41])
+                    .buffer,
+                [
+                    new Uint8Array([
+                        0x00, 0x00, 0x00, 0x54, 0x34, 0x6f, 0x9d, 0x41
+                    ]).buffer
+                ],
+                [
+                    new Uint8Array([
+                        0x00, 0x00, 0x00, 0x54, 0x34, 0x6f, 0x9d, 0x41
+                    ]).buffer
+                ]
+            ],
+            [
+                "00720067",
+                "OF",
+                new Uint8Array([
+                    0x00, 0x00, 0x28, 0x41, 0x00, 0x00, 0x30, 0xc0, 0x00, 0x00,
+                    0xf6, 0x42
+                ]).buffer,
+                [
+                    new Uint8Array([
+                        0x00, 0x00, 0x28, 0x41, 0x00, 0x00, 0x30, 0xc0, 0x00,
+                        0x00, 0xf6, 0x42
+                    ]).buffer
+                ],
+                [
+                    new Uint8Array([
+                        0x00, 0x00, 0x28, 0x41, 0x00, 0x00, 0x30, 0xc0, 0x00,
+                        0x00, 0xf6, 0x42
+                    ]).buffer
+                ]
+            ],
+            [
+                "00281224",
+                "OW",
+                new Uint8Array([0x13, 0x40, 0x80, 0x88, 0x88, 0x90, 0x88, 0x88])
+                    .buffer,
+                [
+                    new Uint8Array([
+                        0x13, 0x40, 0x80, 0x88, 0x88, 0x90, 0x88, 0x88
+                    ]).buffer
+                ],
+                [
+                    new Uint8Array([
+                        0x13, 0x40, 0x80, 0x88, 0x88, 0x90, 0x88, 0x88
+                    ]).buffer
+                ]
+            ],
+            [
+                "00080090",
+                "PN",
+                new Uint8Array([
+                    0x44, 0x6f, 0x65, 0x5e, 0x4a, 0x6f, 0x68, 0x6e, 0x5e, 0x41,
+                    0x5e, 0x4a, 0x72, 0x2e, 0x5e, 0x4d, 0x44, 0x3d, 0x44, 0x6f,
+                    0x65, 0x5e, 0x4a, 0x61, 0x79, 0x5e, 0x41, 0x5e, 0x4a, 0x72,
+                    0x2e, 0x20
+                ]).buffer,
+                ["Doe^John^A^Jr.^MD=Doe^Jay^A^Jr."],
+                [
+                    {
+                        Alphabetic: "Doe^John^A^Jr.^MD",
+                        Ideographic: "Doe^Jay^A^Jr."
+                    }
+                ]
+            ],
+            [
+                "00080094",
+                "SH",
+                new Uint8Array([
+                    0x43, 0x54, 0x5f, 0x53, 0x43, 0x41, 0x4e, 0x5f, 0x30, 0x31
+                ]).buffer,
+                ["CT_SCAN_01"],
+                ["CT_SCAN_01"]
+            ],
+            [
+                "00186020",
+                "SL",
+                new Uint8Array([0x40, 0xe2, 0x01, 0x00, 0x40, 0xe2, 0x01, 0x00])
+                    .buffer,
+                [123456, 123456],
+                [123456, 123456]
+            ],
+            [
+                "00189219",
+                "SS",
+                new Uint8Array([0xd2, 0x04, 0xd2, 0x04, 0xd2, 0x04]).buffer,
+                [1234, 1234, 1234],
+                [1234, 1234, 1234]
+            ],
+            [
+                "00189373",
+                "ST",
+                new Uint8Array([
+                    0x20, 0x20, 0x46, 0x65, 0x65, 0x6c, 0x69, 0x6e, 0x67, 0x20,
+                    0x6e, 0x61, 0x75, 0x73, 0x65, 0x6f, 0x75, 0x73, 0x20, 0x20
+                ]).buffer,
+                ["  Feeling nauseous  "],
+                ["  Feeling nauseous"]
+            ],
+            [
+                "21000050",
+                "TM",
+                new Uint8Array([
+                    0x34, 0x32, 0x35, 0x33, 0x30, 0x2e, 0x31, 0x32, 0x33, 0x34,
+                    0x35, 0x36
+                ]).buffer,
+                ["42530.123456"],
+                ["42530.123456"]
+            ],
+            [
+                "3010001B",
+                "UC",
+                new Uint8Array([
+                    0x54, 0x72, 0x61, 0x69, 0x6c, 0x69, 0x6e, 0x67, 0x20, 0x73,
+                    0x70, 0x61, 0x63, 0x65, 0x73, 0x20, 0x61, 0x6c, 0x6c, 0x6f,
+                    0x77, 0x65, 0x64, 0x20, 0x20, 0x20
+                ]).buffer,
+                ["Trailing spaces allowed   "],
+                ["Trailing spaces allowed"]
+            ],
+            [
+                "00041510",
+                "UI",
+                new Uint8Array([
+                    0x31, 0x2e, 0x32, 0x2e, 0x38, 0x34, 0x30, 0x2e, 0x31, 0x30,
+                    0x30, 0x30, 0x38, 0x2e, 0x31, 0x2e, 0x32, 0x2e, 0x31
+                ]).buffer,
+                ["1.2.840.10008.1.2.1"],
+                ["1.2.840.10008.1.2.1"]
+            ],
+            [
+                "30100092",
+                "UL",
+                new Uint8Array([0x40, 0xe2, 0x01, 0x00]).buffer,
+                [123456],
+                [123456]
+            ],
+            [
+                "0008010E",
+                "UR",
+                new Uint8Array([
+                    0x68, 0x74, 0x74, 0x70, 0x3a, 0x2f, 0x2f, 0x64, 0x69, 0x63,
+                    0x6f, 0x6d, 0x2e, 0x6e, 0x65, 0x6d, 0x61, 0x2e, 0x6f, 0x72,
+                    0x67, 0x20
+                ]).buffer,
+                ["http://dicom.nema.org "],
+                ["http://dicom.nema.org "]
+            ],
+            [
+                "00080301",
+                "US",
+                new Uint8Array([0xd2, 0x04]).buffer,
+                [1234],
+                [1234]
+            ],
+            [
+                "0008030E",
+                "UT",
+                new Uint8Array([
+                    0x20, 0x20, 0x46, 0x65, 0x65, 0x6c, 0x69, 0x6e, 0x67, 0x20,
+                    0x6e, 0x61, 0x75, 0x73, 0x65, 0x6f, 0x75, 0x73, 0x20, 0x20
+                ]).buffer,
+                ["  Feeling nauseous  "],
+                ["  Feeling nauseous"]
+            ]
+        ])(
+            "for tag %s with expected VR %p",
+            (tag, vr, byteArray, expectedRawValue, expectedValue) => {
+                // setup input tag as UN
+                const dataset = {
+                    [tag]: {
+                        vr: "UN",
+                        _rawValue: [byteArray],
+                        Value: [byteArray]
+                    }
+                };
+
+                const dicomDict = new DicomDict({});
+                dicomDict.dict = dataset;
+
+                // Write and re-read
+                const outputDicomDict = DicomMessage.readFile(
+                    dicomDict.write(),
+                    { forceStoreRaw: true }
+                );
+
+                // Expect tag to be parsed correctly based on meta dictionary vr lookup
+                expect(outputDicomDict.dict[tag].vr).toEqual(vr);
+                expect(outputDicomDict.dict[tag]._rawValue).toEqual(
+                    expectedRawValue
+                );
+                expect(outputDicomDict.dict[tag].Value).toEqual(expectedValue);
+            }
+        );
+    });
+});
+
+describe("Save original non-standard VR and check dataset after denaturalized", () => {
+    const dicomTagsWithNonStandardVr = {
+        dict: {
+            "00283010": {
+                vr: "SQ",
+                Value: [
+                    {
+                        "00283002": {
+                            vr: "US",
+                            Value: [0, 0, 16]
+                        },
+                        "00283003": {
+                            vr: "LO",
+                            Value: ["NORMAL"]
+                        },
+                        "00283006": {
+                            vr: "OW", // US by standard
+                            Value: [new ArrayBuffer()]
+                        }
+                    },
+                    {
+                        "00283002": {
+                            vr: "US",
+                            Value: [0, 0, 16]
+                        },
+                        "00283003": {
+                            vr: "LO",
+                            Value: ["HARDER"]
+                        },
+                        "00283006": {
+                            vr: "OW", // US by standard
+                            Value: [new ArrayBuffer()]
+                        }
+                    },
+                    {
+                        "00283002": {
+                            vr: "US",
+                            Value: [0, 0, 16]
+                        },
+                        "00283003": {
+                            vr: "LO",
+                            Value: ["SOFTER"]
+                        },
+                        "00283006": {
+                            vr: "OW", // US by standard
+                            Value: [new ArrayBuffer()]
+                        }
+                    }
+                ]
+            },
+            "00180015": {
+                vr: "CS",
+                Value: ["CHEST"]
+            },
+            "00080060": {
+                vr: "CS",
+                Value: ["DX"]
+            },
+            "00100010": {
+                vr: "PN",
+                Value: [
+                    {
+                        Alphabetic: "Qure Two"
+                    }
+                ]
+            },
+            "00100020": {
+                vr: "LO",
+                Value: ["ENM1-M0012260"]
+            },
+            "00100040": {
+                vr: "CS",
+                Value: ["M"]
+            },
+            "00104000": {
+                vr: "LO", // LT by standard
+                Value: ["Patient comment"]
+            }
+        }
+    };
+
+    const addedCustomDictionaryNameMap = {
+        LUTData: {
+            tag: "(0028,3006)",
+            vr: "US",
+            name: "LUTData",
+            vm: "1-n",
+            version: "DICOM"
+        },
+        LUTDescriptor: {
+            tag: "(0028,3002)",
+            vr: "US",
+            name: "LUTDescriptor",
+            vm: "3",
+            version: "DICOM"
+        }
+    };
+
+    for (const key in addedCustomDictionaryNameMap) {
+        const element = addedCustomDictionaryNameMap[key];
+        DicomMetaDictionary.dictionary[element.tag] = element;
+    }
+    DicomMetaDictionary._generateNameMap();
+
+    const dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(
+        dicomTagsWithNonStandardVr.dict
+    );
+
+    expect(Object.keys(dataset._vrMap)).toContain("PatientComments");
+    expect(dataset._vrMap.PatientComments).not.toEqual(
+        DicomMetaDictionary.nameMap.PatientComments.vr
+    );
+    expect(dataset._vrMap.PatientComments).toEqual("LO");
+
+    dataset.VOILUTSequence.forEach(sequenceItem => {
+        expect(sequenceItem._vrMap).toBeDefined();
+        expect(Object.keys(sequenceItem._vrMap).length).toBe(1);
+        expect(sequenceItem._vrMap.LUTData).toBe("OW"); // saved origin vr in _vrMap (by standard in addedCustomDictionaryNameMap is US)
+    });
+
+    const denaturalizedDataset =
+        dcmjs.data.DicomMetaDictionary.denaturalizeDataset(dataset);
+
+    expect(denaturalizedDataset["00104000"].vr).toBe("LO");
+
+    denaturalizedDataset["00283010"].Value.forEach(sequenceItem => {
+        expect(sequenceItem["00283006"].vr).toBe("OW");
     });
 });
 
@@ -1149,8 +1746,31 @@ it.each([
     "A converted decimal string should not exceed 16 bytes in length",
     (a, expected) => {
         const decimalString = ValueRepresentation.createByTypeString("DS");
-        let value = decimalString.formatValue(a);
+        let value = decimalString.convertToString(a);
         expect(value.length).toBeLessThanOrEqual(16);
         expect(value).toBe(expected);
     }
 );
+
+describe("test OtherDouble ValueRepresentation", () => {
+    it("Treat OD as explicit VR with correct length", async () => {
+        const url =
+            "https://github.com/dcmjs-org/data/releases/download/od-encoding-data/OD-single-word-example.dcm";
+        const dcmPath = await getTestDataset(url, "OD-single-word-example");
+        const file = fs.readFileSync(dcmPath);
+        const data = dcmjs.data.DicomMessage.readFile(
+            new Uint8Array(file).buffer
+        );
+
+        // expect OD VR data element (VolumetricCurveUpDirections) to be read with expected value
+        expect(data.dict["00701A07"]).toBeTruthy();
+        const odBuffer = data.dict["00701A07"].Value[0];
+        expect(new Uint8Array(odBuffer)).toEqual(
+            new Uint8Array([0, 0, 0, 0, 0, 0, 0, 64])
+        );
+
+        // expect arbitrary tag (BlendingInputNumber, US VR) after OD VR to be read without issue
+        expect(data.dict["00701B02"]).toBeTruthy();
+        expect(data.dict["00701B02"].Value[0]).toBe(1);
+    });
+});

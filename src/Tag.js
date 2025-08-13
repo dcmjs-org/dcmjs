@@ -3,16 +3,22 @@ import {
     EXPLICIT_LITTLE_ENDIAN,
     IMPLICIT_LITTLE_ENDIAN
 } from "./constants/dicom";
-import { DicomMessage } from "./DicomMessage.js";
 import { ValueRepresentation } from "./ValueRepresentation.js";
 
 function paddingLeft(paddingValue, string) {
     return String(paddingValue + string).slice(-paddingValue.length);
 }
 
+let DicomMessage;
+
 class Tag {
     constructor(value) {
         this.value = value;
+    }
+
+    /** Helper method to avoid circular dependencies */
+    static setDicomMessageClass(dicomMessageClass) {
+        DicomMessage = dicomMessageClass;
     }
 
     toString() {
@@ -77,19 +83,19 @@ class Tag {
     }
 
     write(stream, vrType, values, syntax, writeOptions) {
-        var vr = ValueRepresentation.createByTypeString(vrType),
-            useSyntax = DicomMessage._normalizeSyntax(syntax);
+        const vr = ValueRepresentation.createByTypeString(vrType);
+        const useSyntax = DicomMessage._normalizeSyntax(syntax);
 
-        var implicit = useSyntax == IMPLICIT_LITTLE_ENDIAN ? true : false,
-            isLittleEndian =
-                useSyntax == IMPLICIT_LITTLE_ENDIAN ||
-                useSyntax == EXPLICIT_LITTLE_ENDIAN
-                    ? true
-                    : false,
-            isEncapsulated =
-                this.isPixelDataTag() && DicomMessage.isEncapsulated(syntax);
+        const implicit = useSyntax == IMPLICIT_LITTLE_ENDIAN ? true : false;
+        const isLittleEndian =
+            useSyntax == IMPLICIT_LITTLE_ENDIAN ||
+            useSyntax == EXPLICIT_LITTLE_ENDIAN
+                ? true
+                : false;
+        const isEncapsulated =
+            this.isPixelDataTag() && DicomMessage.isEncapsulated(syntax);
 
-        var oldEndian = stream.isLittleEndian;
+        const oldEndian = stream.isLittleEndian;
         stream.setEndian(isLittleEndian);
 
         stream.writeUint16(this.group());
@@ -127,8 +133,16 @@ class Tag {
             stream.writeUint32(valueLength);
             written += 4;
         } else {
-            if (vr.isExplicit()) {
-                stream.writeAsciiString(vr.type);
+            // Big 16 length objects are encodings for values larger than
+            // 16 bit lengths which would normally use a 16 bit length field.
+            // This uses a VR=UN instead of the original VR, and a 32 bit length
+            const isBig16Length =
+                !vr.isLength32() &&
+                valueLength >= 0x10000 &&
+                valueLength !== 0xffffffff;
+            if (vr.isLength32() || isBig16Length) {
+                // Write as vr UN for big values
+                stream.writeAsciiString(isBig16Length ? "UN" : vr.type);
                 stream.writeUint16(0);
                 stream.writeUint32(valueLength);
                 written += 8;

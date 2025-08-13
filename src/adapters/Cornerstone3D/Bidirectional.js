@@ -7,8 +7,6 @@ import { toArray } from "../helpers.js";
 const BIDIRECTIONAL = "Bidirectional";
 const LONG_AXIS = "Long Axis";
 const SHORT_AXIS = "Short Axis";
-const FINDING = "121071";
-const FINDING_SITE = "G-C0E3";
 const trackingIdentifierTextValue = `${CORNERSTONE_3D_TAG}:${BIDIRECTIONAL}`;
 
 class Bidirectional {

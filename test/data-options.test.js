@@ -1,5 +1,3 @@
-import "regenerator-runtime/runtime.js";
-
 import dcmjs from "../src/index.js";
 import fs from "fs";
 import path from "path";
@@ -139,7 +137,6 @@ it("noCopy test_multiframe_1", async () => {
     const mrHeadPath = path.join(unzipPath, "MRHead");
     const fileNames = await fsPromises.readdir(mrHeadPath);
 
-    const datasets = [];
     fileNames.forEach(fileName => {
         const arrayBuffer = fs.readFileSync(
             path.join(mrHeadPath, fileName)
@@ -169,7 +166,7 @@ it("noCopy test_fragment_multiframe", async () => {
         "https://github.com/dcmjs-org/data/releases/download/encapsulation/encapsulation-fragment-multiframe.dcm";
     const dcmPath = await getTestDataset(
         url,
-        "encapsulation-fragment-multiframe.dcm"
+        "encapsulation-fragment-multiframe-b.dcm"
     );
     const file = fs.readFileSync(dcmPath);
 

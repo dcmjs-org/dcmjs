@@ -1,27 +1,6 @@
 import TID300Measurement from "./TID300Measurement";
 import unit2CodingValue from "./unit2CodingValue";
 
-/**
- * Expand an array of points stored as objects into
- * a flattened array of points
- *
- * @param points [{x: 0, y: 1}, {x: 1, y: 2}] or [{x: 0, y: 1, z: 0}, {x: 1, y: 2, z: 0}]
- * @return {Array} [point1x, point1y, point2x, point2y] or [point1x, point1y, point1z, point2x, point2y, point2z]
- */
-function expandPoints(points) {
-    const allPoints = [];
-
-    points.forEach(point => {
-        allPoints.push(point[0] || point.x);
-        allPoints.push(point[1] || point.y);
-        if (point[2] !== undefined || point.z !== undefined) {
-            allPoints.push(point[2] || point.z);
-        }
-    });
-
-    return allPoints;
-}
-
 export default class Polyline extends TID300Measurement {
     contentItem() {
         const {
@@ -35,10 +14,14 @@ export default class Polyline extends TID300Measurement {
             stdDev,
             mean,
             max,
-            modalityUnit
+            modalityUnit,
+            ReferencedFrameOfReferenceUID
         } = this.props;
 
-        const GraphicData = expandPoints(points);
+        const GraphicData = this.flattenPoints({
+            points,
+            use3DSpatialCoordinates
+        });
 
         return this.getMeasurement([
             {
@@ -139,6 +122,9 @@ export default class Polyline extends TID300Measurement {
                     ValueType: use3DSpatialCoordinates ? "SCOORD3D" : "SCOORD",
                     GraphicType: "POLYLINE",
                     GraphicData,
+                    ReferencedFrameOfReferenceUID: use3DSpatialCoordinates
+                        ? ReferencedFrameOfReferenceUID
+                        : undefined,
                     ContentSequence: use3DSpatialCoordinates
                         ? undefined
                         : {
@@ -166,6 +152,9 @@ export default class Polyline extends TID300Measurement {
                     ValueType: use3DSpatialCoordinates ? "SCOORD3D" : "SCOORD",
                     GraphicType: "POLYLINE",
                     GraphicData,
+                    ReferencedFrameOfReferenceUID: use3DSpatialCoordinates
+                        ? ReferencedFrameOfReferenceUID
+                        : undefined,
                     ContentSequence: use3DSpatialCoordinates
                         ? undefined
                         : {

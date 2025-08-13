@@ -4,7 +4,8 @@
 
 node_modules
 .idea
+*.iml
 yarn-error.log
-yarn.lock
 .DS_Store
 build
+*.code-workspace

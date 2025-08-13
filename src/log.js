@@ -1,13 +1,8 @@
-import loglevelnext from "loglevelnext";
+import log from "loglevel";
 
-const log = loglevelnext.create("dcmjs");
+log.setLevel(process.env.LOG_LEVEL || "warn");
 
-/**
- * A validation log shows issues with data validation, and not internal issues itself.
- * This is validation.dcmjs to group the validation issues into a single validation set to allow
- * turning validation on/off.
- */
-const validationLog = loglevelnext.create("validation.dcmjs");
+const validationLog = log.getLogger("validation.dcmjs");
 
 export { log, validationLog };
 export default log;

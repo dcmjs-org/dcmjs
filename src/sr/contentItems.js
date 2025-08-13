@@ -7,7 +7,6 @@ import {
     GraphicTypes3D,
     ImageContentItem,
     NumContentItem,
-    PixelOriginInterpretations,
     RelationshipTypes,
     ScoordContentItem,
     Scoord3DContentItem,
@@ -181,8 +180,9 @@ class VolumeSurface extends Scoord3DContentItem {
         } else if (options.sourceSeries) {
             if (
                 !(
-                    options.sourceSeries ||
-                    options.sourceSeries.constructor === SourceSeriesForRegion
+                    options.sourceSeries
+                    // TODO: Missing SourceSeriesForRegion
+                    // || options.sourceSeries.constructor === SourceSeriesForRegion
                 )
             ) {
                 throw new Error(
@@ -208,7 +208,7 @@ class ReferencedRealWorldValueMap extends CompositeContentItem {
                 meaning: "Real World Value Map used for measurement",
                 schemeDesignator: "DCM"
             }),
-            referencedSOPClassUID: option.referencedSOPClassUID,
+            referencedSOPClassUID: options.referencedSOPClassUID,
             referencedSOPInstanceUID: options.referencedSOPInstanceUID,
             relationshipType: RelationshipTypes.CONTAINS
         });
@@ -299,7 +299,7 @@ class ReferencedSegmentationFrame extends ContentSequence {
                 "Option 'sourceImage' must have type SourceImageForSegmentation."
             );
         }
-        this.push(sourceImage);
+        this.push(options.sourceImage);
     }
 }
 
@@ -359,7 +359,7 @@ class ReferencedSegmentation extends ContentSequence {
                     "Option 'sourceSeries' must have type SourceSeriesForSegmentation."
                 );
             }
-            this.push(sourceSeries);
+            this.push(options.sourceSeries);
         } else {
             throw new Error(
                 "One of the following two options must be provided: " +

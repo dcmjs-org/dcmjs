@@ -1,4 +1,3 @@
-import { DicomMetaDictionary } from "../../DicomMetaDictionary.js";
 import TID300Measurement from "./TID300Measurement.js";
 
 export default class Point extends TID300Measurement {
@@ -6,18 +5,16 @@ export default class Point extends TID300Measurement {
         const {
             points,
             ReferencedSOPSequence,
-            use3DSpatialCoordinates = false
+            use3DSpatialCoordinates = false,
+            ReferencedFrameOfReferenceUID
         } = this.props;
 
-        const GraphicData = use3DSpatialCoordinates
-            ? [points[0].x, points[0].y, points[0].z]
-            : [points[0].x, points[0].y];
-        // Allow storing another point as part of an indicator showing a single point
-        if (points.length == 2) {
-            GraphicData.push(points[1].x);
-            GraphicData.push(points[1].y);
-            if (use3DSpatialCoordinates) GraphicData.push(points[1].z);
-        }
+        const GraphicData = this.flattenPoints({
+            // Allow storing another point as part of an indicator showing a single point
+            points: points.slice(0, 2),
+            use3DSpatialCoordinates
+        });
+
         return this.getMeasurement([
             {
                 RelationshipType: "CONTAINS",
@@ -33,6 +30,9 @@ export default class Point extends TID300Measurement {
                     ValueType: use3DSpatialCoordinates ? "SCOORD3D" : "SCOORD",
                     GraphicType: "POINT",
                     GraphicData,
+                    ReferencedFrameOfReferenceUID: use3DSpatialCoordinates
+                        ? ReferencedFrameOfReferenceUID
+                        : undefined,
                     ContentSequence: use3DSpatialCoordinates
                         ? undefined
                         : {
