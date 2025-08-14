@@ -44,6 +44,13 @@ class Tag {
         return this.value == t;
     }
 
+    /**
+     * @returns true if the tag is an Item or Delimiter instruction
+     */
+    isInstruction() {
+        return this.group() === 0xfffe;
+    }
+
     group() {
         return this.value >>> 16;
     }

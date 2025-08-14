@@ -116,13 +116,16 @@ class DicomMessage {
         }
     ) {
         if (!options.dictCreator) {
-            options = { ...options, dictCreator: new DictCreator() };
+            options = { ...options, dictCreator: new DictCreator(this) };
         }
         const { ignoreErrors, untilTag, stopOnGreaterTag, dictCreator } =
             options;
         try {
             let previousTagOffset;
             while (!bufferStream.end()) {
+                if (dictCreator.continueParse(bufferStream)) {
+                    continue;
+                }
                 previousTagOffset = bufferStream.offset;
                 const header = this._readTagHeader(
                     bufferStream,
@@ -155,6 +158,7 @@ class DicomMessage {
                     bufferStream.offset = previousTagOffset;
                     break;
                 }
+                // TODO - move this into DictCreator as a special handler
                 if (cleanTagString === "00080005") {
                     if (readInfo.values.length > 0) {
                         let coding = readInfo.values[0];
@@ -397,7 +401,10 @@ class DicomMessage {
             vr = null,
             vrType;
 
-        if (implicit) {
+        if (tag.isInstruction()) {
+            length = stream.readUint32();
+            vr = ValueRepresentation.createByTypeString("UN");
+        } else if (implicit) {
             length = stream.readUint32();
             var elementData = DicomMessage.lookupTag(tag);
             if (elementData) {

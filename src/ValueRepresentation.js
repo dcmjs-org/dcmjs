@@ -1078,11 +1078,13 @@ class SequenceOfItems extends ValueRepresentation {
                 read += 4;
 
                 if (tag.is(0xfffee0dd)) {
+                    // Sequence delimitation item
                     stream.readUint32();
                     break;
                 } else if (!undefLength && read == sqlength) {
                     break;
                 } else if (tag.is(0xfffee000)) {
+                    // Straight item
                     length = stream.readUint32();
                     read += 4;
                     var itemStream = null,
@@ -1102,6 +1104,7 @@ class SequenceOfItems extends ValueRepresentation {
                                 stream.increment(-4);
 
                                 if (ge == 0xe00d) {
+                                    // Item delimitation item
                                     if (itemLength === 0) {
                                         // item delimitation tag (0xfffee00d) + item length (0x00000000) has been read
                                         stack--;
