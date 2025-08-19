@@ -71,7 +71,8 @@ class DicomMessage {
                 if (cleanTagString === "00080005") {
                     if (readInfo.values.length > 0) {
                         let coding = DicomMetaDictionary.getNativeEncoding(
-                            readInfo.values[0]
+                            readInfo.values[0],
+                            ignoreErrors
                         );
                         bufferStream.setDecoder(new TextDecoder(coding));
                     }
