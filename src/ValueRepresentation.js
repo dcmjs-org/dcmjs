@@ -66,9 +66,9 @@ function toWindows(inputArray, size) {
 
 let DicomMessage, Tag;
 
-var binaryVRs = ["FL", "FD", "SL", "SS", "UL", "US", "AT"],
+const binaryVRs = ["FL", "FD", "SL", "SS", "UL", "US", "AT"],
     length32VRs = ["OB", "OW", "OF", "SQ", "UC", "UR", "UT", "UN", "OD"],
-    singleVRs = ["SQ", "OF", "OW", "OB", "UN"];
+    singleVRs = ["SQ", "OF", "OW", "OB", "UN", "LT"];
 
 class ValueRepresentation {
     constructor(type) {
@@ -1526,5 +1526,9 @@ let VRinstances = {
     US: new UnsignedShort(),
     UT: new UnlimitedText()
 };
+
+ValueRepresentation.singleVRs = singleVRs;
+ValueRepresentation.length32VRs = length32VRs;
+ValueRepresentation.binaryVRs = binaryVRs;
 
 export { ValueRepresentation };
