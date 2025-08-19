@@ -23,10 +23,15 @@ class BufferStream {
     view = new SplitDataView();
 
     encoder = new TextEncoder("utf-8");
+    decoder = new TextDecoder("latin1");
 
     constructor(options = null) {
         this.isLittleEndian = options?.littleEndian || this.isLittleEndian;
         this.view.defaultSize = options?.defaultSize ?? this.view.defaultSize;
+    }
+
+    setDecoder(decoder) {
+        this.decoder = decoder;
     }
 
     setEndian(isLittle) {
@@ -343,7 +348,6 @@ class ReadBufferStream extends BufferStream {
     ) {
         super({ littleEndian });
         this.noCopy = options.noCopy;
-        this.decoder = new TextDecoder("latin1");
 
         if (buffer instanceof BufferStream) {
             this.view.from(buffer.view, options);
@@ -355,10 +359,6 @@ class ReadBufferStream extends BufferStream {
 
         this.startOffset = this.offset;
         this.endOffset = this.size;
-    }
-
-    setDecoder(decoder) {
-        this.decoder = decoder;
     }
 
     reset() {
