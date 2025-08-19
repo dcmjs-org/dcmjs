@@ -70,19 +70,10 @@ class DicomMessage {
                 }
                 if (cleanTagString === "00080005") {
                     if (readInfo.values.length > 0) {
-                        let coding = readInfo.values[0];
-                        coding = coding.replace(/[_ ]/g, "-").toLowerCase();
-                        if (coding in DicomMetaDictionary.encodingMapping) {
-                            coding =
-                                DicomMetaDictionary.encodingMapping[coding];
-                            bufferStream.setDecoder(new TextDecoder(coding));
-                        } else if (ignoreErrors) {
-                            log.warn(
-                                `Unsupported character set: ${coding}, using default character set`
-                            );
-                        } else {
-                            throw Error(`Unsupported character set: ${coding}`);
-                        }
+                        let coding = DicomMetaDictionary.getNativeEncoding(
+                            readInfo.values[0]
+                        );
+                        bufferStream.setDecoder(new TextDecoder(coding));
                     }
                     if (readInfo.values.length > 1) {
                         if (ignoreErrors) {
