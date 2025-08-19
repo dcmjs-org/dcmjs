@@ -1,5 +1,6 @@
 import pako from "pako";
 import SplitDataView from "./SplitDataView";
+import { DicomMetaDictionary } from "./DicomMetaDictionary";
 
 function toInt(val) {
     if (isNaN(val)) {
@@ -15,6 +16,35 @@ function toFloat(val) {
     } else return val;
 }
 
+/**
+ * Facilitates the conversion of binary buffers from a DICOM encoding scheme to
+ * a web supported string encoding scheme and vice versa.
+ */
+class DicomBufferCODEC {
+    encoder = new TextEncoder("utf-8");
+    decoder = new TextDecoder("latin1");
+
+    setDecoder(dicomEncoding, ignoreErrors) {
+        let coding = DicomMetaDictionary.getNativeEncoding(
+            dicomEncoding,
+            ignoreErrors
+        );
+        this.decoder = new TextDecoder(coding);
+    }
+
+    setEncoder(targetEncoding) {
+        this.encoder = new TextEncoder(targetEncoding);
+    }
+
+    decode(data) {
+        return this.decoder.decode(data);
+    }
+
+    encode(data) {
+        return this.encoder.encode(data);
+    }
+}
+
 class BufferStream {
     offset = 0;
     startOffset = 0;
@@ -22,16 +52,15 @@ class BufferStream {
     size = 0;
     view = new SplitDataView();
 
-    encoder = new TextEncoder("utf-8");
-    decoder = new TextDecoder("latin1");
+    codec = new DicomBufferCODEC();
 
     constructor(options = null) {
         this.isLittleEndian = options?.littleEndian || this.isLittleEndian;
         this.view.defaultSize = options?.defaultSize ?? this.view.defaultSize;
     }
 
-    setDecoder(decoder) {
-        this.decoder = decoder;
+    setDecoder(dicomEncoding, ignoreErrors) {
+        this.codec.setDecoder(dicomEncoding, ignoreErrors);
     }
 
     setEndian(isLittle) {
@@ -130,7 +159,7 @@ class BufferStream {
     }
 
     writeUTF8String(value) {
-        const encodedString = this.encoder.encode(value);
+        const encodedString = this.codec.encode(value);
         this.checkSize(encodedString.byteLength);
         this.view.writeBuffer(encodedString, this.offset);
         return this.increment(encodedString.byteLength);
@@ -248,7 +277,7 @@ class BufferStream {
         const view = new DataView(
             this.slice(this.offset, this.offset + length)
         );
-        const result = this.decoder.decode(view);
+        const result = this.codec.decode(view);
         this.increment(length);
         return result;
     }
@@ -449,6 +478,7 @@ class WriteBufferStream extends BufferStream {
     }
 }
 
+export { DicomBufferCODEC };
 export { ReadBufferStream };
 export { DeflatedReadBufferStream };
 export { WriteBufferStream };
