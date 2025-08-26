@@ -80,7 +80,12 @@ describe("lossless-read-write", () => {
             });
 
             for (const tag in outputDicomDict.dict) {
-                expect(outputDicomDict.dict[tag]._rawValue).toBeTruthy();
+                const body = outputDicomDict.dict[tag];
+                if (body.vr === "SQ") {
+                    expect(body._rawValue).toBeFalsy();
+                } else {
+                    expect(body._rawValue).toBeTruthy();
+                }
             }
         });
     });

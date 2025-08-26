@@ -1,8 +1,6 @@
 import { UNDEFINED_LENGTH } from "./constants/dicom.js";
 import { ValueRepresentation } from "./ValueRepresentation.js";
 
-let DicomMessage = null;
-
 /**
  * This class handles assignment of the tag values, and tracks the current
  * parse level.
@@ -19,6 +17,12 @@ let DicomMessage = null;
 export class DictCreator {
     dict = {};
     current = { dict: this.dict, parent: null, level: 0 };
+    handlers = {
+        FFFEE000: this.handleItem,
+        FFFEE00D: this.handleItemDelimitationEnd,
+        FFFEE0DD: this.handleSequenceDelimitationEnd,
+        SQ: this.handleSequence
+    };
 
     constructor(dicomMessageProvided) {
         DicomMessage = dicomMessageProvided;
@@ -29,7 +33,6 @@ export class DictCreator {
         dict[cleanTagString] = ValueRepresentation.addTagAccessors({
             vr: readInfo.vr.type
         });
-        // console.warn("Setting", cleanTagString, readInfo.values);
         dict[cleanTagString].Value = readInfo.values;
         if (readInfo.rawValues !== undefined) {
             dict[cleanTagString]._rawValue = readInfo.rawValues;
@@ -42,21 +45,16 @@ export class DictCreator {
      * allow restarting the overall parse.
      */
     handleTagBody(header, stream, tsuid, options) {
-        const { vr, length, tag } = header;
+        const { vr, tag } = header;
         const cleanTag = tag.toCleanString();
-        if (vr.type === "SQ") {
-            // console.warn("handle SQ", tag.toString(), length.toString(16), vr.type, tsuid);
-            return this.handleSequence(header, stream, tsuid, options);
-        } else if (length === -1) {
-            // console.warn("Undefined length object", tag.toString(), length, vr, tsuid);
-        }
 
-        if (cleanTag === "FFFEE000") {
+        const handler = this.handlers[cleanTag] || this.handlers[vr.type];
+
+        if (handler) {
             // Item tag - means add to current header and continue parsing
-            return this.handleItem(header, stream, tsuid, options);
+            return handler.call(this, header, stream, tsuid, options);
         }
 
-        // console.warn("header=", cleanTag);
         // Handle SQ by creating a new tag body that parses to the child element, and has a callback on pop at end
 
         // Then, add some example handlers for pixel data streams
@@ -70,18 +68,13 @@ export class DictCreator {
         return null;
     }
 
-    /**
-     * This will continue a custom parse as required.
-     * This allows handling the end of item by popping it off the stack, or
-     * delivering data to a listener
-     */
     continueParse(stream) {
         const { current } = this;
         if (
-            this.current.offset >= 0 &&
-            stream.offset >= this.current.offset + this.current.length
+            current.length !== UNDEFINED_LENGTH &&
+            current.offset >= 0 &&
+            stream.offset >= current.offset + current.length
         ) {
-            // console.warn("Handle pop", current.cleanTagString, current.level);
             this.current = this.current.parent;
             if (current.pop) {
                 current.pop(current);
@@ -93,17 +86,17 @@ export class DictCreator {
         }
     }
 
+    /**
+     * Handles an ITEM tag value.  This will pop a new handler onto the stack,
+     * and create the appropriate sequence item within that stack.
+     */
     handleItem(header, stream, tsuid, options) {
         const { length } = header;
-
-        if (length === UNDEFINED_LENGTH) {
-            // console.warn("No support yet for undefined length");
-            return null;
-        }
 
         const parent = this.current;
         const dict = {};
         const newCurrent = {
+            type: "Item",
             dict,
             parent,
             offset: stream.offset,
@@ -113,24 +106,34 @@ export class DictCreator {
             pop: _cur => null
         };
         parent.values.push(dict);
-        // console.warn("Handle item tag, level, length", newCurrent.cleanTagString, newCurrent.level, length);
         this.current = newCurrent;
         // Keep on parsing, delivering to the array element
+        return true;
+    }
+
+    handleItemDelimitationEnd(header, stream, tsuid, options) {
+        const { parent } = this.current;
+        this.current = parent;
+        return true;
+    }
+
+    handleSequenceDelimitationEnd(_header, _stream, tsuid, options) {
+        const { parent, cleanTagString } = this.current;
+        this.setValue(cleanTagString, this.current);
+        this.current = parent;
         return true;
     }
 
     /**
      * Creates a sequence handler
      */
-    handleSequence(header, stream, tsuid, options) {
+    handleSequence(header, stream, tsuid, _options) {
         const { length } = header;
-        if (length === UNDEFINED_LENGTH) {
-            // console.warn("Returning undefined (-1) length sequence", header.tag.toString());
-            return;
-        }
+        const values = [];
         const newCurrent = {
+            type: "Sequence",
             dict: this.current.dict,
-            values: [],
+            values,
             vr: header.vr,
             tag: header.tag,
             parent: this.current,
@@ -139,7 +142,6 @@ export class DictCreator {
             level: this.current.level + 1,
             cleanTagString: header.tag.toCleanString()
         };
-        // console.warn("Handle sequence tag, level, length", newCurrent.cleanTagString, newCurrent.level, length);
         this.current = newCurrent;
         // Keep on parsing in the parsing loop - should auto deliver to current.dict
         return true;
