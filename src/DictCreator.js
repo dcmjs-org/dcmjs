@@ -345,6 +345,9 @@ export class DictCreator {
      * check the default or provided sizes for bulkdata.
      */
     isBulkdata(header, options) {
+        if (header.tag.isMetaInformation()) {
+            return;
+        }
         if (options.isBulkdata) {
             return options.isBulkdata.call(this, header, options);
         }

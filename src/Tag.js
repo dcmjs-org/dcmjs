@@ -69,6 +69,10 @@ class Tag {
         return group % 2 === 1 && element < 0x100 && element > 0x00;
     }
 
+    isMetaInformation() {
+        return this.group() < 0x0008;
+    }
+
     isPrivateValue() {
         const group = this.group();
         const element = this.element();
