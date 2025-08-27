@@ -25,12 +25,53 @@ export class DictCreator {
         "7FE00010": this.handlePixel
     };
 
+    privateTagBulkdataSize = 128;
+    publicTagBulkdataSize = 1024;
+
+    /**
+     * Creates a dict object using the given options.
+     *
+     * options.handlers replaces any default handlers
+     * options.writeBulkdata activates bulkdata writing, and must be a function
+     *    returning falsy or a BulkDataUUID or BulkDataUID containing value.
+     * options.isBulkdata is used to determine if the value is bulkdata
+     * options.private/public tag bulkdata size used to determine if a value is
+     *      bulkdata based on the size of it.
+     */
+    constructor(_dicomMessage, options) {
+        if (options.writeBulkdata) {
+            this.handlers.bulkdata = this.handleBulkdata;
+        }
+        if (options.privateTagBulkdataSize) {
+            this.privateTagBulkdataSize = options.privateTagBulkdataSize;
+        }
+        if (options.publicTagBulkdataSize) {
+            this.publicTagBulkdataSize = options.publicTagBulkdataSize;
+        }
+        if (options.handlers) {
+            Object.assign(this.handlers, options.handlers);
+        }
+    }
+
+    /**
+     * Creates a new tag attribute on cleanTagString based on the readInfo
+     * readInfo has attributes values, BulkDataUUID and BulkDataURI for the
+     * various attributes, as well as vr and rawValues.
+     */
     setValue(cleanTagString, readInfo) {
         const { dict } = this.current;
         dict[cleanTagString] = ValueRepresentation.addTagAccessors({
             vr: readInfo.vr.type
         });
-        dict[cleanTagString].Value = readInfo.values;
+        if (readInfo.values !== undefined) {
+            dict[cleanTagString].Value = readInfo.values;
+        }
+        if (readInfo.BulkDataUUID) {
+            dict[cleanTagString].BulkDataUUID = readInfo.BulkDataUUID;
+        }
+        if (readInfo.BulkDataURI) {
+            dict[cleanTagString].BulkDataURI = readInfo.BulkDataUUID;
+        }
         if (readInfo.rawValues !== undefined) {
             dict[cleanTagString]._rawValue = readInfo.rawValues;
         }
@@ -54,13 +95,13 @@ export class DictCreator {
         const { vr, tag } = header;
         const cleanTag = tag.toCleanString();
 
-        const handler = this.handlers[cleanTag] || this.handlers[vr.type];
+        const handler =
+            this.handlers[cleanTag] ||
+            this.handlers[vr.type] ||
+            this.handlers.bulkdata;
 
-        if (handler) {
-            // Item tag - means add to current header and continue parsing
-            return handler.call(this, header, stream, tsuid, options);
-        }
-        return null;
+        // Item tag - means add to current header and continue parsing
+        return handler?.call(this, header, stream, tsuid, options);
     }
 
     continueParse(stream) {
@@ -296,5 +337,45 @@ export class DictCreator {
             return this.handlePixelUndefined(header, stream, tsuid, options);
         }
         return this.handlePixelDefined(header, stream, tsuid, options);
+    }
+
+    /**
+     * Figures out if the current header data is bulkdata
+     * This will call options.isBulkdata if available, otherwise will
+     * check the default or provided sizes for bulkdata.
+     */
+    isBulkdata(header, options) {
+        if (options.isBulkdata) {
+            return options.isBulkdata.call(this, header, options);
+        }
+        const { length, tag } = header;
+        if (length === UNDEFINED_LENGTH || tag.isPrivateCreator()) {
+            return;
+        }
+        const compareSize = tag.isPrivateValue()
+            ? this.privateTagBulkdataSize
+            : this.publicTagBulkdataSize;
+
+        return length > compareSize;
+    }
+
+    /**
+     * Handles writing of bulkdata based on the options provided
+     */
+    handleBulkdata(header, stream, tsuid, options) {
+        if (!this.isBulkdata(header, options)) {
+            return;
+        }
+        const { length } = header;
+        const readInfo = options.writeBulkdata.call(
+            this,
+            header,
+            stream,
+            tsuid,
+            options
+        );
+        this.setValue(header.tag.toCleanString(), readInfo);
+        stream.increment(length);
+        return true;
     }
 }

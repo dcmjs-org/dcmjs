@@ -69,6 +69,12 @@ class Tag {
         return group % 2 === 1 && element < 0x100 && element > 0x00;
     }
 
+    isPrivateValue() {
+        const group = this.group();
+        const element = this.element();
+        return group % 2 === 1 && element > 0x100;
+    }
+
     static fromString(str) {
         var group = parseInt(str.substring(0, 4), 16),
             element = parseInt(str.substring(4), 16);

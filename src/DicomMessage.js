@@ -116,7 +116,10 @@ class DicomMessage {
         }
     ) {
         if (!options.dictCreator) {
-            options = { ...options, dictCreator: new DictCreator(this) };
+            options = {
+                ...options,
+                dictCreator: new DictCreator(this, options)
+            };
         }
         const { ignoreErrors, untilTag, stopOnGreaterTag, dictCreator } =
             options;
@@ -214,6 +217,12 @@ class DicomMessage {
         return encapsulatedSyntaxes.indexOf(syntax) != -1;
     }
 
+    /**
+     * Reads a DICOM input stream from an array buffer.
+     *
+     * The options includes the specified options, but also creates
+     * a DictCreator from the options.  See DictCreator.constructor
+     */
     static readFile(
         buffer,
         options = {
