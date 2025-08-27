@@ -133,7 +133,7 @@ class DicomMessage {
                     options
                 );
                 const handledByCreator =
-                    header.value !== 0 &&
+                    !header.untilTag &&
                     dictCreator.handleTagBody(
                         header,
                         bufferStream,
@@ -143,15 +143,9 @@ class DicomMessage {
                 if (handledByCreator) {
                     continue;
                 }
-                const readInfo =
-                    header.value === 0
-                        ? header
-                        : this._readTagBody(
-                              header,
-                              bufferStream,
-                              syntax,
-                              options
-                          );
+                const readInfo = header.untilTag
+                    ? header
+                    : this._readTagBody(header, bufferStream, syntax, options);
 
                 const cleanTagString = readInfo.tag.toCleanString();
                 if (untilTag && stopOnGreaterTag && cleanTagString > untilTag) {
@@ -391,9 +385,9 @@ class DicomMessage {
         stream.setEndian(isLittleEndian);
         var tag = Tag.readTag(stream);
 
-        if (untilTag === tag.toCleanString() && untilTag !== null) {
+        if (untilTag && untilTag === tag.toCleanString()) {
             if (!includeUntilTagValue) {
-                return { tag: tag, vr: 0, values: 0 };
+                return { tag: tag, vr: 0, values: 0, untilTag: true };
             }
         }
 
