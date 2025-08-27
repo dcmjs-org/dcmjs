@@ -21,3 +21,14 @@ export const PN_COMPONENT_DELIMITER = 0x3d;
 
 export const SEQUENCE_ITEM_TAG = 0xfffee000;
 export const SEQUENCE_DELIMITER_TAG = 0xfffee0dd;
+
+/**
+ * This is an enumeration of some HEX values for the tag strings, used to replace
+ * constants in a few places.
+ */
+export const TagHex = {
+    Item: "FFFEE000",
+    ItemDelimitationEnd: "FFFEE00D",
+    SequenceDelimitationEnd: "FFFEE0DD",
+    PixelData: "7FE00010"
+};

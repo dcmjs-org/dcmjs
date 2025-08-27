@@ -1,4 +1,4 @@
-import { UNDEFINED_LENGTH } from "./constants/dicom.js";
+import { UNDEFINED_LENGTH, TagHex } from "./constants/dicom.js";
 import { ValueRepresentation } from "./ValueRepresentation.js";
 
 /**
@@ -18,11 +18,11 @@ export class DictCreator {
     dict = {};
     current = { dict: this.dict, parent: null, level: 0 };
     handlers = {
-        FFFEE000: this.handleItem,
-        FFFEE00D: this.handleItemDelimitationEnd,
-        FFFEE0DD: this.handleSequenceDelimitationEnd,
+        [TagHex.Item]: this.handleItem,
+        [TagHex.ItemDelimitationEnd]: this.handleItemDelimitationEnd,
+        [TagHex.SequenceDelimitationEnd]: this.handleSequenceDelimitationEnd,
         SQ: this.handleSequence,
-        "7FE00010": this.handlePixel
+        [TagHex.PixelData]: this.handlePixel
     };
 
     privateTagBulkdataSize = 128;
