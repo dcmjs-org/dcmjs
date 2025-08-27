@@ -491,13 +491,14 @@ class BinaryRepresentation extends ValueRepresentation {
 
             return UNDEFINED_LENGTH;
         } else {
-            var binaryData = value[0];
-            binaryStream = new ReadBufferStream(binaryData);
-            stream.concat(binaryStream);
+            for (const data of value) {
+                const dataStream = new ReadBufferStream(data);
+                stream.concat(dataStream);
+            }
             return super.writeBytes(
                 stream,
-                binaryData,
-                [binaryStream.size],
+                value,
+                value.map(it => it.byteLength),
                 writeOptions
             );
         }

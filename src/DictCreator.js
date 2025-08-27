@@ -41,6 +41,15 @@ export class DictCreator {
     }
 
     /**
+     * Gets a single tag value given a tag
+     */
+    getSingle(cleanTagString) {
+        const { dict } = this.current;
+        const value = dict[cleanTagString];
+        return value?.Value?.[0];
+    }
+
+    /**
      * Parses the tag body instead of the default handling.  This allows
      * direct streaming from the stream to bulkdata files, as well as
      * allow restarting the overall parse.
@@ -229,20 +238,52 @@ export class DictCreator {
 
     /**
      * Handles pixel data with defined length
+     * For single frames, returns an array with a single buffer, while
+     * for multiframes, returns an array with one buffer per frame.
      */
     handlePixelDefined(header, stream, _tsuid, options) {
         const { length } = header;
-        const bytes = stream.getBuffer(stream.offset, stream.offset + length);
+        const numberOfFrames = this.getSingle("00280008") || 1;
+        if (numberOfFrames === 1 || options?.asSingleArray) {
+            const bytes = stream.getBuffer(
+                stream.offset,
+                stream.offset + length
+            );
+            stream.increment(length);
+            // TODO - split this up into frames
+            const values = [bytes];
+            const readInfo = {
+                ...header,
+                values
+            };
+            if (options.forceStoreRaw) {
+                readInfo.rawValues = values;
+            }
+            this.setValue(header.tag.toCleanString(), readInfo);
+            return true;
+        }
+
+        const rows = this.getSingle("00280010");
+        const columns = this.getSingle("00280011");
+        const bitsAllocated = this.getSingle("00280100");
+        const values = [];
+        const bitSize = rows * columns * bitsAllocated;
+        for (let frameIndex = 0; frameIndex < numberOfFrames; frameIndex++) {
+            const start = Math.floor((bitSize * frameIndex) / 8);
+            // End is exclusive, so add one to it
+            // Use ceiling to ensure all the bits required are included
+            const end = 1 + Math.ceil((bitSize * frameIndex + bitSize - 1) / 8);
+            const bytes = stream.getBuffer(
+                stream.offset + start,
+                stream.offset + end
+            );
+            values.push(bytes);
+        }
         stream.increment(length);
-        // TODO - split this up into frames
-        const values = [bytes];
         const readInfo = {
             ...header,
             values
         };
-        if (options.forceStoreRaw) {
-            readInfo.rawValues = values;
-        }
         this.setValue(header.tag.toCleanString(), readInfo);
         return true;
     }
