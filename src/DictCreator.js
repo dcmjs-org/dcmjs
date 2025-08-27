@@ -25,10 +25,6 @@ export class DictCreator {
         "7FE00010": this.handlePixel
     };
 
-    constructor(dicomMessageProvided) {
-        DicomMessage = dicomMessageProvided;
-    }
-
     setValue(cleanTagString, readInfo) {
         const { dict } = this.current;
         dict[cleanTagString] = ValueRepresentation.addTagAccessors({
@@ -122,7 +118,7 @@ export class DictCreator {
      * Handles an item delimitation item by switching back to the parent
      * sequence being created.
      */
-    handleItemDelimitationEnd(header, stream, tsuid, options) {
+    handleItemDelimitationEnd(_header, _stream, _tsuid, _options) {
         const { parent } = this.current;
         this.current = parent;
         return true;
@@ -132,7 +128,7 @@ export class DictCreator {
      * Handles a sequence delimitation item by setting the value of the parent
      * tag to the sequence result.
      */
-    handleSequenceDelimitationEnd(_header, _stream, tsuid, options) {
+    handleSequenceDelimitationEnd(_header, _stream, _tsuid, _options) {
         const { parent, cleanTagString } = this.current;
         this.setValue(cleanTagString, this.current);
         this.current = parent;
@@ -191,7 +187,7 @@ export class DictCreator {
     /**
      * Reads a "next" pixel data item.
      */
-    handlePixelItem(header, stream, tsuid, options) {
+    handlePixelItem(header, stream, _tsuid, _options) {
         const { current } = this;
         const { length } = header;
 

@@ -169,7 +169,6 @@ it("noCopy test_fragment_multiframe", async () => {
         "encapsulation-fragment-multiframe-b.dcm"
     );
     const file = fs.readFileSync(dcmPath);
-    console.warn("dcmPath=", dcmPath);
 
     const dicomDict = dcmjs.data.DicomMessage.readFile(file.buffer, {
         // ignoreErrors: true,
