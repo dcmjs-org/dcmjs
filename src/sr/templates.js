@@ -81,7 +81,7 @@ class Measurement extends Template {
                 throw new Error("Option 'findingSites' must have type Array.");
             }
             options.findingSites.forEach(site => {
-                if (!site || site.constructor !== FindingSite) {
+                if (!site || !(site instanceof FindingSite)) {
                     throw new Error(
                         "Items of option 'findingSites' must have type FindingSite."
                     );
@@ -90,7 +90,7 @@ class Measurement extends Template {
             });
         }
         if (options.properties !== undefined) {
-            if (options.properties.constructor !== MeasurementProperties) {
+            if (!(options.properties instanceof MeasurementProperties)) {
                 throw new Error(
                     "Option 'properties' must have type MeasurementProperties."
                 );
@@ -111,8 +111,8 @@ class Measurement extends Template {
             options.referencedRegions.forEach(region => {
                 if (
                     !region ||
-                    (region.constructor !== ImageRegion &&
-                        region.constructor !== ImageRegion3D)
+                    (!(region instanceof ImageRegion) &&
+                        !(region instanceof ImageRegion3D))
                 ) {
                     throw new Error(
                         "Items of option 'referencedRegion' must have type " +
@@ -122,7 +122,7 @@ class Measurement extends Template {
                 valueItem.ContentSequence.push(region);
             });
         } else if (options.referencedVolume !== undefined) {
-            if (options.referencedVolume.constructor !== VolumeSurface) {
+            if (!(options.referencedVolume instanceof VolumeSurface)) {
                 throw new Error(
                     "Option 'referencedVolume' must have type VolumeSurface."
                 );
@@ -130,10 +130,12 @@ class Measurement extends Template {
             valueItem.ContentSequence.push(options.referencedVolume);
         } else if (options.referencedSegmentation !== undefined) {
             if (
-                options.referencedSegmentation.constructor !==
-                    ReferencedSegmentation &&
-                options.referencedSegmentation.constructor !==
-                    ReferencedSegmentationFrame
+                !(
+                    options.referencedSegmentation instanceof
+                        ReferencedSegmentation ||
+                    options.referencedSegmentation instanceof
+                        ReferencedSegmentationFrame
+                )
             ) {
                 throw new Error(
                     "Option 'referencedSegmentation' must have type " +
@@ -144,8 +146,10 @@ class Measurement extends Template {
         }
         if (options.referencedRealWorldValueMap !== undefined) {
             if (
-                options.referencedRealWorldValueMap.constructor !==
-                ReferencedRealWorldValueMap
+                !(
+                    options.referencedRealWorldValueMap instanceof
+                    ReferencedRealWorldValueMap
+                )
             ) {
                 throw new Error(
                     "Option 'referencedRealWorldValueMap' must have type " +
@@ -155,7 +159,7 @@ class Measurement extends Template {
             valueItem.ContentSequence.push(options.referencedRealWorldValueMap);
         }
         if (options.algorithmId !== undefined) {
-            if (options.algorithmId.constructor !== AlgorithmIdentification) {
+            if (!(options.algorithmId instanceof AlgorithmIdentification)) {
                 throw new Error(
                     "Option 'algorithmId' must have type AlgorithmIdentification."
                 );
@@ -183,8 +187,10 @@ class MeasurementProperties extends Template {
         }
         if (options.measurementStatisticalProperties !== undefined) {
             if (
-                options.measurementStatisticalProperties.constructor !==
-                MeasurementStatisticalProperties
+                !(
+                    options.measurementStatisticalProperties instanceof
+                    MeasurementStatisticalProperties
+                )
             ) {
                 throw new Error(
                     "Option 'measurmentStatisticalProperties' must have type " +
@@ -195,8 +201,10 @@ class MeasurementProperties extends Template {
         }
         if (options.normalRangeProperties !== undefined) {
             if (
-                options.normalRangeProperties.constructor !==
-                NormalRangeProperties
+                !(
+                    options.normalRangeProperties instanceof
+                    NormalRangeProperties
+                )
             ) {
                 throw new Error(
                     "Option 'normalRangeProperties' must have type NormalRangeProperties."
@@ -274,7 +282,7 @@ class MeasurementStatisticalProperties extends Template {
         options.values.forEach(value => {
             if (
                 !options.concept ||
-                options.concept.constructor !== NumContentItem
+                !(options.concept instanceof NumContentItem)
             ) {
                 throw new Error(
                     "Items of option 'values' must have type NumContentItem."
@@ -328,7 +336,7 @@ class NormalRangeProperties extends Template {
         options.values.forEach(value => {
             if (
                 !options.concept ||
-                options.concept.constructor !== NumContentItem
+                !(options.concept instanceof NumContentItem)
             ) {
                 throw new Error(
                     "Items of option 'values' must have type NumContentItem."
@@ -371,14 +379,14 @@ class ObservationContext extends Template {
                 "Option 'observerPersonContext' is required for ObservationContext."
             );
         }
-        if (options.observerPersonContext.constructor !== ObserverContext) {
+        if (!(options.observerPersonContext instanceof ObserverContext)) {
             throw new Error(
                 "Option 'observerPersonContext' must have type ObserverContext"
             );
         }
         this.push(...options.observerPersonContext);
         if (options.observerDeviceContext !== undefined) {
-            if (options.observerDeviceContext.constructor !== ObserverContext) {
+            if (!(options.observerDeviceContext instanceof ObserverContext)) {
                 throw new Error(
                     "Option 'observerDeviceContext' must have type ObserverContext"
                 );
@@ -386,7 +394,7 @@ class ObservationContext extends Template {
             this.push(...options.observerDeviceContext);
         }
         if (options.subjectContext !== undefined) {
-            if (options.subjectContext.constructor !== SubjectContext) {
+            if (!(options.subjectContext instanceof SubjectContext)) {
                 throw new Error(
                     "Option 'subjectContext' must have type SubjectContext"
                 );
@@ -405,8 +413,10 @@ class ObserverContext extends Template {
             );
         } else {
             if (
-                options.observerType.constructor !== Code &&
-                options.observerType.constructor !== CodedConcept
+                !(
+                    options.observerType instanceof Code ||
+                    options.observerType instanceof CodedConcept
+                )
             ) {
                 throw new Error(
                     "Option 'observerType' must have type Code or CodedConcept."
@@ -441,8 +451,10 @@ class ObserverContext extends Template {
         });
         if (person.equals(options.observerType)) {
             if (
-                options.observerIdentifyingAttributes.constructor !==
-                PersonObserverIdentifyingAttributes
+                !(
+                    options.observerIdentifyingAttributes instanceof
+                    PersonObserverIdentifyingAttributes
+                )
             ) {
                 throw new Error(
                     "Option 'observerIdentifyingAttributes' must have type " +
@@ -451,8 +463,10 @@ class ObserverContext extends Template {
             }
         } else if (device.equals(options.observerType)) {
             if (
-                options.observerIdentifyingAttributes.constructor !==
-                DeviceObserverIdentifyingAttributes
+                !(
+                    options.observerIdentifyingAttributes instanceof
+                    DeviceObserverIdentifyingAttributes
+                )
             ) {
                 throw new Error(
                     "Option 'observerIdentifyingAttributes' must have type " +
@@ -659,8 +673,10 @@ class SubjectContext extends Template {
         });
         if (fetus.equals(options.subjectClass)) {
             if (
-                options.subjectClassSpecificContext.constructor !==
-                SubjectContextFetus
+                !(
+                    options.subjectClassSpecificContext instanceof
+                    SubjectContextFetus
+                )
             ) {
                 throw new Error(
                     "Option 'subjectClass' must have type " +
@@ -669,8 +685,10 @@ class SubjectContext extends Template {
             }
         } else if (specimen.equals(options.subjectClass)) {
             if (
-                options.subjectClassSpecificContext.constructor !==
-                SubjectContextSpecimen
+                !(
+                    options.subjectClassSpecificContext instanceof
+                    SubjectContextSpecimen
+                )
             ) {
                 throw new Error(
                     "Option 'subjectClass' must have type " +
@@ -679,8 +697,10 @@ class SubjectContext extends Template {
             }
         } else if (device.equals(options.subjectClass)) {
             if (
-                options.subjectClassSpecificContext.constructor !==
-                SubjectContextDevice
+                !(
+                    options.subjectClassSpecificContext instanceof
+                    SubjectContextDevice
+                )
             ) {
                 throw new Error(
                     "Option 'subjectClass' must have type " +
@@ -896,12 +916,17 @@ class _MeasurementsAndQualitatitiveEvaluations extends Template {
                 "Option 'trackingIdentifier' is required for measurements group."
             );
         }
-        if (options.trackingIdentifier.constructor !== TrackingIdentifier) {
+        if (!(options.trackingIdentifier instanceof TrackingIdentifier)) {
             throw new Error(
                 "Option 'trackingIdentifier' must have type TrackingIdentifier."
             );
         }
-        if (options.trackingIdentifier.length !== 2) {
+        if (
+            !Array.isArray(options.trackingIdentifier) ||
+            options.trackingIdentifier.filter(
+                item => item instanceof CodedConcept
+            ).length < 2
+        ) {
             throw new Error(
                 "Option 'trackingIdentifier' must include a human readable tracking " +
                     "identifier and a tracking unique identifier."
@@ -933,7 +958,7 @@ class _MeasurementsAndQualitatitiveEvaluations extends Template {
             groupItem.ContentSequence.push(findingTypeItem);
         }
         if (options.timePointContext !== undefined) {
-            if (options.timePointContext.constructor !== TimePointContext) {
+            if (!(options.timePointContext instanceof TimePointContext)) {
                 throw new Error(
                     "Option 'timePointContext' must have type TimePointContext."
                 );
@@ -942,8 +967,10 @@ class _MeasurementsAndQualitatitiveEvaluations extends Template {
         }
         if (options.referencedRealWorldValueMap !== undefined) {
             if (
-                options.referencedRealWorldValueMap.constructor !==
-                ReferencedRealWorldValueMap
+                !(
+                    options.referencedRealWorldValueMap instanceof
+                    ReferencedRealWorldValueMap
+                )
             ) {
                 throw new Error(
                     "Option 'referencedRealWorldValleMap' must have type " +
@@ -963,10 +990,7 @@ class _MeasurementsAndQualitatitiveEvaluations extends Template {
             }
             options.measurements.forEach(measurement => {
                 console.log(measurement);
-                if (
-                    !measurement ||
-                    measurement.constructor !== NumContentItem
-                ) {
+                if (!measurement || !(measurement instanceof NumContentItem)) {
                     throw new Error(
                         "Items of option 'measurement' must have type NumContentItem."
                     );
@@ -987,9 +1011,10 @@ class _MeasurementsAndQualitatitiveEvaluations extends Template {
             }
             options.qualitativeEvaluations.forEach(evaluation => {
                 if (
-                    !evaluation ||
-                    (evaluation.constructor !== CodeContentItem &&
-                        evaluation.constructor !== TextContentItem)
+                    !(
+                        evaluation instanceof CodeContentItem ||
+                        evaluation instanceof TextContentItem
+                    )
                 ) {
                     throw new Error(
                         "Items of option 'qualitativeEvaluations' must have type " +
@@ -1051,9 +1076,9 @@ class _ROIMeasurementsAndQualitativeEvaluations extends _MeasurementsAndQualitat
             }
             options.referencedRegions.forEach(region => {
                 if (
-                    region === undefined ||
-                    (region.constructor !== ImageRegion &&
-                        region.constructor !== ImageRegion3D)
+                    !region ||
+                    (!(region instanceof ImageRegion) &&
+                        !(region instanceof ImageRegion3D))
                 ) {
                     throw new Error(
                         "Items of option 'referencedRegion' must have type " +
@@ -1063,7 +1088,7 @@ class _ROIMeasurementsAndQualitativeEvaluations extends _MeasurementsAndQualitat
                 groupItem.ContentSequence.push(region);
             });
         } else if (options.referencedVolume !== undefined) {
-            if (options.referencedVolume.constructor !== VolumeSurface) {
+            if (!(options.referencedVolume instanceof VolumeSurface)) {
                 throw new Error(
                     "Items of option 'referencedVolume' must have type VolumeSurface."
                 );
@@ -1071,10 +1096,12 @@ class _ROIMeasurementsAndQualitativeEvaluations extends _MeasurementsAndQualitat
             groupItem.ContentSequence.push(options.referencedVolume);
         } else if (options.referencedSegmentation !== undefined) {
             if (
-                options.referencedSegmentation.constructor !==
-                    ReferencedSegmentation &&
-                options.referencedSegmentation.constructor !==
-                    ReferencedSegmentationFrame
+                !(
+                    options.referencedSegmentation instanceof
+                        ReferencedSegmentation ||
+                    options.referencedSegmentation instanceof
+                        ReferencedSegmentationFrame
+                )
             ) {
                 throw new Error(
                     "Option 'referencedSegmentation' must have type " +
@@ -1166,10 +1193,14 @@ class MeasurementsDerivedFromMultipleROIMeasurements extends Template {
         options.measurementGroups.forEach(group => {
             if (
                 !group ||
-                (group.constructor !==
-                    PlanarROIMeasurementsAndQualitativeEvaluations &&
-                    group.constructor !==
-                        VolumetricROIMeasurementsAndQualitativeEvaluations)
+                (!(
+                    group instanceof
+                    PlanarROIMeasurementsAndQualitativeEvaluations
+                ) &&
+                    !(
+                        group instanceof
+                        VolumetricROIMeasurementsAndQualitativeEvaluations
+                    ))
             ) {
                 throw new Error(
                     "Items of option 'measurementGroups' must have type " +
@@ -1182,8 +1213,10 @@ class MeasurementsDerivedFromMultipleROIMeasurements extends Template {
         });
         if (options.measurementProperties !== undefined) {
             if (
-                options.measurementProperties.constructor !==
-                MeasurementProperties
+                !(
+                    options.measurementProperties instanceof
+                    MeasurementProperties
+                )
             ) {
                 throw new Error(
                     "Option 'measurementProperties' must have type MeasurementProperties."
@@ -1234,7 +1267,7 @@ class ROIMeasurements extends Template {
                 throw new Error("Option 'findingSites' must have type Array.");
             }
             options.findingSites.forEach(site => {
-                if (!site || site.constructor !== FindingSite) {
+                if (!site || !(site instanceof FindingSite)) {
                     throw new Error(
                         "Items of option 'findingSites' must have type FindingSite."
                     );
@@ -1259,7 +1292,7 @@ class ROIMeasurements extends Template {
             throw new Error("Option 'measurements' must have non-zero length.");
         }
         options.measurements.forEach(measurement => {
-            if (!measurement || measurement.constructor !== Measurement) {
+            if (!measurement || !(measurement instanceof Measurement)) {
                 throw new Error(
                     "Items of option 'measurements' must have type Measurement."
                 );
@@ -1298,8 +1331,10 @@ class MeasurementReport extends Template {
             );
         }
         if (
-            options.languageOfContentItemAndDescendants.constructor !==
-            LanguageOfContentItemAndDescendants
+            !(
+                options.languageOfContentItemAndDescendants instanceof
+                LanguageOfContentItemAndDescendants
+            )
         ) {
             throw new Error(
                 "Option 'languageOfContentItemAndDescendants' must have type " +
