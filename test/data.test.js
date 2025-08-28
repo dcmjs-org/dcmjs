@@ -691,6 +691,73 @@ it("Reads binary data into an ArrayBuffer", async () => {
     expect([...new Uint8Array(dataset.PixelData[0])]).toEqual([2, 3, 4, 5, 6]);
 });
 
+it("Reads uncompressed pixel multiframe an ArrayBuffer per frame", async () => {
+    const natural = {
+        Rows: 3,
+        Columns: 3,
+        BitsAllocated: 8,
+        BitsStored: 6,
+        NumberOfFrames: 3,
+        PixelData: [new Uint8Array(9), new Uint8Array(9), new Uint8Array(9)]
+    };
+
+    const dicomDict = new DicomDict({
+        TransferSynxtaxUID: EXPLICIT_LITTLE_ENDIAN
+    });
+
+    dicomDict.dict = DicomMetaDictionary.denaturalizeDataset(natural);
+
+    const part10Buffer = dicomDict.write();
+    const dicomData = DicomMessage.readFile(part10Buffer, {
+        separateUncompressedFrames: true
+    });
+
+    const dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(
+        dicomData.dict
+    );
+
+    expect(dataset.PixelData).toBeInstanceOf(Array);
+    expect(dataset.PixelData.length).toBe(3);
+    expect(dataset.PixelData[0]).toBeInstanceOf(ArrayBuffer);
+    expect(dataset.PixelData[1]).toBeInstanceOf(ArrayBuffer);
+    expect(dataset.PixelData[2]).toBeInstanceOf(ArrayBuffer);
+});
+
+it("Reads uncompressed odd bit length pixel multiframe an ArrayBuffer per frame", async () => {
+    const natural = {
+        Rows: 3,
+        Columns: 3,
+        BitsAllocated: 1,
+        BitsStored: 1,
+        NumberOfFrames: 2,
+        PixelData: [new Uint8Array(2), new Uint8Array(2)]
+    };
+
+    const dicomDict = new DicomDict({
+        TransferSynxtaxUID: EXPLICIT_LITTLE_ENDIAN
+    });
+
+    dicomDict.dict = DicomMetaDictionary.denaturalizeDataset(natural);
+
+    const part10Buffer = dicomDict.write();
+    const dicomData = DicomMessage.readFile(part10Buffer, {
+        separateUncompressedFrames: true
+    });
+
+    const dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(
+        dicomData.dict
+    );
+
+    expect(dataset.PixelData).toBeInstanceOf(Array);
+    expect(dataset.PixelData.length).toBe(2);
+    const [image0, image1] = dataset.PixelData;
+    expect(image0).toBeInstanceOf(ArrayBuffer);
+    expect(image1).toBeInstanceOf(ArrayBuffer);
+    expect(image0.byteLength).toBe(2);
+    // Odd length images get bit offset, so it is necessary to have 3 bytes
+    expect(image1.byteLength).toBe(3);
+});
+
 it("Reads a multiframe DICOM which has trailing padding", async () => {
     const url =
         "https://github.com/dcmjs-org/data/releases/download/binary-parsing-stressors/multiframe-ultrasound.dcm";

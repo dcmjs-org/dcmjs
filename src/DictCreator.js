@@ -1,0 +1,387 @@
+import { UNDEFINED_LENGTH, TagHex } from "./constants/dicom.js";
+import { ValueRepresentation } from "./ValueRepresentation.js";
+
+/**
+ * This class handles assignment of the tag values, and tracks the current
+ * parse level.
+ * The intent is to allow direct creation/handling of the dict object for
+ * various custom purposes such as:
+ *
+ * * Bulk data direct writes, to avoid needing to keep the entire bulkdata in memory.
+ * * Directly normalized instance data
+ * * Grouped/deduplicated metadata
+ * * Other custom handling.
+ * * Direct output stream writing/filtering
+ * * Restartable parsing, to allow stream inputs
+ */
+export class DictCreator {
+    dict = {};
+    current = { dict: this.dict, parent: null, level: 0 };
+    handlers = {
+        [TagHex.Item]: this.handleItem,
+        [TagHex.ItemDelimitationEnd]: this.handleItemDelimitationEnd,
+        [TagHex.SequenceDelimitationEnd]: this.handleSequenceDelimitationEnd,
+        SQ: this.handleSequence,
+        [TagHex.PixelData]: this.handlePixel
+    };
+
+    privateTagBulkdataSize = 128;
+    publicTagBulkdataSize = 1024;
+
+    /**
+     * Creates a dict object using the given options.
+     *
+     * options.handlers replaces any default handlers
+     * options.writeBulkdata activates bulkdata writing, and must be a function
+     *    returning falsy or a BulkDataUUID or BulkDataUID containing value.
+     * options.isBulkdata is used to determine if the value is bulkdata
+     * options.private/public tag bulkdata size used to determine if a value is
+     *      bulkdata based on the size of it.
+     */
+    constructor(_dicomMessage, options) {
+        if (options.writeBulkdata) {
+            this.handlers.bulkdata = this.handleBulkdata;
+        }
+        if (options.privateTagBulkdataSize) {
+            this.privateTagBulkdataSize = options.privateTagBulkdataSize;
+        }
+        if (options.publicTagBulkdataSize) {
+            this.publicTagBulkdataSize = options.publicTagBulkdataSize;
+        }
+        if (options.handlers) {
+            Object.assign(this.handlers, options.handlers);
+        }
+    }
+
+    /**
+     * Creates a new tag attribute on cleanTagString based on the readInfo
+     * readInfo has attributes values, BulkDataUUID and BulkDataURI for the
+     * various attributes, as well as vr and rawValues.
+     */
+    setValue(cleanTagString, readInfo) {
+        const { dict } = this.current;
+        dict[cleanTagString] = ValueRepresentation.addTagAccessors({
+            vr: readInfo.vr.type
+        });
+        if (readInfo.values !== undefined) {
+            dict[cleanTagString].Value = readInfo.values;
+        }
+        if (readInfo.BulkDataUUID) {
+            dict[cleanTagString].BulkDataUUID = readInfo.BulkDataUUID;
+        }
+        if (readInfo.BulkDataURI) {
+            dict[cleanTagString].BulkDataURI = readInfo.BulkDataUUID;
+        }
+        if (readInfo.rawValues !== undefined) {
+            dict[cleanTagString]._rawValue = readInfo.rawValues;
+        }
+    }
+
+    /**
+     * Gets a single tag value given a tag
+     */
+    getSingle(cleanTagString) {
+        const { dict } = this.current;
+        const value = dict[cleanTagString];
+        return value?.Value?.[0];
+    }
+
+    /**
+     * Parses the tag body instead of the default handling.  This allows
+     * direct streaming from the stream to bulkdata files, as well as
+     * allow restarting the overall parse.
+     */
+    handleTagBody(header, stream, tsuid, options) {
+        const { vr, tag } = header;
+        const cleanTag = tag.toCleanString();
+
+        const handler =
+            this.handlers[cleanTag] ||
+            this.handlers[vr.type] ||
+            this.handlers.bulkdata;
+
+        // Item tag - means add to current header and continue parsing
+        return handler?.call(this, header, stream, tsuid, options);
+    }
+
+    continueParse(stream) {
+        const { current } = this;
+        if (
+            current.length !== UNDEFINED_LENGTH &&
+            current.offset >= 0 &&
+            stream.offset >= current.offset + current.length
+        ) {
+            this.current = this.current.parent;
+            if (current.pop) {
+                current.pop(current);
+            } else {
+                this.setValue(current.cleanTagString, current);
+            }
+
+            return true;
+        }
+    }
+
+    /**
+     * Handles an ITEM tag value.  This will pop a new handler onto the stack,
+     * and create the appropriate sequence item within that stack.
+     */
+    handleItem(header, stream, tsuid, options) {
+        const parent = this.current;
+
+        if (parent.handleItem) {
+            // Call the parent handle item
+            return parent.handleItem.call(this, header, stream, tsuid, options);
+        }
+
+        const { length } = header;
+        const dict = {};
+        const newCurrent = {
+            type: "Item",
+            dict,
+            parent,
+            offset: stream.offset,
+            length,
+            cleanTagString: parent.dict.length,
+            level: parent.level + 1,
+            pop: _cur => null
+        };
+        parent.values.push(dict);
+        if (parent.rawValues) {
+            parent.rawValues.push(dict);
+        }
+        this.current = newCurrent;
+        // Keep on parsing, delivering to the array element
+        return true;
+    }
+
+    /**
+     * Handles an item delimitation item by switching back to the parent
+     * sequence being created.
+     */
+    handleItemDelimitationEnd(_header, _stream, _tsuid, _options) {
+        const { parent } = this.current;
+        this.current = parent;
+        return true;
+    }
+
+    /**
+     * Handles a sequence delimitation item by setting the value of the parent
+     * tag to the sequence result.
+     */
+    handleSequenceDelimitationEnd(_header, _stream, _tsuid, _options) {
+        const { parent, cleanTagString } = this.current;
+        this.setValue(cleanTagString, this.current);
+        this.current = parent;
+        return true;
+    }
+
+    /**
+     * Creates a sequence handler
+     */
+    handleSequence(header, stream, tsuid, options) {
+        const { length } = header;
+        const values = [];
+        const newCurrent = {
+            type: "Sequence",
+            dict: this.current.dict,
+            values,
+            rawValues: options.forceStoreRaw ? [] : undefined,
+            vr: header.vr,
+            tag: header.tag,
+            parent: this.current,
+            offset: stream.offset,
+            length,
+            level: this.current.level + 1,
+            cleanTagString: header.tag.toCleanString()
+        };
+        this.current = newCurrent;
+        // Keep on parsing in the parsing loop - should auto deliver to current.dict
+        return true;
+    }
+
+    /**
+     * Handles pixel data with undefined length
+     */
+    handlePixelUndefined(header, stream, tsuid, options) {
+        const values = [];
+        const rawValues = options.forceStoreRaw ? [] : undefined;
+        const newCurrent = {
+            type: "PixelUndefined",
+            dict: this.current.dict,
+            values,
+            rawValues,
+            vr: header.vr,
+            tag: header.tag,
+            parent: this.current,
+            offset: stream.offset,
+            level: this.current.level + 1,
+            cleanTagString: header.tag.toCleanString(),
+            handleItem: this.handlePixelItem
+        };
+        this.current = newCurrent;
+        // Keep on parsing in the parsing loop - this should go into the
+        // continue parsing section
+        return true;
+    }
+
+    /**
+     * Reads a "next" pixel data item.
+     */
+    handlePixelItem(header, stream, _tsuid, _options) {
+        const { current } = this;
+        const { length } = header;
+
+        const bytes = stream.getBuffer(stream.offset, stream.offset + length);
+
+        if (!current.offsets) {
+            current.offsets = [];
+            if (length) {
+                const { offsets } = current;
+                // Read length entries
+                for (let offset = 0; offset < length; offset += 4) {
+                    offsets.push(stream.readUint32());
+                }
+                current.offsetStart = stream.offset;
+                current.nextFrameIndex = 1;
+            }
+            return true;
+        }
+
+        stream.increment(length);
+        current.values.push(bytes);
+        if (current.offsets?.length) {
+            const { nextFrameIndex } = current;
+            const nextOffset =
+                current.offsets[nextFrameIndex] ?? Number.MAX_VALUE;
+            const pixelOffset = stream.offset - current.offsetStart;
+            if (
+                pixelOffset <= nextOffset &&
+                current.values.length > nextFrameIndex
+            ) {
+                if (!Array.isArray(current.values[nextFrameIndex - 1])) {
+                    current.values[nextFrameIndex - 1] = [
+                        current.values[nextFrameIndex - 1]
+                    ];
+                }
+                current.values[nextFrameIndex - 1].push(current.values.pop());
+            }
+            if (pixelOffset >= nextOffset) {
+                current.nextFrameIndex++;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Handles pixel data with defined length
+     * For single frames, returns an array with a single buffer, while
+     * for multiframes, returns an array with one buffer per frame.
+     */
+    handlePixelDefined(header, stream, _tsuid, options) {
+        const { length } = header;
+        const numberOfFrames = this.getSingle("00280008") || 1;
+        if (
+            numberOfFrames === 1 ||
+            options.separateUncompressedFrames !== true
+        ) {
+            const bytes = stream.getBuffer(
+                stream.offset,
+                stream.offset + length
+            );
+            stream.increment(length);
+            // TODO - split this up into frames
+            const values = [bytes];
+            const readInfo = {
+                ...header,
+                values
+            };
+            if (options.forceStoreRaw) {
+                readInfo.rawValues = values;
+            }
+            this.setValue(header.tag.toCleanString(), readInfo);
+            return true;
+        }
+
+        const rows = this.getSingle("00280010");
+        const columns = this.getSingle("00280011");
+        const bitsAllocated = this.getSingle("00280100");
+        const values = [];
+        const bitSize = rows * columns * bitsAllocated;
+        for (let frameIndex = 0; frameIndex < numberOfFrames; frameIndex++) {
+            const start = Math.floor((bitSize * frameIndex) / 8);
+            // End is exclusive, so add one to it
+            // Use ceiling to ensure all the bits required are included
+            const end = 1 + Math.ceil((bitSize * frameIndex + bitSize - 1) / 8);
+            const bytes = stream.getBuffer(
+                stream.offset + start,
+                stream.offset + end
+            );
+            values.push(bytes);
+        }
+        stream.increment(length);
+        const readInfo = {
+            ...header,
+            values
+        };
+        this.setValue(header.tag.toCleanString(), readInfo);
+        return true;
+    }
+
+    /**
+     * Handles general pixel data, switching between the two types
+     */
+    handlePixel(header, stream, tsuid, options) {
+        if (this.current.level) {
+            throw new Error("Level greater than 0 = " + this.current.level);
+        }
+        const { length } = header;
+        if (length === UNDEFINED_LENGTH) {
+            return this.handlePixelUndefined(header, stream, tsuid, options);
+        }
+        return this.handlePixelDefined(header, stream, tsuid, options);
+    }
+
+    /**
+     * Figures out if the current header data is bulkdata
+     * This will call options.isBulkdata if available, otherwise will
+     * check the default or provided sizes for bulkdata.
+     */
+    isBulkdata(header, options) {
+        if (header.tag.isMetaInformation()) {
+            return;
+        }
+        if (options.isBulkdata) {
+            return options.isBulkdata.call(this, header, options);
+        }
+        const { length, tag } = header;
+        if (length === UNDEFINED_LENGTH || tag.isPrivateCreator()) {
+            return;
+        }
+        const compareSize = tag.isPrivateValue()
+            ? this.privateTagBulkdataSize
+            : this.publicTagBulkdataSize;
+
+        return length > compareSize;
+    }
+
+    /**
+     * Handles writing of bulkdata based on the options provided
+     */
+    handleBulkdata(header, stream, tsuid, options) {
+        if (!this.isBulkdata(header, options)) {
+            return;
+        }
+        const { length } = header;
+        const readInfo = options.writeBulkdata.call(
+            this,
+            header,
+            stream,
+            tsuid,
+            options
+        );
+        this.setValue(header.tag.toCleanString(), readInfo);
+        stream.increment(length);
+        return true;
+    }
+}

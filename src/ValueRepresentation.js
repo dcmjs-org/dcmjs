@@ -3,7 +3,8 @@ import {
     PADDING_NULL,
     PADDING_SPACE,
     PN_COMPONENT_DELIMITER,
-    VM_DELIMITER
+    VM_DELIMITER,
+    UNDEFINED_LENGTH
 } from "./constants/dicom.js";
 import { DicomMetaDictionary } from "./DicomMetaDictionary.js";
 import { log, validationLog } from "./log.js";
@@ -488,22 +489,31 @@ class BinaryRepresentation extends ValueRepresentation {
             stream.writeUint16(0xe0dd);
             stream.writeUint32(0x0);
 
-            return 0xffffffff;
+            return UNDEFINED_LENGTH;
         } else {
-            var binaryData = value[0];
-            binaryStream = new ReadBufferStream(binaryData);
-            stream.concat(binaryStream);
+            for (const data of value) {
+                const dataStream = new ReadBufferStream(data);
+                stream.concat(dataStream);
+            }
             return super.writeBytes(
                 stream,
-                binaryData,
-                [binaryStream.size],
+                value,
+                value.map(it => it.byteLength),
                 writeOptions
             );
         }
     }
 
+    /**
+     * Reads a binary representation of bytes, handling defined and
+     * undefined lengths by iterating over the items and tag delimeters to
+     * split the binary data up into the values.
+     *
+     * @returns  For defined length, returns an array containing the byte buffer.
+     *      For undefined length, returns an array of ArrayBuffers, one per content item.
+     */
     readBytes(stream, length) {
-        if (length == 0xffffffff) {
+        if (length == UNDEFINED_LENGTH) {
             var itemTagValue = Tag.readTag(stream),
                 frames = [];
 
@@ -521,32 +531,6 @@ class BinaryRepresentation extends ValueRepresentation {
                 } else {
                     offsets = [];
                 }
-
-                const SequenceItemTag = 0xfffee000;
-                const SequenceDelimiterTag = 0xfffee0dd;
-
-                const getNextSequenceItemData = stream => {
-                    const nextTag = Tag.readTag(stream);
-                    if (nextTag.is(SequenceItemTag)) {
-                        const itemLength = stream.readUint32();
-                        const buffer = stream.getBuffer(
-                            stream.offset,
-                            stream.offset + itemLength
-                        );
-                        stream.increment(itemLength);
-                        return buffer;
-                    } else if (nextTag.is(SequenceDelimiterTag)) {
-                        // Read SequenceDelimiterItem value for the SequenceDelimiterTag
-                        if (stream.readUint32() !== 0) {
-                            throw Error(
-                                "SequenceDelimiterItem tag value was not zero"
-                            );
-                        }
-                        return null;
-                    }
-
-                    throw Error("Invalid tag in sequence");
-                };
 
                 // If there is an offset table, use that to loop through pixel data sequence
                 if (offsets.length > 0) {
@@ -571,7 +555,8 @@ class BinaryRepresentation extends ValueRepresentation {
 
                         let frameSize = 0;
                         while (!rangeStream.end()) {
-                            const buf = getNextSequenceItemData(rangeStream);
+                            const buf =
+                                Tag.getNextSequenceItemData(rangeStream);
                             if (buf === null) {
                                 break;
                             }
@@ -582,7 +567,7 @@ class BinaryRepresentation extends ValueRepresentation {
                         // Ensure the parent stream's offset is kept up to date
                         stream.offset = rangeStream.offset;
 
-                        // If there's only one buffer thne just return it directly
+                        // If there's only one buffer then just return it directly
                         if (fragments.length === 1) {
                             return fragments[0];
                         }
@@ -606,7 +591,7 @@ class BinaryRepresentation extends ValueRepresentation {
                 // If no offset table, loop through remainder of stream looking for termination tag
                 else {
                     while (!stream.end()) {
-                        const buffer = getNextSequenceItemData(stream);
+                        const buffer = Tag.getNextSequenceItemData(stream);
                         if (buffer === null) {
                             break;
                         }
@@ -620,14 +605,12 @@ class BinaryRepresentation extends ValueRepresentation {
             }
             return frames;
         } else {
-            var bytes;
-            /*if (this.type == 'OW') {
-                bytes = stream.readUint16Array(length);
-            } else if (this.type == 'OB') {
-                bytes = stream.readUint8Array(length);
-            }*/
-            bytes = stream.getBuffer(stream.offset, stream.offset + length);
+            const bytes = stream.getBuffer(
+                stream.offset,
+                stream.offset + length
+            );
             stream.increment(length);
+            // Any conversion to specific vr types will be handled by the "formatting"
             return [bytes];
         }
     }
@@ -1086,7 +1069,7 @@ class SequenceOfItems extends ValueRepresentation {
         if (sqlength == 0x0) {
             return []; //contains no dataset
         } else {
-            var undefLength = sqlength == 0xffffffff,
+            var undefLength = sqlength == UNDEFINED_LENGTH,
                 elements = [],
                 read = 0;
 
@@ -1096,22 +1079,23 @@ class SequenceOfItems extends ValueRepresentation {
                 read += 4;
 
                 if (tag.is(0xfffee0dd)) {
+                    // Sequence delimitation item
                     stream.readUint32();
                     break;
                 } else if (!undefLength && read == sqlength) {
                     break;
                 } else if (tag.is(0xfffee000)) {
+                    // Straight item
                     length = stream.readUint32();
                     read += 4;
                     var itemStream = null,
                         toRead = 0,
-                        undef = length == 0xffffffff;
+                        undef = length == UNDEFINED_LENGTH;
 
                     if (undef) {
                         var stack = 0;
 
-                        /* eslint-disable-next-line no-constant-condition */
-                        while (1) {
+                        while (true) {
                             var g = stream.readUint16();
                             if (g == 0xfffe) {
                                 // some control tag is about to be read
@@ -1121,6 +1105,7 @@ class SequenceOfItems extends ValueRepresentation {
                                 stream.increment(-4);
 
                                 if (ge == 0xe00d) {
+                                    // Item delimitation item
                                     if (itemLength === 0) {
                                         // item delimitation tag (0xfffee00d) + item length (0x00000000) has been read
                                         stack--;
@@ -1141,7 +1126,7 @@ class SequenceOfItems extends ValueRepresentation {
                                     // a new item has been found
                                     toRead += 4;
 
-                                    if (itemLength == 0xffffffff) {
+                                    if (itemLength == UNDEFINED_LENGTH) {
                                         // a new item with undefined length has been found
                                         stack++;
                                     }
@@ -1185,7 +1170,7 @@ class SequenceOfItems extends ValueRepresentation {
                 var item = value[i];
                 super.write(stream, "Uint16", 0xfffe);
                 super.write(stream, "Uint16", 0xe000);
-                super.write(stream, "Uint32", 0xffffffff);
+                super.write(stream, "Uint32", UNDEFINED_LENGTH);
 
                 written += DicomMessage.write(
                     item,

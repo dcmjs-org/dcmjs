@@ -1,7 +1,9 @@
 import { WriteBufferStream } from "./BufferStream.js";
 import {
     EXPLICIT_LITTLE_ENDIAN,
-    IMPLICIT_LITTLE_ENDIAN
+    IMPLICIT_LITTLE_ENDIAN,
+    SEQUENCE_DELIMITER_TAG,
+    SEQUENCE_ITEM_TAG
 } from "./constants/dicom";
 import { ValueRepresentation } from "./ValueRepresentation.js";
 
@@ -42,6 +44,13 @@ class Tag {
         return this.value == t;
     }
 
+    /**
+     * @returns true if the tag is an Item or Delimiter instruction
+     */
+    isInstruction() {
+        return this.group() === 0xfffe;
+    }
+
     group() {
         return this.value >>> 16;
     }
@@ -58,6 +67,16 @@ class Tag {
         const group = this.group();
         const element = this.element();
         return group % 2 === 1 && element < 0x100 && element > 0x00;
+    }
+
+    isMetaInformation() {
+        return this.group() < 0x0008;
+    }
+
+    isPrivateValue() {
+        const group = this.group();
+        const element = this.element();
+        return group % 2 === 1 && element > 0x100;
     }
 
     static fromString(str) {
@@ -80,6 +99,31 @@ class Tag {
         var group = stream.readUint16(),
             element = stream.readUint16();
         return Tag.fromNumbers(group, element);
+    }
+
+    /**
+     * Reads the stream looking for the sequence item tags, returning them
+     * as a buffer, and returning null on sequence delimiter tag.
+     */
+    static getNextSequenceItemData(stream) {
+        const nextTag = this.readTag(stream);
+        if (nextTag.is(SEQUENCE_ITEM_TAG)) {
+            const itemLength = stream.readUint32();
+            const buffer = stream.getBuffer(
+                stream.offset,
+                stream.offset + itemLength
+            );
+            stream.increment(itemLength);
+            return buffer;
+        } else if (nextTag.is(SEQUENCE_DELIMITER_TAG)) {
+            // Read SequenceDelimiterItem value for the SequenceDelimiterTag
+            if (stream.readUint32() !== 0) {
+                throw Error("SequenceDelimiterItem tag value was not zero");
+            }
+            return null;
+        }
+
+        throw Error("Invalid tag in sequence");
     }
 
     write(stream, vrType, values, syntax, writeOptions) {
