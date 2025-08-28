@@ -14,68 +14,6 @@ import { deepEqual } from "./utilities/deepEqual";
 import { ValueRepresentation } from "./ValueRepresentation.js";
 import { DictCreator } from "./DictCreator.js";
 
-const singleVRs = ["SQ", "OF", "OW", "OB", "UN", "LT"];
-
-const encodingMapping = {
-    "": "iso-8859-1",
-    "iso-ir-6": "iso-8859-1",
-    "iso-ir-13": "shift-jis",
-    "iso-ir-100": "latin1",
-    "iso-ir-101": "iso-8859-2",
-    "iso-ir-109": "iso-8859-3",
-    "iso-ir-110": "iso-8859-4",
-    "iso-ir-126": "iso-ir-126",
-    "iso-ir-127": "iso-ir-127",
-    "iso-ir-138": "iso-ir-138",
-    "iso-ir-144": "iso-ir-144",
-    "iso-ir-148": "iso-ir-148",
-    "iso-ir-166": "tis-620",
-    "iso-2022-ir-6": "iso-8859-1",
-    "iso-2022-ir-13": "shift-jis",
-    "iso-2022-ir-87": "iso-2022-jp",
-    "iso-2022-ir-100": "latin1",
-    "iso-2022-ir-101": "iso-8859-2",
-    "iso-2022-ir-109": "iso-8859-3",
-    "iso-2022-ir-110": "iso-8859-4",
-    "iso-2022-ir-126": "iso-ir-126",
-    "iso-2022-ir-127": "iso-ir-127",
-    "iso-2022-ir-138": "iso-ir-138",
-    "iso-2022-ir-144": "iso-ir-144",
-    "iso-2022-ir-148": "iso-ir-148",
-    "iso-2022-ir-149": "euc-kr",
-    "iso-2022-ir-159": "iso-2022-jp",
-    "iso-2022-ir-166": "tis-620",
-    "iso-2022-ir-58": "iso-ir-58",
-    "iso-ir-192": "utf-8",
-    gb18030: "gb18030",
-    "iso-2022-gbk": "gbk",
-    "iso-2022-58": "gb2312",
-    gbk: "gbk"
-};
-
-const encapsulatedSyntaxes = [
-    "1.2.840.10008.1.2.4.50",
-    "1.2.840.10008.1.2.4.51",
-    "1.2.840.10008.1.2.4.57",
-    "1.2.840.10008.1.2.4.70",
-    "1.2.840.10008.1.2.4.80",
-    "1.2.840.10008.1.2.4.81",
-    "1.2.840.10008.1.2.4.90",
-    "1.2.840.10008.1.2.4.91",
-    "1.2.840.10008.1.2.4.92",
-    "1.2.840.10008.1.2.4.93",
-    "1.2.840.10008.1.2.4.94",
-    "1.2.840.10008.1.2.4.95",
-    "1.2.840.10008.1.2.5",
-    "1.2.840.10008.1.2.6.1",
-    "1.2.840.10008.1.2.4.100",
-    "1.2.840.10008.1.2.4.102",
-    "1.2.840.10008.1.2.4.103",
-    "1.2.840.10008.1.2.4.201",
-    "1.2.840.10008.1.2.4.202",
-    "1.2.840.10008.1.2.4.203"
-];
-
 class DicomMessage {
     static read(
         bufferStream,
@@ -158,18 +96,10 @@ class DicomMessage {
                 // TODO - move this into DictCreator as a special handler
                 if (cleanTagString === "00080005") {
                     if (readInfo.values.length > 0) {
-                        let coding = readInfo.values[0];
-                        coding = coding.replace(/[_ ]/g, "-").toLowerCase();
-                        if (coding in encodingMapping) {
-                            coding = encodingMapping[coding];
-                            bufferStream.setDecoder(new TextDecoder(coding));
-                        } else if (ignoreErrors) {
-                            log.warn(
-                                `Unsupported character set: ${coding}, using default character set`
-                            );
-                        } else {
-                            throw Error(`Unsupported character set: ${coding}`);
-                        }
+                        bufferStream.setDecoder(
+                            readInfo.values[0],
+                            ignoreErrors
+                        );
                     }
                     if (readInfo.values.length > 1) {
                         if (ignoreErrors) {
@@ -203,9 +133,9 @@ class DicomMessage {
 
     static _normalizeSyntax(syntax) {
         if (
-            syntax == IMPLICIT_LITTLE_ENDIAN ||
-            syntax == EXPLICIT_LITTLE_ENDIAN ||
-            syntax == EXPLICIT_BIG_ENDIAN
+            syntax === IMPLICIT_LITTLE_ENDIAN ||
+            syntax === EXPLICIT_LITTLE_ENDIAN ||
+            syntax === EXPLICIT_BIG_ENDIAN
         ) {
             return syntax;
         } else {
@@ -214,7 +144,7 @@ class DicomMessage {
     }
 
     static isEncapsulated(syntax) {
-        return encapsulatedSyntaxes.indexOf(syntax) != -1;
+        return DicomMetaDictionary.encapsulatedSyntaxes.indexOf(syntax) !== -1;
     }
 
     /**
@@ -383,12 +313,10 @@ class DicomMessage {
         }
     ) {
         const { untilTag, includeUntilTagValue } = options;
-        var implicit = syntax == IMPLICIT_LITTLE_ENDIAN ? true : false,
+        var implicit = syntax === IMPLICIT_LITTLE_ENDIAN,
             isLittleEndian =
-                syntax == IMPLICIT_LITTLE_ENDIAN ||
-                syntax == EXPLICIT_LITTLE_ENDIAN
-                    ? true
-                    : false;
+                syntax === IMPLICIT_LITTLE_ENDIAN ||
+                syntax === EXPLICIT_LITTLE_ENDIAN;
 
         var oldEndian = stream.isLittleEndian;
         stream.setEndian(isLittleEndian);
@@ -414,11 +342,11 @@ class DicomMessage {
                 vrType = elementData.vr;
             } else {
                 //unknown tag
-                if (length == 0xffffffff) {
+                if (length === 0xffffffff) {
                     vrType = "SQ";
                 } else if (tag.isPixelDataTag()) {
                     vrType = "OW";
-                } else if (vrType == "xs") {
+                } else if (vrType === "xs") {
                     vrType = "US";
                 } else if (tag.isPrivateCreator()) {
                     vrType = "LO";
@@ -492,7 +420,10 @@ class DicomMessage {
         } else {
             const { rawValue, value } =
                 vr.read(stream, length, syntax, options) || {};
-            if (!vr.isBinary() && singleVRs.indexOf(vr.type) == -1) {
+            if (
+                !vr.isBinary() &&
+                ValueRepresentation.singleVRs.indexOf(vr.type) === -1
+            ) {
                 rawValues = rawValue;
                 values = value;
                 if (typeof value === "string") {
@@ -500,10 +431,10 @@ class DicomMessage {
                     rawValues = vr.dropPadByte(rawValue.split(delimiterChar));
                     values = vr.dropPadByte(value.split(delimiterChar));
                 }
-            } else if (vr.type == "SQ") {
+            } else if (vr.type === "SQ") {
                 rawValues = rawValue;
                 values = value;
-            } else if (vr.type == "OW" || vr.type == "OB") {
+            } else if (vr.type === "OW" || vr.type === "OB") {
                 rawValues = rawValue;
                 values = value;
             } else {

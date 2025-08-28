@@ -1,5 +1,6 @@
 import pako from "pako";
 import SplitDataView from "./SplitDataView";
+import { DicomMetaDictionary } from "./DicomMetaDictionary";
 
 function toInt(val) {
     if (isNaN(val)) {
@@ -15,6 +16,80 @@ function toFloat(val) {
     } else return val;
 }
 
+/**
+ * Facilitates the conversion of binary buffers from a DICOM encoding scheme to
+ * a web supported string encoding scheme and vice versa.
+ */
+class DicomBufferCODEC {
+    encoder = new TextEncoder("utf-8");
+    decoder = new TextDecoder("latin1");
+
+    /**
+     * Use this method if you want to change the decoder directly and do not
+     * need to have the encoding scheme name translated to one of the encoding
+     * schemes supported by web browsers.
+     *
+     * For example, instead of passing ISO 2022 IR 100, you have to pass latin1.
+     * Passing an incorrect encoding scheme name will result in an exception.
+     *
+     * @param {string} webEncoding
+     */
+    setNativeDecoder(webEncoding) {
+        this.decoder = new TextDecoder(webEncoding);
+    }
+
+    /**
+     * Main method for changing decoder.
+     *
+     * Given a DICOM encoding scheme like ISO 2022 IR 100, generate the correct
+     * string to use in JavaScript applications.
+     *
+     * Optionally, include whether to ignore or throw an exception if dicom to
+     * web encoding is not found in our mapping
+     *
+     * @param {string} dicomEncoding
+     * @param {boolean} ignoreErrors
+     */
+    setDecoder(dicomEncoding, ignoreErrors = false) {
+        let coding = DicomMetaDictionary.getNativeEncoding(
+            dicomEncoding,
+            ignoreErrors
+        );
+        this.setNativeDecoder(coding);
+    }
+
+    /**
+     * Unused since we typically default to utf-8. This method is provided for
+     * convenience in case someone needs to encode a buffer in something else
+     * before storing in a DICOM header.
+     *
+     * @param {string} webEncoding
+     */
+    setNativeEncoder(webEncoding) {
+        this.decoder = new TextDecoder(webEncoding);
+    }
+
+    /**
+     * Convenience method as would be found in TextEncoder and TextDecoder APIs.
+     *
+     * @param data
+     * @returns {string}
+     */
+    decode(data) {
+        return this.decoder.decode(data);
+    }
+
+    /**
+     * Convenience method as would be found in TextEncoder and TextDecoder APIs.
+     *
+     * @param {string} data
+     * @returns {Uint8Array}
+     */
+    encode(data) {
+        return this.encoder.encode(data);
+    }
+}
+
 class BufferStream {
     offset = 0;
     startOffset = 0;
@@ -22,11 +97,15 @@ class BufferStream {
     size = 0;
     view = new SplitDataView();
 
-    encoder = new TextEncoder("utf-8");
+    codec = new DicomBufferCODEC();
 
     constructor(options = null) {
         this.isLittleEndian = options?.littleEndian || this.isLittleEndian;
         this.view.defaultSize = options?.defaultSize ?? this.view.defaultSize;
+    }
+
+    setDecoder(dicomEncoding, ignoreErrors) {
+        this.codec.setDecoder(dicomEncoding, ignoreErrors);
     }
 
     setEndian(isLittle) {
@@ -125,7 +204,7 @@ class BufferStream {
     }
 
     writeUTF8String(value) {
-        const encodedString = this.encoder.encode(value);
+        const encodedString = this.codec.encode(value);
         this.checkSize(encodedString.byteLength);
         this.view.writeBuffer(encodedString, this.offset);
         return this.increment(encodedString.byteLength);
@@ -243,7 +322,7 @@ class BufferStream {
         const view = new DataView(
             this.slice(this.offset, this.offset + length)
         );
-        const result = this.decoder.decode(view);
+        const result = this.codec.decode(view);
         this.increment(length);
         return result;
     }
@@ -343,7 +422,6 @@ class ReadBufferStream extends BufferStream {
     ) {
         super({ littleEndian });
         this.noCopy = options.noCopy;
-        this.decoder = new TextDecoder("latin1");
 
         if (buffer instanceof BufferStream) {
             this.view.from(buffer.view, options);
@@ -355,10 +433,6 @@ class ReadBufferStream extends BufferStream {
 
         this.startOffset = this.offset;
         this.endOffset = this.size;
-    }
-
-    setDecoder(decoder) {
-        this.decoder = decoder;
     }
 
     reset() {
@@ -449,6 +523,7 @@ class WriteBufferStream extends BufferStream {
     }
 }
 
+export { DicomBufferCODEC };
 export { ReadBufferStream };
 export { DeflatedReadBufferStream };
 export { WriteBufferStream };
