@@ -281,7 +281,10 @@ export class DictCreator {
     handlePixelDefined(header, stream, _tsuid, options) {
         const { length } = header;
         const numberOfFrames = this.getSingle("00280008") || 1;
-        if (numberOfFrames === 1 || options?.asSingleArray) {
+        if (
+            numberOfFrames === 1 ||
+            options.separateUncompressedFrames !== true
+        ) {
             const bytes = stream.getBuffer(
                 stream.offset,
                 stream.offset + length

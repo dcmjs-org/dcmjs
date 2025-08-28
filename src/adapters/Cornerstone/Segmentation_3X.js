@@ -232,9 +232,7 @@ function _createSegFromImages(images, isMultiframe, options) {
  *                    segment metadata can be derived.
  */
 function generateToolState(imageIds, arrayBuffer, metadataProvider) {
-    const dicomData = DicomMessage.readFile(arrayBuffer, {
-        asSingleArray: true
-    });
+    const dicomData = DicomMessage.readFile(arrayBuffer);
     const dataset = DicomMetaDictionary.naturalizeDataset(dicomData.dict);
     dataset._meta = DicomMetaDictionary.namifyDataset(dicomData.meta);
     const multiframe = Normalizer.normalizeToDataset([dataset]);

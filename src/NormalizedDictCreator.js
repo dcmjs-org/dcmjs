@@ -13,7 +13,7 @@ import { DicomMetaDictionary } from "./DicomMetaDictionary";
  *      whose value is an object with values not containing the creator
  *      offset key, and having the original offset as creatorOffset
  */
-export class NormalDictCreator extends DictCreator {
+export class NormalizedDictCreator extends DictCreator {
     setValue(cleanTagString, readInfo) {
         const { tag } = readInfo;
         if (!tag || tag.isMetaInformation()) {

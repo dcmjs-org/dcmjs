@@ -277,10 +277,7 @@ function generateToolState(
     skipOverlapping = false,
     tolerance = 1e-3
 ) {
-    // The code here extracts the data internally
-    const dicomData = DicomMessage.readFile(arrayBuffer, {
-        asSingleArray: true
-    });
+    const dicomData = DicomMessage.readFile(arrayBuffer);
     const dataset = DicomMetaDictionary.naturalizeDataset(dicomData.dict);
     dataset._meta = DicomMetaDictionary.namifyDataset(dicomData.meta);
     const multiframe = Normalizer.normalizeToDataset([dataset]);

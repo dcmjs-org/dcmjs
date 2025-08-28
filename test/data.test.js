@@ -708,7 +708,7 @@ it("Reads uncompressed pixel multiframe an ArrayBuffer per frame", async () => {
     dicomDict.dict = DicomMetaDictionary.denaturalizeDataset(natural);
 
     const part10Buffer = dicomDict.write();
-    const dicomData = DicomMessage.readFile(part10Buffer);
+    const dicomData = DicomMessage.readFile(part10Buffer, { separateUncompressedFrames: true });
 
     const dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(
         dicomData.dict
@@ -738,7 +738,7 @@ it("Reads uncompressed odd bit length pixel multiframe an ArrayBuffer per frame"
     dicomDict.dict = DicomMetaDictionary.denaturalizeDataset(natural);
 
     const part10Buffer = dicomDict.write();
-    const dicomData = DicomMessage.readFile(part10Buffer);
+    const dicomData = DicomMessage.readFile(part10Buffer, { separateUncompressedFrames: true });
 
     const dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(
         dicomData.dict

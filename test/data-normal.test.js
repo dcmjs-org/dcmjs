@@ -3,14 +3,14 @@ import fs from "fs";
 import dcmjs from "../src/index.js";
 import { getTestDataset } from "./testUtils.js";
 
-const { NormalDictCreator, DicomMessage } = dcmjs.data;
+const { NormalizedDictCreator, DicomMessage } = dcmjs.data;
 
 it("Reads already normalized data", async () => {
     const url =
         "https://github.com/dcmjs-org/data/releases/download/binary-parsing-stressors/large-private-tags.dcm";
     const dcmPath = await getTestDataset(url, "large-private-tags.dcm");
     const options = {};
-    options.dictCreator = new NormalDictCreator(DicomMessage, options);
+    options.dictCreator = new NormalizedDictCreator(DicomMessage, options);
     const dicomDict = DicomMessage.readFile(
         fs.readFileSync(dcmPath).buffer,
         options

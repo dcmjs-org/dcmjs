@@ -7,7 +7,7 @@ import { DicomDict } from "./DicomDict.js";
 import { DicomMessage } from "./DicomMessage.js";
 import { DicomMetaDictionary } from "./DicomMetaDictionary.js";
 import { DictCreator } from "./DictCreator.js";
-import { NormalDictCreator } from "./NormalDictCreator.js";
+import { NormalizedDictCreator } from "./NormalizedDictCreator.js";
 import { DICOMWEB } from "./dicomweb.js";
 import { Tag } from "./Tag.js";
 import { ValueRepresentation } from "./ValueRepresentation.js";
@@ -61,7 +61,7 @@ let data = {
     datasetToBuffer,
     datasetToBlob,
     DictCreator,
-    NormalDictCreator
+    NormalizedDictCreator
 };
 
 let derivations = {
