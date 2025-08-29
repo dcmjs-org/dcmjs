@@ -22,11 +22,39 @@ class BufferStream {
     size = 0;
     view = new SplitDataView();
 
+    /** Indicates if this buffer stream is complete/has finished being created */
+    isComplete = false;
+
+    /** A flag to set to indicate to clear buffers as they get consumed */
+    clearBuffers = false;
+
     encoder = new TextEncoder("utf-8");
 
     constructor(options = null) {
         this.isLittleEndian = options?.littleEndian || this.isLittleEndian;
         this.view.defaultSize = options?.defaultSize ?? this.view.defaultSize;
+    }
+
+    /**
+     * Mark this stream as having finished being written or read from
+     */
+    setComplete(value = true) {
+        this.isComplete = value;
+    }
+
+    /**
+     * Indicates if the value length is currently available in the already
+     * read/defined portion of the stream
+     */
+    isAvailable(length) {
+        // console.warn(
+        //     "isAvailable",
+        //     length,
+        //     this.offset,
+        //     this.size,
+        //     this.endOffset
+        // );
+        return this.offset + length < this.endOffset;
     }
 
     setEndian(isLittle) {
@@ -37,6 +65,11 @@ class BufferStream {
         return this.view.slice(start, end);
     }
 
+    /**
+     * @deprecated Gets the entire buffer at once.  Suggest using the
+     *     view instead, and writing an iterator over the parts to finish
+     *     writing it.
+     */
     getBuffer(start = 0, end = this.size) {
         if (this.noCopy) {
             return new Uint8Array(this.slice(start, end));
@@ -272,6 +305,7 @@ class BufferStream {
         );
         this.offset += stream.size;
         this.size = this.offset;
+        this.endOffset = this.size;
         return this.view.availableSize;
     }
 
@@ -293,8 +327,13 @@ class BufferStream {
      * @param {*} options.transfer to transfer the buffer to be owned
      */
     addBuffer(buffer, options = null) {
+        if (!buffer) {
+            // Silently ignore null buffers.
+            return;
+        }
         this.view.addBuffer(buffer, options);
         this.size = this.view.size;
+        this.endOffset = this.size;
         return this.size;
     }
 
@@ -347,8 +386,10 @@ class ReadBufferStream extends BufferStream {
 
         if (buffer instanceof BufferStream) {
             this.view.from(buffer.view, options);
+            this.isComplete = true;
         } else if (buffer) {
             this.view.addBuffer(buffer);
+            this.isComplete = true;
         }
         this.offset = options.start ?? buffer?.offset ?? 0;
         this.size = options.stop || buffer?.size || buffer?.byteLength || 0;
