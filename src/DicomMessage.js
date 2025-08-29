@@ -105,6 +105,77 @@ class DicomMessage {
         });
     }
 
+    /**
+     * Checks if the FMI has been read successfully, returning the
+     * main syntax if it has, otherwise reads the file meta information
+     * starting at the current offset.
+     */
+    static _readFmi(dictCreator, stream) {
+        if (dictCreator.fmi) {
+            return dictCreator.mainSyntax;
+        }
+        const useSyntax = EXPLICIT_LITTLE_ENDIAN;
+        // read the first tag to check if it's the meta length tag
+        const el = DicomMessage._readTag(stream, useSyntax);
+
+        let metaHeader;
+        if (el.tag.toCleanString() !== "00020000") {
+            // meta length tag is missing
+            if (!dictCreator.options.ignoreErrors) {
+                throw new Error(
+                    "Invalid DICOM file, meta length tag is malformed or not present."
+                );
+            }
+
+            // reset stream to the position where we started reading tags
+            stream.offset = dictCreator.metaStartPos;
+
+            if (!stream.isAvailable(10240) && !stream.isComplete) {
+                // Not enough data available yet, wait for at least 10k
+                // to start reading.
+                return false;
+            }
+
+            // read meta header elements sequentially
+            metaHeader = DicomMessage._read(stream, useSyntax, {
+                untilTag: "00030000",
+                stopOnGreaterTag: true,
+                ignoreErrors: true
+            });
+            if (!metaHeader) {
+                stream.offset = dictCreator.metaStartPos;
+                return false;
+            }
+        } else {
+            // meta length tag is present
+            var metaLength = el.values[0];
+
+            if (!stream.isAvailable(metaLength) && !stream.isComplete) {
+                stream.offset = dictCreator.metaStartPos;
+                return false;
+            }
+            // read header buffer using the specified meta length
+            var metaStream = stream.more(metaLength);
+            // Use a new options object to read without the custom options
+            // applying to the FMI
+            metaHeader = DicomMessage._read(metaStream, useSyntax, {});
+        }
+
+        dictCreator.fmi = metaHeader;
+
+        //get the syntax
+        const mainSyntax = metaHeader["00020010"].Value[0];
+
+        if (!mainSyntax) {
+            throw new Error(
+                `No syntax provided in ${JSON.stringify(metaHeader)}`
+            );
+        }
+        dictCreator.mainSyntax = mainSyntax;
+
+        return mainSyntax;
+    }
+
     static _read(
         bufferStream,
         syntax,
@@ -218,6 +289,25 @@ class DicomMessage {
     }
 
     /**
+     * If there is enough available data, read the 128 byte prefix and the
+     * DICM header marker, returning true when done, throwing an error when
+     * not a DICM stream, and returning false if not yet enough data.
+     */
+    static readDICM(dictCreator, stream) {
+        if (!stream.isAvailable(132) && !stream.isComplete) {
+            return false;
+        }
+        stream.reset();
+        stream.increment(128);
+        if (stream.readAsciiString(4) !== "DICM") {
+            throw new Error("Invalid DICOM file, expected header is missing");
+        }
+        dictCreator.metaStartPos = stream.offset;
+
+        return true;
+    }
+
+    /**
      * Reads a DICOM input stream from an array buffer.
      *
      * The options includes the specified options, but also creates
@@ -233,64 +323,62 @@ class DicomMessage {
             forceStoreRaw: false
         }
     ) {
-        var stream = new ReadBufferStream(buffer, null, {
+        if (!options.dictCreator) {
+            options.dictCreator = new DictCreator(this, options);
+        }
+        const { dictCreator } = options;
+        if (options.stream === true) {
+            // Create a streaming input buffer
+            options.stream = new ReadBufferStream(null);
+        }
+
+        let stream =
+            options.stream ||
+            new ReadBufferStream(buffer, null, {
                 noCopy: options.noCopy
-            }),
-            useSyntax = EXPLICIT_LITTLE_ENDIAN;
-        stream.reset();
-        stream.increment(128);
-        if (stream.readAsciiString(4) !== "DICM") {
-            throw new Error("Invalid DICOM file, expected header is missing");
-        }
-
-        // save position before reading first tag
-        var metaStartPos = stream.offset;
-
-        // read the first tag to check if it's the meta length tag
-        var el = DicomMessage._readTag(stream, useSyntax);
-
-        var metaHeader = {};
-        if (el.tag.toCleanString() !== "00020000") {
-            // meta length tag is missing
-            if (!options.ignoreErrors) {
-                throw new Error(
-                    "Invalid DICOM file, meta length tag is malformed or not present."
-                );
-            }
-
-            // reset stream to the position where we started reading tags
-            stream.offset = metaStartPos;
-
-            // read meta header elements sequentially
-            metaHeader = DicomMessage._read(stream, useSyntax, {
-                untilTag: "00030000",
-                stopOnGreaterTag: true,
-                ignoreErrors: true
             });
-        } else {
-            // meta length tag is present
-            var metaLength = el.values[0];
-
-            // read header buffer using the specified meta length
-            var metaStream = stream.more(metaLength);
-            metaHeader = DicomMessage._read(metaStream, useSyntax, options);
+        if (options.stream) {
+            stream.addBuffer(buffer);
         }
 
-        //get the syntax
-        var mainSyntax = metaHeader["00020010"].Value[0];
+        if (dictCreator.metaStartPos === -1) {
+            const dicmResult = this.readDICM(dictCreator, stream);
+            if (!dicmResult) {
+                return false;
+            }
+        }
+
+        if (!dictCreator.mainSyntax) {
+            const result = this._readFmi(dictCreator, stream);
+            if (!result) {
+                return false;
+            }
+        }
+
+        let { mainSyntax } = dictCreator;
 
         //in case of deflated dataset, decompress and continue
         if (mainSyntax === DEFLATED_EXPLICIT_LITTLE_ENDIAN) {
+            if (!stream.isComplete) {
+                return false;
+            }
             stream = new DeflatedReadBufferStream(stream, {
                 noCopy: options.noCopy
             });
         }
 
         mainSyntax = DicomMessage._normalizeSyntax(mainSyntax);
-        var objects = DicomMessage._read(stream, mainSyntax, options);
+        const objects = DicomMessage._read(stream, mainSyntax, options);
+        if (!objects) {
+            // Needs more data still
+            return false;
+        }
 
-        var dicomDict = new DicomDict(metaHeader);
+        var dicomDict = new DicomDict(dictCreator.fmi);
         dicomDict.dict = objects;
+
+        // Reset, ready for another read
+        dictCreator.reset();
 
         return dicomDict;
     }

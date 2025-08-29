@@ -15,8 +15,32 @@ import { ValueRepresentation } from "./ValueRepresentation.js";
  * * Restartable parsing, to allow stream inputs
  */
 export class DictCreator {
+    // Public attributes used dynamically while reading:
+
+    /**
+     *  The current DICOM block being created
+     */
     dict = {};
+    /**
+     *  The top of the stack where the data is being currently stored.
+     */
     current = { dict: this.dict, parent: null, level: 0 };
+    /**
+     * The start of the FMI block.  Starts at -1 before reading
+     * the file prefix.
+     */
+    metaStartPos = -1;
+    /**
+     * The main transfer syntax for this object
+     */
+    mainSyntax = "";
+    /**
+     * The file meta information associated with this creator.
+     */
+    fmi = null;
+
+    // The rest of the information is configuration read/only data
+
     handlers = {
         [TagHex.Item]: this.handleItem,
         [TagHex.ItemDelimitationEnd]: this.handleItemDelimitationEnd,
@@ -27,6 +51,7 @@ export class DictCreator {
 
     privateTagBulkdataSize = 128;
     publicTagBulkdataSize = 1024;
+    options = {};
 
     /**
      * Creates a dict object using the given options.
@@ -39,6 +64,7 @@ export class DictCreator {
      *      bulkdata based on the size of it.
      */
     constructor(_dicomMessage, options) {
+        this.options = options;
         if (options.writeBulkdata) {
             this.handlers.bulkdata = this.handleBulkdata;
         }
@@ -51,6 +77,17 @@ export class DictCreator {
         if (options.handlers) {
             Object.assign(this.handlers, options.handlers);
         }
+    }
+
+    /**
+     * Resets this object, ready for reading another DICM file
+     */
+    reset() {
+        this.metaStartPos = -1;
+        this.mainSyntax = "";
+        this.fmi = null;
+        this.dict = {};
+        this.current = { dict: this.dict, parent: null, level: 0 };
     }
 
     /**
