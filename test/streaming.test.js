@@ -13,6 +13,7 @@ describe("Streaming Parsing", () => {
 
     beforeAll(async () => {
         dcmPath = await getTestDataset(url, "large-private-tags.dcm");
+        console.warn("dcmPath=", dcmPath);
         buffer = fs.readFileSync(dcmPath).buffer;
     });
 
@@ -24,15 +25,23 @@ describe("Streaming Parsing", () => {
         options.dictCreator = new NormalizedDictCreator(DicomMessage, options);
 
         let dicomDict = DicomMessage.readFile(buffer.slice(0, 128), options);
-
         expect(dicomDict).toBe(false);
+
+        const { stream } = options;
+        expect(stream.hasData(0, 128)).toBe(true);
+        expect(stream.hasData(0, 132)).toBe(false);
 
         dicomDict = DicomMessage.readFile(buffer.slice(128, 132), options);
         expect(dicomDict).toBe(false);
+        expect(stream.hasData(0, 132)).toBe(false);
 
-        options.stream.addBuffer(buffer.slice(132, -1));
+        dicomDict = DicomMessage.readFile(buffer.slice(132, 340), options);
+        expect(dicomDict).toBe(false);
+        expect(options.dictCreator.fmi).toBeTruthy();
+        expect(stream.hasData(132, 340)).toBe(false);
+
+        options.stream.addBuffer(buffer.slice(340, buffer.byteLength));
         options.stream.setComplete();
-
         // Should read the rest now
         dicomDict = DicomMessage.readFile(null, options);
         expect(dicomDict.dict).toBeTruthy();

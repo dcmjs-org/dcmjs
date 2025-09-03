@@ -33,6 +33,7 @@ class BufferStream {
     constructor(options = null) {
         this.isLittleEndian = options?.littleEndian || this.isLittleEndian;
         this.view.defaultSize = options?.defaultSize ?? this.view.defaultSize;
+        this.clearBuffers = options.clearBuffers || false;
     }
 
     /**
@@ -54,7 +55,7 @@ class BufferStream {
         //     this.size,
         //     this.endOffset
         // );
-        return this.offset + length < this.endOffset;
+        return this.offset + length <= this.endOffset;
     }
 
     setEndian(isLittle) {
@@ -325,6 +326,8 @@ class BufferStream {
      * @param {*} options.start for the start of the new buffer to use
      * @param {*} options.end for the end of the buffer to use
      * @param {*} options.transfer to transfer the buffer to be owned
+     *     Transfer will default true if the entire buffer is being added.
+     *     It should be set explicitly to false to NOT transfer.
      */
     addBuffer(buffer, options = null) {
         if (!buffer) {
@@ -335,6 +338,26 @@ class BufferStream {
         this.size = this.view.size;
         this.endOffset = this.size;
         return this.size;
+    }
+
+    /**
+     * Consumes the data up to the given offset.
+     * This will clear the references to the data buffers, and will
+     * cause resets etc to fail.
+     * The default offset is the current position, so everything already read.
+     */
+    consume(offset = this.offset) {
+        if (!this.clearBuffers) {
+            return;
+        }
+        this.view.consume(offset);
+    }
+
+    /**
+     * Returns true if the stream has data in the given range.
+     */
+    hasData(start, end) {
+        return this.view.hasData(start, end);
     }
 
     more(length) {
@@ -352,6 +375,7 @@ class BufferStream {
             this.slice(this.offset, this.offset + length)
         );
         this.increment(length);
+        newBuf.setComplete();
 
         return newBuf;
     }
@@ -362,7 +386,7 @@ class BufferStream {
     }
 
     end() {
-        return this.offset >= this.view.byteLength;
+        return this.isComplete && this.offset >= this.end;
     }
 
     toEnd() {
@@ -380,7 +404,7 @@ class ReadBufferStream extends BufferStream {
             noCopy: false
         }
     ) {
-        super({ littleEndian });
+        super({ ...options, littleEndian });
         this.noCopy = options.noCopy;
         this.decoder = new TextDecoder("latin1");
 
@@ -408,7 +432,7 @@ class ReadBufferStream extends BufferStream {
     }
 
     end() {
-        return this.offset >= this.endOffset;
+        return this.isComplete && this.offset >= this.endOffset;
     }
 
     toEnd() {

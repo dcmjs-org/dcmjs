@@ -39,6 +39,9 @@ export class DictCreator {
      */
     fmi = null;
 
+    /** The number of bytes needed to continue parsing */
+    neededLengthBase = 16;
+
     // The rest of the information is configuration read/only data
 
     handlers = {
@@ -141,6 +144,14 @@ export class DictCreator {
         return handler?.call(this, header, stream, tsuid, options);
     }
 
+    get neededLength() {
+        return this.current.neededLength ?? this.neededLengthBase;
+    }
+
+    /**
+     * Continues parsing a partially parsed value.  This will return true
+     * if the partial parse is successful.
+     */
     continueParse(stream) {
         const { current } = this;
         if (

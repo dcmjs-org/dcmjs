@@ -114,6 +114,10 @@ class DicomMessage {
         if (dictCreator.fmi) {
             return dictCreator.mainSyntax;
         }
+
+        if (!stream.isAvailable(16) && !stream.isComplete) {
+            return false;
+        }
         const useSyntax = EXPLICIT_LITTLE_ENDIAN;
         // read the first tag to check if it's the meta length tag
         const el = DicomMessage._readTag(stream, useSyntax);
@@ -162,6 +166,7 @@ class DicomMessage {
         }
 
         dictCreator.fmi = metaHeader;
+        stream.consume();
 
         //get the syntax
         const mainSyntax = metaHeader["00020010"].Value[0];
@@ -197,6 +202,12 @@ class DicomMessage {
         try {
             let previousTagOffset;
             while (!bufferStream.end()) {
+                if (
+                    !bufferStream.isAvailable(1024) &&
+                    !bufferStream.isComplete
+                ) {
+                    return false;
+                }
                 if (dictCreator.continueParse(bufferStream)) {
                     continue;
                 }
@@ -293,7 +304,7 @@ class DicomMessage {
      * DICM header marker, returning true when done, throwing an error when
      * not a DICM stream, and returning false if not yet enough data.
      */
-    static readDICM(dictCreator, stream) {
+    static _readDICM(dictCreator, stream) {
         if (!stream.isAvailable(132) && !stream.isComplete) {
             return false;
         }
@@ -303,6 +314,7 @@ class DicomMessage {
             throw new Error("Invalid DICOM file, expected header is missing");
         }
         dictCreator.metaStartPos = stream.offset;
+        stream.consume();
 
         return true;
     }
@@ -329,7 +341,9 @@ class DicomMessage {
         const { dictCreator } = options;
         if (options.stream === true) {
             // Create a streaming input buffer
-            options.stream = new ReadBufferStream(null);
+            options.stream = new ReadBufferStream(null, true, {
+                clearBuffers: options.clearBuffers ?? true
+            });
         }
 
         let stream =
@@ -342,7 +356,7 @@ class DicomMessage {
         }
 
         if (dictCreator.metaStartPos === -1) {
-            const dicmResult = this.readDICM(dictCreator, stream);
+            const dicmResult = this._readDICM(dictCreator, stream);
             if (!dicmResult) {
                 return false;
             }
