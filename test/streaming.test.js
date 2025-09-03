@@ -46,4 +46,28 @@ describe("Streaming Parsing", () => {
         dicomDict = DicomMessage.readFile(null, options);
         expect(dicomDict.dict).toBeTruthy();
     });
+
+    /** Warning - this is fairly slow to run as it chunks things up into tiny bits */
+    it("Reads data in streamed 15 byte chunks", async () => {
+        const chunkLength = 15;
+        const options = {
+            stream: true
+        };
+
+        options.dictCreator = new NormalizedDictCreator(DicomMessage, options);
+
+        let iNext = 0;
+        for (let i = 0; i < buffer.byteLength; i = iNext) {
+            iNext = Math.min(i + chunkLength, buffer.byteLength);
+            const dicomDict = DicomMessage.readFile(
+                buffer.slice(i, iNext),
+                options
+            );
+            expect(dicomDict).toBe(false);
+        }
+        options.stream.setComplete();
+        // Should read the rest now
+        const dicomDict = DicomMessage.readFile(null, options);
+        expect(dicomDict.dict).toBeTruthy();
+    });
 });
