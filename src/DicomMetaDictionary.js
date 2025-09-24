@@ -37,7 +37,7 @@ class DicomMetaDictionary {
 
     static tagAsIntegerFromName(name) {
         const item = DicomMetaDictionary.nameMap[name];
-        if (item != undefined) {
+        if (item !== undefined) {
             return this.parseIntFromTag(item.tag);
         } else {
             return undefined;
@@ -51,7 +51,7 @@ class DicomMetaDictionary {
         const cleanedDataset = {};
         Object.keys(dataset).forEach(tag => {
             const data = Object.assign({}, dataset[tag]);
-            if (data.vr == "SQ") {
+            if (data.vr === "SQ") {
                 const cleanedValues = [];
                 Object.keys(data.Value).forEach(index => {
                     cleanedValues.push(
@@ -63,7 +63,7 @@ class DicomMetaDictionary {
                 // remove null characters from strings
                 data.Value = Object.keys(data.Value).map(index => {
                     const item = data.Value[index];
-                    if (item.constructor.name == "String") {
+                    if (item.constructor.name === "String") {
                         return item.replace(/\0/, "");
                     }
                     return item;
@@ -81,7 +81,7 @@ class DicomMetaDictionary {
         var namedDataset = {};
         Object.keys(dataset).forEach(tag => {
             const data = Object.assign({}, dataset[tag]);
-            if (data.vr == "SQ") {
+            if (data.vr === "SQ") {
                 var namedValues = [];
                 Object.keys(data.Value).forEach(index => {
                     namedValues.push(
@@ -122,7 +122,7 @@ class DicomMetaDictionary {
             if (entry) {
                 naturalName = entry.name;
 
-                if (entry.vr == "ox") {
+                if (entry.vr === "ox") {
                     // when the vr is data-dependent, keep track of the original type
                     naturalDataset._vrMap[naturalName] = data.vr;
                 }
@@ -200,7 +200,7 @@ class DicomMetaDictionary {
         }
 
         value = value.map(entry =>
-            entry.constructor.name == "Number" ? String(entry) : entry
+            entry.constructor.name === "Number" ? String(entry) : entry
         );
 
         return value;
@@ -231,7 +231,7 @@ class DicomMetaDictionary {
                 dataItem.Value = dataset[naturalName];
 
                 if (dataValue !== null) {
-                    if (entry.vr == "ox") {
+                    if (entry.vr === "ox") {
                         if (dataset._vrMap && dataset._vrMap[naturalName]) {
                             dataItem.vr = dataset._vrMap[naturalName];
                         } else {
@@ -250,7 +250,7 @@ class DicomMetaDictionary {
                         dataItem.Value
                     );
 
-                    if (entry.vr == "SQ") {
+                    if (entry.vr === "SQ") {
                         var unnaturalValues = [];
                         for (
                             let datasetIndex = 0;
@@ -291,7 +291,7 @@ class DicomMetaDictionary {
                 unnaturalDataset[tag] = dataItem;
             } else {
                 const validMetaNames = ["_vrMap", "_meta"];
-                if (validMetaNames.indexOf(name) == -1) {
+                if (validMetaNames.indexOf(name) === -1) {
                     log.warn(
                         "Unknown name in dataset",
                         name,
@@ -333,7 +333,7 @@ class DicomMetaDictionary {
         DicomMetaDictionary.nameMap = {};
         Object.keys(DicomMetaDictionary.dictionary).forEach(tag => {
             var dict = DicomMetaDictionary.dictionary[tag];
-            if (dict.version != "PrivateTag") {
+            if (dict.version !== "PrivateTag") {
                 DicomMetaDictionary.nameMap[dict.name] = dict;
             }
         });
@@ -343,7 +343,7 @@ class DicomMetaDictionary {
         const nameMap = {};
         Object.keys(dictionary).forEach(tag => {
             var dict = dictionary[tag];
-            if (dict.version != "PrivateTag") {
+            if (dict.version !== "PrivateTag") {
                 nameMap[dict.name] = dict;
             }
         });
@@ -364,6 +364,23 @@ class DicomMetaDictionary {
             dataset,
             this.customNameMap
         );
+    }
+
+    // Translates the DICOM specified encoding into a Web or native encoding target
+    // so we can use decoding APIs to correctly handle DICOM buffers.
+    static getNativeEncoding(dicomEncoding, ignoreErrors = false) {
+        const coding = dicomEncoding.replace(/[_ ]/g, "-").toLowerCase();
+        if (coding in DicomMetaDictionary.encodingMapping) {
+            return DicomMetaDictionary.encodingMapping[coding];
+        } else if (ignoreErrors) {
+            log.warn(
+                `Unsupported character set: ${coding}, using default 
+                character set ${DicomMetaDictionary.defaultEncoding}`
+            );
+        } else {
+            throw Error(`Unsupported character set: ${coding}`);
+        }
+        return DicomMetaDictionary.defaultEncoding;
     }
 }
 
@@ -401,6 +418,68 @@ DicomMetaDictionary.sopClassNamesByUID = {
     "1.2.840.10008.5.1.4.1.1.77.1.5.1": "OphthalmicPhotography8BitImage",
     "1.2.840.10008.5.1.4.1.1.77.1.5.4": "OphthalmicTomographyImage"
 };
+
+DicomMetaDictionary.encodingMapping = {
+    "": "iso-8859-1",
+    "iso-ir-6": "iso-8859-1",
+    "iso-ir-13": "shift-jis",
+    "iso-ir-100": "latin1",
+    "iso-ir-101": "iso-8859-2",
+    "iso-ir-109": "iso-8859-3",
+    "iso-ir-110": "iso-8859-4",
+    "iso-ir-126": "iso-ir-126",
+    "iso-ir-127": "iso-ir-127",
+    "iso-ir-138": "iso-ir-138",
+    "iso-ir-144": "iso-ir-144",
+    "iso-ir-148": "iso-ir-148",
+    "iso-ir-166": "tis-620",
+    "iso-2022-ir-6": "iso-8859-1",
+    "iso-2022-ir-13": "shift-jis",
+    "iso-2022-ir-87": "iso-2022-jp",
+    "iso-2022-ir-100": "latin1",
+    "iso-2022-ir-101": "iso-8859-2",
+    "iso-2022-ir-109": "iso-8859-3",
+    "iso-2022-ir-110": "iso-8859-4",
+    "iso-2022-ir-126": "iso-ir-126",
+    "iso-2022-ir-127": "iso-ir-127",
+    "iso-2022-ir-138": "iso-ir-138",
+    "iso-2022-ir-144": "iso-ir-144",
+    "iso-2022-ir-148": "iso-ir-148",
+    "iso-2022-ir-149": "euc-kr",
+    "iso-2022-ir-159": "iso-2022-jp",
+    "iso-2022-ir-166": "tis-620",
+    "iso-2022-ir-58": "iso-ir-58",
+    "iso-ir-192": "utf-8",
+    gb18030: "gb18030",
+    "iso-2022-gbk": "gbk",
+    "iso-2022-58": "gb2312",
+    gbk: "gbk"
+};
+
+DicomMetaDictionary.defaultEncoding = "latin1";
+
+DicomMetaDictionary.encapsulatedSyntaxes = [
+    "1.2.840.10008.1.2.4.50",
+    "1.2.840.10008.1.2.4.51",
+    "1.2.840.10008.1.2.4.57",
+    "1.2.840.10008.1.2.4.70",
+    "1.2.840.10008.1.2.4.80",
+    "1.2.840.10008.1.2.4.81",
+    "1.2.840.10008.1.2.4.90",
+    "1.2.840.10008.1.2.4.91",
+    "1.2.840.10008.1.2.4.92",
+    "1.2.840.10008.1.2.4.93",
+    "1.2.840.10008.1.2.4.94",
+    "1.2.840.10008.1.2.4.95",
+    "1.2.840.10008.1.2.5",
+    "1.2.840.10008.1.2.6.1",
+    "1.2.840.10008.1.2.4.100",
+    "1.2.840.10008.1.2.4.102",
+    "1.2.840.10008.1.2.4.103",
+    "1.2.840.10008.1.2.4.201",
+    "1.2.840.10008.1.2.4.202",
+    "1.2.840.10008.1.2.4.203"
+];
 
 DicomMetaDictionary.dictionary = dictionary;
 
