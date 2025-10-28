@@ -1,5 +1,6 @@
 import TID300Measurement from "./TID300Measurement.js";
 import unit2CodingValue from "./unit2CodingValue.js";
+import buildContentSequence from "./buildContentSequence.js";
 
 export default class Circle extends TID300Measurement {
     contentItem() {
@@ -11,6 +12,12 @@ export default class Circle extends TID300Measurement {
             area,
             areaUnit = "mm2",
             unit = "mm",
+            max,
+            min,
+            mean,
+            stdDev,
+            radiusUnit,
+            modalityUnit,
             ReferencedFrameOfReferenceUID
         } = this.props;
 
@@ -23,7 +30,13 @@ export default class Circle extends TID300Measurement {
             use3DSpatialCoordinates
         });
 
-        // TODO: Add Mean and STDev value of (modality?) pixels
+        const graphicContentSequence = buildContentSequence({
+            graphicType: "CIRCLE",
+            graphicData: GraphicData,
+            use3DSpatialCoordinates,
+            referencedSOPSequence: ReferencedSOPSequence,
+            referencedFrameOfReferenceUID: ReferencedFrameOfReferenceUID
+        });
 
         return this.getMeasurement([
             {
@@ -38,25 +51,23 @@ export default class Circle extends TID300Measurement {
                     MeasurementUnitsCodeSequence: unit2CodingValue(unit),
                     NumericValue: perimeter
                 },
-                ContentSequence: {
-                    RelationshipType: "INFERRED FROM",
-                    ValueType: use3DSpatialCoordinates ? "SCOORD3D" : "SCOORD",
-                    GraphicType: "CIRCLE",
-                    GraphicData,
-                    ReferencedFrameOfReferenceUID: use3DSpatialCoordinates
-                        ? ReferencedFrameOfReferenceUID
-                        : undefined,
-                    ContentSequence: use3DSpatialCoordinates
-                        ? undefined
-                        : {
-                              RelationshipType: "SELECTED FROM",
-                              ValueType: "IMAGE",
-                              ReferencedSOPSequence
-                          }
-                }
+                ContentSequence: graphicContentSequence
             },
             {
-                // TODO: This feels weird to repeat the GraphicData
+                RelationshipType: "CONTAINS",
+                ValueType: "NUM",
+                ConceptNameCodeSequence: {
+                    CodeValue: "131190003",
+                    CodingSchemeDesignator: "SCT",
+                    CodeMeaning: "Radius"
+                },
+                MeasuredValueSequence: {
+                    MeasurementUnitsCodeSequence: unit2CodingValue(radiusUnit),
+                    NumericValue: perimeter
+                },
+                ContentSequence: graphicContentSequence
+            },
+            {
                 RelationshipType: "CONTAINS",
                 ValueType: "NUM",
                 ConceptNameCodeSequence: {
@@ -81,6 +92,74 @@ export default class Circle extends TID300Measurement {
                               ReferencedSOPSequence
                           }
                 }
+            },
+            {
+                RelationshipType: "CONTAINS",
+                ValueType: "NUM",
+                ConceptNameCodeSequence: {
+                    CodeValue: "56851009",
+                    CodingSchemeDesignator: "SCT",
+                    CodeMeaning: "Maximum"
+                },
+                MeasuredValueSequence: {
+                    MeasurementUnitsCodeSequence: modalityUnit,
+                    NumericValue: max
+                },
+                ContentSequence: graphicContentSequence
+            },
+            {
+                RelationshipType: "CONTAINS",
+                ValueType: "NUM",
+                ConceptNameCodeSequence: {
+                    CodeValue: "255605001",
+                    CodingSchemeDesignator: "SCT",
+                    CodeMeaning: "Minimum"
+                },
+                MeasuredValueSequence: {
+                    MeasurementUnitsCodeSequence: modalityUnit,
+                    NumericValue: min
+                },
+                ContentSequence: {
+                    RelationshipType: "INFERRED FROM",
+                    ValueType: use3DSpatialCoordinates ? "SCOORD3D" : "SCOORD",
+                    GraphicType: "CIRCLE",
+                    GraphicData,
+                    ContentSequence: use3DSpatialCoordinates
+                        ? undefined
+                        : {
+                              RelationshipType: "SELECTED FROM",
+                              ValueType: "IMAGE",
+                              ReferencedSOPSequence
+                          }
+                }
+            },
+            {
+                RelationshipType: "CONTAINS",
+                ValueType: "NUM",
+                ConceptNameCodeSequence: {
+                    CodeValue: "373098007",
+                    CodingSchemeDesignator: "SCT",
+                    CodeMeaning: "Mean"
+                },
+                MeasuredValueSequence: {
+                    MeasurementUnitsCodeSequence: modalityUnit,
+                    NumericValue: mean
+                },
+                ContentSequence: graphicContentSequence
+            },
+            {
+                RelationshipType: "CONTAINS",
+                ValueType: "NUM",
+                ConceptNameCodeSequence: {
+                    CodeValue: "386136009",
+                    CodingSchemeDesignator: "SCT",
+                    CodeMeaning: "Standard Deviation"
+                },
+                MeasuredValueSequence: {
+                    MeasurementUnitsCodeSequence: modalityUnit,
+                    NumericValue: stdDev
+                },
+                ContentSequence: graphicContentSequence
             }
         ]);
     }
