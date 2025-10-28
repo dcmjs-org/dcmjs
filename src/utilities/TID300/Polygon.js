@@ -1,5 +1,6 @@
 import TID300Measurement from "./TID300Measurement.js";
 import unit2CodingValue from "./unit2CodingValue.js";
+import buildContentSequence from "./buildContentSequence.js";
 
 export default class Polygon extends TID300Measurement {
     contentItem() {
@@ -19,6 +20,14 @@ export default class Polygon extends TID300Measurement {
             use3DSpatialCoordinates
         });
 
+        const graphicContentSequence = buildContentSequence({
+            graphicType: "POLYGON",
+            graphicData: GraphicData,
+            use3DSpatialCoordinates,
+            referencedSOPSequence: ReferencedSOPSequence,
+            referencedFrameOfReferenceUID: ReferencedFrameOfReferenceUID
+        });
+
         return this.getMeasurement([
             {
                 RelationshipType: "CONTAINS",
@@ -32,22 +41,7 @@ export default class Polygon extends TID300Measurement {
                     MeasurementUnitsCodeSequence: unit2CodingValue(unit),
                     NumericValue: perimeter
                 },
-                ContentSequence: {
-                    RelationshipType: "INFERRED FROM",
-                    ValueType: use3DSpatialCoordinates ? "SCOORD3D" : "SCOORD",
-                    GraphicType: "POLYGON",
-                    GraphicData,
-                    ReferencedFrameOfReferenceUID: use3DSpatialCoordinates
-                        ? ReferencedFrameOfReferenceUID
-                        : undefined,
-                    ContentSequence: use3DSpatialCoordinates
-                        ? undefined
-                        : {
-                              RelationshipType: "SELECTED FROM",
-                              ValueType: "IMAGE",
-                              ReferencedSOPSequence
-                          }
-                }
+                ContentSequence: graphicContentSequence
             },
             {
                 RelationshipType: "CONTAINS",
@@ -61,22 +55,7 @@ export default class Polygon extends TID300Measurement {
                     MeasurementUnitsCodeSequence: unit2CodingValue(areaUnit),
                     NumericValue: area
                 },
-                ContentSequence: {
-                    RelationshipType: "INFERRED FROM",
-                    ValueType: use3DSpatialCoordinates ? "SCOORD3D" : "SCOORD",
-                    GraphicType: "POLYGON",
-                    GraphicData,
-                    ReferencedFrameOfReferenceUID: use3DSpatialCoordinates
-                        ? ReferencedFrameOfReferenceUID
-                        : undefined,
-                    ContentSequence: use3DSpatialCoordinates
-                        ? undefined
-                        : {
-                              RelationshipType: "SELECTED FROM",
-                              ValueType: "IMAGE",
-                              ReferencedSOPSequence
-                          }
-                }
+                ContentSequence: graphicContentSequence
             }
         ]);
     }

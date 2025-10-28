@@ -1,5 +1,6 @@
 import TID300Measurement from "./TID300Measurement.js";
 import unit2CodingValue from "./unit2CodingValue.js";
+import buildContentSequence from "./buildContentSequence.js";
 
 export default class Bidirectional extends TID300Measurement {
     contentItem() {
@@ -23,6 +24,22 @@ export default class Bidirectional extends TID300Measurement {
             use3DSpatialCoordinates
         });
 
+        const longAxisContentSequence = buildContentSequence({
+            graphicType: "POLYLINE",
+            graphicData: longAxisGraphicData,
+            use3DSpatialCoordinates,
+            referencedSOPSequence: ReferencedSOPSequence,
+            referencedFrameOfReferenceUID: ReferencedFrameOfReferenceUID
+        });
+
+        const shortAxisContentSequence = buildContentSequence({
+            graphicType: "POLYLINE",
+            graphicData: shortAxisGraphicData,
+            use3DSpatialCoordinates,
+            referencedSOPSequence: ReferencedSOPSequence,
+            referencedFrameOfReferenceUID: ReferencedFrameOfReferenceUID
+        });
+
         return this.getMeasurement([
             {
                 RelationshipType: "CONTAINS",
@@ -36,22 +53,7 @@ export default class Bidirectional extends TID300Measurement {
                     MeasurementUnitsCodeSequence: unit2CodingValue(unit),
                     NumericValue: longAxisLength
                 },
-                ContentSequence: {
-                    RelationshipType: "INFERRED FROM",
-                    ValueType: use3DSpatialCoordinates ? "SCOORD3D" : "SCOORD",
-                    GraphicType: "POLYLINE",
-                    GraphicData: longAxisGraphicData,
-                    ReferencedFrameOfReferenceUID: use3DSpatialCoordinates
-                        ? ReferencedFrameOfReferenceUID
-                        : undefined,
-                    ContentSequence: use3DSpatialCoordinates
-                        ? undefined
-                        : {
-                              RelationshipType: "SELECTED FROM",
-                              ValueType: "IMAGE",
-                              ReferencedSOPSequence
-                          }
-                }
+                ContentSequence: longAxisContentSequence
             },
             {
                 RelationshipType: "CONTAINS",
@@ -65,22 +67,7 @@ export default class Bidirectional extends TID300Measurement {
                     MeasurementUnitsCodeSequence: unit2CodingValue(unit),
                     NumericValue: shortAxisLength
                 },
-                ContentSequence: {
-                    RelationshipType: "INFERRED FROM",
-                    ValueType: use3DSpatialCoordinates ? "SCOORD3D" : "SCOORD",
-                    GraphicType: "POLYLINE",
-                    GraphicData: shortAxisGraphicData,
-                    ReferencedFrameOfReferenceUID: use3DSpatialCoordinates
-                        ? ReferencedFrameOfReferenceUID
-                        : undefined,
-                    ContentSequence: use3DSpatialCoordinates
-                        ? undefined
-                        : {
-                              RelationshipType: "SELECTED FROM",
-                              ValueType: "IMAGE",
-                              ReferencedSOPSequence
-                          }
-                }
+                ContentSequence: shortAxisContentSequence
             }
         ]);
     }
