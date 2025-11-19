@@ -18,7 +18,8 @@ export default class Circle extends TID300Measurement {
             stdDev,
             radiusUnit,
             modalityUnit,
-            ReferencedFrameOfReferenceUID
+            ReferencedFrameOfReferenceUID,
+            radius
         } = this.props;
 
         // Combine all lengths to save the perimeter
@@ -30,15 +31,7 @@ export default class Circle extends TID300Measurement {
             use3DSpatialCoordinates
         });
 
-        const graphicContentSequence = buildContentSequence({
-            graphicType: "CIRCLE",
-            graphicData: GraphicData,
-            use3DSpatialCoordinates,
-            referencedSOPSequence: ReferencedSOPSequence,
-            referencedFrameOfReferenceUID: ReferencedFrameOfReferenceUID
-        });
-
-        return this.getMeasurement([
+        const measurements = [
             {
                 RelationshipType: "CONTAINS",
                 ValueType: "NUM",
@@ -51,23 +44,16 @@ export default class Circle extends TID300Measurement {
                     MeasurementUnitsCodeSequence: unit2CodingValue(unit),
                     NumericValue: perimeter
                 },
-                ContentSequence: graphicContentSequence
+                ContentSequence: buildContentSequence({
+                    graphicType: "CIRCLE",
+                    graphicData: GraphicData,
+                    use3DSpatialCoordinates,
+                    referencedSOPSequence: ReferencedSOPSequence,
+                    referencedFrameOfReferenceUID: ReferencedFrameOfReferenceUID
+                })
             },
             {
-                RelationshipType: "CONTAINS",
-                ValueType: "NUM",
-                ConceptNameCodeSequence: {
-                    CodeValue: "131190003",
-                    CodingSchemeDesignator: "SCT",
-                    CodeMeaning: "Radius"
-                },
-                MeasuredValueSequence: {
-                    MeasurementUnitsCodeSequence: unit2CodingValue(radiusUnit),
-                    NumericValue: perimeter
-                },
-                ContentSequence: graphicContentSequence
-            },
-            {
+                // TODO: This feels weird to repeat the GraphicData
                 RelationshipType: "CONTAINS",
                 ValueType: "NUM",
                 ConceptNameCodeSequence: {
@@ -79,21 +65,40 @@ export default class Circle extends TID300Measurement {
                     MeasurementUnitsCodeSequence: unit2CodingValue(areaUnit),
                     NumericValue: area
                 },
-                ContentSequence: {
-                    RelationshipType: "INFERRED FROM",
-                    ValueType: use3DSpatialCoordinates ? "SCOORD3D" : "SCOORD",
-                    GraphicType: "CIRCLE",
-                    GraphicData,
-                    ContentSequence: use3DSpatialCoordinates
-                        ? undefined
-                        : {
-                              RelationshipType: "SELECTED FROM",
-                              ValueType: "IMAGE",
-                              ReferencedSOPSequence
-                          }
-                }
-            },
-            {
+                ContentSequence: buildContentSequence({
+                    graphicType: "CIRCLE",
+                    graphicData: GraphicData,
+                    use3DSpatialCoordinates,
+                    referencedSOPSequence: ReferencedSOPSequence,
+                    referencedFrameOfReferenceUID: ReferencedFrameOfReferenceUID
+                })
+            }
+        ];
+        if (radius) {
+            measurements.push({
+                RelationshipType: "CONTAINS",
+                ValueType: "NUM",
+                ConceptNameCodeSequence: {
+                    CodeValue: "131190003",
+                    CodingSchemeDesignator: "SCT",
+                    CodeMeaning: "Radius"
+                },
+                MeasuredValueSequence: {
+                    MeasurementUnitsCodeSequence: unit2CodingValue(radiusUnit),
+                    NumericValue: radius
+                },
+                ContentSequence: buildContentSequence({
+                    graphicType: "CIRCLE",
+                    graphicData: GraphicData,
+                    use3DSpatialCoordinates,
+                    referencedSOPSequence: ReferencedSOPSequence,
+                    referencedFrameOfReferenceUID: ReferencedFrameOfReferenceUID
+                })
+            });
+        }
+
+        if (max) {
+            measurements.push({
                 RelationshipType: "CONTAINS",
                 ValueType: "NUM",
                 ConceptNameCodeSequence: {
@@ -102,12 +107,22 @@ export default class Circle extends TID300Measurement {
                     CodeMeaning: "Maximum"
                 },
                 MeasuredValueSequence: {
-                    MeasurementUnitsCodeSequence: modalityUnit,
+                    MeasurementUnitsCodeSequence:
+                        unit2CodingValue(modalityUnit),
                     NumericValue: max
                 },
-                ContentSequence: graphicContentSequence
-            },
-            {
+                ContentSequence: buildContentSequence({
+                    graphicType: "CIRCLE",
+                    graphicData: GraphicData,
+                    use3DSpatialCoordinates,
+                    referencedSOPSequence: ReferencedSOPSequence,
+                    referencedFrameOfReferenceUID: ReferencedFrameOfReferenceUID
+                })
+            });
+        }
+
+        if (min) {
+            measurements.push({
                 RelationshipType: "CONTAINS",
                 ValueType: "NUM",
                 ConceptNameCodeSequence: {
@@ -116,24 +131,22 @@ export default class Circle extends TID300Measurement {
                     CodeMeaning: "Minimum"
                 },
                 MeasuredValueSequence: {
-                    MeasurementUnitsCodeSequence: modalityUnit,
+                    MeasurementUnitsCodeSequence:
+                        unit2CodingValue(modalityUnit),
                     NumericValue: min
                 },
-                ContentSequence: {
-                    RelationshipType: "INFERRED FROM",
-                    ValueType: use3DSpatialCoordinates ? "SCOORD3D" : "SCOORD",
-                    GraphicType: "CIRCLE",
-                    GraphicData,
-                    ContentSequence: use3DSpatialCoordinates
-                        ? undefined
-                        : {
-                              RelationshipType: "SELECTED FROM",
-                              ValueType: "IMAGE",
-                              ReferencedSOPSequence
-                          }
-                }
-            },
-            {
+                ContentSequence: buildContentSequence({
+                    graphicType: "CIRCLE",
+                    graphicData: GraphicData,
+                    use3DSpatialCoordinates,
+                    referencedSOPSequence: ReferencedSOPSequence,
+                    referencedFrameOfReferenceUID: ReferencedFrameOfReferenceUID
+                })
+            });
+        }
+
+        if (mean) {
+            measurements.push({
                 RelationshipType: "CONTAINS",
                 ValueType: "NUM",
                 ConceptNameCodeSequence: {
@@ -142,12 +155,22 @@ export default class Circle extends TID300Measurement {
                     CodeMeaning: "Mean"
                 },
                 MeasuredValueSequence: {
-                    MeasurementUnitsCodeSequence: modalityUnit,
+                    MeasurementUnitsCodeSequence:
+                        unit2CodingValue(modalityUnit),
                     NumericValue: mean
                 },
-                ContentSequence: graphicContentSequence
-            },
-            {
+                ContentSequence: buildContentSequence({
+                    graphicType: "CIRCLE",
+                    graphicData: GraphicData,
+                    use3DSpatialCoordinates,
+                    referencedSOPSequence: ReferencedSOPSequence,
+                    referencedFrameOfReferenceUID: ReferencedFrameOfReferenceUID
+                })
+            });
+        }
+
+        if (stdDev) {
+            measurements.push({
                 RelationshipType: "CONTAINS",
                 ValueType: "NUM",
                 ConceptNameCodeSequence: {
@@ -156,11 +179,19 @@ export default class Circle extends TID300Measurement {
                     CodeMeaning: "Standard Deviation"
                 },
                 MeasuredValueSequence: {
-                    MeasurementUnitsCodeSequence: modalityUnit,
+                    MeasurementUnitsCodeSequence:
+                        unit2CodingValue(modalityUnit),
                     NumericValue: stdDev
                 },
-                ContentSequence: graphicContentSequence
-            }
-        ]);
+                ContentSequence: buildContentSequence({
+                    graphicType: "CIRCLE",
+                    graphicData: GraphicData,
+                    use3DSpatialCoordinates,
+                    referencedSOPSequence: ReferencedSOPSequence,
+                    referencedFrameOfReferenceUID: ReferencedFrameOfReferenceUID
+                })
+            });
+        }
+        return this.getMeasurement(measurements);
     }
 }

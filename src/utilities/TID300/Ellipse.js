@@ -23,15 +23,7 @@ export default class Ellipse extends TID300Measurement {
             use3DSpatialCoordinates
         });
 
-        const graphicContentSequence = buildContentSequence({
-            graphicType: "ELLIPSE",
-            graphicData: GraphicData,
-            use3DSpatialCoordinates,
-            referencedSOPSequence: ReferencedSOPSequence,
-            referencedFrameOfReferenceUID: ReferencedFrameOfReferenceUID
-        });
-
-        return this.getMeasurement([
+        const measurements = [
             {
                 RelationshipType: "CONTAINS",
                 ValueType: "NUM",
@@ -44,9 +36,18 @@ export default class Ellipse extends TID300Measurement {
                     MeasurementUnitsCodeSequence: unit2CodingValue(areaUnit),
                     NumericValue: area
                 },
-                ContentSequence: graphicContentSequence
-            },
-            {
+                ContentSequence: buildContentSequence({
+                    graphicType: "ELLIPSE",
+                    graphicData: GraphicData,
+                    use3DSpatialCoordinates,
+                    referencedSOPSequence: ReferencedSOPSequence,
+                    referencedFrameOfReferenceUID: ReferencedFrameOfReferenceUID
+                })
+            }
+        ];
+
+        if (max) {
+            measurements.push({
                 RelationshipType: "CONTAINS",
                 ValueType: "NUM",
                 ConceptNameCodeSequence: {
@@ -55,12 +56,22 @@ export default class Ellipse extends TID300Measurement {
                     CodeMeaning: "Maximum"
                 },
                 MeasuredValueSequence: {
-                    MeasurementUnitsCodeSequence: modalityUnit,
+                    MeasurementUnitsCodeSequence:
+                        unit2CodingValue(modalityUnit),
                     NumericValue: max
                 },
-                ContentSequence: graphicContentSequence
-            },
-            {
+                ContentSequence: buildContentSequence({
+                    graphicType: "ELLIPSE",
+                    graphicData: GraphicData,
+                    use3DSpatialCoordinates,
+                    referencedSOPSequence: ReferencedSOPSequence,
+                    referencedFrameOfReferenceUID: ReferencedFrameOfReferenceUID
+                })
+            });
+        }
+
+        if (min) {
+            measurements.push({
                 RelationshipType: "CONTAINS",
                 ValueType: "NUM",
                 ConceptNameCodeSequence: {
@@ -69,12 +80,22 @@ export default class Ellipse extends TID300Measurement {
                     CodeMeaning: "Minimum"
                 },
                 MeasuredValueSequence: {
-                    MeasurementUnitsCodeSequence: modalityUnit,
+                    MeasurementUnitsCodeSequence:
+                        unit2CodingValue(modalityUnit),
                     NumericValue: min
                 },
-                ContentSequence: graphicContentSequence
-            },
-            {
+                ContentSequence: buildContentSequence({
+                    graphicType: "ELLIPSE",
+                    graphicData: GraphicData,
+                    use3DSpatialCoordinates,
+                    referencedSOPSequence: ReferencedSOPSequence,
+                    referencedFrameOfReferenceUID: ReferencedFrameOfReferenceUID
+                })
+            });
+        }
+
+        if (mean) {
+            measurements.push({
                 RelationshipType: "CONTAINS",
                 ValueType: "NUM",
                 ConceptNameCodeSequence: {
@@ -83,12 +104,22 @@ export default class Ellipse extends TID300Measurement {
                     CodeMeaning: "Mean"
                 },
                 MeasuredValueSequence: {
-                    MeasurementUnitsCodeSequence: modalityUnit,
+                    MeasurementUnitsCodeSequence:
+                        unit2CodingValue(modalityUnit),
                     NumericValue: mean
                 },
-                ContentSequence: graphicContentSequence
-            },
-            {
+                ContentSequence: buildContentSequence({
+                    graphicType: "ELLIPSE",
+                    graphicData: GraphicData,
+                    use3DSpatialCoordinates,
+                    referencedSOPSequence: ReferencedSOPSequence,
+                    referencedFrameOfReferenceUID: ReferencedFrameOfReferenceUID
+                })
+            });
+        }
+
+        if (stdDev) {
+            measurements.push({
                 RelationshipType: "CONTAINS",
                 ValueType: "NUM",
                 ConceptNameCodeSequence: {
@@ -97,11 +128,20 @@ export default class Ellipse extends TID300Measurement {
                     CodeMeaning: "Standard Deviation"
                 },
                 MeasuredValueSequence: {
-                    MeasurementUnitsCodeSequence: modalityUnit,
+                    MeasurementUnitsCodeSequence:
+                        unit2CodingValue(modalityUnit),
                     NumericValue: stdDev
                 },
-                ContentSequence: graphicContentSequence
-            }
-        ]);
+                ContentSequence: buildContentSequence({
+                    graphicType: "ELLIPSE",
+                    graphicData: GraphicData,
+                    use3DSpatialCoordinates,
+                    referencedSOPSequence: ReferencedSOPSequence,
+                    referencedFrameOfReferenceUID: ReferencedFrameOfReferenceUID
+                })
+            });
+        }
+
+        return this.getMeasurement(measurements);
     }
 }
