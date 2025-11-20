@@ -30,7 +30,14 @@ const measurementMap = {
     "mm\xB2": MM2_UNIT,
     "px\xB2": NO2_UNIT
 };
-
+const generateUnitMap = unit => {
+    return {
+        CodeValue: unit,
+        CodingSchemeDesignator: "UCUM",
+        CodingSchemeVersion: "1.4",
+        CodeMeaning: unit
+    };
+};
 /** Converts the given unit into the
  * specified coding values.
  * Has .measurementMap on the function specifying global units for measurements.
@@ -41,8 +48,7 @@ const unit2CodingValue = units => {
     const baseUnit = space === -1 ? units : units.substring(0, space);
     const codingUnit = measurementMap[units] || measurementMap[baseUnit];
     if (!codingUnit) {
-        log.error("Unspecified units", units);
-        return MM_UNIT;
+        return generateUnitMap(units);
     }
     return codingUnit;
 };
