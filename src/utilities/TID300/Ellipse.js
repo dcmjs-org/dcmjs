@@ -60,13 +60,10 @@ export default class Ellipse extends TID300Measurement {
                         unit2CodingValue(modalityUnit),
                     NumericValue: max
                 },
-                ContentSequence: buildContentSequence({
-                    graphicType: "ELLIPSE",
-                    graphicData: GraphicData,
-                    use3DSpatialCoordinates,
-                    referencedSOPSequence: ReferencedSOPSequence,
-                    referencedFrameOfReferenceUID: ReferencedFrameOfReferenceUID
-                })
+                ContentSequence: {
+                    RelationshipType: "INFERRED FROM",
+                    ReferencedContentItemIdentifier: 1
+                }
             });
         }
 
@@ -84,13 +81,10 @@ export default class Ellipse extends TID300Measurement {
                         unit2CodingValue(modalityUnit),
                     NumericValue: min
                 },
-                ContentSequence: buildContentSequence({
-                    graphicType: "ELLIPSE",
-                    graphicData: GraphicData,
-                    use3DSpatialCoordinates,
-                    referencedSOPSequence: ReferencedSOPSequence,
-                    referencedFrameOfReferenceUID: ReferencedFrameOfReferenceUID
-                })
+                ContentSequence: {
+                    RelationshipType: "INFERRED FROM",
+                    ReferencedContentItemIdentifier: 1
+                }
             });
         }
 
@@ -108,13 +102,10 @@ export default class Ellipse extends TID300Measurement {
                         unit2CodingValue(modalityUnit),
                     NumericValue: mean
                 },
-                ContentSequence: buildContentSequence({
-                    graphicType: "ELLIPSE",
-                    graphicData: GraphicData,
-                    use3DSpatialCoordinates,
-                    referencedSOPSequence: ReferencedSOPSequence,
-                    referencedFrameOfReferenceUID: ReferencedFrameOfReferenceUID
-                })
+                ContentSequence: {
+                    RelationshipType: "INFERRED FROM",
+                    ReferencedContentItemIdentifier: 1
+                }
             });
         }
 
@@ -132,13 +123,10 @@ export default class Ellipse extends TID300Measurement {
                         unit2CodingValue(modalityUnit),
                     NumericValue: stdDev
                 },
-                ContentSequence: buildContentSequence({
-                    graphicType: "ELLIPSE",
-                    graphicData: GraphicData,
-                    use3DSpatialCoordinates,
-                    referencedSOPSequence: ReferencedSOPSequence,
-                    referencedFrameOfReferenceUID: ReferencedFrameOfReferenceUID
-                })
+                ContentSequence: {
+                    RelationshipType: "INFERRED FROM",
+                    ReferencedContentItemIdentifier: 1
+                }
             });
         }
 

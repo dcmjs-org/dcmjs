@@ -65,13 +65,10 @@ export default class Circle extends TID300Measurement {
                     MeasurementUnitsCodeSequence: unit2CodingValue(areaUnit),
                     NumericValue: area
                 },
-                ContentSequence: buildContentSequence({
-                    graphicType: "CIRCLE",
-                    graphicData: GraphicData,
-                    use3DSpatialCoordinates,
-                    referencedSOPSequence: ReferencedSOPSequence,
-                    referencedFrameOfReferenceUID: ReferencedFrameOfReferenceUID
-                })
+                ContentSequence: {
+                    RelationshipType: "INFERRED FROM",
+                    ReferencedContentItemIdentifier: 1
+                }
             }
         ];
         if (radius) {
@@ -87,13 +84,10 @@ export default class Circle extends TID300Measurement {
                     MeasurementUnitsCodeSequence: unit2CodingValue(radiusUnit),
                     NumericValue: radius
                 },
-                ContentSequence: buildContentSequence({
-                    graphicType: "CIRCLE",
-                    graphicData: GraphicData,
-                    use3DSpatialCoordinates,
-                    referencedSOPSequence: ReferencedSOPSequence,
-                    referencedFrameOfReferenceUID: ReferencedFrameOfReferenceUID
-                })
+                ContentSequence: {
+                    RelationshipType: "INFERRED FROM",
+                    ReferencedContentItemIdentifier: 1
+                }
             });
         }
 
@@ -111,13 +105,10 @@ export default class Circle extends TID300Measurement {
                         unit2CodingValue(modalityUnit),
                     NumericValue: max
                 },
-                ContentSequence: buildContentSequence({
-                    graphicType: "CIRCLE",
-                    graphicData: GraphicData,
-                    use3DSpatialCoordinates,
-                    referencedSOPSequence: ReferencedSOPSequence,
-                    referencedFrameOfReferenceUID: ReferencedFrameOfReferenceUID
-                })
+                ContentSequence: {
+                    RelationshipType: "INFERRED FROM",
+                    ReferencedContentItemIdentifier: 1
+                }
             });
         }
 
@@ -135,13 +126,10 @@ export default class Circle extends TID300Measurement {
                         unit2CodingValue(modalityUnit),
                     NumericValue: min
                 },
-                ContentSequence: buildContentSequence({
-                    graphicType: "CIRCLE",
-                    graphicData: GraphicData,
-                    use3DSpatialCoordinates,
-                    referencedSOPSequence: ReferencedSOPSequence,
-                    referencedFrameOfReferenceUID: ReferencedFrameOfReferenceUID
-                })
+                ContentSequence: {
+                    RelationshipType: "INFERRED FROM",
+                    ReferencedContentItemIdentifier: 1
+                }
             });
         }
 
@@ -159,13 +147,10 @@ export default class Circle extends TID300Measurement {
                         unit2CodingValue(modalityUnit),
                     NumericValue: mean
                 },
-                ContentSequence: buildContentSequence({
-                    graphicType: "CIRCLE",
-                    graphicData: GraphicData,
-                    use3DSpatialCoordinates,
-                    referencedSOPSequence: ReferencedSOPSequence,
-                    referencedFrameOfReferenceUID: ReferencedFrameOfReferenceUID
-                })
+                ContentSequence: {
+                    RelationshipType: "INFERRED FROM",
+                    ReferencedContentItemIdentifier: 1
+                }
             });
         }
 
@@ -183,13 +168,10 @@ export default class Circle extends TID300Measurement {
                         unit2CodingValue(modalityUnit),
                     NumericValue: stdDev
                 },
-                ContentSequence: buildContentSequence({
-                    graphicType: "CIRCLE",
-                    graphicData: GraphicData,
-                    use3DSpatialCoordinates,
-                    referencedSOPSequence: ReferencedSOPSequence,
-                    referencedFrameOfReferenceUID: ReferencedFrameOfReferenceUID
-                })
+                ContentSequence: {
+                    RelationshipType: "INFERRED FROM",
+                    ReferencedContentItemIdentifier: 1
+                }
             });
         }
         return this.getMeasurement(measurements);

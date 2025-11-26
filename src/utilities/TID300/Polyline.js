@@ -58,13 +58,10 @@ export default class Polyline extends TID300Measurement {
                     MeasurementUnitsCodeSequence: unit2CodingValue(areaUnit),
                     NumericValue: area
                 },
-                ContentSequence: buildContentSequence({
-                    graphicType: "POLYLINE",
-                    graphicData: GraphicData,
-                    use3DSpatialCoordinates,
-                    referencedSOPSequence: ReferencedSOPSequence,
-                    referencedFrameOfReferenceUID: ReferencedFrameOfReferenceUID
-                })
+                ContentSequence: {
+                    RelationshipType: "INFERRED FROM",
+                    ReferencedContentItemIdentifier: 1
+                }
             }
         ];
 
@@ -82,13 +79,10 @@ export default class Polyline extends TID300Measurement {
                         unit2CodingValue(modalityUnit),
                     NumericValue: max
                 },
-                ContentSequence: buildContentSequence({
-                    graphicType: "POLYLINE",
-                    graphicData: GraphicData,
-                    use3DSpatialCoordinates,
-                    referencedSOPSequence: ReferencedSOPSequence,
-                    referencedFrameOfReferenceUID: ReferencedFrameOfReferenceUID
-                })
+                ContentSequence: {
+                    RelationshipType: "INFERRED FROM",
+                    ReferencedContentItemIdentifier: 1
+                }
             });
         }
         if (min) {
@@ -105,13 +99,10 @@ export default class Polyline extends TID300Measurement {
                         unit2CodingValue(modalityUnit),
                     NumericValue: min
                 },
-                ContentSequence: buildContentSequence({
-                    graphicType: "POLYLINE",
-                    graphicData: GraphicData,
-                    use3DSpatialCoordinates,
-                    referencedSOPSequence: ReferencedSOPSequence,
-                    referencedFrameOfReferenceUID: ReferencedFrameOfReferenceUID
-                })
+                ContentSequence: {
+                    RelationshipType: "INFERRED FROM",
+                    ReferencedContentItemIdentifier: 1
+                }
             });
         }
         if (mean) {
@@ -128,13 +119,10 @@ export default class Polyline extends TID300Measurement {
                         unit2CodingValue(modalityUnit),
                     NumericValue: mean
                 },
-                ContentSequence: buildContentSequence({
-                    graphicType: "POLYLINE",
-                    graphicData: GraphicData,
-                    use3DSpatialCoordinates,
-                    referencedSOPSequence: ReferencedSOPSequence,
-                    referencedFrameOfReferenceUID: ReferencedFrameOfReferenceUID
-                })
+                ContentSequence: {
+                    RelationshipType: "INFERRED FROM",
+                    ReferencedContentItemIdentifier: 1
+                }
             });
         }
         if (stdDev) {
@@ -151,13 +139,10 @@ export default class Polyline extends TID300Measurement {
                         unit2CodingValue(modalityUnit),
                     NumericValue: stdDev
                 },
-                ContentSequence: buildContentSequence({
-                    graphicType: "POLYLINE",
-                    graphicData: GraphicData,
-                    use3DSpatialCoordinates,
-                    referencedSOPSequence: ReferencedSOPSequence,
-                    referencedFrameOfReferenceUID: ReferencedFrameOfReferenceUID
-                })
+                ContentSequence: {
+                    RelationshipType: "INFERRED FROM",
+                    ReferencedContentItemIdentifier: 1
+                }
             });
         }
         return this.getMeasurement(measurements);
