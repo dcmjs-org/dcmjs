@@ -19,7 +19,8 @@ export default class Circle extends TID300Measurement {
             radiusUnit,
             modalityUnit,
             ReferencedFrameOfReferenceUID,
-            radius
+            radius,
+            annotationIndex
         } = this.props;
 
         // Combine all lengths to save the perimeter
@@ -67,7 +68,7 @@ export default class Circle extends TID300Measurement {
                 },
                 ContentSequence: {
                     RelationshipType: "INFERRED FROM",
-                    ReferencedContentItemIdentifier: 1
+                    ReferencedContentItemIdentifier: [1, 1, annotationIndex]
                 }
             }
         ];
@@ -86,7 +87,7 @@ export default class Circle extends TID300Measurement {
                 },
                 ContentSequence: {
                     RelationshipType: "INFERRED FROM",
-                    ReferencedContentItemIdentifier: 1
+                    ReferencedContentItemIdentifier: [1, 1, annotationIndex]
                 }
             });
         }
@@ -107,7 +108,7 @@ export default class Circle extends TID300Measurement {
                 },
                 ContentSequence: {
                     RelationshipType: "INFERRED FROM",
-                    ReferencedContentItemIdentifier: 1
+                    ReferencedContentItemIdentifier: [1, 1, annotationIndex]
                 }
             });
         }
@@ -128,7 +129,7 @@ export default class Circle extends TID300Measurement {
                 },
                 ContentSequence: {
                     RelationshipType: "INFERRED FROM",
-                    ReferencedContentItemIdentifier: 1
+                    ReferencedContentItemIdentifier: [1, 1, annotationIndex]
                 }
             });
         }
@@ -149,7 +150,7 @@ export default class Circle extends TID300Measurement {
                 },
                 ContentSequence: {
                     RelationshipType: "INFERRED FROM",
-                    ReferencedContentItemIdentifier: 1
+                    ReferencedContentItemIdentifier: [1, 1, annotationIndex]
                 }
             });
         }
@@ -170,7 +171,7 @@ export default class Circle extends TID300Measurement {
                 },
                 ContentSequence: {
                     RelationshipType: "INFERRED FROM",
-                    ReferencedContentItemIdentifier: 1
+                    ReferencedContentItemIdentifier: [1, 1, annotationIndex]
                 }
             });
         }

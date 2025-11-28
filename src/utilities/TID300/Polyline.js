@@ -17,7 +17,8 @@ export default class Polyline extends TID300Measurement {
             max,
             mean,
             stdDev,
-            ReferencedFrameOfReferenceUID
+            ReferencedFrameOfReferenceUID,
+            annotationIndex
         } = this.props;
 
         const GraphicData = this.flattenPoints({
@@ -60,7 +61,7 @@ export default class Polyline extends TID300Measurement {
                 },
                 ContentSequence: {
                     RelationshipType: "INFERRED FROM",
-                    ReferencedContentItemIdentifier: 1
+                    ReferencedContentItemIdentifier: [1, 1, annotationIndex]
                 }
             }
         ];
@@ -81,7 +82,7 @@ export default class Polyline extends TID300Measurement {
                 },
                 ContentSequence: {
                     RelationshipType: "INFERRED FROM",
-                    ReferencedContentItemIdentifier: 1
+                    ReferencedContentItemIdentifier: [1, 1, annotationIndex]
                 }
             });
         }
@@ -101,7 +102,7 @@ export default class Polyline extends TID300Measurement {
                 },
                 ContentSequence: {
                     RelationshipType: "INFERRED FROM",
-                    ReferencedContentItemIdentifier: 1
+                    ReferencedContentItemIdentifier: [1, 1, annotationIndex]
                 }
             });
         }
@@ -121,7 +122,7 @@ export default class Polyline extends TID300Measurement {
                 },
                 ContentSequence: {
                     RelationshipType: "INFERRED FROM",
-                    ReferencedContentItemIdentifier: 1
+                    ReferencedContentItemIdentifier: [1, 1, annotationIndex]
                 }
             });
         }
@@ -141,7 +142,7 @@ export default class Polyline extends TID300Measurement {
                 },
                 ContentSequence: {
                     RelationshipType: "INFERRED FROM",
-                    ReferencedContentItemIdentifier: 1
+                    ReferencedContentItemIdentifier: [1, 1, annotationIndex]
                 }
             });
         }

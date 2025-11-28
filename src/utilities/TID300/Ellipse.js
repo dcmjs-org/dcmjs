@@ -15,7 +15,8 @@ export default class Ellipse extends TID300Measurement {
             mean,
             stdDev,
             modalityUnit,
-            ReferencedFrameOfReferenceUID
+            ReferencedFrameOfReferenceUID,
+            annotationIndex
         } = this.props;
 
         const GraphicData = this.flattenPoints({
@@ -62,7 +63,7 @@ export default class Ellipse extends TID300Measurement {
                 },
                 ContentSequence: {
                     RelationshipType: "INFERRED FROM",
-                    ReferencedContentItemIdentifier: 1
+                    ReferencedContentItemIdentifier: [1, 1, annotationIndex]
                 }
             });
         }
@@ -83,7 +84,7 @@ export default class Ellipse extends TID300Measurement {
                 },
                 ContentSequence: {
                     RelationshipType: "INFERRED FROM",
-                    ReferencedContentItemIdentifier: 1
+                    ReferencedContentItemIdentifier: [1, 1, annotationIndex]
                 }
             });
         }
@@ -104,7 +105,7 @@ export default class Ellipse extends TID300Measurement {
                 },
                 ContentSequence: {
                     RelationshipType: "INFERRED FROM",
-                    ReferencedContentItemIdentifier: 1
+                    ReferencedContentItemIdentifier: [1, 1, annotationIndex]
                 }
             });
         }
@@ -125,7 +126,7 @@ export default class Ellipse extends TID300Measurement {
                 },
                 ContentSequence: {
                     RelationshipType: "INFERRED FROM",
-                    ReferencedContentItemIdentifier: 1
+                    ReferencedContentItemIdentifier: [1, 1, annotationIndex]
                 }
             });
         }
