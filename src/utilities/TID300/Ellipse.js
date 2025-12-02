@@ -1,6 +1,7 @@
 import TID300Measurement from "./TID300Measurement.js";
 import unit2CodingValue from "./unit2CodingValue.js";
-import buildContentSequence from "./buildContentSequence.js";
+import Tid320ContentItem from "./Tid320ContentItem.js";
+import MeasurementBuilder from "../MeasurementBuilder.js";
 
 export default class Ellipse extends TID300Measurement {
     contentItem() {
@@ -24,6 +25,34 @@ export default class Ellipse extends TID300Measurement {
             use3DSpatialCoordinates
         });
 
+        const measurementConfigs = [
+            {
+                value: area,
+                unit: areaUnit,
+                builder: MeasurementBuilder.createAreaMeasurement
+            },
+            {
+                value: max,
+                unit: modalityUnit,
+                builder: MeasurementBuilder.createMaxMeasurement
+            },
+            {
+                value: min,
+                unit: modalityUnit,
+                builder: MeasurementBuilder.createMinMeasurement
+            },
+            {
+                value: mean,
+                unit: modalityUnit,
+                builder: MeasurementBuilder.createMeanMeasurement
+            },
+            {
+                value: stdDev,
+                unit: modalityUnit,
+                builder: MeasurementBuilder.createStdDevMeasurement
+            }
+        ];
+
         const measurements = [
             {
                 RelationshipType: "CONTAINS",
@@ -37,99 +66,20 @@ export default class Ellipse extends TID300Measurement {
                     MeasurementUnitsCodeSequence: unit2CodingValue(areaUnit),
                     NumericValue: area
                 },
-                ContentSequence: buildContentSequence({
+                ContentSequence: new Tid320ContentItem({
                     graphicType: "ELLIPSE",
                     graphicData: GraphicData,
                     use3DSpatialCoordinates,
                     referencedSOPSequence: ReferencedSOPSequence,
                     referencedFrameOfReferenceUID: ReferencedFrameOfReferenceUID
-                })
-            }
+                }).contentItem()
+            },
+            ...measurementConfigs
+                .filter(config => config.value !== undefined)
+                .map(config =>
+                    config.builder(config.value, config.unit, annotationIndex)
+                )
         ];
-
-        if (max) {
-            measurements.push({
-                RelationshipType: "CONTAINS",
-                ValueType: "NUM",
-                ConceptNameCodeSequence: {
-                    CodeValue: "56851009",
-                    CodingSchemeDesignator: "SCT",
-                    CodeMeaning: "Maximum"
-                },
-                MeasuredValueSequence: {
-                    MeasurementUnitsCodeSequence:
-                        unit2CodingValue(modalityUnit),
-                    NumericValue: max
-                },
-                ContentSequence: {
-                    RelationshipType: "INFERRED FROM",
-                    ReferencedContentItemIdentifier: [1, 1, annotationIndex]
-                }
-            });
-        }
-
-        if (min) {
-            measurements.push({
-                RelationshipType: "CONTAINS",
-                ValueType: "NUM",
-                ConceptNameCodeSequence: {
-                    CodeValue: "255605001",
-                    CodingSchemeDesignator: "SCT",
-                    CodeMeaning: "Minimum"
-                },
-                MeasuredValueSequence: {
-                    MeasurementUnitsCodeSequence:
-                        unit2CodingValue(modalityUnit),
-                    NumericValue: min
-                },
-                ContentSequence: {
-                    RelationshipType: "INFERRED FROM",
-                    ReferencedContentItemIdentifier: [1, 1, annotationIndex]
-                }
-            });
-        }
-
-        if (mean) {
-            measurements.push({
-                RelationshipType: "CONTAINS",
-                ValueType: "NUM",
-                ConceptNameCodeSequence: {
-                    CodeValue: "373098007",
-                    CodingSchemeDesignator: "SCT",
-                    CodeMeaning: "Mean"
-                },
-                MeasuredValueSequence: {
-                    MeasurementUnitsCodeSequence:
-                        unit2CodingValue(modalityUnit),
-                    NumericValue: mean
-                },
-                ContentSequence: {
-                    RelationshipType: "INFERRED FROM",
-                    ReferencedContentItemIdentifier: [1, 1, annotationIndex]
-                }
-            });
-        }
-
-        if (stdDev) {
-            measurements.push({
-                RelationshipType: "CONTAINS",
-                ValueType: "NUM",
-                ConceptNameCodeSequence: {
-                    CodeValue: "386136009",
-                    CodingSchemeDesignator: "SCT",
-                    CodeMeaning: "Standard Deviation"
-                },
-                MeasuredValueSequence: {
-                    MeasurementUnitsCodeSequence:
-                        unit2CodingValue(modalityUnit),
-                    NumericValue: stdDev
-                },
-                ContentSequence: {
-                    RelationshipType: "INFERRED FROM",
-                    ReferencedContentItemIdentifier: [1, 1, annotationIndex]
-                }
-            });
-        }
 
         return this.getMeasurement(measurements);
     }

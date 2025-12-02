@@ -1,18 +1,174 @@
 import log from "../../log.js";
 
-const MM_UNIT = {
-    CodeValue: "mm",
-    CodingSchemeDesignator: "UCUM",
-    CodingSchemeVersion: "1.4",
-    CodeMeaning: "millimeter"
-};
+const knownUnits = [
+    // Standard UCUM units.
+    {
+        CodingSchemeDesignator: "UCUM",
+        CodingSchemeVersion: "1.4",
+        CodeValue: "mm",
+        CodeMeaning: "millimeter"
+    },
+    {
+        CodingSchemeDesignator: "UCUM",
+        CodingSchemeVersion: "1.4",
+        CodeValue: "mm2",
+        CodeMeaning: "SquareMilliMeter"
+    },
+    {
+        CodingSchemeDesignator: "UCUM",
+        CodingSchemeVersion: "1.4",
+        CodeValue: "mm\xB2",
+        CodeMeaning: "SquareMilliMeter"
+    },
+    {
+        CodingSchemeDesignator: "UCUM",
+        CodingSchemeVersion: "1.4",
+        CodeValue: "1",
+        CodeMeaning: "px"
+    },
+    {
+        CodingSchemeDesignator: "UCUM",
+        CodingSchemeVersion: "1.4",
+        CodeValue: "1",
+        CodeMeaning: "px\xB2"
+    },
+    // Units defined in https://dicom.nema.org/medical/dicom/current/output/chtml/part16/sect_CID_83.html
+    {
+        CodingSchemeDesignator: "UCUM",
+        CodingSchemeVersion: "1.4",
+        CodeValue: "[hnsf'U]",
+        CodeMeaning: "Hounsfield unit"
+    },
+    // Units defined in https://dicom.nema.org/medical/dicom/current/output/chtml/part16/sect_CID_84.html
+    {
+        CodingSchemeDesignator: "UCUM",
+        CodingSchemeVersion: "1.4",
+        CodeValue: "{counts}",
+        CodeMeaning: "Counts"
+    },
+    {
+        CodingSchemeDesignator: "UCUM",
+        CodingSchemeVersion: "1.4",
+        CodeValue: "{counts}/s",
+        CodeMeaning: "Counts per second"
+    },
+    {
+        CodingSchemeDesignator: "UCUM",
+        CodingSchemeVersion: "1.4",
+        CodeValue: "{propcounts}",
+        CodeMeaning: "Proportional to counts"
+    },
+    {
+        CodingSchemeDesignator: "UCUM",
+        CodingSchemeVersion: "1.4",
+        CodeValue: "{propcounts}/s",
+        CodeMeaning: "Proportional to counts per second"
+    },
+    {
+        CodingSchemeDesignator: "UCUM",
+        CodingSchemeVersion: "1.4",
+        CodeValue: "cm2",
+        CodeMeaning: "Centimeter**2"
+    },
+    {
+        CodingSchemeDesignator: "UCUM",
+        CodingSchemeVersion: "1.4",
+        CodeValue: "cm2/ml",
+        CodeMeaning: "Centimeter**2/milliliter"
+    },
+    {
+        CodingSchemeDesignator: "UCUM",
+        CodingSchemeVersion: "1.4",
+        CodeValue: "%",
+        CodeMeaning: "Percent"
+    },
+    {
+        CodingSchemeDesignator: "UCUM",
+        CodingSchemeVersion: "1.4",
+        CodeValue: "Bq/ml",
+        CodeMeaning: "Becquerels/milliliter"
+    },
+    {
+        CodingSchemeDesignator: "UCUM",
+        CodingSchemeVersion: "1.4",
+        CodeValue: "mg/min/ml",
+        CodeMeaning: "Milligrams/minute/milliliter"
+    },
+    {
+        CodingSchemeDesignator: "UCUM",
+        CodingSchemeVersion: "1.4",
+        CodeValue: "umol/min/ml",
+        CodeMeaning: "Micromole/minute/milliliter"
+    },
+    {
+        CodingSchemeDesignator: "UCUM",
+        CodingSchemeVersion: "1.4",
+        CodeValue: "ml/min/g",
+        CodeMeaning: "Milliliter/minute/gram"
+    },
+    {
+        CodingSchemeDesignator: "UCUM",
+        CodingSchemeVersion: "1.4",
+        CodeValue: "ml/g",
+        CodeMeaning: "Milliliter/gram"
+    },
+    {
+        CodingSchemeDesignator: "UCUM",
+        CodingSchemeVersion: "1.4",
+        CodeValue: "/cm",
+        CodeMeaning: "/Centimeter"
+    },
+    {
+        CodingSchemeDesignator: "UCUM",
+        CodingSchemeVersion: "1.4",
+        CodeValue: "umol/ml",
+        CodeMeaning: "Micromole/milliliter"
+    },
+    // Units defined in https://dicom.nema.org/medical/dicom/current/output/chtml/part16/sect_CID_85.html
+    {
+        CodingSchemeDesignator: "UCUM",
+        CodingSchemeVersion: "1.4",
+        CodeValue: "g/ml{SUVbw}",
+        CodeMeaning: "Standardized Uptake Value body weight"
+    },
+    {
+        CodingSchemeDesignator: "UCUM",
+        CodingSchemeVersion: "1.4",
+        CodeValue: "g/ml{SUVlbm}",
+        CodeMeaning: "Standardized Uptake Value lean body mass (James)"
+    },
+    {
+        CodingSchemeDesignator: "UCUM",
+        CodingSchemeVersion: "1.4",
+        CodeValue: "g/ml{SUVlbm(James128)}",
+        CodeMeaning:
+            "Standardized Uptake Value lean body mass (James 128 multiplier)"
+    },
+    {
+        CodingSchemeDesignator: "UCUM",
+        CodingSchemeVersion: "1.4",
+        CodeValue: "g/ml{SUVlbm(Janma)}",
+        CodeMeaning: "Standardized Uptake Value lean body mass (Janma)"
+    },
+    {
+        CodingSchemeDesignator: "UCUM",
+        CodingSchemeVersion: "1.4",
+        CodeValue: "cm2/ml{SUVbsa}",
+        CodeMeaning: "Standardized Uptake Value body surface area"
+    },
+    {
+        CodingSchemeDesignator: "UCUM",
+        CodingSchemeVersion: "1.4",
+        CodeValue: "g/ml{SUVibw}",
+        CodeMeaning: "Standardized Uptake Value ideal body weight"
+    }
+];
 
-const MM2_UNIT = {
-    CodeValue: "mm2",
-    CodingSchemeDesignator: "UCUM",
-    CodingSchemeVersion: "1.4",
-    CodeMeaning: "SquareMilliMeter"
-};
+// Create measurementMap from knownUnits for efficient lookup
+const measurementMap = {};
+knownUnits.forEach(unit => {
+    measurementMap[unit.CodeValue] = unit;
+});
 
 const NO_UNIT = {
     CodeValue: "1",
@@ -20,21 +176,10 @@ const NO_UNIT = {
     CodingSchemeVersion: "1.4",
     CodeMeaning: "px"
 };
-
-const NO2_UNIT = NO_UNIT;
-
-const measurementMap = {
-    px: NO_UNIT,
-    mm: MM_UNIT,
-    mm2: MM2_UNIT,
-    "mm\xB2": MM2_UNIT,
-    "px\xB2": NO2_UNIT
-};
 const generateUnitMap = unit => {
     return {
         CodeValue: unit,
-        CodingSchemeDesignator: "UCUM",
-        CodingSchemeVersion: "1.4",
+        CodingSchemeDesignator: "99dcmjsUnit",
         CodeMeaning: unit
     };
 };

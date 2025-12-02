@@ -1,6 +1,6 @@
 import TID300Measurement from "./TID300Measurement.js";
 import unit2CodingValue from "./unit2CodingValue.js";
-import buildContentSequence from "./buildContentSequence.js";
+import Tid320ContentItem from "./Tid320ContentItem.js";
 
 export default class Calibration extends TID300Measurement {
     contentItem() {
@@ -19,13 +19,13 @@ export default class Calibration extends TID300Measurement {
             use3DSpatialCoordinates
         });
 
-        const graphicContentSequence = buildContentSequence({
+        const graphicContentSequence = new Tid320ContentItem({
             graphicType: "POLYLINE",
             graphicData: GraphicData,
             use3DSpatialCoordinates,
             referencedSOPSequence: ReferencedSOPSequence,
             referencedFrameOfReferenceUID: ReferencedFrameOfReferenceUID
-        });
+        }).contentItem();
 
         return this.getMeasurement([
             {
