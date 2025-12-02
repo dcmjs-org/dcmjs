@@ -20,18 +20,6 @@ const knownUnits = [
         CodeValue: "mm\xB2",
         CodeMeaning: "SquareMilliMeter"
     },
-    {
-        CodingSchemeDesignator: "UCUM",
-        CodingSchemeVersion: "1.4",
-        CodeValue: "1",
-        CodeMeaning: "px"
-    },
-    {
-        CodingSchemeDesignator: "UCUM",
-        CodingSchemeVersion: "1.4",
-        CodeValue: "1",
-        CodeMeaning: "px\xB2"
-    },
     // Units defined in https://dicom.nema.org/medical/dicom/current/output/chtml/part16/sect_CID_83.html
     {
         CodingSchemeDesignator: "UCUM",
@@ -164,18 +152,23 @@ const knownUnits = [
     }
 ];
 
-// Create measurementMap from knownUnits for efficient lookup
-const measurementMap = {};
+// Create unitCodeMap from knownUnits for efficient lookup
+const unitCodeMap = {};
 knownUnits.forEach(unit => {
-    measurementMap[unit.CodeValue] = unit;
+    unitCodeMap[unit.CodeValue] = unit;
 });
 
+const noUnitCodeValues = ["px", "px\xB2"];
 const NO_UNIT = {
     CodeValue: "1",
     CodingSchemeDesignator: "UCUM",
     CodingSchemeVersion: "1.4",
     CodeMeaning: "px"
 };
+noUnitCodeValues.forEach(codeValue => {
+    unitCodeMap[codeValue] = NO_UNIT;
+});
+
 const generateUnitMap = unit => {
     return {
         CodeValue: unit,
@@ -191,13 +184,14 @@ const unit2CodingValue = units => {
     if (!units) return NO_UNIT;
     const space = units.indexOf(" ");
     const baseUnit = space === -1 ? units : units.substring(0, space);
-    const codingUnit = measurementMap[units] || measurementMap[baseUnit];
+    const codingUnit = unitCodeMap[units] || unitCodeMap[baseUnit];
     if (!codingUnit) {
+        log.error("Unspecified units", units);
         return generateUnitMap(units);
     }
     return codingUnit;
 };
 
-unit2CodingValue.measurementMap = measurementMap;
+unit2CodingValue.measurementMap = unitCodeMap;
 
 export default unit2CodingValue;
