@@ -14,12 +14,6 @@ const knownUnits = [
         CodeValue: "mm2",
         CodeMeaning: "SquareMilliMeter"
     },
-    {
-        CodingSchemeDesignator: "UCUM",
-        CodingSchemeVersion: "1.4",
-        CodeValue: "mm\xB2",
-        CodeMeaning: "SquareMilliMeter"
-    },
     // Units defined in https://dicom.nema.org/medical/dicom/current/output/chtml/part16/sect_CID_83.html
     {
         CodingSchemeDesignator: "UCUM",
@@ -168,6 +162,13 @@ const NO_UNIT = {
 noUnitCodeValues.forEach(codeValue => {
     unitCodeMap[codeValue] = NO_UNIT;
 });
+
+unitCodeMap["mm\xB2"] = {
+    CodingSchemeDesignator: "UCUM",
+    CodingSchemeVersion: "1.4",
+    CodeValue: "mm2",
+    CodeMeaning: "SquareMilliMeter"
+};
 
 const generateUnitMap = unit => {
     return {
