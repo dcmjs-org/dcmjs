@@ -27,11 +27,6 @@ export default class Ellipse extends TID300Measurement {
 
         const measurementConfigs = [
             {
-                value: area,
-                unit: areaUnit,
-                builder: MeasurementBuilder.createAreaMeasurement
-            },
-            {
                 value: max,
                 unit: modalityUnit,
                 builder: MeasurementBuilder.createMaxMeasurement
