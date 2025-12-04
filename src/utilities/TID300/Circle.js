@@ -71,7 +71,7 @@ export default class Circle extends TID300Measurement {
                 RelationshipType: "CONTAINS",
                 ValueType: "NUM",
                 ConceptNameCodeSequence: {
-                    CodeValue: "G-A197",
+                    CodeValue: "131191004",
                     CodingSchemeDesignator: "SRT",
                     CodeMeaning: "Perimeter"
                 },

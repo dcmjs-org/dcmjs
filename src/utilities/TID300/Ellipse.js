@@ -53,9 +53,9 @@ export default class Ellipse extends TID300Measurement {
                 RelationshipType: "CONTAINS",
                 ValueType: "NUM",
                 ConceptNameCodeSequence: {
-                    CodeValue: "G-D7FE",
-                    CodingSchemeDesignator: "SRT",
-                    CodeMeaning: "AREA"
+                    CodeValue: "42798000",
+                    CodingSchemeDesignator: "SCT",
+                    CodeMeaning: "Area"
                 },
                 MeasuredValueSequence: {
                     MeasurementUnitsCodeSequence: unit2CodingValue(areaUnit),

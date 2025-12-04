@@ -57,8 +57,8 @@ class MeasurementBuilder {
 
     static createAreaMeasurement(area, areaUnit, annotationIndex) {
         return MeasurementBuilder.createNumericMeasurement(
-            "G-A166",
-            "SRT",
+            "42798000",
+            "SCT",
             "Area",
             area,
             areaUnit,
