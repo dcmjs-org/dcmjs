@@ -2,7 +2,7 @@
  * Builds a DICOM SR ContentSequence block for geometric measurements
  * that share the same structure across tools (Circle, Ellipse, Polyline, etc.)
  */
-export default class Tid320ContentItem {
+export default class TID320ContentItem {
     constructor({
         graphicType,
         graphicData,

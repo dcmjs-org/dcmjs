@@ -7,7 +7,7 @@ class MeasurementBuilder {
         codeMeaning,
         value,
         unit,
-        annotationIndex
+        annotationIndex // Used to provide correct ReferencedContentItemIdentifier to the SCOORD.
     ) {
         return {
             RelationshipType: "CONTAINS",

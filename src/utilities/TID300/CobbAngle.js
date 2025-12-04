@@ -1,5 +1,5 @@
 import TID300Measurement from "./TID300Measurement.js";
-import Tid320ContentItem from "./Tid320ContentItem.js";
+import TID320ContentItem from "./TID320ContentItem.js";
 
 export default class CobbAngle extends TID300Measurement {
     contentItem() {
@@ -19,7 +19,7 @@ export default class CobbAngle extends TID300Measurement {
             use3DSpatialCoordinates
         });
 
-        const graphicContentSequence = new Tid320ContentItem({
+        const graphicContentSequence = new TID320ContentItem({
             graphicType: "POLYLINE",
             graphicData: GraphicData,
             use3DSpatialCoordinates,

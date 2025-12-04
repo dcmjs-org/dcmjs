@@ -1,6 +1,6 @@
 import TID300Measurement from "./TID300Measurement.js";
 import unit2CodingValue from "./unit2CodingValue.js";
-import Tid320ContentItem from "./Tid320ContentItem.js";
+import TID320ContentItem from "./TID320ContentItem.js";
 
 export default class Bidirectional extends TID300Measurement {
     contentItem() {
@@ -24,7 +24,7 @@ export default class Bidirectional extends TID300Measurement {
             use3DSpatialCoordinates
         });
 
-        const longAxisContentSequence = new Tid320ContentItem({
+        const longAxisContentSequence = new TID320ContentItem({
             graphicType: "POLYLINE",
             graphicData: longAxisGraphicData,
             use3DSpatialCoordinates,
@@ -32,7 +32,7 @@ export default class Bidirectional extends TID300Measurement {
             referencedFrameOfReferenceUID: ReferencedFrameOfReferenceUID
         }).contentItem();
 
-        const shortAxisContentSequence = new Tid320ContentItem({
+        const shortAxisContentSequence = new TID320ContentItem({
             graphicType: "POLYLINE",
             graphicData: shortAxisGraphicData,
             use3DSpatialCoordinates,

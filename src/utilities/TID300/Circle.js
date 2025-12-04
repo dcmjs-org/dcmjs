@@ -1,6 +1,6 @@
 import TID300Measurement from "./TID300Measurement.js";
 import unit2CodingValue from "./unit2CodingValue.js";
-import Tid320ContentItem from "./Tid320ContentItem.js";
+import TID320ContentItem from "./TID320ContentItem.js";
 import MeasurementBuilder from "../MeasurementBuilder.js";
 
 export default class Circle extends TID300Measurement {
@@ -79,7 +79,7 @@ export default class Circle extends TID300Measurement {
                     MeasurementUnitsCodeSequence: unit2CodingValue(unit),
                     NumericValue: perimeter
                 },
-                ContentSequence: new Tid320ContentItem({
+                ContentSequence: new TID320ContentItem({
                     graphicType: "CIRCLE",
                     graphicData: GraphicData,
                     use3DSpatialCoordinates,

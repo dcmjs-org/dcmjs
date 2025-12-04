@@ -1,6 +1,6 @@
 import TID300Measurement from "./TID300Measurement.js";
 import unit2CodingValue from "./unit2CodingValue.js";
-import Tid320ContentItem from "./Tid320ContentItem.js";
+import TID320ContentItem from "./TID320ContentItem.js";
 import MeasurementBuilder from "../MeasurementBuilder.js";
 
 export default class Ellipse extends TID300Measurement {
@@ -61,7 +61,7 @@ export default class Ellipse extends TID300Measurement {
                     MeasurementUnitsCodeSequence: unit2CodingValue(areaUnit),
                     NumericValue: area
                 },
-                ContentSequence: new Tid320ContentItem({
+                ContentSequence: new TID320ContentItem({
                     graphicType: "ELLIPSE",
                     graphicData: GraphicData,
                     use3DSpatialCoordinates,
