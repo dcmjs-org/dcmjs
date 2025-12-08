@@ -947,6 +947,54 @@ describe("lossless-read-write", () => {
         });
     });
 
+    test("uncompressed data should be read correctly as arraybuffer", () => {
+        const buffer = fs.readFileSync("test/sample-dicom.dcm");
+        const dicomDict = DicomMessage.readFile(buffer.buffer);
+        // console.warn("fullData=", fullData);
+        const { dict } = dicomDict;
+        const [pixelData] = dict["7FE00010"].Value;
+        expect(pixelData).toBeInstanceOf(ArrayBuffer);
+        expect(pixelData.byteLength).toBe(512 * 512 * 2);
+        const uint = new Uint16Array(pixelData);
+        expect(uint[39138]).toBe(1);
+
+        const outputBuffer = dicomDict.write();
+        const outputDicomDict = DicomMessage.readFile(outputBuffer);
+
+        const [outputPixelData] = outputDicomDict.dict["7FE00010"].Value;
+        expect(outputPixelData).toBeInstanceOf(ArrayBuffer);
+        const uintOut = new Uint16Array(outputPixelData);
+        expect(uintOut.length).toBe(uint.length);
+        for (let i = 0; i < uint.length; i++) {
+            expect(uintOut[i]).toBe(uint[i]);
+        }
+    });
+
+    test("compressed data should be read correctly as arraybuffer", () => {
+        const buffer = fs.readFileSync("test/sample-op.dcm");
+        const dicomDict = DicomMessage.readFile(buffer.buffer);
+        // console.warn("fullData=", fullData);
+        const { dict } = dicomDict;
+        const [pixelData] = dict["7FE00010"].Value;
+        expect(pixelData).toBeInstanceOf(ArrayBuffer);
+        // Values from dcmdump
+        expect(pixelData.byteLength).toBe(101304);
+        const uint = new Uint8Array(pixelData);
+        expect(uint[0]).toBe(255);
+        expect(uint[1]).toBe(216);
+
+        const outputBuffer = dicomDict.write();
+        const outputDicomDict = DicomMessage.readFile(outputBuffer);
+
+        const [outputPixelData] = outputDicomDict.dict["7FE00010"].Value;
+        expect(outputPixelData).toBeInstanceOf(ArrayBuffer);
+        const uintOut = new Uint8Array(outputPixelData);
+        expect(uintOut.length).toBe(uint.length);
+        for (let i = 0; i < uint.length; i++) {
+            expect(uintOut[i]).toBe(uint[i]);
+        }
+    });
+
     test("File dataset should be equal after read and write", async () => {
         const inputBuffer = await getDcmjsDataFile(
             "unknown-VR",
