@@ -952,10 +952,10 @@ describe("lossless-read-write", () => {
         const dicomDict = DicomMessage.readFile(buffer.buffer);
         // console.warn("fullData=", fullData);
         const { dict } = dicomDict;
-        const [pixelData] = dict["7FE00010"].Value;
-        expect(pixelData).toBeInstanceOf(ArrayBuffer);
-        expect(pixelData.byteLength).toBe(512 * 512 * 2);
-        const uint = new Uint16Array(pixelData);
+        const [originalPixelArray] = dict["7FE00010"].Value;
+        expect(originalPixelArray).toBeInstanceOf(ArrayBuffer);
+        expect(originalPixelArray.byteLength).toBe(512 * 512 * 2);
+        const uint = new Uint16Array(originalPixelArray);
         expect(uint[39138]).toBe(1);
 
         const natural = DicomMetaDictionary.naturalizeDataset(dict);
@@ -964,9 +964,9 @@ describe("lossless-read-write", () => {
         const outputBuffer = dicomDict.write();
         const outputDicomDict = DicomMessage.readFile(outputBuffer);
 
-        const [outputPixelData] = outputDicomDict.dict["7FE00010"].Value;
-        expect(outputPixelData).toBeInstanceOf(ArrayBuffer);
-        const uintOut = new Uint16Array(outputPixelData);
+        const [outputPixelArray] = outputDicomDict.dict["7FE00010"].Value;
+        expect(outputPixelArray).toBeInstanceOf(ArrayBuffer);
+        const uintOut = new Uint16Array(outputPixelArray);
         expect(uintOut.length).toBe(uint.length);
         for (let i = 0; i < uint.length; i++) {
             expect(uintOut[i]).toBe(uint[i]);
@@ -978,23 +978,23 @@ describe("lossless-read-write", () => {
         const dicomDict = DicomMessage.readFile(buffer.buffer);
         // console.warn("fullData=", fullData);
         const { dict } = dicomDict;
-        const [pixelData] = dict["7FE00010"].Value;
-        expect(pixelData).toBeInstanceOf(ArrayBuffer);
+        const [originalPixelArray] = dict["7FE00010"].Value;
+        expect(originalPixelArray).toBeInstanceOf(ArrayBuffer);
         // Values from dcmdump
-        expect(pixelData.byteLength).toBe(101304);
-        const uint = new Uint8Array(pixelData);
-        expect(uint[0]).toBe(255);
-        expect(uint[1]).toBe(216);
+        expect(originalPixelArray.byteLength).toBe(101304);
+        const originalPixelBytes = new Uint8Array(originalPixelArray);
+        expect(originalPixelBytes[0]).toBe(255);
+        expect(originalPixelBytes[1]).toBe(216);
 
         const outputBuffer = dicomDict.write({ fragmentMultiframe: false });
         const outputDicomDict = DicomMessage.readFile(outputBuffer);
 
-        const [outputPixelData] = outputDicomDict.dict["7FE00010"].Value;
-        expect(outputPixelData).toBeInstanceOf(ArrayBuffer);
-        const uintOut = new Uint8Array(outputPixelData);
-        expect(uintOut.length).toBe(uint.length);
-        for (let i = 0; i < uint.length; i++) {
-            expect(uintOut[i]).toBe(uint[i]);
+        const [outputPixelArray] = outputDicomDict.dict["7FE00010"].Value;
+        expect(outputPixelArray).toBeInstanceOf(ArrayBuffer);
+        const outputPixelBytes = new Uint8Array(outputPixelArray);
+        expect(outputPixelBytes.length).toBe(originalPixelBytes.length);
+        for (let i = 0; i < originalPixelBytes.length; i++) {
+            expect(outputPixelBytes[i]).toBe(originalPixelBytes[i]);
         }
     });
 
