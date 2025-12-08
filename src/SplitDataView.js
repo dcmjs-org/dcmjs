@@ -85,7 +85,7 @@ export default class SplitDataView {
         }
         let offset = this.offsets[index];
         let length = buffer.byteLength;
-        if (end < offset + length) {
+        if (end <= offset + length) {
             return buffer.slice(start - offset, end - offset);
         }
         const createBuffer = new Uint8Array(end - start);

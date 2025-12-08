@@ -958,6 +958,9 @@ describe("lossless-read-write", () => {
         const uint = new Uint16Array(pixelData);
         expect(uint[39138]).toBe(1);
 
+        const natural = DicomMetaDictionary.naturalizeDataset(dict);
+        dicomDict.dict = DicomMetaDictionary.denaturalizeDataset(natural);
+
         const outputBuffer = dicomDict.write();
         const outputDicomDict = DicomMessage.readFile(outputBuffer);
 
@@ -983,7 +986,7 @@ describe("lossless-read-write", () => {
         expect(uint[0]).toBe(255);
         expect(uint[1]).toBe(216);
 
-        const outputBuffer = dicomDict.write();
+        const outputBuffer = dicomDict.write({ fragmentMultiframe: false });
         const outputDicomDict = DicomMessage.readFile(outputBuffer);
 
         const [outputPixelData] = outputDicomDict.dict["7FE00010"].Value;
