@@ -29,6 +29,11 @@ export default class Polyline extends TID300Measurement {
 
         const measurementConfigs = [
             {
+                value: perimeter,
+                unit: unit,
+                builder: MeasurementBuilder.createPerimeterMeasurement
+            },
+            {
                 value: area,
                 unit: areaUnit,
                 builder: MeasurementBuilder.createAreaMeasurement
@@ -54,32 +59,22 @@ export default class Polyline extends TID300Measurement {
                 builder: MeasurementBuilder.createStdDevMeasurement
             }
         ];
+        const scoordContentItem = new TID320ContentItem({
+            graphicType: "POLYLINE",
+            graphicData: GraphicData,
+            use3DSpatialCoordinates,
+            referencedSOPSequence: ReferencedSOPSequence,
+            referencedFrameOfReferenceUID: ReferencedFrameOfReferenceUID
+        }).contentItem();
 
         const measurements = [
-            {
-                RelationshipType: "CONTAINS",
-                ValueType: "NUM",
-                ConceptNameCodeSequence: {
-                    CodeValue: "131191004",
-                    CodingSchemeDesignator: "SCT",
-                    CodeMeaning: "Perimeter"
-                },
-                MeasuredValueSequence: {
-                    MeasurementUnitsCodeSequence: unit2CodingValue(unit),
-                    NumericValue: perimeter
-                },
-                ContentSequence: new TID320ContentItem({
-                    graphicType: "POLYLINE",
-                    graphicData: GraphicData,
-                    use3DSpatialCoordinates,
-                    referencedSOPSequence: ReferencedSOPSequence,
-                    referencedFrameOfReferenceUID: ReferencedFrameOfReferenceUID
-                }).contentItem()
-            },
             ...measurementConfigs
                 .filter(config => config.value !== undefined)
-                .map(config =>
-                    config.builder(config.value, config.unit, annotationIndex)
+                .map((config, index) =>
+                    config.builder(config.value, config.unit, annotationIndex, {
+                        scoordContentItem:
+                            index === 0 ? scoordContentItem : null
+                    })
                 )
         ];
 

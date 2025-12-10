@@ -27,6 +27,11 @@ export default class Ellipse extends TID300Measurement {
 
         const measurementConfigs = [
             {
+                value: area,
+                unit: areaUnit,
+                builder: MeasurementBuilder.createAreaMeasurement
+            },
+            {
                 value: max,
                 unit: modalityUnit,
                 builder: MeasurementBuilder.createMaxMeasurement
@@ -48,31 +53,22 @@ export default class Ellipse extends TID300Measurement {
             }
         ];
 
+        const scoordContentItem = new TID320ContentItem({
+            graphicType: "ELLIPSE",
+            graphicData: GraphicData,
+            use3DSpatialCoordinates,
+            referencedSOPSequence: ReferencedSOPSequence,
+            referencedFrameOfReferenceUID: ReferencedFrameOfReferenceUID
+        }).contentItem();
+
         const measurements = [
-            {
-                RelationshipType: "CONTAINS",
-                ValueType: "NUM",
-                ConceptNameCodeSequence: {
-                    CodeValue: "42798000",
-                    CodingSchemeDesignator: "SCT",
-                    CodeMeaning: "Area"
-                },
-                MeasuredValueSequence: {
-                    MeasurementUnitsCodeSequence: unit2CodingValue(areaUnit),
-                    NumericValue: area
-                },
-                ContentSequence: new TID320ContentItem({
-                    graphicType: "ELLIPSE",
-                    graphicData: GraphicData,
-                    use3DSpatialCoordinates,
-                    referencedSOPSequence: ReferencedSOPSequence,
-                    referencedFrameOfReferenceUID: ReferencedFrameOfReferenceUID
-                }).contentItem()
-            },
             ...measurementConfigs
                 .filter(config => config.value !== undefined)
-                .map(config =>
-                    config.builder(config.value, config.unit, annotationIndex)
+                .map((config, index) =>
+                    config.builder(config.value, config.unit, annotationIndex, {
+                        scoordContentItem:
+                            index === 0 ? scoordContentItem : null
+                    })
                 )
         ];
 

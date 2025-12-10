@@ -34,7 +34,8 @@ class MeasurementBuilder {
         codeMeaning,
         value,
         unit,
-        annotationIndex
+        annotationIndex,
+        { scoordContentItem = null } = {}
     ) {
         return {
             RelationshipType: "CONTAINS",
@@ -48,76 +49,131 @@ class MeasurementBuilder {
                 MeasurementUnitsCodeSequence: unit2CodingValue(unit),
                 NumericValue: value
             },
-            ContentSequence: {
-                RelationshipType: "INFERRED FROM",
-                ReferencedContentItemIdentifier: [1, 1, annotationIndex]
-            }
+            ContentSequence: scoordContentItem
+                ? scoordContentItem // FIRST item -> SCOORD
+                : {
+                      RelationshipType: "INFERRED FROM", // Remaining items -> reference
+                      ReferencedContentItemIdentifier: [1, 1, annotationIndex]
+                  }
         };
     }
 
-    static createAreaMeasurement(area, areaUnit, annotationIndex) {
+    static createAreaMeasurement(
+        area,
+        areaUnit,
+        annotationIndex,
+        { scoordContentItem }
+    ) {
         return MeasurementBuilder.createNumericMeasurement(
             "42798000",
             "SCT",
             "Area",
             area,
             areaUnit,
-            annotationIndex
+            annotationIndex,
+            { scoordContentItem }
         );
     }
 
-    static createRadiusMeasurement(radius, radiusUnit, annotationIndex) {
+    static createRadiusMeasurement(
+        radius,
+        radiusUnit,
+        annotationIndex,
+        { scoordContentItem }
+    ) {
         return MeasurementBuilder.createNumericMeasurement(
             "131190003",
             "SCT",
             "Radius",
             radius,
             radiusUnit,
-            annotationIndex
+            annotationIndex,
+            { scoordContentItem }
         );
     }
 
-    static createMaxMeasurement(max, modalityUnit, annotationIndex) {
+    static createMaxMeasurement(
+        max,
+        modalityUnit,
+        annotationIndex,
+        { scoordContentItem }
+    ) {
         return MeasurementBuilder.createNumericMeasurement(
             "56851009",
             "SCT",
             "Maximum",
             max,
             modalityUnit,
-            annotationIndex
+            annotationIndex,
+            { scoordContentItem }
         );
     }
 
-    static createMinMeasurement(min, modalityUnit, annotationIndex) {
+    static createMinMeasurement(
+        min,
+        modalityUnit,
+        annotationIndex,
+        { scoordContentItem }
+    ) {
         return MeasurementBuilder.createNumericMeasurement(
             "255605001",
             "SCT",
             "Minimum",
             min,
             modalityUnit,
-            annotationIndex
+            annotationIndex,
+            { scoordContentItem }
         );
     }
 
-    static createMeanMeasurement(mean, modalityUnit, annotationIndex) {
+    static createMeanMeasurement(
+        mean,
+        modalityUnit,
+        annotationIndex,
+        { scoordContentItem }
+    ) {
         return MeasurementBuilder.createNumericMeasurement(
             "373098007",
             "SCT",
             "Mean",
             mean,
             modalityUnit,
-            annotationIndex
+            annotationIndex,
+            { scoordContentItem }
         );
     }
 
-    static createStdDevMeasurement(stdDev, modalityUnit, annotationIndex) {
+    static createStdDevMeasurement(
+        stdDev,
+        modalityUnit,
+        annotationIndex,
+        { scoordContentItem }
+    ) {
         return MeasurementBuilder.createNumericMeasurement(
             "386136009",
             "SCT",
             "Standard Deviation",
             stdDev,
             modalityUnit,
-            annotationIndex
+            annotationIndex,
+            { scoordContentItem }
+        );
+    }
+
+    static createPerimeterMeasurement(
+        perimeter,
+        unit,
+        annotationIndex,
+        { scoordContentItem }
+    ) {
+        return MeasurementBuilder.createNumericMeasurement(
+            "131191004",
+            "SCT",
+            "Perimeter",
+            perimeter,
+            unit,
+            annotationIndex,
+            { scoordContentItem }
         );
     }
 }
