@@ -5,6 +5,8 @@ import addAccessors from "./addAccessors";
 import dicomJson from "./dicomJson";
 import * as orientation from "./orientation";
 import * as compression from "./compression/rleSingleSamplePerPixel";
+export { toFloat } from "./toFloat";
+export { toInt } from "./toInt";
 
 const utilities = {
     TID1500,
