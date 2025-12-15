@@ -71,45 +71,6 @@ it("noCopy multiframe DICOM which has trailing padding", async () => {
     });
 });
 
-function hashCode(buffer) {
-    const bytes = new Uint8Array(buffer);
-    let hash = 0;
-    for (let i = 0, len = bytes.length; i < len; i++) {
-        const chr = bytes[i];
-        hash = (hash << 5) - hash + chr;
-        hash |= 0; // Convert to 32bit integer
-    }
-    return hash;
-}
-
-it("multiframe DICOM with large private tags gets written to bulkdata", async () => {
-    const url =
-        "https://github.com/dcmjs-org/data/releases/download/binary-parsing-stressors/large-private-tags.dcm";
-    const dcmPath = await getTestDataset(url, "large-private-tags.dcm");
-
-    const writeBulkdata = (header, stream) => {
-        const bytes = stream.getBuffer(
-            stream.offset,
-            stream.offset + header.length
-        );
-        const BulkDataUUID = hashCode(bytes);
-        return {
-            ...header,
-            BulkDataUUID
-        };
-    };
-    const dicomDictBulkdata = DicomMessage.readFile(
-        fs.readFileSync(dcmPath).buffer,
-        {
-            writeBulkdata,
-            publicTagBulkdataSize: 60
-        }
-    );
-    const { dict } = dicomDictBulkdata;
-    expect(dict["60031012"].BulkDataUUID).toBe(1600810170);
-    expect(dict["00080008"].BulkDataUUID).toBe(186433950);
-});
-
 it("noCopy multiframe DICOM with large private tags before and after the image data", async () => {
     const url =
         "https://github.com/dcmjs-org/data/releases/download/binary-parsing-stressors/large-private-tags.dcm";

@@ -1,3 +1,6 @@
+const { Console } = require("console");
+const nodeConsole = new Console(process.stdout, process.stderr);
+
 // Mock loglevel
 const createMockLogger = () => {
     const logger = {
@@ -5,13 +8,13 @@ const createMockLogger = () => {
         info: jest.fn(),
         warn: jest.fn(),
         error: jest.fn(),
-        setLevel: jest.fn(),
+        setLevel: jest.fn()
     };
 
     // Modify warn to print directly to stdout instead of console.warn
     logger.warn.mockImplementation((...args) => {
-        // Directly write to stdout to avoid Jest stack traces
-        process.stdout.write('[warn] ' + args.join(' ') + '\n');
+        // This uses Node's real util.inspect internally
+        nodeConsole.warn("[warn]", ...args);
     });
 
     return logger;
@@ -25,25 +28,12 @@ mockLog.getLogger = jest.fn(name => {
     return namedLogger;
 });
 
-jest.mock('loglevel', () => mockLog);
+jest.mock("loglevel", () => mockLog);
 
 // Optional global access for assertions
 global.mockLog = mockLog;
 
-const originalConsoleWarn = console.warn;
-
 // Override console.warn to remove stack traces
-console.warn = (...args) => {
-    // Print message only
-    process.stdout.write('[warn] ' + args.map(arg => {
-        // Stringify objects nicely
-        if (typeof arg === 'object' && arg !== null) {
-            try {
-                return JSON.stringify(arg, null, 2);
-            } catch {
-                return String(arg);
-            }
-        }
-        return String(arg);
-    }).join(' ') + '\n');
-};
+console.warn = nodeConsole.warn;
+console.time = nodeConsole.time;
+console.timeEnd = nodeConsole.timeEnd;
