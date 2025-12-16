@@ -67,6 +67,7 @@ export class AsyncDicomReader {
     async readFmi(options = null) {
         const { stream } = this;
         await stream.ensureAvailable();
+        const { offset: metaStartPos } = stream;
         const el = this.readTagHeader();
         if (el.tag !== "00020000") {
             // meta length tag is missing
@@ -107,14 +108,14 @@ export class AsyncDicomReader {
     }
 
     async read(listener, options) {
-        const { stream, syntax } = this;
+        const { stream } = this;
         await stream.ensureAvailable();
         while (stream.isAvailable(1, false)) {
             // Consume before reading the tag so that data before the
             // current tag can be cleared.
             stream.consume();
             const tagInfo = this.readTagHeader(options);
-            const { tag, tagObj, vr, length } = tagInfo;
+            const { tag, tagObj, length } = tagInfo;
 
             if (tag === TagHex.ItemDelimitationEnd) {
                 return listener.pop();
