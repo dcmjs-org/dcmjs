@@ -1,6 +1,6 @@
 import fs from "fs";
-import { AsyncDicomReader } from '../src/AsyncDicomReader';
-import { DicomMetadataListener } from '../src/utilities/DicomMetadataListener';
+import { AsyncDicomReader } from "../src/AsyncDicomReader";
+import { DicomMetadataListener } from "../src/utilities/DicomMetadataListener";
 
 describe("AsyncDicomReader", () => {
     test("DICOM part 10 complete listener uncompressed", async () => {
