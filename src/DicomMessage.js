@@ -12,7 +12,6 @@ import { Tag } from "./Tag.js";
 import { log } from "./log.js";
 import { deepEqual } from "./utilities/deepEqual";
 import { ValueRepresentation } from "./ValueRepresentation.js";
-import { DictCreator } from "./DictCreator.js";
 
 const singleVRs = ["SQ", "OF", "OW", "OB", "UN", "LT"];
 
@@ -115,47 +114,22 @@ class DicomMessage {
             stopOnGreaterTag: false
         }
     ) {
-        if (!options.dictCreator) {
-            options = {
-                ...options,
-                dictCreator: new DictCreator(this, options)
-            };
-        }
-        const { ignoreErrors, untilTag, stopOnGreaterTag, dictCreator } =
-            options;
+        const { ignoreErrors, untilTag, stopOnGreaterTag } = options;
+        var dict = {};
         try {
             let previousTagOffset;
             while (!bufferStream.end()) {
-                if (dictCreator.continueParse(bufferStream)) {
-                    continue;
-                }
                 previousTagOffset = bufferStream.offset;
-                const header = this._readTagHeader(
+                const readInfo = DicomMessage._readTag(
                     bufferStream,
                     syntax,
                     options
                 );
-                const handledByCreator =
-                    !header.untilTag &&
-                    dictCreator.handleTagBody(
-                        header,
-                        bufferStream,
-                        syntax,
-                        options
-                    );
-                if (handledByCreator) {
-                    continue;
-                }
-                const readInfo = header.untilTag
-                    ? header
-                    : this._readTagBody(header, bufferStream, syntax, options);
-
                 const cleanTagString = readInfo.tag.toCleanString();
                 if (untilTag && stopOnGreaterTag && cleanTagString > untilTag) {
                     bufferStream.offset = previousTagOffset;
                     break;
                 }
-                // TODO - move this into DictCreator as a special handler
                 if (cleanTagString === "00080005") {
                     if (readInfo.values.length > 0) {
                         let coding = readInfo.values[0];
@@ -186,16 +160,21 @@ class DicomMessage {
                     readInfo.values = ["ISO_IR 192"]; // change SpecificCharacterSet to UTF-8
                 }
 
-                dictCreator.setValue(cleanTagString, readInfo);
+                dict[cleanTagString] = ValueRepresentation.addTagAccessors({
+                    vr: readInfo.vr.type
+                });
+                dict[cleanTagString].Value = readInfo.values;
+                dict[cleanTagString]._rawValue = readInfo.rawValues;
+
                 if (untilTag && untilTag === cleanTagString) {
                     break;
                 }
             }
-            return dictCreator.dict;
+            return dict;
         } catch (err) {
             if (ignoreErrors) {
                 log.warn("WARN:", err);
-                return dictCreator.dict;
+                return dict;
             }
             throw err;
         }
@@ -217,12 +196,6 @@ class DicomMessage {
         return encapsulatedSyntaxes.indexOf(syntax) != -1;
     }
 
-    /**
-     * Reads a DICOM input stream from an array buffer.
-     *
-     * The options includes the specified options, but also creates
-     * a DictCreator from the options.  See DictCreator.constructor
-     */
     static readFile(
         buffer,
         options = {
@@ -349,32 +322,7 @@ class DicomMessage {
         }
     }
 
-    /**
-     * Reads the next tag instance and the tag instance body.  This is
-     * equivalent to _readTagHeader and _readTagBody.
-     */
     static _readTag(
-        stream,
-        syntax,
-        options = {
-            untilTag: null,
-            includeUntilTagValue: false
-        }
-    ) {
-        const header = this._readTagHeader(stream, syntax, options);
-        if (!header || header.values === 0) {
-            return header;
-        }
-        return this._readTagBody(header, stream, syntax, options);
-    }
-
-    /**
-     * Reads the tag header information, leaving the stream at the start
-     * of the data stream.  This allows a dict creator to take control
-     * of the stream reading and split the handling off for specific tags
-     * such as pixel data tags.
-     */
-    static _readTagHeader(
         stream,
         syntax,
         options = {
@@ -394,9 +342,9 @@ class DicomMessage {
         stream.setEndian(isLittleEndian);
         var tag = Tag.readTag(stream);
 
-        if (untilTag && untilTag === tag.toCleanString()) {
+        if (untilTag === tag.toCleanString() && untilTag !== null) {
             if (!includeUntilTagValue) {
-                return { tag: tag, vr: 0, values: 0, untilTag: true };
+                return { tag: tag, vr: 0, values: 0 };
             }
         }
 
@@ -404,10 +352,7 @@ class DicomMessage {
             vr = null,
             vrType;
 
-        if (tag.isInstruction()) {
-            length = stream.readUint32();
-            vr = ValueRepresentation.createByTypeString("UN");
-        } else if (implicit) {
+        if (implicit) {
             length = stream.readUint32();
             var elementData = DicomMessage.lookupTag(tag);
             if (elementData) {
@@ -450,32 +395,8 @@ class DicomMessage {
             }
         }
 
-        const header = {
-            retObj: ValueRepresentation.addTagAccessors({
-                tag,
-                vr
-            }),
-            vr,
-            tag,
-            length,
-            oldEndian
-        };
-        return header;
-    }
-
-    /**
-     * Default tag body reading.
-     */
-    static _readTagBody(header, stream, syntax, options) {
         var values = [];
         var rawValues = [];
-
-        // This is an exit by header tag reading.
-        if (header.values === 0) {
-            return header;
-        }
-        const { length, vr, retObj, oldEndian } = header;
-
         if (vr.isBinary() && length > vr.maxLength && !vr.noMultiple) {
             var times = length / vr.maxLength,
                 i = 0;
@@ -515,6 +436,10 @@ class DicomMessage {
         }
         stream.setEndian(oldEndian);
 
+        const retObj = ValueRepresentation.addTagAccessors({
+            tag: tag,
+            vr: vr
+        });
         retObj.values = values;
         retObj.rawValues = rawValues;
         return retObj;

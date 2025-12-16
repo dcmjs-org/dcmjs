@@ -80,8 +80,7 @@ describe("lossless-read-write", () => {
             });
 
             for (const tag in outputDicomDict.dict) {
-                const body = outputDicomDict.dict[tag];
-                expect(body._rawValue).toBeTruthy();
+                expect(outputDicomDict.dict[tag]._rawValue).toBeTruthy();
             }
         });
     });
