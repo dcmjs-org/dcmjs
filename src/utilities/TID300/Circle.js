@@ -1,5 +1,4 @@
 import TID300Measurement from "./TID300Measurement.js";
-import unit2CodingValue from "./unit2CodingValue.js";
 import TID320ContentItem from "./TID320ContentItem.js";
 import MeasurementBuilder from "../MeasurementBuilder.js";
 

@@ -50,13 +50,13 @@ const knownUnits = [
         CodingSchemeDesignator: "UCUM",
         CodingSchemeVersion: "1.4",
         CodeValue: "cm2",
-        CodeMeaning: "Centimeter**2"
+        CodeMeaning: "cm2"
     },
     {
         CodingSchemeDesignator: "UCUM",
         CodingSchemeVersion: "1.4",
         CodeValue: "cm2/ml",
-        CodeMeaning: "Centimeter**2/milliliter"
+        CodeMeaning: "cm2/ml"
     },
     {
         CodingSchemeDesignator: "UCUM",
