@@ -210,4 +210,6 @@ class Tag {
     }
 }
 
+ValueRepresentation.setTagClass(Tag);
+
 export { Tag };

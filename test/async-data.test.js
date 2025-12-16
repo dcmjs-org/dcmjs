@@ -16,7 +16,7 @@ describe("AsyncDicomReader", () => {
         expect(dict["00280010"].Value[0]).toBe(512);
     });
 
-    test("async reader listen test", async () => {
+    test("async reader listen test uncompressed", async () => {
         // Don't use such a small chunk size in production, but doing it
         // here stresses the buffer stream read, and so does using an odd
         // prime
@@ -36,5 +36,21 @@ describe("AsyncDicomReader", () => {
         expect(isRead).toBe(true);
         expect(fmi["00020010"].Value[0]).toBe("1.2.840.10008.1.2");
         expect(dict["00280010"].Value[0]).toBe(512);
+        expect(dict["7FE00010"].Value[0].byteLength).toBe(512 * 512 * 2);
+    });
+
+    test("async reader listen test compressed", async () => {
+        const reader = new AsyncDicomReader();
+
+        const stream = fs.createReadStream("test/sample-op.dcm", {
+            highWaterMark: 256
+        });
+        reader.stream.fromAsyncStream(stream);
+
+        const { fmi, dict } = await reader.readFile();
+        expect(fmi["00020010"].Value[0]).toBe("1.2.840.10008.1.2.4.70");
+        expect(dict["00280010"].Value[0]).toBe(1536);
+        expect(dict["7FE00010"].Value[0]).toBeInstanceOf(ArrayBuffer);
+        expect(dict["7FE00010"].Value[0].byteLength).toBe(101304);
     });
 });

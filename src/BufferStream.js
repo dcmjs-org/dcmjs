@@ -223,6 +223,10 @@ export class BufferStream {
         return arr;
     }
 
+    readArrayBuffer(length) {
+        return this.readUint8Array(length).buffer;
+    }
+
     readUint16Array(length) {
         var sixlen = length / 2,
             arr = new Uint16Array(sixlen),
