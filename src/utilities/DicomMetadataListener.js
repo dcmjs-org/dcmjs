@@ -1,6 +1,12 @@
 /**
  * A DICOM Metadata listener implements the basic listener for creating a dicom
  * metadata instance from a stream of notification events.
+ *
+ * There are additional listeners defined in @cornerstonejs/metadata as well as
+ * other event sources in that package.
+ *
+ * **WARNING** This class is still under development, do not count on the API
+ * not changing a bit over the next few dcmjs releases.
  */
 export class DicomMetadataListener {
     current = null;

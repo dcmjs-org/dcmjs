@@ -1,6 +1,7 @@
 import pako from "pako";
 import SplitDataView from "./SplitDataView";
-import { toFloat, toInt } from "./utilities";
+import { toFloat } from "./utilities/toFloat";
+import { toInt } from "./utilities/toInt";
 
 export class BufferStream {
     offset = 0;
@@ -65,13 +66,6 @@ export class BufferStream {
             });
         }
         return true;
-    }
-
-    /**
-     * Returns true if there is a buffer data for the given offset.
-     */
-    hasData(start, end = start + 1) {
-        return this.view.hasData(start, end);
     }
 
     setEndian(isLittle) {

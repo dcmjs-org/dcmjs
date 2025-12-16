@@ -17,7 +17,8 @@ const utilities = {
     addAccessors,
     orientation,
     compression,
-    dicomJson
+    dicomJson,
+    DicomMetadataListener
 };
 
 export default utilities;
