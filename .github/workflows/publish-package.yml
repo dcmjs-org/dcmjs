@@ -39,8 +39,7 @@ jobs:
 
       - name: Semantic release
         uses: cycjimmy/semantic-release-action@v6
-        with:
-          npm_token: ${{ secrets.NPM_TOKEN }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_PROVENANCE: true
