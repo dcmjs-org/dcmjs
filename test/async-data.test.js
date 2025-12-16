@@ -1,6 +1,7 @@
 import fs from "fs";
 import { AsyncDicomReader } from "../src/AsyncDicomReader";
 import { DicomMetadataListener } from "../src/utilities/DicomMetadataListener";
+import { TagHex } from "../src/constants/dicom";
 
 describe("AsyncDicomReader", () => {
     test("DICOM part 10 complete listener uncompressed", async () => {
@@ -11,9 +12,11 @@ describe("AsyncDicomReader", () => {
         reader.stream.addBuffer(buffer);
         reader.stream.setComplete();
 
-        const { fmi, dict } = await reader.readFile({ listener });
-        expect(fmi["00020010"].Value[0]).toBe("1.2.840.10008.1.2");
-        expect(dict["00280010"].Value[0]).toBe(512);
+        const { meta, dict } = await reader.readFile({ listener });
+        expect(meta[TagHex.TransferSyntaxUID].Value[0]).toBe(
+            "1.2.840.10008.1.2"
+        );
+        expect(dict[TagHex.Rows].Value[0]).toBe(512);
     });
 
     test("async reader listen test uncompressed", async () => {
@@ -32,11 +35,13 @@ describe("AsyncDicomReader", () => {
             isRead = true;
         });
 
-        const { fmi, dict } = await reader.readFile({ listener });
+        const { meta, dict } = await reader.readFile({ listener });
         expect(isRead).toBe(true);
-        expect(fmi["00020010"].Value[0]).toBe("1.2.840.10008.1.2");
-        expect(dict["00280010"].Value[0]).toBe(512);
-        expect(dict["7FE00010"].Value[0].byteLength).toBe(512 * 512 * 2);
+        expect(meta[TagHex.TransferSyntaxUID].Value[0]).toBe(
+            "1.2.840.10008.1.2"
+        );
+        expect(dict[TagHex.Rows].Value[0]).toBe(512);
+        expect(dict[TagHex.PixelData].Value[0].byteLength).toBe(512 * 512 * 2);
     });
 
     test("async reader listen test compressed", async () => {
@@ -47,10 +52,13 @@ describe("AsyncDicomReader", () => {
         });
         reader.stream.fromAsyncStream(stream);
 
-        const { fmi, dict } = await reader.readFile();
-        expect(fmi["00020010"].Value[0]).toBe("1.2.840.10008.1.2.4.70");
-        expect(dict["00280010"].Value[0]).toBe(1536);
-        expect(dict["7FE00010"].Value[0]).toBeInstanceOf(ArrayBuffer);
-        expect(dict["7FE00010"].Value[0].byteLength).toBe(101304);
+        const { meta, dict } = await reader.readFile();
+        expect(meta[TagHex.TransferSyntaxUID].Value[0]).toBe(
+            "1.2.840.10008.1.2.4.70"
+        );
+        expect(dict[TagHex.Rows].Value[0]).toBe(1536);
+        const [pixelData] = dict[TagHex.PixelData].Value;
+        expect(pixelData).toBeInstanceOf(ArrayBuffer);
+        expect(pixelData.byteLength).toBe(101304);
     });
 });

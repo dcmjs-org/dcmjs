@@ -54,7 +54,7 @@ export class AsyncDicomReader {
         if (!hasPreamble) {
             throw new Error("TODO - can't handle no preamble file");
         }
-        this.fmi = await this.readFmi(options);
+        this.meta = await this.readMeta(options);
         const listener = options?.listener || new DicomMetadataListener();
         this.dict ||= {};
         listener.startObject(this.dict);
@@ -64,12 +64,20 @@ export class AsyncDicomReader {
         return this;
     }
 
-    async readFmi(options = null) {
+    /**
+     * Reads the file meta information.
+     *
+     * @param options.maxSizeMeta - maximum number of bytes for reading the meta
+     *      header when it isn't in a group length section.
+     * @param options.ignoreErrors - allow reading past some errors.
+     *        In this case, reading a meta section not inside a group length.
+     */
+    async readMeta(options = undefined) {
         const { stream } = this;
         await stream.ensureAvailable();
         const { offset: metaStartPos } = stream;
         const el = this.readTagHeader();
-        if (el.tag !== "00020000") {
+        if (el.tag !== TagHex.FileMetaInformationGroupLength) {
             // meta length tag is missing
             if (!options?.ignoreErrors) {
                 throw new Error(
@@ -80,11 +88,11 @@ export class AsyncDicomReader {
             // reset stream to the position where we started reading tags
             stream.offset = metaStartPos;
             // Wait for at least 10k to be available to make sure there is enough
-            // data to read the entire FMI
-            await stream.ensureAvailable(1024 * 10);
+            // data to read the entire Meta header
+            await stream.ensureAvailable(options?.maxSizeMeta || 1024 * 10);
 
             // read meta header elements sequentially
-            this.fmi = DicomMessage._read(stream, EXPLICIT_LITTLE_ENDIAN, {
+            this.meta = DicomMessage._read(stream, EXPLICIT_LITTLE_ENDIAN, {
                 untilTag: "00030000",
                 stopOnGreaterTag: true,
                 ignoreErrors: true
@@ -96,15 +104,15 @@ export class AsyncDicomReader {
 
             // read header buffer using the specified meta length
             const metaStream = stream.more(metaLength);
-            this.fmi = DicomMessage._read(
+            this.meta = DicomMessage._read(
                 metaStream,
                 EXPLICIT_LITTLE_ENDIAN,
                 {}
             );
         }
-        this.syntax = this.fmi["00020010"].Value[0];
+        this.syntax = this.meta[TagHex.TransferSyntaxUID].Value[0];
 
-        return this.fmi;
+        return this.meta;
     }
 
     async read(listener, options) {
@@ -247,17 +255,17 @@ export class AsyncDicomReader {
         const { length } = tagInfo;
         const { stream } = this;
 
-        const numberOfFrames = listener.getValue("00280008");
+        const numberOfFrames = listener.getValue(TagHex.NumberOfFrames);
         if (!numberOfFrames || parseInt(numberOfFrames) === 1) {
             await stream.ensureAvailable(length);
             const arrayBuffer = stream.readUint8Array(length);
             listener.value(arrayBuffer.buffer);
             return [arrayBuffer.buffer];
         }
-        const rows = listener.getValue("00280010");
-        const cols = listener.getValue("00280011");
-        const samplesPerPixel = listener.getValue("00280002");
-        const bitsAllocated = listener.getValue("00280100");
+        const rows = listener.getValue(TagHex.Rows);
+        const cols = listener.getValue(TagHex.Columns);
+        const samplesPerPixel = listener.getValue(TagHex.SamplesPerPixel);
+        const bitsAllocated = listener.getValue(TagHex.BitsAllocated);
         const bitsPerFrame = rows * cols * samplesPerPixel * bitsAllocated;
         if (bitsPerFrame % 8 !== 0) {
             throw new Error(

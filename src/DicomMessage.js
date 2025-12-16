@@ -4,7 +4,9 @@ import {
     EXPLICIT_BIG_ENDIAN,
     EXPLICIT_LITTLE_ENDIAN,
     IMPLICIT_LITTLE_ENDIAN,
-    VM_DELIMITER
+    VM_DELIMITER,
+    TagHex,
+    encodingMapping
 } from "./constants/dicom.js";
 import { DicomDict } from "./DicomDict.js";
 import { DicomMetaDictionary } from "./DicomMetaDictionary.js";
@@ -14,43 +16,6 @@ import { deepEqual } from "./utilities/deepEqual";
 import { ValueRepresentation } from "./ValueRepresentation.js";
 
 export const singleVRs = ["SQ", "OF", "OW", "OB", "UN", "LT"];
-
-const encodingMapping = {
-    "": "iso-8859-1",
-    "iso-ir-6": "iso-8859-1",
-    "iso-ir-13": "shift-jis",
-    "iso-ir-100": "latin1",
-    "iso-ir-101": "iso-8859-2",
-    "iso-ir-109": "iso-8859-3",
-    "iso-ir-110": "iso-8859-4",
-    "iso-ir-126": "iso-ir-126",
-    "iso-ir-127": "iso-ir-127",
-    "iso-ir-138": "iso-ir-138",
-    "iso-ir-144": "iso-ir-144",
-    "iso-ir-148": "iso-ir-148",
-    "iso-ir-166": "tis-620",
-    "iso-2022-ir-6": "iso-8859-1",
-    "iso-2022-ir-13": "shift-jis",
-    "iso-2022-ir-87": "iso-2022-jp",
-    "iso-2022-ir-100": "latin1",
-    "iso-2022-ir-101": "iso-8859-2",
-    "iso-2022-ir-109": "iso-8859-3",
-    "iso-2022-ir-110": "iso-8859-4",
-    "iso-2022-ir-126": "iso-ir-126",
-    "iso-2022-ir-127": "iso-ir-127",
-    "iso-2022-ir-138": "iso-ir-138",
-    "iso-2022-ir-144": "iso-ir-144",
-    "iso-2022-ir-148": "iso-ir-148",
-    "iso-2022-ir-149": "euc-kr",
-    "iso-2022-ir-159": "iso-2022-jp",
-    "iso-2022-ir-166": "tis-620",
-    "iso-2022-ir-58": "iso-ir-58",
-    "iso-ir-192": "utf-8",
-    gb18030: "gb18030",
-    "iso-2022-gbk": "gbk",
-    "iso-2022-58": "gb2312",
-    gbk: "gbk"
-};
 
 const encapsulatedSyntaxes = [
     "1.2.840.10008.1.2.4.50",
@@ -130,7 +95,7 @@ class DicomMessage {
                     bufferStream.offset = previousTagOffset;
                     break;
                 }
-                if (cleanTagString === "00080005") {
+                if (cleanTagString === TagHex.SpecificCharacterSet) {
                     if (readInfo.values.length > 0) {
                         let coding = readInfo.values[0];
                         coding = coding.replace(/[_ ]/g, "-").toLowerCase();
@@ -223,7 +188,7 @@ class DicomMessage {
         var el = DicomMessage._readTag(stream, useSyntax);
 
         var metaHeader = {};
-        if (el.tag.toCleanString() !== "00020000") {
+        if (el.tag.cleanString !== TagHex.FileMetaInformationGroupLength) {
             // meta length tag is missing
             if (!options.ignoreErrors) {
                 throw new Error(
@@ -250,7 +215,7 @@ class DicomMessage {
         }
 
         //get the syntax
-        var mainSyntax = metaHeader["00020010"].Value[0];
+        var mainSyntax = metaHeader[TagHex.TransferSyntaxUID].Value[0];
 
         //in case of deflated dataset, decompress and continue
         if (mainSyntax === DEFLATED_EXPLICIT_LITTLE_ENDIAN) {
