@@ -6,10 +6,10 @@ on:
       - master
 
 permissions:
-  contents: write  # Needed for semantic-release to create releases/tags
-  issues: write    # Needed for semantic-release to comment on issues
-  pull-requests: write  # Needed for semantic-release to comment on PRs
-  id-token: write  # Required for OIDC authentication with npm
+  contents: write
+  issues: write
+  pull-requests: write
+  id-token: write
 
 jobs:
   publish-package:
@@ -20,7 +20,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          persist-credentials: false  # Important for semantic-release
+          persist-credentials: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -41,4 +41,4 @@ jobs:
         uses: cycjimmy/semantic-release-action@v4
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_CONFIG_PROVENANCE: true  # Enables provenance statements
+          NPM_CONFIG_PROVENANCE: true
