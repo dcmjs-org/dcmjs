@@ -38,9 +38,7 @@ jobs:
         run: npm run build
 
       - name: Semantic release
-        uses: cycjimmy/semantic-release-action@v3
-        with:
-          semantic_version: 19.0.2
+        uses: cycjimmy/semantic-release-action@v4
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_CONFIG_PROVENANCE: true  # Enables provenance statements
