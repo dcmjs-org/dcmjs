@@ -5,6 +5,12 @@ on:
     branches:
       - master
 
+permissions:
+  contents: write  # Needed for semantic-release to create releases/tags
+  issues: write    # Needed for semantic-release to comment on issues
+  pull-requests: write  # Needed for semantic-release to comment on PRs
+  id-token: write  # Required for OIDC authentication with npm
+
 jobs:
   publish-package:
     runs-on: ubuntu-latest
@@ -13,11 +19,14 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false  # Important for semantic-release
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 18
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Install packages
         uses: bahmutov/npm-install@v1
@@ -34,4 +43,4 @@ jobs:
           semantic_version: 19.0.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: true  # Enables provenance statements
