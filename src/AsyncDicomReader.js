@@ -123,7 +123,7 @@ export class AsyncDicomReader {
             if (this.isSequence(tagInfo)) {
                 await this.readSequence(listener, tagInfo);
             } else if (tagObj.isPixelDataTag()) {
-                this.readPixelData(listener, tagInfo);
+                await this.readPixelData(listener, tagInfo);
             } else if (length === -1) {
                 throw new Error(
                     `Can't handle tag ${tagInfo.tag} with -1 length and not sequence`
@@ -170,7 +170,7 @@ export class AsyncDicomReader {
      */
     async readUncompressed(listener, tagInfo) {
         const { length } = tagInfo;
-        const { stream, syntax } = this;
+        const { stream } = this;
 
         const numberOfFrames = listener.getValue("00280008");
         if (!numberOfFrames || parseInt(numberOfFrames) === 1) {

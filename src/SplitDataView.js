@@ -146,6 +146,7 @@ export default class SplitDataView {
         }
         let index = this.findStart(start);
         if (index === undefined) {
+            debugger;
             throw new Error(
                 `Start ${start} out of range of 0...${this.byteLength}`
             );

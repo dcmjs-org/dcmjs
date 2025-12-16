@@ -8,6 +8,8 @@ export class BufferStream {
     isLittleEndian = false;
     size = 0;
     view = new SplitDataView();
+    /** The available listeners are those waiting for a query response */
+    availableListeners = [];
 
     /** Indicates if this buffer stream is complete/has finished being created */
     isComplete = false;
@@ -28,6 +30,7 @@ export class BufferStream {
      */
     setComplete(value = true) {
         this.isComplete = value;
+        this.notifyAvailableListeners();
     }
 
     /**
@@ -48,11 +51,20 @@ export class BufferStream {
      * Ensures that the specified number of bytes are available OR that it is
      * EOF.  By default waits for at least 1k to be available.
      */
-    async ensureAvailable(bytes = 1024) {
-        if (this.isAvailable(bytes)) {
-            return true;
+    ensureAvailable(bytes = 1024) {
+        if (!this.isAvailable(bytes)) {
+            return new Promise(resolve => {
+                const recheckAvailable = () => {
+                    if (this.isAvailable(bytes)) {
+                        resolve(true);
+                        return;
+                    }
+                    this.availableListeners.push(recheckAvailable);
+                };
+                recheckAvailable();
+            });
         }
-        throw new Error("TODO - implement this");
+        return true;
     }
 
     /**
@@ -323,6 +335,20 @@ export class BufferStream {
     }
 
     /**
+     * Reads from an async stream delivering to addBuffer.
+     */
+    async fromAsyncStream(stream) {
+        for await (const chunk of stream) {
+            const ab = chunk.buffer.slice(
+                chunk.byteOffset,
+                chunk.byteOffset + chunk.byteLength
+            );
+            this.addBuffer(ab);
+        }
+        this.setComplete();
+    }
+
+    /**
      * Adds the buffer to the end of the current buffers list,
      * updating the size etc.
      *
@@ -341,7 +367,14 @@ export class BufferStream {
         this.view.addBuffer(buffer, options);
         this.size = this.view.size;
         this.endOffset = this.size;
+        this.notifyAvailableListeners();
         return this.size;
+    }
+
+    notifyAvailableListeners() {
+        const existingListeners = [...this.availableListeners];
+        this.availableListeners.splice(0, this.availableListeners.length);
+        existingListeners.forEach(listener => listener());
     }
 
     /**
