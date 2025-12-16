@@ -45,6 +45,17 @@ export class BufferStream {
     }
 
     /**
+     * Ensures that the specified number of bytes are available OR that it is
+     * EOF.  By default waits for at least 1k to be available.
+     */
+    async ensureAvailable(bytes = 1024) {
+        if (this.isAvailable(bytes)) {
+            return true;
+        }
+        throw new Error("TODO - implement this");
+    }
+
+    /**
      * Returns true if there is a buffer data for the given offset.
      */
     hasData(start, end = start + 1) {

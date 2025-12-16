@@ -13,7 +13,7 @@ import { log } from "./log.js";
 import { deepEqual } from "./utilities/deepEqual";
 import { ValueRepresentation } from "./ValueRepresentation.js";
 
-const singleVRs = ["SQ", "OF", "OW", "OB", "UN", "LT"];
+export const singleVRs = ["SQ", "OF", "OW", "OB", "UN", "LT"];
 
 const encodingMapping = {
     "": "iso-8859-1",

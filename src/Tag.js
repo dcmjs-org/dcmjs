@@ -40,6 +40,11 @@ class Tag {
         );
     }
 
+    get cleanString() {
+        this._cleanString ||= this.toCleanString();
+        return this._cleanString;
+    }
+
     is(t) {
         return this.value == t;
     }
