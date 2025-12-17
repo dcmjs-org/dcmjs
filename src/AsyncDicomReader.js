@@ -116,6 +116,7 @@ export class AsyncDicomReader {
     }
 
     async read(listener, options) {
+        this.listener = listener;
         const { stream } = this;
         await stream.ensureAvailable();
         while (stream.isAvailable(1, false)) {
@@ -342,7 +343,8 @@ export class AsyncDicomReader {
                     // This should work for any tag after PixelRepresentation,
                     // which is all but 2 of the xs code values.
                     const signed =
-                        listener.getValue(TagHex.PixelRepresentation) === 0;
+                        this.listener.getValue(TagHex.PixelRepresentation) ===
+                        0;
                     vrType = signed ? "SS" : "US";
                 } else if (tagObj.isPrivateCreator()) {
                     vrType = "LO";
