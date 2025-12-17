@@ -1,6 +1,6 @@
 <div align="center">
   <h1>dcmjs</h1>
-  <p>JavaScript implementation of DICOM manipulation. This code is an outgrowth of several efforts to implement web applications for medical imaging.</p>
+  <p>JavaScript implementation of DICOM manipulation. This code is an outgrowth of several efforts to implement web applications for medical imaging.  the package should also work fine on node.</p>
 </div>
 
 <hr />
