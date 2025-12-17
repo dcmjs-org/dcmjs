@@ -22,6 +22,15 @@ export const PN_COMPONENT_DELIMITER = 0x3d;
 export const SEQUENCE_ITEM_TAG = 0xfffee000;
 export const SEQUENCE_DELIMITER_TAG = 0xfffee0dd;
 
+// Nearly all transfer syntaxes are encapsulated, so record those which are
+// unencapsulated as the exceptions.
+export const unencapsulatedTransferSyntaxes = {
+    IMPLICIT_LITTLE_ENDIAN: true,
+    EXPLICIT_BIG_ENDIAN: true,
+    DEFLATED_EXPLICIT_LITTLE_ENDIAN: true,
+    EXPLICIT_LITTLE_ENDIAN: true
+};
+
 /**
  * This is an enumeration of some HEX values for the tag strings, used to replace
  * constants in a few places.
@@ -38,7 +47,8 @@ export const TagHex = {
     SamplesPerPixel: "00280002",
     BitsAllocated: "00280100",
     NumberOfFrames: "00280008",
-    SpecificCharacterSet: "00080005"
+    SpecificCharacterSet: "00080005",
+    PixelRepresentation: "00280103"
 };
 
 export const encodingMapping = {

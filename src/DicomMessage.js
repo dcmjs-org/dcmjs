@@ -6,7 +6,8 @@ import {
     IMPLICIT_LITTLE_ENDIAN,
     VM_DELIMITER,
     TagHex,
-    encodingMapping
+    encodingMapping,
+    unencapsulatedTransferSyntaxes
 } from "./constants/dicom.js";
 import { DicomDict } from "./DicomDict.js";
 import { DicomMetaDictionary } from "./DicomMetaDictionary.js";
@@ -16,29 +17,6 @@ import { deepEqual } from "./utilities/deepEqual";
 import { ValueRepresentation } from "./ValueRepresentation.js";
 
 export const singleVRs = ["SQ", "OF", "OW", "OB", "UN", "LT"];
-
-const encapsulatedSyntaxes = [
-    "1.2.840.10008.1.2.4.50",
-    "1.2.840.10008.1.2.4.51",
-    "1.2.840.10008.1.2.4.57",
-    "1.2.840.10008.1.2.4.70",
-    "1.2.840.10008.1.2.4.80",
-    "1.2.840.10008.1.2.4.81",
-    "1.2.840.10008.1.2.4.90",
-    "1.2.840.10008.1.2.4.91",
-    "1.2.840.10008.1.2.4.92",
-    "1.2.840.10008.1.2.4.93",
-    "1.2.840.10008.1.2.4.94",
-    "1.2.840.10008.1.2.4.95",
-    "1.2.840.10008.1.2.5",
-    "1.2.840.10008.1.2.6.1",
-    "1.2.840.10008.1.2.4.100",
-    "1.2.840.10008.1.2.4.102",
-    "1.2.840.10008.1.2.4.103",
-    "1.2.840.10008.1.2.4.201",
-    "1.2.840.10008.1.2.4.202",
-    "1.2.840.10008.1.2.4.203"
-];
 
 class DicomMessage {
     static read(
@@ -158,7 +136,7 @@ class DicomMessage {
     }
 
     static isEncapsulated(syntax) {
-        return encapsulatedSyntaxes.indexOf(syntax) != -1;
+        return !unencapsulatedTransferSyntaxes[syntax];
     }
 
     static readFile(

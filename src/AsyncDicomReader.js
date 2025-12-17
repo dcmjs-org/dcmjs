@@ -6,12 +6,14 @@ import {
     IMPLICIT_LITTLE_ENDIAN,
     VM_DELIMITER,
     UNDEFINED_LENGTH,
-    TagHex
+    TagHex,
+    encodingMapping
 } from "./constants/dicom";
 import { Tag } from "./Tag";
 import { DicomMessage, singleVRs } from "./DicomMessage";
 import { DicomMetaDictionary } from "./DicomMetaDictionary";
 import { DicomMetadataListener } from "./utilities";
+import { log } from "./log.js";
 
 /**
  * This is an asynchronous binary DICOM reader.
@@ -148,7 +150,7 @@ export class AsyncDicomReader {
                     `Can't handle tag ${tagInfo.tag} with -1 length and not sequence`
                 );
             } else {
-                await this.readSingle(tagInfo, listener);
+                await this.readSingle(tagInfo, listener, options);
             }
             listener.pop();
             await this.stream.ensureAvailable();
@@ -388,7 +390,13 @@ export class AsyncDicomReader {
         return header;
     }
 
-    async readSingle(tagInfo, listener) {
+    /**
+     * Reads a single tag values and delivers them to the listener.
+     *
+     * If the tag is specific character set, will assign the decoder to that
+     * character set.
+     */
+    async readSingle(tagInfo, listener, options) {
         const { length } = tagInfo;
         const { stream, syntax } = this;
         await this.stream.ensureAvailable(length);
@@ -413,6 +421,23 @@ export class AsyncDicomReader {
                 values = value;
             } else {
                 Array.isArray(value) ? (values = value) : values.push(value);
+            }
+        }
+
+        if (tagInfo.tag === TagHex.SpecificCharacterSet) {
+            if (values.length > 0) {
+                let [coding] = values;
+                coding = coding.replace(/[_ ]/g, "-").toLowerCase();
+                if (coding in encodingMapping) {
+                    coding = encodingMapping[coding];
+                    this.stream.setDecoder(new TextDecoder(coding));
+                } else if (options?.ignoreErrors) {
+                    log.warn(
+                        `Unsupported character set: ${coding}, using default character set`
+                    );
+                } else {
+                    throw Error(`Unsupported character set: ${coding}`);
+                }
             }
         }
 
