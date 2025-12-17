@@ -339,7 +339,11 @@ export class AsyncDicomReader {
                 } else if (tagObj.isPixelDataTag()) {
                     vrType = "OW";
                 } else if (vrType == "xs") {
-                    vrType = "US";
+                    // This should work for any tag after PixelRepresentation,
+                    // which is all but 2 of the xs code values.
+                    const signed =
+                        listener.getValue(TagHex.PixelRepresentation) === 0;
+                    vrType = signed ? "SS" : "US";
                 } else if (tagObj.isPrivateCreator()) {
                     vrType = "LO";
                 } else {
@@ -350,11 +354,7 @@ export class AsyncDicomReader {
         } else {
             vrType = stream.readVR();
 
-            if (
-                vrType === "UN" &&
-                DicomMessage.lookupTag(tagObj) &&
-                DicomMessage.lookupTag(tagObj).vr
-            ) {
+            if (vrType === "UN" && DicomMessage.lookupTag(tagObj)?.vr) {
                 vrType = DicomMessage.lookupTag(tagObj).vr;
 
                 vr = ValueRepresentation.parseUnknownVr(vrType);
