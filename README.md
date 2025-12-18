@@ -1,6 +1,6 @@
 <div align="center">
   <h1>dcmjs</h1>
-  <p>JavaScript implementation of DICOM manipulation. This code is an outgrowth of several efforts to implement web applications for medical imaging.</p>
+  <p>JavaScript implementation of DICOM manipulation. This code is an outgrowth of several efforts to implement web applications for medical imaging.  the package should also work fine on node.</p>
 </div>
 
 <hr />
@@ -167,6 +167,7 @@ The developers gratefully acknowledge their research support:
 - The [Neuroimage Analysis Center](http://nac.spl.harvard.edu)
 - The [National Center for Image Guided Therapy](http://ncigt.org)
 - The [NCI Imaging Data Commons](https://imagingdatacommons.github.io/) NCI Imaging Data Commons: contract number 19X037Q from Leidos Biomedical Research under Task Order HHSN26100071 from NCI
+- dcmjs is being used and partially supported by [dicom-curate](https://github.com/bebbi/dicom-curate)
 
 ## Logging
 
