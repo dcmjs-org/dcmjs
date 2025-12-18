@@ -7,7 +7,8 @@ import {
     VM_DELIMITER,
     TagHex,
     encodingMapping,
-    unencapsulatedTransferSyntaxes
+    unencapsulatedTransferSyntaxes,
+    UNDEFINED_LENGTH
 } from "./constants/dicom.js";
 import { DicomDict } from "./DicomDict.js";
 import { DicomMetaDictionary } from "./DicomMetaDictionary.js";
@@ -302,7 +303,7 @@ class DicomMessage {
                 vrType = elementData.vr;
             } else {
                 //unknown tag
-                if (length == 0xffffffff) {
+                if (length == UNDEFINED_LENGTH) {
                     vrType = "SQ";
                 } else if (tag.isPixelDataTag()) {
                     vrType = "OW";

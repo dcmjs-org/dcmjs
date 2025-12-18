@@ -7,7 +7,8 @@ import {
     VM_DELIMITER,
     UNDEFINED_LENGTH,
     TagHex,
-    encodingMapping
+    encodingMapping,
+    UNDEFINED_LENGTH_FIX
 } from "./constants/dicom";
 import { Tag } from "./Tag";
 import { DicomMessage, singleVRs } from "./DicomMessage";
@@ -60,8 +61,7 @@ export class AsyncDicomReader {
         const listener = options?.listener || new DicomMetadataListener();
         this.dict ||= {};
         listener.startObject(this.dict);
-        await this.read(listener, options);
-        this.dict = listener.pop();
+        this.dict = await this.read(listener, options);
 
         return this;
     }
@@ -118,10 +118,11 @@ export class AsyncDicomReader {
     }
 
     async read(listener, options) {
+        const untilOffset = options?.untilOffset || Number.MAX_SAFE_INTEGER;
         this.listener = listener;
         const { stream } = this;
         await stream.ensureAvailable();
-        while (stream.isAvailable(1, false)) {
+        while (stream.offset < untilOffset && stream.isAvailable(1, false)) {
             // Consume before reading the tag so that data before the
             // current tag can be cleared.
             stream.consume();
@@ -135,7 +136,7 @@ export class AsyncDicomReader {
                 console.warn("SKipping instruction:", tag);
                 continue;
             }
-            if (tagObj.group() === 0) {
+            if (tagObj.group() === 0 || tag === TagHex.DataSetTrailingPadding) {
                 // Group length
                 stream.increment(tagObj.length);
                 continue;
@@ -145,7 +146,7 @@ export class AsyncDicomReader {
                 await this.readSequence(listener, tagInfo, options);
             } else if (tagObj.isPixelDataTag()) {
                 await this.readPixelData(listener, tagInfo);
-            } else if (length === -1) {
+            } else if (length === UNDEFINED_LENGTH_FIX) {
                 throw new Error(
                     `Can't handle tag ${tagInfo.tag} with -1 length and not sequence`
                 );
@@ -155,23 +156,30 @@ export class AsyncDicomReader {
             listener.pop();
             await this.stream.ensureAvailable();
         }
+        return listener.pop();
     }
 
-    async readSequence(listener, tagInfo, options) {
-        const { length } = tagInfo;
+    async readSequence(listener, sqTagInfo, options) {
+        const { length } = sqTagInfo;
         const { stream, syntax } = this;
         const endOffset =
-            length === -1 ? Number.MAX_SAFE_INTEGER : stream.offset + length;
+            length === UNDEFINED_LENGTH_FIX
+                ? Number.MAX_SAFE_INTEGER
+                : stream.offset + length;
         const dest = [];
         listener.startArray(dest);
         while (stream.offset < endOffset && (await stream.ensureAvailable())) {
-            const tagInfo = await this.readTagHeader(syntax, options);
+            const tagInfo = this.readTagHeader(syntax, options);
             const { tag } = tagInfo;
             if (tag === TagHex.Item) {
                 listener.startObject();
-                const result = await this.read(listener, options);
+                const result = await this.read(listener, {
+                    ...options,
+                    untilOffset: endOffset
+                });
                 dest.push(result);
             } else if (tag === TagHex.SequenceDelimitationEnd) {
+                // Sequence of undefined lengths end in sequence delimitation item
                 listener.pop();
                 return dest;
             } else {
@@ -179,6 +187,8 @@ export class AsyncDicomReader {
                 throw new Error();
             }
         }
+        // Sequences of defined length end at the end offset
+        listener.pop();
     }
 
     readPixelData(listener, tagInfo) {
@@ -198,6 +208,10 @@ export class AsyncDicomReader {
         await stream.ensureAvailable();
 
         const offsets = await this.readOffsets();
+        if (offsets.length) {
+            // Last frame ends when the sequence ends, so merge the frame data
+            offsets.push(Number.MAX_SAFE_INTEGER / 2);
+        }
         const startOffset = stream.offset;
 
         let frameNumber = 0;
@@ -208,6 +222,11 @@ export class AsyncDicomReader {
             await stream.ensureAvailable();
             const frameTag = this.readTagHeader();
             if (frameTag.tag === TagHex.SequenceDelimitationEnd) {
+                if (lastFrame) {
+                    listener.value(
+                        lastFrame.length === 1 ? lastFrame[0] : lastFrame
+                    );
+                }
                 return;
             }
             if (frameTag.tag !== TagHex.Item) {
@@ -218,19 +237,22 @@ export class AsyncDicomReader {
             const frame = stream.readArrayBuffer(length);
             // Collect values into an array for child elements
             if (
-                offsets?.length > frameNumber &&
-                stream.offset < offsets[frameNumber] + startOffset
+                offsets?.length &&
+                stream.offset < offsets[frameNumber + 1] + startOffset
             ) {
                 lastFrame ||= [];
                 lastFrame.push(frame);
             } else if (lastFrame) {
                 lastFrame.push(frame);
-                listener.value(lastFrame);
+                listener.value(
+                    lastFrame.length === 1 ? lastFrame[0] : lastFrame
+                );
                 lastFrame = null;
+                frameNumber++;
             } else {
                 listener.value(frame);
+                frameNumber++;
             }
-            frameNumber++;
         }
     }
 
@@ -247,6 +269,10 @@ export class AsyncDicomReader {
         await this.stream.ensureAvailable(tagInfo.length);
         for (let i = 0; i < numOfFrames; i++) {
             offsets.push(this.stream.readUint32());
+        }
+        if (offsets.length === 1) {
+            // Don't merge single frames or video
+            return [];
         }
         return offsets;
     }
@@ -277,15 +303,6 @@ export class AsyncDicomReader {
         }
         const frameLength = bitsPerFrame / 8;
 
-        console.warn(
-            "Reading pixel data tag",
-            length,
-            numberOfFrames,
-            rows,
-            cols,
-            samplesPerPixel,
-            bitsAllocated
-        );
         for (let frameNumber = 0; frameNumber < numberOfFrames; frameNumber++) {
             await stream.ensureAvailable(frameLength);
             const arrayBuffer = stream.readUint8Array(frameLength);
@@ -296,7 +313,7 @@ export class AsyncDicomReader {
 
     isSequence(tagInfo) {
         const { vr, length } = tagInfo;
-        return vr === "SQ" || (vr === "UN" && length === -1);
+        return vr === "SQ" || (vr === "UN" && length === UNDEFINED_LENGTH_FIX);
     }
 
     /**
@@ -337,7 +354,7 @@ export class AsyncDicomReader {
                 vrType = elementData.vr;
             } else {
                 //unknown tag
-                if (length == 0xffffffff) {
+                if (length == UNDEFINED_LENGTH) {
                     vrType = "SQ";
                 } else if (tagObj.isPixelDataTag()) {
                     vrType = "OW";

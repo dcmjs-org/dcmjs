@@ -2,6 +2,7 @@ import fs from "fs";
 import { AsyncDicomReader } from "../src/AsyncDicomReader";
 import { DicomMetadataListener } from "../src/utilities/DicomMetadataListener";
 import { TagHex } from "../src/constants/dicom";
+import { getTestDataset } from "./testUtils.js";
 
 describe("AsyncDicomReader", () => {
     test("DICOM part 10 complete listener uncompressed", async () => {
@@ -60,5 +61,52 @@ describe("AsyncDicomReader", () => {
         const [pixelData] = dict[TagHex.PixelData].Value;
         expect(pixelData).toBeInstanceOf(ArrayBuffer);
         expect(pixelData.byteLength).toBe(101304);
+    });
+
+    test("compressed multiframe data test", async () => {
+        const url =
+            "https://github.com/dcmjs-org/data/releases/download/binary-parsing-stressors/multiframe-ultrasound.dcm";
+        const dcmPath = await getTestDataset(url, "multiframe-ultrasound.dcm");
+        const reader = new AsyncDicomReader();
+
+        const stream = fs.createReadStream(dcmPath, {
+            highWaterMark: 4001
+        });
+        reader.stream.fromAsyncStream(stream);
+
+        const { meta, dict } = await reader.readFile();
+        expect(meta[TagHex.TransferSyntaxUID].Value[0]).toBe(
+            "1.2.840.10008.1.2.4.50"
+        );
+        const numFrames = dict[TagHex.NumberOfFrames].Value[0];
+        expect(numFrames).toBe(29);
+        const frames = dict[TagHex.PixelData].Value;
+        expect(frames.length).toBe(numFrames);
+    });
+
+    test("compressed fragmented multiframe data test", async () => {
+        const url =
+            "https://github.com/dcmjs-org/data/releases/download/encapsulation/encapsulation-fragment-multiframe.dcm";
+        const dcmPath = await getTestDataset(
+            url,
+            "encapsulation-fragment-multiframe-b.dcm"
+        );
+        const reader = new AsyncDicomReader();
+
+        const stream = fs.createReadStream(dcmPath, {
+            highWaterMark: 4001
+        });
+        reader.stream.fromAsyncStream(stream);
+
+        const { meta, dict } = await reader.readFile();
+        expect(meta[TagHex.TransferSyntaxUID].Value[0]).toBe(
+            "1.2.840.10008.1.2.4.90"
+        );
+        const numFrames = dict[TagHex.NumberOfFrames].Value[0];
+        expect(numFrames).toBe(2);
+        const frames = dict[TagHex.PixelData].Value;
+        expect(frames.length).toBe(numFrames);
+        expect(frames[0].length).toBe(2);
+        expect(frames[1].length).toBe(2);
     });
 });

@@ -3,7 +3,8 @@ import {
     EXPLICIT_LITTLE_ENDIAN,
     IMPLICIT_LITTLE_ENDIAN,
     SEQUENCE_DELIMITER_TAG,
-    SEQUENCE_ITEM_TAG
+    SEQUENCE_ITEM_TAG,
+    UNDEFINED_LENGTH
 } from "./constants/dicom";
 import { ValueRepresentation } from "./ValueRepresentation.js";
 
@@ -174,7 +175,7 @@ class Tag {
         }
 
         if (vrType == "SQ") {
-            valueLength = 0xffffffff;
+            valueLength = UNDEFINED_LENGTH;
         }
         var written = tagStream.size + 4;
 
@@ -188,7 +189,7 @@ class Tag {
             const isBig16Length =
                 !vr.isLength32() &&
                 valueLength >= 0x10000 &&
-                valueLength !== 0xffffffff;
+                valueLength !== UNDEFINED_LENGTH;
             if (vr.isLength32() || isBig16Length) {
                 // Write as vr UN for big values
                 stream.writeAsciiString(isBig16Length ? "UN" : vr.type);

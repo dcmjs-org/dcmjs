@@ -4,8 +4,17 @@ export const EXPLICIT_LITTLE_ENDIAN = "1.2.840.10008.1.2.1";
 export const DEFLATED_EXPLICIT_LITTLE_ENDIAN = "1.2.840.10008.1.2.1.99";
 export const EXPLICIT_BIG_ENDIAN = "1.2.840.10008.1.2.2";
 
-// Data Element Length
+/**
+ * The raw hex value is the maximum 32 bit unsigned integer,
+ * but this is a potential length value, so suggest using the
+ * canonical UNDEFINED_LENGTH_FIX value of -1 instead
+ */
 export const UNDEFINED_LENGTH = 0xffffffff;
+/**
+ * Use a -1 value for the undefined length being fixed as this is consistent
+ * with other usage and can't be confused with a real length.
+ */
+export const UNDEFINED_LENGTH_FIX = -1;
 export const ITEM_DELIMITATION_LENGTH = 0x00000000;
 
 // Delimitation Value
@@ -48,7 +57,8 @@ export const TagHex = {
     BitsAllocated: "00280100",
     NumberOfFrames: "00280008",
     SpecificCharacterSet: "00080005",
-    PixelRepresentation: "00280103"
+    PixelRepresentation: "00280103",
+    DataSetTrailingPadding: "FFFCFFFC"
 };
 
 export const encodingMapping = {

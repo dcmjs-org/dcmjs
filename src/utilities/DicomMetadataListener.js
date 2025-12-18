@@ -24,21 +24,21 @@ export class DicomMetadataListener {
         if (this.current.dest) {
             this.current.dest[tag] = dest;
         }
-        this.current = { parent: this.current, dest };
+        this.current = { parent: this.current, dest, type: tag };
     }
 
     /**
      * Starts a new object, using the provided value
      */
     startObject(dest = {}) {
-        this.current = { parent: this.current, dest };
+        this.current = { parent: this.current, dest, type: "object" };
     }
 
     /**
      * Starts a new array, using the provided value
      */
     startArray(dest = []) {
-        this.current = { parent: this.current, dest };
+        this.current = { parent: this.current, dest, type: "array" };
     }
 
     /**
