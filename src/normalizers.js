@@ -1,6 +1,7 @@
 import log from "./log.js";
 import { DicomMetaDictionary } from "./DicomMetaDictionary.js";
 import { DerivedImage } from "./derivations/index.js";
+import Segmentation from "./derivations/Segmentation.js";
 
 class Normalizer {
     constructor(datasets) {
@@ -548,6 +549,9 @@ class OCTImageNormalizer extends ImageNormalizer {
         super.normalize();
     }
 }
+
+// Avoid import loops
+Segmentation.setNormalizer(Normalizer);
 
 export { Normalizer };
 export { ImageNormalizer };

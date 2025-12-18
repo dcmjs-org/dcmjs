@@ -5,7 +5,6 @@ import {
     PN_COMPONENT_DELIMITER,
     VM_DELIMITER
 } from "./constants/dicom.js";
-import { DicomMetaDictionary } from "./DicomMetaDictionary.js";
 import { log, validationLog } from "./log.js";
 import dicomJson from "./utilities/dicomJson.js";
 
@@ -64,7 +63,7 @@ function toWindows(inputArray, size) {
     );
 }
 
-let DicomMessage, Tag;
+let DicomMessage, Tag, DicomMetaDictionary;
 
 var binaryVRs = ["FL", "FD", "SL", "SS", "UL", "US", "AT"],
     length32VRs = ["OB", "OW", "OF", "SQ", "UC", "UR", "UT", "UN", "OD"],
@@ -83,6 +82,10 @@ class ValueRepresentation {
 
     static setDicomMessageClass(dicomMessageClass) {
         DicomMessage = dicomMessageClass;
+    }
+
+    static setDicomMetaDictionary(metaDictionary) {
+        DicomMetaDictionary = metaDictionary;
     }
 
     static setTagClass(tagClass) {

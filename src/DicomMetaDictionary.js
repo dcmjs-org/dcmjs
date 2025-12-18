@@ -3,7 +3,7 @@ import log from "./log.js";
 import addAccessors from "./utilities/addAccessors";
 import { ValueRepresentation } from "./ValueRepresentation";
 
-class DicomMetaDictionary {
+export class DicomMetaDictionary {
     // intakes a custom dictionary that will be used to parse/denaturalize the dataset
     constructor(customDictionary) {
         this.customDictionary = customDictionary;
@@ -402,9 +402,10 @@ DicomMetaDictionary.sopClassNamesByUID = {
     "1.2.840.10008.5.1.4.1.1.77.1.5.4": "OphthalmicTomographyImage"
 };
 
+// Avoid loops in imports
+ValueRepresentation.setDicomMetaDictionary(DicomMetaDictionary);
+
 DicomMetaDictionary.dictionary = dictionary;
 
 DicomMetaDictionary._generateNameMap();
 DicomMetaDictionary._generateUIDMap();
-
-export { DicomMetaDictionary };

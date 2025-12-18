@@ -1008,6 +1008,57 @@ describe("lossless-read-write", () => {
         deepEqual(origDicomDict, newDicomDict);
     });
 
+    test("uncompressed data should be read correctly as arraybuffer", () => {
+        const buffer = fs.readFileSync("test/sample-dicom.dcm");
+        const dicomDict = DicomMessage.readFile(buffer.buffer);
+        // console.warn("fullData=", fullData);
+        const { dict } = dicomDict;
+        const [originalPixelArray] = dict["7FE00010"].Value;
+        expect(originalPixelArray).toBeInstanceOf(ArrayBuffer);
+        expect(originalPixelArray.byteLength).toBe(512 * 512 * 2);
+        const uint = new Uint16Array(originalPixelArray);
+        expect(uint[39138]).toBe(1);
+
+        const natural = DicomMetaDictionary.naturalizeDataset(dict);
+        dicomDict.dict = DicomMetaDictionary.denaturalizeDataset(natural);
+
+        const outputBuffer = dicomDict.write();
+        const outputDicomDict = DicomMessage.readFile(outputBuffer);
+
+        const [outputPixelArray] = outputDicomDict.dict["7FE00010"].Value;
+        expect(outputPixelArray).toBeInstanceOf(ArrayBuffer);
+        const uintOut = new Uint16Array(outputPixelArray);
+        expect(uintOut.length).toBe(uint.length);
+        for (let i = 0; i < uint.length; i++) {
+            expect(uintOut[i]).toBe(uint[i]);
+        }
+    });
+
+    test("compressed data should be read correctly as arraybuffer", () => {
+        const buffer = fs.readFileSync("test/sample-op.dcm");
+        const dicomDict = DicomMessage.readFile(buffer.buffer);
+        // console.warn("fullData=", fullData);
+        const { dict } = dicomDict;
+        const [originalPixelArray] = dict["7FE00010"].Value;
+        expect(originalPixelArray).toBeInstanceOf(ArrayBuffer);
+        // Values from dcmdump
+        expect(originalPixelArray.byteLength).toBe(101304);
+        const originalPixelBytes = new Uint8Array(originalPixelArray);
+        expect(originalPixelBytes[0]).toBe(255);
+        expect(originalPixelBytes[1]).toBe(216);
+
+        const outputBuffer = dicomDict.write({ fragmentMultiframe: false });
+        const outputDicomDict = DicomMessage.readFile(outputBuffer);
+
+        const [outputPixelArray] = outputDicomDict.dict["7FE00010"].Value;
+        expect(outputPixelArray).toBeInstanceOf(ArrayBuffer);
+        const outputPixelBytes = new Uint8Array(outputPixelArray);
+        expect(outputPixelBytes.length).toBe(originalPixelBytes.length);
+        for (let i = 0; i < originalPixelBytes.length; i++) {
+            expect(outputPixelBytes[i]).toBe(originalPixelBytes[i]);
+        }
+    });
+
     test("0 length US should use default value for both Value and rawValue", async () => {
         const inputBuffer = await getDcmjsDataFile(
             "empty-tag-round-trip",
