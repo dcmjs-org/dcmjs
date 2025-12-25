@@ -15,14 +15,31 @@ export default class Ellipse extends TID300Measurement {
             mean,
             stdDev,
             modalityUnit,
-            ReferencedFrameOfReferenceUID,
-            annotationIndex
+            ReferencedFrameOfReferenceUID
         } = this.props;
 
         const GraphicData = this.flattenPoints({
             points,
             use3DSpatialCoordinates
         });
+
+        // Create group-level SCOORD
+        const scoordItem = {
+            RelationshipType: "CONTAINS",
+            ValueType: this.use3DSpatialCoordinates ? "SCOORD3D" : "SCOORD",
+            ConceptNameCodeSequence: {
+                CodeValue: "C00A3DD7",
+                CodingSchemeDesignator: "DCM",
+                CodeMeaning: "ROI"
+            },
+            GraphicType: "ELLIPSE",
+            GraphicData,
+            ContentSequence: {
+                RelationshipType: "SELECTED FROM",
+                ValueType: "IMAGE",
+                ReferencedSOPSequence
+            }
+        };
 
         const measurementConfigs = [
             {
@@ -52,25 +69,13 @@ export default class Ellipse extends TID300Measurement {
             }
         ];
 
-        const scoordContentItem = new TID320ContentItem({
-            graphicType: "ELLIPSE",
-            graphicData: GraphicData,
-            use3DSpatialCoordinates,
-            referencedSOPSequence: ReferencedSOPSequence,
-            referencedFrameOfReferenceUID: ReferencedFrameOfReferenceUID
-        }).contentItem();
-
         const measurements = [
-            ...measurementConfigs
+            measurementConfigs
                 .filter(config => config.value !== undefined)
-                .map((config, index) =>
-                    config.builder(config.value, config.unit, annotationIndex, {
-                        scoordContentItem:
-                            index === 0 ? scoordContentItem : null
-                    })
-                )
+                .map(config => config.builder(config.value, config.unit))
         ];
+        console.log([scoordItem, ...measurements]);
 
-        return this.getMeasurement(measurements);
+        return [scoordItem, ...measurements];
     }
 }
