@@ -1,5 +1,6 @@
 import TID300Measurement from "./TID300Measurement.js";
-import unit2CodingValue from "./unit2CodingValue.js";
+import TID320ContentItem from "./TID320ContentItem.js";
+import MeasurementBuilder from "../MeasurementBuilder.js";
 
 export default class Ellipse extends TID300Measurement {
     contentItem() {
@@ -9,6 +10,11 @@ export default class Ellipse extends TID300Measurement {
             ReferencedSOPSequence,
             area,
             areaUnit,
+            max,
+            min,
+            mean,
+            stdDev,
+            modalityUnit,
             ReferencedFrameOfReferenceUID
         } = this.props;
 
@@ -17,36 +23,59 @@ export default class Ellipse extends TID300Measurement {
             use3DSpatialCoordinates
         });
 
-        return this.getMeasurement([
-            {
-                RelationshipType: "CONTAINS",
-                ValueType: "NUM",
-                ConceptNameCodeSequence: {
-                    CodeValue: "G-D7FE",
-                    CodingSchemeDesignator: "SRT",
-                    CodeMeaning: "AREA"
-                },
-                MeasuredValueSequence: {
-                    MeasurementUnitsCodeSequence: unit2CodingValue(areaUnit),
-                    NumericValue: area
-                },
-                ContentSequence: {
-                    RelationshipType: "INFERRED FROM",
-                    ValueType: use3DSpatialCoordinates ? "SCOORD3D" : "SCOORD",
-                    GraphicType: "ELLIPSE",
-                    GraphicData,
-                    ReferencedFrameOfReferenceUID: use3DSpatialCoordinates
-                        ? ReferencedFrameOfReferenceUID
-                        : undefined,
-                    ContentSequence: use3DSpatialCoordinates
-                        ? undefined
-                        : {
-                              RelationshipType: "SELECTED FROM",
-                              ValueType: "IMAGE",
-                              ReferencedSOPSequence
-                          }
-                }
+        // Create group-level SCOORD
+        const scoordItem = {
+            RelationshipType: "CONTAINS",
+            ValueType: this.use3DSpatialCoordinates ? "SCOORD3D" : "SCOORD",
+            ConceptNameCodeSequence: {
+                CodeValue: "C00A3DD7",
+                CodingSchemeDesignator: "DCM",
+                CodeMeaning: "ROI"
+            },
+            GraphicType: "ELLIPSE",
+            GraphicData,
+            ContentSequence: {
+                RelationshipType: "SELECTED FROM",
+                ValueType: "IMAGE",
+                ReferencedSOPSequence
             }
-        ]);
+        };
+
+        const measurementConfigs = [
+            {
+                value: area,
+                unit: areaUnit,
+                builder: MeasurementBuilder.createAreaMeasurement
+            },
+            {
+                value: max,
+                unit: modalityUnit,
+                builder: MeasurementBuilder.createMaxMeasurement
+            },
+            {
+                value: min,
+                unit: modalityUnit,
+                builder: MeasurementBuilder.createMinMeasurement
+            },
+            {
+                value: mean,
+                unit: modalityUnit,
+                builder: MeasurementBuilder.createMeanMeasurement
+            },
+            {
+                value: stdDev,
+                unit: modalityUnit,
+                builder: MeasurementBuilder.createStdDevMeasurement
+            }
+        ];
+
+        const measurements = [
+            measurementConfigs
+                .filter(config => config.value !== undefined)
+                .map(config => config.builder(config.value, config.unit))
+        ];
+        console.log([scoordItem, ...measurements]);
+
+        return [scoordItem, ...measurements];
     }
 }

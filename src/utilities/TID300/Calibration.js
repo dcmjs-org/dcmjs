@@ -1,5 +1,6 @@
 import TID300Measurement from "./TID300Measurement.js";
 import unit2CodingValue from "./unit2CodingValue.js";
+import TID320ContentItem from "./TID320ContentItem.js";
 
 export default class Calibration extends TID300Measurement {
     contentItem() {
@@ -18,6 +19,14 @@ export default class Calibration extends TID300Measurement {
             use3DSpatialCoordinates
         });
 
+        const graphicContentSequence = new TID320ContentItem({
+            graphicType: "POLYLINE",
+            graphicData: GraphicData,
+            use3DSpatialCoordinates,
+            referencedSOPSequence: ReferencedSOPSequence,
+            referencedFrameOfReferenceUID: ReferencedFrameOfReferenceUID
+        }).contentItem();
+
         return this.getMeasurement([
             {
                 RelationshipType: "CONTAINS",
@@ -31,22 +40,7 @@ export default class Calibration extends TID300Measurement {
                     MeasurementUnitsCodeSequence: unit2CodingValue(unit),
                     NumericValue: distance
                 },
-                ContentSequence: {
-                    RelationshipType: "INFERRED FROM",
-                    ValueType: use3DSpatialCoordinates ? "SCOORD3D" : "SCOORD",
-                    GraphicType: "POLYLINE",
-                    GraphicData,
-                    ReferencedFrameOfReferenceUID: use3DSpatialCoordinates
-                        ? ReferencedFrameOfReferenceUID
-                        : undefined,
-                    ContentSequence: use3DSpatialCoordinates
-                        ? undefined
-                        : {
-                              RelationshipType: "SELECTED FROM",
-                              ValueType: "IMAGE",
-                              ReferencedSOPSequence
-                          }
-                }
+                ContentSequence: graphicContentSequence
             }
         ]);
     }

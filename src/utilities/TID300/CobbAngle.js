@@ -1,4 +1,5 @@
 import TID300Measurement from "./TID300Measurement.js";
+import TID320ContentItem from "./TID320ContentItem.js";
 
 export default class CobbAngle extends TID300Measurement {
     contentItem() {
@@ -18,6 +19,14 @@ export default class CobbAngle extends TID300Measurement {
             use3DSpatialCoordinates
         });
 
+        const graphicContentSequence = new TID320ContentItem({
+            graphicType: "POLYLINE",
+            graphicData: GraphicData,
+            use3DSpatialCoordinates,
+            referencedSOPSequence: ReferencedSOPSequence,
+            referencedFrameOfReferenceUID: ReferencedFrameOfReferenceUID
+        }).contentItem();
+
         return this.getMeasurement([
             {
                 RelationshipType: "CONTAINS",
@@ -36,22 +45,7 @@ export default class CobbAngle extends TID300Measurement {
                     },
                     NumericValue: rAngle
                 },
-                ContentSequence: {
-                    RelationshipType: "INFERRED FROM",
-                    ValueType: use3DSpatialCoordinates ? "SCOORD3D" : "SCOORD",
-                    GraphicType: "POLYLINE",
-                    GraphicData,
-                    ReferencedFrameOfReferenceUID: use3DSpatialCoordinates
-                        ? ReferencedFrameOfReferenceUID
-                        : undefined,
-                    ContentSequence: use3DSpatialCoordinates
-                        ? undefined
-                        : {
-                              RelationshipType: "SELECTED FROM",
-                              ValueType: "IMAGE",
-                              ReferencedSOPSequence
-                          }
-                }
+                ContentSequence: graphicContentSequence
             }
         ]);
     }

@@ -168,10 +168,14 @@ class EllipticalROI {
             points.push({ x: bottom[0], y: bottom[1] });
         }
 
-        const { area } = cachedStats[`imageId:${referencedImageId}`] || {};
+        const stats = cachedStats[`imageId:${referencedImageId}`] || {};
 
         return {
-            area,
+            area: stats.area,
+            mean: stats.mean,
+            max: stats.max,
+            min: stats.min,
+            stdDev: stats.stdDev,
             points,
             trackingIdentifierTextValue,
             finding,
