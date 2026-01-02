@@ -19,8 +19,7 @@ export default class Circle extends TID300Measurement {
             radiusUnit,
             modalityUnit,
             ReferencedFrameOfReferenceUID,
-            radius,
-            annotationIndex
+            radius
         } = this.props;
 
         // Combine all lengths to save the perimeter
@@ -82,7 +81,7 @@ export default class Circle extends TID300Measurement {
             ...measurementConfigs
                 .filter(config => config.value !== undefined)
                 .map((config, index) =>
-                    config.builder(config.value, config.unit, annotationIndex, {
+                    config.builder(config.value, config.unit, {
                         scoordContentItem:
                             index === 0 ? scoordContentItem : null
                     })

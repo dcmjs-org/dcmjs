@@ -22,8 +22,6 @@ class MeasurementBuilder {
      * @param {string} codeMeaning - Human-readable meaning of the measurement code.
      * @param {number|string} value - The numeric measurement value.
      * @param {Object} unit - Unit definition object (UCUM or other coding scheme).
-     * @param {number} annotationIndex - Index used to populate ReferencedContentItemIdentifier,
-     *                                   ensuring the NUM item correctly references its SCOORD.
      *
      * @returns {Object} DICOM SR content item representing a numeric measurement.
      */
@@ -33,9 +31,10 @@ class MeasurementBuilder {
         codingScheme,
         codeMeaning,
         value,
-        unit
+        unit,
+        { scoordContentItem = null } = {}
     ) {
-        return {
+        const item = {
             RelationshipType: "CONTAINS",
             ValueType: "NUM",
             ConceptNameCodeSequence: {
@@ -48,75 +47,92 @@ class MeasurementBuilder {
                 NumericValue: value
             }
         };
+
+        if (scoordContentItem) {
+            item.ContentSequence = scoordContentItem;
+        }
+
+        return item;
     }
 
-    static createAreaMeasurement(area, areaUnit) {
+    static createAreaMeasurement(area, areaUnit, { scoordContentItem }) {
         return MeasurementBuilder.createNumericMeasurement(
             "42798000",
             "SCT",
             "Area",
             area,
-            areaUnit
+            areaUnit,
+            { scoordContentItem }
         );
     }
 
-    static createRadiusMeasurement(radius, radiusUnit) {
+    static createRadiusMeasurement(radius, radiusUnit, { scoordContentItem }) {
         return MeasurementBuilder.createNumericMeasurement(
             "131190003",
             "SCT",
             "Radius",
             radius,
-            radiusUnit
+            radiusUnit,
+            { scoordContentItem }
         );
     }
 
-    static createMaxMeasurement(max, modalityUnit) {
+    static createMaxMeasurement(max, modalityUnit, { scoordContentItem }) {
         return MeasurementBuilder.createNumericMeasurement(
             "56851009",
             "SCT",
             "Maximum",
             max,
-            modalityUnit
+            modalityUnit,
+            { scoordContentItem }
         );
     }
 
-    static createMinMeasurement(min, modalityUnit) {
+    static createMinMeasurement(min, modalityUnit, { scoordContentItem }) {
         return MeasurementBuilder.createNumericMeasurement(
             "255605001",
             "SCT",
             "Minimum",
             min,
-            modalityUnit
+            modalityUnit,
+            { scoordContentItem }
         );
     }
 
-    static createMeanMeasurement(mean, modalityUnit) {
+    static createMeanMeasurement(mean, modalityUnit, { scoordContentItem }) {
         return MeasurementBuilder.createNumericMeasurement(
             "373098007",
             "SCT",
             "Mean",
             mean,
-            modalityUnit
+            modalityUnit,
+            { scoordContentItem }
         );
     }
 
-    static createStdDevMeasurement(stdDev, modalityUnit) {
+    static createStdDevMeasurement(
+        stdDev,
+        modalityUnit,
+        { scoordContentItem }
+    ) {
         return MeasurementBuilder.createNumericMeasurement(
             "386136009",
             "SCT",
             "Standard Deviation",
             stdDev,
-            modalityUnit
+            modalityUnit,
+            { scoordContentItem }
         );
     }
 
-    static createPerimeterMeasurement(perimeter, unit) {
+    static createPerimeterMeasurement(perimeter, unit, { scoordContentItem }) {
         return MeasurementBuilder.createNumericMeasurement(
             "131191004",
             "SCT",
             "Perimeter",
             perimeter,
-            unit
+            unit,
+            { scoordContentItem }
         );
     }
 }

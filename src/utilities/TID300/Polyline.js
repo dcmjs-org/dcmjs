@@ -17,8 +17,7 @@ export default class Polyline extends TID300Measurement {
             max,
             mean,
             stdDev,
-            ReferencedFrameOfReferenceUID,
-            annotationIndex
+            ReferencedFrameOfReferenceUID
         } = this.props;
 
         const GraphicData = this.flattenPoints({
@@ -70,7 +69,7 @@ export default class Polyline extends TID300Measurement {
             ...measurementConfigs
                 .filter(config => config.value !== undefined)
                 .map((config, index) =>
-                    config.builder(config.value, config.unit, annotationIndex, {
+                    config.builder(config.value, config.unit, {
                         scoordContentItem:
                             index === 0 ? scoordContentItem : null
                     })

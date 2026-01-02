@@ -27,7 +27,7 @@ export default class Point extends TID300Measurement {
         return this.getMeasurement([
             {
                 RelationshipType: "CONTAINS",
-                ValueType: this.use3DSpatialCoordinates ? "SCOORD3D" : "SCOORD",
+                ValueType: "NUM",
                 ConceptNameCodeSequence: {
                     CodeValue: "111010",
                     CodingSchemeDesignator: "DCM",

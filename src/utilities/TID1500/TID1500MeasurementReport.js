@@ -56,7 +56,7 @@ export default class TID1500MeasurementReport {
                         CodeMeaning: "Language of Content Item and Descendants"
                     }),
                     ConceptCodeSequence: addAccessors({
-                        CodeValue: "eng",
+                        CodeValue: "en",
                         CodingSchemeDesignator: "RFC5646",
                         CodeMeaning: "English"
                     }),
