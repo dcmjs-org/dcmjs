@@ -65,16 +65,13 @@ export default class Polyline extends TID300Measurement {
             referencedFrameOfReferenceUID: ReferencedFrameOfReferenceUID
         }).contentItem();
 
-        const measurements = [
-            ...measurementConfigs
-                .filter(config => config.value !== undefined)
-                .map((config, index) =>
-                    config.builder(config.value, config.unit, {
-                        scoordContentItem:
-                            index === 0 ? scoordContentItem : null
-                    })
-                )
-        ];
+        const measurements = measurementConfigs
+            .filter(config => config.value !== undefined)
+            .map((config, index) =>
+                config.builder(config.value, config.unit, {
+                    scoordContentItem: index === 0 ? scoordContentItem : null
+                })
+            );
 
         return this.getMeasurement(measurements);
     }
