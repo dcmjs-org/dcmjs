@@ -18,8 +18,8 @@ export default class ArrowAnnotate extends OpenPolyline {
         return {
             NumericValue: 0,
             MeasurementUnitsCodeSequence: {
-                CodeValue: "",
-                CodingSchemeDesignator: "",
+                CodeValue: "1",
+                CodingSchemeDesignator: "UCUM",
                 CodeMeaning: "no units"
             }
         };
