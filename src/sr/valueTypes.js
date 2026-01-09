@@ -1,4 +1,5 @@
 import { CodedConcept } from "./coding.js";
+import addAccessors from "../utilities/addAccessors.js";
 
 const ValueTypes = {
     CODE: "CODE",
@@ -111,7 +112,7 @@ class ContentItem {
         if (!(options.name instanceof CodedConcept)) {
             throw new Error("Option 'name' must have type CodedConcept.");
         }
-        this.ConceptNameCodeSequence = [options.name];
+        this.ConceptNameCodeSequence = addAccessors([options.name]);
         if (options.valueType === undefined) {
             throw new Error("Option 'valueType' is required for ContentItem.");
         }
@@ -155,7 +156,7 @@ class CodeContentItem extends ContentItem {
         if (!(options.value instanceof CodedConcept)) {
             throw new Error("Option 'value' must have type CodedConcept.");
         }
-        this.ConceptCodeSequence = [options.value];
+        this.ConceptCodeSequence = addAccessors([options.value]);
     }
 }
 
@@ -529,7 +530,10 @@ class ScoordContentItem extends ContentItem {
         if (options.graphicData[0] instanceof Array) {
             options.graphicData = [].concat.apply([], options.graphicData);
         }
+
+        this.GraphicType = options.graphicType;
         this.GraphicData = options.graphicData;
+
         options.pixelOriginInterpretation =
             options.pixelOriginInterpretation ||
             PixelOriginInterpretations.VOLUME;

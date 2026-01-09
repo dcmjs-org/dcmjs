@@ -1,5 +1,6 @@
 import MeasurementReport from "./MeasurementReport.js";
-import TID300Point from "../../utilities/TID300/Point.js";
+import TID300ArrowAnnotate from "../../utilities/TID300/ArrowAnnotate.js";
+
 import CORNERSTONE_3D_TAG from "./cornerstone3DTag";
 import CodingScheme from "./CodingScheme";
 
@@ -135,7 +136,7 @@ class ArrowAnnotate {
 
 ArrowAnnotate.toolType = ARROW_ANNOTATE;
 ArrowAnnotate.utilityToolType = ARROW_ANNOTATE;
-ArrowAnnotate.TID300Representation = TID300Point;
+ArrowAnnotate.TID300Representation = TID300ArrowAnnotate;
 ArrowAnnotate.isValidCornerstoneTrackingIdentifier = TrackingIdentifier => {
     if (!TrackingIdentifier.includes(":")) {
         return false;
