@@ -3,6 +3,10 @@ import TID300ArrowAnnotate from "../../utilities/TID300/ArrowAnnotate.js";
 
 import CORNERSTONE_3D_TAG from "./cornerstone3DTag";
 import CodingScheme from "./CodingScheme";
+import {
+    isFreeTextCodeValue,
+    isLegacyFreeTextCodeValue
+} from "./freeTextCodeChecks.js";
 
 const ARROW_ANNOTATE = "ArrowAnnotate";
 const trackingIdentifierTextValue = `${CORNERSTONE_3D_TAG}:${ARROW_ANNOTATE}`;
@@ -120,9 +124,15 @@ class ArrowAnnotate {
         };
 
         // If freetext finding isn't present, add it from the tool text.
-        if (!finding || finding.CodeValue !== codeValues.CORNERSTONEFREETEXT) {
+        // Use new coding scheme (99DCMJS) with short code value (CS3DTEXT) to comply with SH VR limit (≤16 chars).
+        // Legacy CORNERSTONEFREETEXT is still supported for reading old files.
+        if (
+            !finding ||
+            (!isFreeTextCodeValue(finding.CodeValue) &&
+                !isLegacyFreeTextCodeValue(finding.CodeValue))
+        ) {
             finding = {
-                CodeValue: codeValues.CORNERSTONEFREETEXT,
+                CodeValue: codeValues.FREE_TEXT_CODE_VALUE,
                 CodingSchemeDesignator,
                 CodeMeaning: data.text
             };

@@ -3,9 +3,11 @@ import { DicomMetaDictionary } from "../../DicomMetaDictionary.js";
 import { StructuredReport } from "../../derivations/index.js";
 import TID1500MeasurementReport from "../../utilities/TID1500/TID1500MeasurementReport.js";
 import TID1501MeasurementGroup from "../../utilities/TID1500/TID1501MeasurementGroup.js";
-import Cornerstone3DCodingScheme from "./CodingScheme";
 import addAccessors from "../../utilities/addAccessors.js";
-
+import {
+    isFreeTextCodeValue,
+    isLegacyFreeTextCodeValue
+} from "./freeTextCodeChecks.js";
 import { toArray, codeMeaningEquals } from "../helpers.js";
 
 const FINDING = { CodingSchemeDesignator: "DCM", CodeValue: "121071" };
@@ -82,18 +84,23 @@ export default class MeasurementReport {
     static getCornerstoneLabelFromDefaultState(defaultState) {
         const { findingSites = [], finding } = defaultState;
 
-        const cornersoneFreeTextCodingValue =
-            Cornerstone3DCodingScheme.codeValues.CORNERSTONEFREETEXT;
-
+        // Check finding sites for new or legacy free text annotation codes
         let freeTextLabel = findingSites.find(
-            fs => fs.CodeValue === cornersoneFreeTextCodingValue
+            fs =>
+                isFreeTextCodeValue(fs.CodeValue) ||
+                isLegacyFreeTextCodeValue(fs.CodeValue)
         );
 
         if (freeTextLabel) {
             return freeTextLabel.CodeMeaning;
         }
 
-        if (finding && finding.CodeValue === cornersoneFreeTextCodingValue) {
+        // Check finding for new or legacy free text annotation codes
+        if (
+            finding &&
+            (isFreeTextCodeValue(finding.CodeValue) ||
+                isLegacyFreeTextCodeValue(finding.CodeValue))
+        ) {
             return finding.CodeMeaning;
         }
     }
