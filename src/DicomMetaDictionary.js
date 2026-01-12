@@ -101,7 +101,8 @@ export class DicomMetaDictionary {
         return namedDataset;
     }
 
-    /** converts from DICOM JSON Model dataset to a natural dataset
+    /**
+     * converts from DICOM JSON Model dataset to a natural dataset
      * - sequences become lists
      * - single element lists are replaced by their first element,
      *     with single element lists remaining lists, but being a
