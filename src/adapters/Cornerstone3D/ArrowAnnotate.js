@@ -124,8 +124,6 @@ class ArrowAnnotate {
         };
 
         // If freetext finding isn't present, add it from the tool text.
-        // Use new coding scheme (99DCMJS) with short code value (CS3DTEXT) to comply with SH VR limit (≤16 chars).
-        // Legacy CORNERSTONEFREETEXT is still supported for reading old files.
         if (
             !finding ||
             (!isFreeTextCodeValue(finding.CodeValue) &&
