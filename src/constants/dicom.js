@@ -58,7 +58,12 @@ export const TagHex = {
     NumberOfFrames: "00280008",
     SpecificCharacterSet: "00080005",
     PixelRepresentation: "00280103",
-    DataSetTrailingPadding: "FFFCFFFC"
+    DataSetTrailingPadding: "FFFCFFFC",
+    StudyInstanceUID: "0020000D",
+    SeriesInstanceUID: "0020000E",
+    SOPInstanceUID: "00080018",
+    TimezoneOffsetFromUTC: "00080201",
+    AvailableTransferSyntaxUID: "00083002"
 };
 
 export const encodingMapping = {
@@ -97,3 +102,42 @@ export const encodingMapping = {
     "iso-2022-58": "gb2312",
     gbk: "gbk"
 };
+
+/**
+ * Maps DICOM tag hex strings to their normalized lower camelCase names
+ * for use in listener.information tracking
+ */
+export const TAG_NAME_MAP = {
+    "0020000D": "studyInstanceUid",
+    "0020000E": "seriesInstanceUid",
+    "00080018": "sopInstanceUid",
+    "00020010": "transferSyntaxUid",
+    "00083002": "availableTransferSyntaxUid",
+    "00080201": "timezoneOffsetFromUtc",
+    "00080005": "specificCharacterSet",
+    "00280008": "numberOfFrames",
+    "00280010": "rows",
+    "00280011": "columns",
+    "00280002": "samplesPerPixel",
+    "00280100": "bitsAllocated",
+    "00280103": "pixelRepresentation"
+};
+
+/**
+ * Default tags to track in listener.information
+ */
+export const DEFAULT_INFORMATION_TAGS = new Set([
+    "0020000D", // StudyInstanceUID
+    "0020000E", // SeriesInstanceUID
+    "00080018", // SOPInstanceUID
+    "00020010", // TransferSyntaxUID
+    "00083002", // AvailableTransferSyntaxUID
+    "00080201", // TimezoneOffsetFromUTC
+    "00080005", // SpecificCharacterSet
+    "00280008", // NumberOfFrames
+    "00280010", // Rows
+    "00280011", // Columns
+    "00280002", // SamplesPerPixel
+    "00280100", // BitsAllocated
+    "00280103" // PixelRepresentation
+]);

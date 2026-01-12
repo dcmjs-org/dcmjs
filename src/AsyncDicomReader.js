@@ -284,17 +284,17 @@ export class AsyncDicomReader {
         const { length } = tagInfo;
         const { stream } = this;
 
-        const numberOfFrames = listener.getValue(TagHex.NumberOfFrames);
+        const numberOfFrames = listener.information?.numberOfFrames;
         if (!numberOfFrames || parseInt(numberOfFrames) === 1) {
             await stream.ensureAvailable(length);
             const arrayBuffer = stream.readUint8Array(length);
             listener.value(arrayBuffer.buffer);
             return [arrayBuffer.buffer];
         }
-        const rows = listener.getValue(TagHex.Rows);
-        const cols = listener.getValue(TagHex.Columns);
-        const samplesPerPixel = listener.getValue(TagHex.SamplesPerPixel);
-        const bitsAllocated = listener.getValue(TagHex.BitsAllocated);
+        const rows = listener.information?.rows;
+        const cols = listener.information?.columns;
+        const samplesPerPixel = listener.information?.samplesPerPixel;
+        const bitsAllocated = listener.information?.bitsAllocated;
         const bitsPerFrame = rows * cols * samplesPerPixel * bitsAllocated;
         if (bitsPerFrame % 8 !== 0) {
             throw new Error(
@@ -362,8 +362,7 @@ export class AsyncDicomReader {
                     // This should work for any tag after PixelRepresentation,
                     // which is all but 2 of the xs code values.
                     const signed =
-                        this.listener.getValue(TagHex.PixelRepresentation) ===
-                        0;
+                        this.listener.information?.pixelRepresentation === 0;
                     vrType = signed ? "SS" : "US";
                 } else if (tagObj.isPrivateCreator()) {
                     vrType = "LO";

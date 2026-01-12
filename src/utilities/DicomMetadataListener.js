@@ -1,3 +1,55 @@
+import { TAG_NAME_MAP, DEFAULT_INFORMATION_TAGS } from "../constants/dicom.js";
+
+/**
+ * Creates an information filter that tracks top-level DICOM attributes.
+ *
+ * @param {Set<string>} tags - Optional set of tag hex strings to track.
+ *        If not provided, uses DEFAULT_INFORMATION_TAGS.
+ * @returns {Object} A filter object that adds listener.information attribute
+ */
+export function createInformationFilter(tags = DEFAULT_INFORMATION_TAGS) {
+    return {
+        /**
+         * Intercepts addTag calls to track top-level attributes in listener.information
+         */
+        addTag(next, tag, tagInfo) {
+            // Check if this is a top-level tag (level 0) and is in our tracked set
+            if (this.current?.level === 0 && tags.has(tag)) {
+                // Initialize information object if needed
+                this.information ||= {};
+
+                // Store a reference to track this tag for value updates
+                const normalizedName = TAG_NAME_MAP[tag] || tag;
+                this.information[normalizedName] = null;
+
+                // Mark this tag for tracking
+                const result = next(tag, tagInfo);
+                if (this.current) {
+                    this.current._trackInformation = normalizedName;
+                }
+                return result;
+            }
+
+            return next(tag, tagInfo);
+        },
+
+        /**
+         * Intercepts value calls to populate information values
+         */
+        value(next, v) {
+            // If current context is tracking information, store the first value
+            if (this.current?._trackInformation && this.information) {
+                const name = this.current._trackInformation;
+                if (this.information[name] === null) {
+                    this.information[name] = v;
+                }
+            }
+
+            return next(v);
+        }
+    };
+}
+
 /**
  * A DICOM Metadata listener implements the basic listener for creating a dicom
  * metadata instance from a stream of notification events.
@@ -13,34 +65,60 @@ export class DicomMetadataListener {
     fmi = null;
     dict = null;
     filters = [];
+    information = null;
 
     /**
      * Creates a new DicomMetadataListener instance.
      *
+     * @param {Object} options - Configuration options
+     * @param {Set<string>} options.informationTags - Optional set of tag hex strings
+     *        to track in listener.information. If not provided, uses default tags.
      * @param {...Object} filters - Optional filter objects that can intercept
      *        method calls. Each filter can have methods like addTag, startObject,
-     *        startArray, pop, value, or getValue. Each filter method receives
-     *        a 'next' function as the first argument, followed by the same
-     *        arguments as the original method.
+     *        startArray, pop, or value. Each filter method receives a 'next'
+     *        function as the first argument, followed by the same arguments as
+     *        the original method.
+     *
+     * @example
+     * const listener = new DicomMetadataListener();
      *
      * @example
      * const listener = new DicomMetadataListener(
+     *   { informationTags: new Set(['0020000D', '0020000E']) }
+     * );
+     *
+     * @example
+     * const listener = new DicomMetadataListener(
+     *   {},
      *   {
      *     addTag(next, tag, tagInfo) {
      *       console.log('Adding tag:', tag);
      *       return next(tag, tagInfo);
      *     }
-     *   },
-     *   {
-     *     startObject(next, dest) {
-     *       console.log('Starting object');
-     *       return next(dest);
-     *     }
      *   }
      * );
      */
-    constructor(...filters) {
-        this.filters = filters;
+    constructor(options = {}, ...filters) {
+        // Handle legacy constructor format where first arg might be a filter
+        if (
+            typeof options.addTag === "function" ||
+            typeof options.startObject === "function" ||
+            typeof options.startArray === "function" ||
+            typeof options.pop === "function" ||
+            typeof options.value === "function"
+        ) {
+            // Legacy format: all arguments are filters
+            filters = [options, ...filters];
+            options = {};
+        }
+
+        // Create information filter with custom or default tags
+        const informationFilter = createInformationFilter(
+            options.informationTags
+        );
+
+        // Information filter should be first so it can track tags
+        this.filters = [informationFilter, ...filters];
         this._createMethodChains();
     }
 
@@ -49,14 +127,7 @@ export class DicomMetadataListener {
      * @private
      */
     _createMethodChains() {
-        const methods = [
-            "addTag",
-            "startObject",
-            "startArray",
-            "pop",
-            "value",
-            "getValue"
-        ];
+        const methods = ["addTag", "startObject", "startArray", "pop", "value"];
 
         for (const methodName of methods) {
             const baseMethod =
@@ -157,14 +228,6 @@ export class DicomMetadataListener {
     _baseValue(v) {
         this.current.dest.Value ||= [];
         this.current.dest.Value.push(v);
-    }
-
-    /**
-     * Base implementation: Reads the Value[0] instance of the given tag for pixel data parsing.
-     * @private
-     */
-    _baseGetValue(tag) {
-        return this.current.parent[tag]?.Value?.[0];
     }
 
     /**
