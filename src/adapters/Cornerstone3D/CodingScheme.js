@@ -5,7 +5,7 @@
 const FREE_TEXT_CODE_VALUE = "CS3DTEXT";
 
 // Private coding scheme designator for dcmjs
-const CodingSchemeDesignator = "99DCMJS";
+const CodingSchemeDesignator = "99dcmjs";
 
 // Legacy code value for backward compatibility (deprecated, exceeds SH VR limit)
 const CORNERSTONEFREETEXT = "CORNERSTONEFREETEXT";
