@@ -1,5 +1,6 @@
 import TID300Measurement from "./TID300Measurement.js";
 import unit2CodingValue from "./unit2CodingValue.js";
+import TID320ContentItem from "./TID320ContentItem.js";
 
 export default class Bidirectional extends TID300Measurement {
     contentItem() {
@@ -23,64 +24,50 @@ export default class Bidirectional extends TID300Measurement {
             use3DSpatialCoordinates
         });
 
+        const longAxisContentSequence = new TID320ContentItem({
+            graphicType: "POLYLINE",
+            graphicData: longAxisGraphicData,
+            use3DSpatialCoordinates,
+            referencedSOPSequence: ReferencedSOPSequence,
+            referencedFrameOfReferenceUID: ReferencedFrameOfReferenceUID
+        }).contentItem();
+
+        const shortAxisContentSequence = new TID320ContentItem({
+            graphicType: "POLYLINE",
+            graphicData: shortAxisGraphicData,
+            use3DSpatialCoordinates,
+            referencedSOPSequence: ReferencedSOPSequence,
+            referencedFrameOfReferenceUID: ReferencedFrameOfReferenceUID
+        }).contentItem();
+
         return this.getMeasurement([
             {
                 RelationshipType: "CONTAINS",
                 ValueType: "NUM",
                 ConceptNameCodeSequence: {
-                    CodeValue: "G-A185",
-                    CodingSchemeDesignator: "SRT",
+                    CodeValue: "103339001",
+                    CodingSchemeDesignator: "SCT",
                     CodeMeaning: "Long Axis"
                 },
                 MeasuredValueSequence: {
                     MeasurementUnitsCodeSequence: unit2CodingValue(unit),
                     NumericValue: longAxisLength
                 },
-                ContentSequence: {
-                    RelationshipType: "INFERRED FROM",
-                    ValueType: use3DSpatialCoordinates ? "SCOORD3D" : "SCOORD",
-                    GraphicType: "POLYLINE",
-                    GraphicData: longAxisGraphicData,
-                    ReferencedFrameOfReferenceUID: use3DSpatialCoordinates
-                        ? ReferencedFrameOfReferenceUID
-                        : undefined,
-                    ContentSequence: use3DSpatialCoordinates
-                        ? undefined
-                        : {
-                              RelationshipType: "SELECTED FROM",
-                              ValueType: "IMAGE",
-                              ReferencedSOPSequence
-                          }
-                }
+                ContentSequence: longAxisContentSequence
             },
             {
                 RelationshipType: "CONTAINS",
                 ValueType: "NUM",
                 ConceptNameCodeSequence: {
-                    CodeValue: "G-A186",
-                    CodingSchemeDesignator: "SRT",
+                    CodeValue: "103340004",
+                    CodingSchemeDesignator: "SCT",
                     CodeMeaning: "Short Axis"
                 },
                 MeasuredValueSequence: {
                     MeasurementUnitsCodeSequence: unit2CodingValue(unit),
                     NumericValue: shortAxisLength
                 },
-                ContentSequence: {
-                    RelationshipType: "INFERRED FROM",
-                    ValueType: use3DSpatialCoordinates ? "SCOORD3D" : "SCOORD",
-                    GraphicType: "POLYLINE",
-                    GraphicData: shortAxisGraphicData,
-                    ReferencedFrameOfReferenceUID: use3DSpatialCoordinates
-                        ? ReferencedFrameOfReferenceUID
-                        : undefined,
-                    ContentSequence: use3DSpatialCoordinates
-                        ? undefined
-                        : {
-                              RelationshipType: "SELECTED FROM",
-                              ValueType: "IMAGE",
-                              ReferencedSOPSequence
-                          }
-                }
+                ContentSequence: shortAxisContentSequence
             }
         ]);
     }

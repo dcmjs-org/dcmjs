@@ -56,7 +56,7 @@ export default class TID1500MeasurementReport {
                         CodeMeaning: "Language of Content Item and Descendants"
                     }),
                     ConceptCodeSequence: addAccessors({
-                        CodeValue: "eng",
+                        CodeValue: "en",
                         CodingSchemeDesignator: "RFC5646",
                         CodeMeaning: "English"
                     }),
@@ -85,9 +85,9 @@ export default class TID1500MeasurementReport {
                         CodeMeaning: "Procedure reported"
                     }),
                     ConceptCodeSequence: addAccessors({
-                        CodeValue: "1",
-                        CodingSchemeDesignator: "99dcmjs",
-                        CodeMeaning: "Unknown procedure"
+                        CodeValue: "363679005",
+                        CodingSchemeDesignator: "SCT",
+                        CodeMeaning: "Imaging procedure"
                     })
                 },
                 {
