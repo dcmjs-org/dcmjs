@@ -43,6 +43,7 @@ import { DSRNormalizer } from "./normalizers.js";
 import adapters from "./adapters/index.js";
 import utilities from "./utilities/index.js";
 import sr from "./sr/index.js";
+import * as constants from "./constants/dicom.js";
 
 import { cleanTags, getTagsNameToEmpty } from "./anonymizer.js";
 
@@ -95,6 +96,7 @@ const anonymizer = {
 const dcmjs = {
     DICOMWEB,
     adapters,
+    constants,
     data,
     derivations,
     normalizers,
@@ -114,6 +116,7 @@ export {
     adapters,
     anonymizer,
     async,
+    constants,
     data,
     derivations,
     normalizers,

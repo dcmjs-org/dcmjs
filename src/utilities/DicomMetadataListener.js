@@ -190,6 +190,7 @@ export class DicomMetadataListener {
     _baseAddTag(tag, tagInfo) {
         const dest = {
             vr: tagInfo?.vr,
+            length: tagInfo?.length,
             Value: null
         };
         if (this.current && this.current.dest) {

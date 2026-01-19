@@ -141,7 +141,7 @@ export class AsyncDicomReader {
                 stream.increment(tagObj.length);
                 continue;
             }
-            listener.addTag(tag, tagInfo);
+            const addTagResult = listener.addTag(tag, tagInfo);
             if (this.isSequence(tagInfo)) {
                 await this.readSequence(listener, tagInfo, options);
             } else if (tagObj.isPixelDataTag()) {
@@ -150,6 +150,9 @@ export class AsyncDicomReader {
                 throw new Error(
                     `Can't handle tag ${tagInfo.tag} with -1 length and not sequence`
                 );
+            } else if (addTagResult?.expectsRaw === true && length > 0) {
+                // Deliver raw binary data when requested
+                await this.readRawBinary(listener, tagInfo);
             } else {
                 await this.readSingle(tagInfo, listener, options);
             }
@@ -307,6 +310,29 @@ export class AsyncDicomReader {
             await stream.ensureAvailable(frameLength);
             const arrayBuffer = stream.readUint8Array(frameLength);
             listener.value(arrayBuffer);
+            stream.consume();
+        }
+    }
+
+    /**
+     * Reads raw binary data in chunks and delivers it to the listener.
+     * This method reads data in 64KB chunks to manage memory efficiently.
+     */
+    async readRawBinary(listener, tagInfo) {
+        const { length } = tagInfo;
+        const { stream } = this;
+        const CHUNK_SIZE = 64 * 1024; // 64KB chunks
+
+        let remainingBytes = length;
+
+        while (remainingBytes > 0) {
+            const chunkSize = Math.min(CHUNK_SIZE, remainingBytes);
+            await stream.ensureAvailable(chunkSize);
+            const chunk = stream.readArrayBuffer(chunkSize);
+            listener.value(chunk);
+            remainingBytes -= chunkSize;
+
+            // Consume the buffer to free up memory between chunks
             stream.consume();
         }
     }

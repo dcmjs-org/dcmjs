@@ -141,3 +141,31 @@ export const DEFAULT_INFORMATION_TAGS = new Set([
     "00280100", // BitsAllocated
     "00280103" // PixelRepresentation
 ]);
+
+/**
+ * DICOM VR (Value Representation) types that are allowed for bulkdata encoding
+ * According to DICOMweb specification
+ */
+export const BULKDATA_VRS = new Set([
+    "DS", // Decimal String
+    "FL", // Floating Point Single
+    "FD", // Floating Point Double
+    "IS", // Integer String
+    "LT", // Long Text
+    "OB", // Other Byte
+    "OD", // Other Double
+    "OF", // Other Float
+    "OL", // Other Long
+    "OV", // Other 64-bit Very Long
+    "OW", // Other Word
+    "SL", // Signed Long
+    "SS", // Signed Short
+    "ST", // Short Text
+    "SV", // Signed 64-bit Very Long
+    "UC", // Unlimited Characters
+    "UL", // Unsigned Long
+    "UN", // Unknown
+    "US", // Unsigned Short
+    "UT", // Unlimited Text
+    "UV" // Unsigned 64-bit Very Long
+]);

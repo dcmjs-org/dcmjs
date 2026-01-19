@@ -565,6 +565,104 @@ simply mean to call the next listener.  Listeners should implement the `addTag(n
 of the methods and get added to the constructor of `DicomMetadataListener` or 
 another root listener.
 
+### Raw Binary Data Feature
+
+Starting with the `expectsRaw` feature, listeners can request raw binary data for specific tags by returning an object with `expectsRaw: true` from the `addTag` method. This is useful when you need to:
+
+- Process tag data in its raw binary form without parsing
+- Implement custom parsing logic for specific tags
+- Extract binary data for external processing
+- Optimize performance by skipping unnecessary parsing
+
+**How it works:**
+
+1. The `addTag` method returns an object with `expectsRaw: true`
+2. AsyncDicomReader delivers the raw binary data as `ArrayBuffer` chunks via `listener.value()`
+3. Data is read in 64KB chunks with buffer consumption between chunks for memory efficiency
+4. This only works for non-pixel data tags with positive length
+5. Pixel data and sequences continue to use their specialized handlers
+
+**Example:**
+
+```javascript
+class RawBinaryListener extends DicomMetadataListener {
+  constructor(tagsToReceiveRaw = []) {
+    super();
+    this.tagsToReceiveRaw = new Set(tagsToReceiveRaw);
+    this.rawDataReceived = {};
+    this.rawChunks = {};
+  }
+
+  addTag(tag, tagInfo) {
+    // Call the parent implementation
+    const result = super.addTag(tag, tagInfo);
+    
+    // Request raw binary data for specific tags
+    if (this.tagsToReceiveRaw.has(tag)) {
+      // Initialize chunk collector for this tag
+      this.rawChunks[tag] = [];
+      return { expectsRaw: true };
+    }
+    
+    return result;
+  }
+
+  value(v) {
+    // Track raw binary data received (may be delivered in multiple chunks)
+    if (this.current && this.tagsToReceiveRaw.has(this.current.tag)) {
+      if (v instanceof ArrayBuffer) {
+        this.rawChunks[this.current.tag].push(v);
+      }
+    }
+    return super.value(v);
+  }
+  
+  pop() {
+    // When tag is complete, combine chunks if needed
+    if (this.current && this.tagsToReceiveRaw.has(this.current.tag)) {
+      const tag = this.current.tag;
+      const chunks = this.rawChunks[tag];
+      
+      if (chunks.length === 1) {
+        this.rawDataReceived[tag] = chunks[0];
+      } else if (chunks.length > 1) {
+        // Combine multiple chunks into a single ArrayBuffer
+        const totalSize = chunks.reduce((sum, chunk) => sum + chunk.byteLength, 0);
+        const combined = new Uint8Array(totalSize);
+        let offset = 0;
+        for (const chunk of chunks) {
+          combined.set(new Uint8Array(chunk), offset);
+          offset += chunk.byteLength;
+        }
+        this.rawDataReceived[tag] = combined.buffer;
+      }
+      
+      delete this.rawChunks[tag];
+    }
+    return super.pop();
+  }
+}
+
+// Usage
+const listener = new RawBinaryListener([
+  '00100010', // Patient Name
+  '00080060', // Modality
+  '00201041', // Slice Location
+]);
+
+const reader = new AsyncDicomReader();
+reader.stream.setData(arrayBuffer);
+await reader.readFile({ listener });
+
+// Access raw binary data (now combined from all chunks)
+console.log(listener.rawDataReceived);
+```
+
+**Limitations:**
+- Only works for non-pixel data tags (pixel data uses dedicated handlers)
+- Only works for tags with positive length (not undefined length)
+- The tag must have actual data present in the file
+
 ## Image Frames
 
 Image frames are numbered starting at 1, with the index in the pixel data
