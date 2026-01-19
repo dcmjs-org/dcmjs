@@ -4,7 +4,9 @@ import { ArrayBufferExpanderFilter } from "../src/utilities/ArrayBufferExpanderL
 describe("ArrayBufferExpanderFilter", () => {
     describe("filter integration", () => {
         it("can be used as a filter in DicomMetadataListener", () => {
-            const listener = new DicomMetadataListener(ArrayBufferExpanderFilter);
+            const listener = new DicomMetadataListener(
+                ArrayBufferExpanderFilter
+            );
 
             expect(listener.filters).toContain(ArrayBufferExpanderFilter);
             expect(typeof listener.value).toBe("function");
@@ -13,7 +15,9 @@ describe("ArrayBufferExpanderFilter", () => {
 
     describe("filter behavior", () => {
         it("allows normal listener operations to work", () => {
-            const listener = new DicomMetadataListener(ArrayBufferExpanderFilter);
+            const listener = new DicomMetadataListener(
+                ArrayBufferExpanderFilter
+            );
 
             const tag = "00100010";
             const tagInfo = { vr: "PN", length: 10 };
@@ -26,7 +30,9 @@ describe("ArrayBufferExpanderFilter", () => {
         });
 
         it("maintains listener state correctly", () => {
-            const listener = new DicomMetadataListener(ArrayBufferExpanderFilter);
+            const listener = new DicomMetadataListener(
+                ArrayBufferExpanderFilter
+            );
 
             const dest = { testKey: "testValue" };
             listener.startObject(dest);
@@ -135,7 +141,9 @@ describe("ArrayBufferExpanderFilter", () => {
         });
 
         it("passes through non-ArrayBuffer[] values unchanged", () => {
-            const listener = new DicomMetadataListener(ArrayBufferExpanderFilter);
+            const listener = new DicomMetadataListener(
+                ArrayBufferExpanderFilter
+            );
 
             // Setup
             listener.startObject({});
@@ -150,7 +158,9 @@ describe("ArrayBufferExpanderFilter", () => {
         });
 
         it("passes through number values unchanged", () => {
-            const listener = new DicomMetadataListener(ArrayBufferExpanderFilter);
+            const listener = new DicomMetadataListener(
+                ArrayBufferExpanderFilter
+            );
 
             // Setup
             listener.startObject({});
@@ -165,7 +175,9 @@ describe("ArrayBufferExpanderFilter", () => {
         });
 
         it("passes through single ArrayBuffer unchanged", () => {
-            const listener = new DicomMetadataListener(ArrayBufferExpanderFilter);
+            const listener = new DicomMetadataListener(
+                ArrayBufferExpanderFilter
+            );
 
             // Setup
             listener.startObject({});
@@ -181,7 +193,9 @@ describe("ArrayBufferExpanderFilter", () => {
         });
 
         it("passes through arrays of strings unchanged", () => {
-            const listener = new DicomMetadataListener(ArrayBufferExpanderFilter);
+            const listener = new DicomMetadataListener(
+                ArrayBufferExpanderFilter
+            );
 
             // Setup
             listener.startObject({});
@@ -197,7 +211,9 @@ describe("ArrayBufferExpanderFilter", () => {
         });
 
         it("does not expand empty arrays", () => {
-            const listener = new DicomMetadataListener(ArrayBufferExpanderFilter);
+            const listener = new DicomMetadataListener(
+                ArrayBufferExpanderFilter
+            );
 
             // Setup
             listener.startObject({});
@@ -214,7 +230,9 @@ describe("ArrayBufferExpanderFilter", () => {
         });
 
         it("does not expand mixed arrays (ArrayBuffer + other types)", () => {
-            const listener = new DicomMetadataListener(ArrayBufferExpanderFilter);
+            const listener = new DicomMetadataListener(
+                ArrayBufferExpanderFilter
+            );
 
             // Setup
             listener.startObject({});
@@ -234,7 +252,9 @@ describe("ArrayBufferExpanderFilter", () => {
 
     describe("listener methods integration", () => {
         it("allows access to fmi property", () => {
-            const listener = new DicomMetadataListener(ArrayBufferExpanderFilter);
+            const listener = new DicomMetadataListener(
+                ArrayBufferExpanderFilter
+            );
 
             const fmi = { "00020010": { Value: ["1.2.840.10008.1.2.1"] } };
             listener.fmi = fmi;
@@ -243,7 +263,9 @@ describe("ArrayBufferExpanderFilter", () => {
         });
 
         it("allows access to dict property", () => {
-            const listener = new DicomMetadataListener(ArrayBufferExpanderFilter);
+            const listener = new DicomMetadataListener(
+                ArrayBufferExpanderFilter
+            );
 
             const dict = { "00100010": { Value: ["Test^Patient"] } };
             listener.dict = dict;
@@ -252,7 +274,9 @@ describe("ArrayBufferExpanderFilter", () => {
         });
 
         it("allows access to current property", () => {
-            const listener = new DicomMetadataListener(ArrayBufferExpanderFilter);
+            const listener = new DicomMetadataListener(
+                ArrayBufferExpanderFilter
+            );
 
             listener.startObject({});
             const current = listener.current;
@@ -262,7 +286,9 @@ describe("ArrayBufferExpanderFilter", () => {
         });
 
         it("allows use of getTransferSyntaxUID", () => {
-            const listener = new DicomMetadataListener(ArrayBufferExpanderFilter);
+            const listener = new DicomMetadataListener(
+                ArrayBufferExpanderFilter
+            );
 
             listener.fmi = {
                 "00020010": { Value: ["1.2.840.10008.1.2.1"] }
@@ -274,7 +300,9 @@ describe("ArrayBufferExpanderFilter", () => {
 
     describe("real-world usage patterns", () => {
         it("correctly builds nested structure with expanded fragments", () => {
-            const listener = new DicomMetadataListener(ArrayBufferExpanderFilter);
+            const listener = new DicomMetadataListener(
+                ArrayBufferExpanderFilter
+            );
 
             const dict = {};
             listener.startObject(dict);

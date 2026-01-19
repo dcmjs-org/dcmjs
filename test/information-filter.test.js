@@ -1,6 +1,9 @@
 import fs from "fs";
 import { AsyncDicomReader } from "../src/AsyncDicomReader";
-import { DicomMetadataListener, createInformationFilter } from "../src/utilities/DicomMetadataListener";
+import {
+    DicomMetadataListener,
+    createInformationFilter
+} from "../src/utilities/DicomMetadataListener";
 import { TagHex } from "../src/constants/dicom";
 
 describe("Information Filter", () => {
@@ -20,13 +23,15 @@ describe("Information Filter", () => {
         // Verify that tracked tags are present in information
         expect(listener.information.rows).toBe(512);
         expect(listener.information.columns).toBe(512);
-        
+
         // Check that UIDs are populated if available in the test file
         if (listener.information.studyInstanceUid) {
             expect(typeof listener.information.studyInstanceUid).toBe("string");
         }
         if (listener.information.seriesInstanceUid) {
-            expect(typeof listener.information.seriesInstanceUid).toBe("string");
+            expect(typeof listener.information.seriesInstanceUid).toBe(
+                "string"
+            );
         }
         if (listener.information.sopInstanceUid) {
             expect(typeof listener.information.sopInstanceUid).toBe("string");
@@ -46,7 +51,7 @@ describe("Information Filter", () => {
         // Verify that pixel data was read correctly using information
         expect(dict[TagHex.PixelData]).toBeDefined();
         expect(dict[TagHex.PixelData].Value[0]).toBeDefined();
-        
+
         // Verify information was used correctly (no errors during reading)
         expect(listener.information.rows).toBe(512);
         expect(listener.information.columns).toBe(512);
@@ -57,10 +62,12 @@ describe("Information Filter", () => {
     test("custom information tags can be specified", async () => {
         const buffer = fs.readFileSync("test/sample-dicom.dcm");
         const reader = new AsyncDicomReader();
-        
+
         // Only track specific tags
         const customTags = new Set([TagHex.Rows, TagHex.Columns]);
-        const listener = new DicomMetadataListener({ informationTags: customTags });
+        const listener = new DicomMetadataListener({
+            informationTags: customTags
+        });
 
         reader.stream.addBuffer(buffer);
         reader.stream.setComplete();
@@ -70,7 +77,7 @@ describe("Information Filter", () => {
         // Verify that only tracked tags are present
         expect(listener.information.rows).toBe(512);
         expect(listener.information.columns).toBe(512);
-        
+
         // Other default tags should not be tracked
         expect(listener.information.bitsAllocated).toBeUndefined();
         expect(listener.information.samplesPerPixel).toBeUndefined();
@@ -91,7 +98,7 @@ describe("Information Filter", () => {
         expect(listener.information).toHaveProperty("columns");
         expect(listener.information).toHaveProperty("samplesPerPixel");
         expect(listener.information).toHaveProperty("bitsAllocated");
-        
+
         // Verify UID becomes Uid (not UID)
         if (listener.information.studyInstanceUid !== undefined) {
             expect(listener.information).toHaveProperty("studyInstanceUid");
@@ -99,12 +106,12 @@ describe("Information Filter", () => {
     });
 
     test("multiframe data uses information for frame processing", async () => {
-        const url = 
+        const url =
             "https://github.com/dcmjs-org/data/releases/download/binary-parsing-stressors/multiframe-ultrasound.dcm";
-        const dcmPath = await import("./testUtils.js").then(m => 
+        const dcmPath = await import("./testUtils.js").then(m =>
             m.getTestDataset(url, "multiframe-ultrasound.dcm")
         );
-        
+
         const reader = new AsyncDicomReader();
         const listener = new DicomMetadataListener();
 
@@ -114,10 +121,10 @@ describe("Information Filter", () => {
         reader.stream.fromAsyncStream(stream);
 
         const { dict } = await reader.readFile({ listener });
-        
+
         // Verify information was populated
         expect(listener.information.numberOfFrames).toBe(29);
-        
+
         // Verify frames were read correctly
         const frames = dict[TagHex.PixelData].Value;
         expect(frames.length).toBe(29);
@@ -126,13 +133,16 @@ describe("Information Filter", () => {
     test("custom informationFilter can be passed to listener", async () => {
         const buffer = fs.readFileSync("test/sample-dicom.dcm");
         const reader = new AsyncDicomReader();
-        
+
         // Create a custom information object to track the filter was used
         const customInformation = {};
         const customFilter = createInformationFilter();
-        
+
         // Pass the custom filter via options
-        const listener = new DicomMetadataListener({ information: customInformation, informationFilter: customFilter });
+        const listener = new DicomMetadataListener({
+            information: customInformation,
+            informationFilter: customFilter
+        });
 
         reader.stream.addBuffer(buffer);
         reader.stream.setComplete();
@@ -142,12 +152,14 @@ describe("Information Filter", () => {
         // Verify that the custom information object was populated
         expect(listener.information).toBe(customInformation);
         expect(listener.information).toBeDefined();
-        
+
         // Verify rows and columns are accessible
         expect(listener.information.rows).toBe(512);
         expect(listener.information.columns).toBe(512);
-        
+
         // Verify transfer syntax UID is accessible from meta
-        expect(meta[TagHex.TransferSyntaxUID].Value[0]).toBe("1.2.840.10008.1.2");
+        expect(meta[TagHex.TransferSyntaxUID].Value[0]).toBe(
+            "1.2.840.10008.1.2"
+        );
     });
 });
