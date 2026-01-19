@@ -7,16 +7,14 @@ import { TAG_NAME_MAP, DEFAULT_INFORMATION_TAGS } from "../constants/dicom.js";
  *        If not provided, uses DEFAULT_INFORMATION_TAGS.
  * @returns {Object} A filter object that adds listener.information attribute
  */
-export function createInformationFilter(
-    tags = DEFAULT_INFORMATION_TAGS,
-    information = {}
-) {
+export function createInformationFilter(tags = DEFAULT_INFORMATION_TAGS) {
     const filter = {
-        information,
+        information: null,
         /**
          * Initializes the filter, synchronizing the information object with the parent listener
          */
-        _init() {
+        _init(options) {
+            filter.information = options?.information || {};
             this.information = filter.information;
         },
         /**
@@ -25,18 +23,13 @@ export function createInformationFilter(
         addTag(next, tag, tagInfo) {
             // Check if this is a top-level tag (level 0) and is in our tracked set
             if (this.current?.level === 0 && tags.has(tag)) {
-                // Initialize information object if needed
-                this.information ||= filter.information;
-
                 // Store a reference to track this tag for value updates
                 const normalizedName = TAG_NAME_MAP[tag] || tag;
                 this.information[normalizedName] = null;
 
                 // Mark this tag for tracking
                 const result = next(tag, tagInfo);
-                if (this.current) {
-                    this.current._trackInformation = normalizedName;
-                }
+                this.current._trackInformation = normalizedName;
                 return result;
             }
 
@@ -48,11 +41,10 @@ export function createInformationFilter(
          */
         value(next, v) {
             // If current context is tracking information, store the first value
-            if (this.current?._trackInformation && this.information) {
+            if (this.current?._trackInformation) {
                 const name = this.current._trackInformation;
-                if (this.information[name] === null) {
-                    this.information[name] = v;
-                }
+                this.information[name] = v;
+                this.current._trackInformation = null;
             }
 
             return next(v);
@@ -83,6 +75,8 @@ export class DicomMetadataListener {
      * Creates a new DicomMetadataListener instance.
      *
      * @param {Object} options - Configuration options
+     * @param {Object} options.informationFilter - Optional information filter to use.
+     *        If not provided, creates one automatically.
      * @param {Set<string>} options.informationTags - Optional set of tag hex strings
      *        to track in listener.information. If not provided, uses default tags.
      * @param {...Object} filters - Optional filter objects that can intercept
@@ -124,30 +118,34 @@ export class DicomMetadataListener {
             options = {};
         }
 
-        // Create information filter with custom or default tags
-        const informationFilter = createInformationFilter(
-            options.informationTags
-        );
+        // Information filter should always be first so it can track tags
+        // Use the provided informationFilter or create a new one
+        const informationFilter =
+            options.informationFilter ||
+            createInformationFilter(options.informationTags);
 
-        // Information filter should be first so it can track tags
         this.filters = [informationFilter, ...filters];
+
         this._createMethodChains();
 
         // Initialize filters to synchronize state
-        this.init();
+        this.init(options);
     }
 
     /**
      * Initializes state, allowing it to be re-used.
+     * @param {Object} options - Optional options to pass to the filters to re-initialize them
+     * @param {Object} options.information - Optional information to pass to the filters
+     * @returns {void}
      */
-    init() {
+    init(options = undefined) {
         this.current = null;
         this.fmi = null;
         this.dict = null;
         this.information = null;
 
         for (const filter of this.filters) {
-            filter._init?.call(this);
+            filter._init?.call(this, options);
         }
     }
 

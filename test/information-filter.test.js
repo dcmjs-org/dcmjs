@@ -1,6 +1,6 @@
 import fs from "fs";
 import { AsyncDicomReader } from "../src/AsyncDicomReader";
-import { DicomMetadataListener } from "../src/utilities/DicomMetadataListener";
+import { DicomMetadataListener, createInformationFilter } from "../src/utilities/DicomMetadataListener";
 import { TagHex } from "../src/constants/dicom";
 
 describe("Information Filter", () => {
@@ -121,5 +121,33 @@ describe("Information Filter", () => {
         // Verify frames were read correctly
         const frames = dict[TagHex.PixelData].Value;
         expect(frames.length).toBe(29);
+    });
+
+    test("custom informationFilter can be passed to listener", async () => {
+        const buffer = fs.readFileSync("test/sample-dicom.dcm");
+        const reader = new AsyncDicomReader();
+        
+        // Create a custom information object to track the filter was used
+        const customInformation = {};
+        const customFilter = createInformationFilter();
+        
+        // Pass the custom filter via options
+        const listener = new DicomMetadataListener({ information: customInformation, informationFilter: customFilter });
+
+        reader.stream.addBuffer(buffer);
+        reader.stream.setComplete();
+
+        const { meta } = await reader.readFile({ listener });
+
+        // Verify that the custom information object was populated
+        expect(listener.information).toBe(customInformation);
+        expect(listener.information).toBeDefined();
+        
+        // Verify rows and columns are accessible
+        expect(listener.information.rows).toBe(512);
+        expect(listener.information.columns).toBe(512);
+        
+        // Verify transfer syntax UID is accessible from meta
+        expect(meta[TagHex.TransferSyntaxUID].Value[0]).toBe("1.2.840.10008.1.2");
     });
 });
