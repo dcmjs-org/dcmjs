@@ -270,26 +270,6 @@ describe("ArrayBufferExpanderFilter", () => {
 
             expect(listener.getTransferSyntaxUID()).toBe("1.2.840.10008.1.2.1");
         });
-
-        it("allows use of getRootValue", () => {
-            const listener = new DicomMetadataListener(ArrayBufferExpanderFilter);
-
-            listener.dict = {
-                "00100010": { Value: ["Test^Patient"] }
-            };
-
-            expect(listener.getRootValue("00100010")).toBe("Test^Patient");
-        });
-
-        it("allows use of getStudyInstanceUID", () => {
-            const listener = new DicomMetadataListener(ArrayBufferExpanderFilter);
-
-            listener.dict = {
-                "0020000D": { Value: ["1.2.3.4.5"] }
-            };
-
-            expect(listener.getStudyInstanceUID()).toBe("1.2.3.4.5");
-        });
     });
 
     describe("real-world usage patterns", () => {

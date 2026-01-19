@@ -5,12 +5,13 @@ import addAccessors from "./addAccessors";
 import dicomJson from "./dicomJson";
 import * as orientation from "./orientation";
 import * as compression from "./compression/rleSingleSamplePerPixel";
-import { DicomMetadataListener } from "./DicomMetadataListener";
+import {
+    DicomMetadataListener,
+    createInformationFilter
+} from "./DicomMetadataListener";
 import { ArrayBufferExpanderFilter } from "./ArrayBufferExpanderListener";
-export { toFloat } from "./toFloat";
-export { toInt } from "./toInt";
-export * from "./DicomMetadataListener";
-export * from "./ArrayBufferExpanderListener";
+import { toFloat } from "./toFloat";
+import { toInt } from "./toInt";
 
 const utilities = {
     TID1500,
@@ -21,7 +22,11 @@ const utilities = {
     compression,
     dicomJson,
     DicomMetadataListener,
-    ArrayBufferExpanderFilter
+    ArrayBufferExpanderFilter,
+    toFloat,
+    toInt,
+    createInformationFilter
 };
 
 export default utilities;
+export { utilities };

@@ -7,8 +7,18 @@ import { TAG_NAME_MAP, DEFAULT_INFORMATION_TAGS } from "../constants/dicom.js";
  *        If not provided, uses DEFAULT_INFORMATION_TAGS.
  * @returns {Object} A filter object that adds listener.information attribute
  */
-export function createInformationFilter(tags = DEFAULT_INFORMATION_TAGS) {
-    return {
+export function createInformationFilter(
+    tags = DEFAULT_INFORMATION_TAGS,
+    information = {}
+) {
+    const filter = {
+        information,
+        /**
+         * Initializes the filter, synchronizing the information object with the parent listener
+         */
+        _init() {
+            this.information = filter.information;
+        },
         /**
          * Intercepts addTag calls to track top-level attributes in listener.information
          */
@@ -16,7 +26,7 @@ export function createInformationFilter(tags = DEFAULT_INFORMATION_TAGS) {
             // Check if this is a top-level tag (level 0) and is in our tracked set
             if (this.current?.level === 0 && tags.has(tag)) {
                 // Initialize information object if needed
-                this.information ||= {};
+                this.information ||= filter.information;
 
                 // Store a reference to track this tag for value updates
                 const normalizedName = TAG_NAME_MAP[tag] || tag;
@@ -48,6 +58,8 @@ export function createInformationFilter(tags = DEFAULT_INFORMATION_TAGS) {
             return next(v);
         }
     };
+
+    return filter;
 }
 
 /**
@@ -120,6 +132,23 @@ export class DicomMetadataListener {
         // Information filter should be first so it can track tags
         this.filters = [informationFilter, ...filters];
         this._createMethodChains();
+
+        // Initialize filters to synchronize state
+        this.init();
+    }
+
+    /**
+     * Initializes state, allowing it to be re-used.
+     */
+    init() {
+        this.current = null;
+        this.fmi = null;
+        this.dict = null;
+        this.information = null;
+
+        for (const filter of this.filters) {
+            filter._init?.call(this);
+        }
     }
 
     /**
@@ -247,47 +276,5 @@ export class DicomMetadataListener {
             return this.fmi[transferSyntaxTag].Value[0];
         }
         return undefined;
-    }
-
-    /**
-     * Gets a value from the root dict by tag.
-     * This method can be overridden by filters if needed.
-     * @param {string} tag - The DICOM tag hex string (e.g., '0020000D')
-     * @returns {*|undefined} - The first value in the tag's Value array, or undefined if not present
-     */
-    getRootValue(tag) {
-        if (
-            this.dict &&
-            this.dict[tag]?.Value &&
-            Array.isArray(this.dict[tag].Value) &&
-            this.dict[tag].Value.length > 0
-        ) {
-            return this.dict[tag].Value[0];
-        }
-        return undefined;
-    }
-
-    /**
-     * Gets the Study Instance UID from the top-level dict
-     * @returns {string|undefined} - Study Instance UID or undefined if not available
-     */
-    getStudyInstanceUID() {
-        return this.getRootValue("0020000D"); // StudyInstanceUID tag
-    }
-
-    /**
-     * Gets the Series Instance UID from the top-level dict
-     * @returns {string|undefined} - Series Instance UID or undefined if not available
-     */
-    getSeriesInstanceUID() {
-        return this.getRootValue("0020000E"); // SeriesInstanceUID tag
-    }
-
-    /**
-     * Gets the SOP Instance UID from the top-level dict
-     * @returns {string|undefined} - SOP Instance UID or undefined if not available
-     */
-    getSOPInstanceUID() {
-        return this.getRootValue("00080018"); // SOPInstanceUID tag
     }
 }
