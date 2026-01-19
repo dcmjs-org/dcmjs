@@ -1,6 +1,7 @@
 import TID300Measurement from "./TID300Measurement.js";
 import Point from "./Point.js";
 import Length from "./Length.js";
+import ArrowAnnotate from "./ArrowAnnotate.js";
 import CobbAngle from "./CobbAngle";
 import Bidirectional from "./Bidirectional.js";
 import Polyline from "./Polyline.js";
@@ -70,6 +71,7 @@ const TID300 = {
     TID300Measurement,
     Point,
     Length,
+    ArrowAnnotate,
     CobbAngle,
     Bidirectional,
     Polyline,

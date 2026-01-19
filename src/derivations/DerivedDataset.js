@@ -31,6 +31,7 @@ export default class DerivedDataset {
             options.ClinicalTrialCoordinatingCenterName || "";
         o.ClinicalTrialSeriesID = options.ClinicalTrialSeriesID || "";
 
+        // TODO: Move ImageComments (0020,4000) to DerivedPixels since it is not part of the Enhanced SR IOD.
         o.ImageComments = options.ImageComments || "NOT FOR CLINICAL USE";
         o.ContentQualification = "RESEARCH";
 

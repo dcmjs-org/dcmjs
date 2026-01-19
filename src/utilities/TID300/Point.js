@@ -1,4 +1,5 @@
 import TID300Measurement from "./TID300Measurement.js";
+import TID320ContentItem from "./TID320ContentItem.js";
 
 export default class Point extends TID300Measurement {
     contentItem() {
@@ -9,11 +10,20 @@ export default class Point extends TID300Measurement {
             ReferencedFrameOfReferenceUID
         } = this.props;
 
-        const GraphicData = this.flattenPoints({
-            // Allow storing another point as part of an indicator showing a single point
-            points: points.slice(0, 2),
-            use3DSpatialCoordinates
-        });
+        // Point must contain exactly one coordinate
+        const point = points[0];
+
+        const GraphicData = use3DSpatialCoordinates
+            ? [point.x, point.y, point.z]
+            : [point.x, point.y];
+
+        const graphicContentSequence = new TID320ContentItem({
+            graphicType: "POINT",
+            graphicData: GraphicData,
+            use3DSpatialCoordinates,
+            referencedSOPSequence: ReferencedSOPSequence,
+            referencedFrameOfReferenceUID: ReferencedFrameOfReferenceUID
+        }).contentItem();
 
         return this.getMeasurement([
             {
@@ -24,23 +34,17 @@ export default class Point extends TID300Measurement {
                     CodingSchemeDesignator: "DCM",
                     CodeMeaning: "Center"
                 },
-                //MeasuredValueSequence: ,
-                ContentSequence: {
-                    RelationshipType: "INFERRED FROM",
-                    ValueType: use3DSpatialCoordinates ? "SCOORD3D" : "SCOORD",
-                    GraphicType: "POINT",
-                    GraphicData,
-                    ReferencedFrameOfReferenceUID: use3DSpatialCoordinates
-                        ? ReferencedFrameOfReferenceUID
-                        : undefined,
-                    ContentSequence: use3DSpatialCoordinates
-                        ? undefined
-                        : {
-                              RelationshipType: "SELECTED FROM",
-                              ValueType: "IMAGE",
-                              ReferencedSOPSequence
-                          }
-                }
+
+                // MeasuredValueSequence is required for NUM items per TID 300/1501
+                MeasuredValueSequence: {
+                    NumericValue: 0,
+                    MeasurementUnitsCodeSequence: {
+                        CodeValue: "1",
+                        CodingSchemeDesignator: "UCUM",
+                        CodeMeaning: "no units"
+                    }
+                },
+                ContentSequence: graphicContentSequence
             }
         ]);
     }
