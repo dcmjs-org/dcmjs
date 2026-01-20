@@ -133,7 +133,6 @@ export class AsyncDicomReader {
                 return listener.pop();
             }
             if (tagObj.isInstruction()) {
-                console.warn("SKipping instruction:", tag);
                 continue;
             }
             if (tagObj.group() === 0 || tag === TagHex.DataSetTrailingPadding) {

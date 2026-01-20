@@ -190,7 +190,6 @@ export class DicomMetadataListener {
     _baseAddTag(tag, tagInfo) {
         const dest = {
             vr: tagInfo?.vr,
-            length: tagInfo?.length,
             Value: null
         };
         if (this.current && this.current.dest) {
@@ -204,7 +203,8 @@ export class DicomMetadataListener {
             type: tag,
             tag: tag,
             vr: tagInfo?.vr,
-            level: level
+            level: level,
+            length: tagInfo?.length
         };
     }
 
@@ -216,6 +216,9 @@ export class DicomMetadataListener {
         // Objects/sequences are nested structures, so they increment the level
         // Root object is at level 0, nested objects are one level deeper
         const level = this.current ? (this.current.level ?? 0) + 1 : 0;
+        if (Array.isArray(this.current?.dest)) {
+            this.current.dest.push(dest);
+        }
         this.current = {
             parent: this.current,
             dest,
@@ -231,6 +234,12 @@ export class DicomMetadataListener {
     _baseStartArray(dest = []) {
         // Arrays/sequences are nested structures, so they increment the level
         const level = this.current ? (this.current.level ?? 0) + 1 : 0;
+        const currentDest = this.current?.dest;
+        if (Array.isArray(currentDest)) {
+            currentDest.push(dest);
+        } else {
+            currentDest.Value = dest;
+        }
         this.current = {
             parent: this.current,
             dest,
@@ -245,6 +254,9 @@ export class DicomMetadataListener {
      */
     _basePop() {
         const result = this.current.pop?.() ?? this.current.dest;
+        if (result.Value?.length < 2 && !result.Value?.[0]) {
+            result.Value = null;
+        }
         this.current = this.current.parent;
         return result;
     }
