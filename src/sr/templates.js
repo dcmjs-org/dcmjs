@@ -1588,7 +1588,7 @@ class AlgorithmIdentification extends Template {
 
 class TrackingIdentifier extends Template {
     constructor(options) {
-        super(options);
+        super();
         if (options.uid === undefined) {
             throw new Error("Option 'uid' is required for TrackingIdentifier.");
         }
