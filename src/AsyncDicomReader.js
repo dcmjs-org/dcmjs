@@ -259,9 +259,11 @@ export class AsyncDicomReader {
                 );
                 lastFrame = null;
                 frameNumber++;
+                // console.log(stream.getBufferMemoryInfo());
             } else {
                 listener.value(frame);
                 frameNumber++;
+                // console.log(stream.getBufferMemoryInfo());
             }
         }
     }
@@ -299,6 +301,7 @@ export class AsyncDicomReader {
             await stream.ensureAvailable(length);
             const arrayBuffer = stream.readUint8Array(length);
             listener.value(arrayBuffer.buffer);
+            // console.log(stream.getBufferMemoryInfo());
             return [arrayBuffer.buffer];
         }
         const rows = listener.information?.rows;
@@ -318,6 +321,7 @@ export class AsyncDicomReader {
             const arrayBuffer = stream.readUint8Array(frameLength);
             listener.value(arrayBuffer);
             stream.consume();
+            // console.log(stream.getBufferMemoryInfo());
         }
     }
 
@@ -341,6 +345,7 @@ export class AsyncDicomReader {
 
             // Consume the buffer to free up memory between chunks
             stream.consume();
+            // console.log(stream.getBufferMemoryInfo());
         }
     }
 

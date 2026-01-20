@@ -427,6 +427,18 @@ export class BufferStream {
     toEnd() {
         this.offset = this.view.byteLength;
     }
+
+    /**
+     * Reports on the amount of memory held by the buffers in the view.
+     * @returns {Object} An object containing:
+     *   - bufferCount: Number of buffers still held (not null)
+     *   - totalSize: Total size of all buffers in bytes
+     *   - consumeOffset: The current consume offset
+     *   - buffersBeforeOffset: Number of buffers before the consume offset
+     */
+    getBufferMemoryInfo() {
+        return this.view.getBufferMemoryInfo(this.offset);
+    }
 }
 
 export class ReadBufferStream extends BufferStream {
