@@ -63,7 +63,8 @@ export const TagHex = {
     SeriesInstanceUID: "0020000E",
     SOPInstanceUID: "00080018",
     TimezoneOffsetFromUTC: "00080201",
-    AvailableTransferSyntaxUID: "00083002"
+    AvailableTransferSyntaxUID: "00083002",
+    MediaStorageSOPInstanceUID: "00020003"
 };
 
 export const encodingMapping = {

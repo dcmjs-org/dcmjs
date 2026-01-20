@@ -59,6 +59,14 @@ export class AsyncDicomReader {
         }
         this.meta = await this.readMeta(options);
         const listener = options?.listener || new DicomMetadataListener();
+
+        if (listener.information) {
+            const { information } = listener;
+            information.transferSyntaxUid = this.syntax;
+            information.sopInstanceUid =
+                this.meta?.[TagHex.MediaStoreSOPInstanceUID]?.Value[0];
+        }
+
         this.dict ||= {};
         listener.startObject(this.dict);
         this.dict = await this.read(listener, options);
@@ -210,7 +218,7 @@ export class AsyncDicomReader {
         await stream.ensureAvailable();
 
         const offsets = await this.readOffsets();
-        if (offsets.length) {
+        if (offsets?.length) {
             // Last frame ends when the sequence ends, so merge the frame data
             offsets.push(Number.MAX_SAFE_INTEGER / 2);
         }
