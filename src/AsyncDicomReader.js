@@ -76,7 +76,7 @@ export class AsyncDicomReader {
 
         // Read the tag (first 4 bytes)
         const group = stream.readUint16();
-        const element = stream.readUint16();
+        stream.readUint16();
 
         // Verify this looks like a DICOM file - first tag should be in group 0008
         if (group !== 0x0008) {
