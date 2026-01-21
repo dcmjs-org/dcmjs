@@ -109,4 +109,32 @@ describe("AsyncDicomReader", () => {
         expect(frames[0].length).toBe(2);
         expect(frames[1].length).toBe(2);
     });
+
+    test("raw LEI encoded file test", async () => {
+        const buffer = fs.readFileSync("test/sample-op.lei");
+        const reader = new AsyncDicomReader();
+        const listener = new DicomMetadataListener();
+
+        reader.stream.addBuffer(buffer);
+        reader.stream.setComplete();
+
+        const { meta, dict } = await reader.readFile({ listener });
+
+        // Raw LEI files have no meta header
+        expect(meta).toEqual({});
+
+        // Verify transfer syntax was detected as LEI
+        expect(listener.information.transferSyntaxUid).toBe(
+            "1.2.840.10008.1.2"
+        );
+
+        // Verify we can read some basic tags from the dataset
+        expect(dict).toBeDefined();
+        expect(Object.keys(dict).length).toBeGreaterThan(0);
+
+        // Verify we can read Rows if present
+        if (dict[TagHex.Rows]) {
+            expect(dict[TagHex.Rows].Value[0]).toBeDefined();
+        }
+    });
 });

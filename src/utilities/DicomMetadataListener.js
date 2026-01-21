@@ -254,8 +254,13 @@ export class DicomMetadataListener {
      */
     _basePop() {
         const result = this.current.pop?.() ?? this.current.dest;
-        if (result.Value?.length < 2 && !result.Value?.[0]) {
-            result.Value = null;
+        if (
+            result.Value === null ||
+            result.Value?.length === 0 ||
+            (result.Value?.length === 1 &&
+                (result.Value[0] === null || result.Value[0] === undefined))
+        ) {
+            delete result.Value;
         }
         this.current = this.current.parent;
         return result;

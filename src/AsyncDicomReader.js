@@ -8,7 +8,8 @@ import {
     UNDEFINED_LENGTH,
     TagHex,
     encodingMapping,
-    UNDEFINED_LENGTH_FIX
+    UNDEFINED_LENGTH_FIX,
+    VALID_VRS
 } from "./constants/dicom";
 import { Tag } from "./Tag";
 import { DicomMessage, singleVRs } from "./DicomMessage";
@@ -39,6 +40,9 @@ export class AsyncDicomReader {
      * Reads the preamble and checks for the DICM marker.
      * Returns true if found/read, leaving the stream past the
      * marker, or false, having not found the marker.
+     *
+     * If no preamble is found, attempts to detect raw LEI/LEE encoding
+     * by examining the first tag structure.
      */
     async readPreamble() {
         const { stream } = this;
@@ -47,15 +51,107 @@ export class AsyncDicomReader {
         stream.increment(128);
         if (stream.readAsciiString(4) !== "DICM") {
             stream.reset();
+            // No preamble found - try to detect raw dataset encoding
+            await this.detectRawEncoding();
             return false;
         }
         return true;
     }
 
+    /**
+     * Detects whether a raw dataset (no Part 10 preamble) is LEI or LEE encoded.
+     * This is done by examining the first tag structure:
+     * - LEI: Tag (4 bytes) + Length (4 bytes) - no VR
+     * - LEE: Tag (4 bytes) + VR (2 bytes ASCII) + Length (2 or 4 bytes)
+     *
+     * We check if bytes 4-5 look like a valid DICOM VR (2 ASCII letters that
+     * match known VR codes). If a valid VR is detected, we use LEE, otherwise LEI.
+     */
+    async detectRawEncoding() {
+        const { stream } = this;
+        await stream.ensureAvailable(8); // Need at least 8 bytes (tag + length) to detect
+
+        stream.reset();
+        stream.setEndian(true); // Little endian for both LEI and LEE
+
+        // Read the tag (first 4 bytes)
+        const group = stream.readUint16();
+        const element = stream.readUint16();
+
+        // Verify this looks like a DICOM file - first tag should be in group 0008
+        if (group !== 0x0008) {
+            throw new Error(
+                `Invalid DICOM file: expected first tag group to be 0x0008, found 0x${group
+                    .toString(16)
+                    .padStart(4, "0")}`
+            );
+        }
+
+        // Check if bytes 4-5 (after tag) look like a valid VR (2 ASCII letters)
+        const byte4 = stream.peekUint8(0);
+        const byte5 = stream.peekUint8(1);
+
+        // If we're going to assume LEI, check the length is even (DICOM requirement)
+        // Read the length value (4 bytes after tag in LEI format) as little-endian uint32
+        await stream.ensureAvailable(8); // Need at least 8 bytes (tag + length)
+        const potentialLength = stream.view.getUint32(stream.offset, true); // true = little endian
+
+        const isASCIILetter = byte => {
+            return (
+                (byte >= 0x41 && byte <= 0x5a) || // A-Z
+                (byte >= 0x61 && byte <= 0x7a)
+            ); // a-z
+        };
+
+        if (isASCIILetter(byte4) && isASCIILetter(byte5)) {
+            // Check if it's a valid VR code
+            const vrCandidate = String.fromCharCode(byte4, byte5).toUpperCase();
+            if (VALID_VRS.has(vrCandidate)) {
+                // Valid VR detected - this is LEE (Explicit Little Endian)
+                this.syntax = EXPLICIT_LITTLE_ENDIAN;
+            } else {
+                // ASCII letters but not a valid VR - assume LEI
+                // But first check if the length is odd (invalid for DICOM)
+                if (potentialLength % 2 !== 0) {
+                    throw new Error(
+                        `Invalid DICOM file: detected LEI encoding but length is odd (${potentialLength}), which is not allowed in DICOM`
+                    );
+                }
+                this.syntax = IMPLICIT_LITTLE_ENDIAN;
+            }
+        } else {
+            // Not ASCII letters - must be LEI (Implicit Little Endian)
+            // Check if the length is odd (invalid for DICOM)
+            if (potentialLength % 2 !== 0) {
+                throw new Error(
+                    `Invalid DICOM file: detected LEI encoding but length is odd (${potentialLength}), which is not allowed in DICOM`
+                );
+            }
+            this.syntax = IMPLICIT_LITTLE_ENDIAN;
+        }
+
+        // Reset stream to beginning for reading
+        stream.reset();
+    }
+
     async readFile(options = undefined) {
         const hasPreamble = await this.readPreamble();
         if (!hasPreamble) {
-            throw new Error("TODO - can't handle no preamble file");
+            // Handle raw dataset (no Part 10 preamble)
+            // Encoding should already be detected in readPreamble()
+            this.meta = {}; // No meta header for raw datasets
+            const listener = options?.listener || new DicomMetadataListener();
+
+            if (listener.information) {
+                const { information } = listener;
+                information.transferSyntaxUid = this.syntax;
+            }
+
+            this.dict ||= {};
+            listener.startObject(this.dict);
+            this.dict = await this.read(listener, options);
+
+            return this;
         }
         this.meta = await this.readMeta(options);
         const listener = options?.listener || new DicomMetadataListener();

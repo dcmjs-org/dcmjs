@@ -144,6 +144,46 @@ export const DEFAULT_INFORMATION_TAGS = new Set([
 ]);
 
 /**
+ * All valid DICOM VR (Value Representation) codes
+ */
+export const VALID_VRS = new Set([
+    "AE", // Application Entity
+    "AS", // Age String
+    "AT", // Attribute Tag
+    "CS", // Code String
+    "DA", // Date
+    "DS", // Decimal String
+    "DT", // Date Time
+    "FL", // Floating Point Single
+    "FD", // Floating Point Double
+    "IS", // Integer String
+    "LO", // Long String
+    "LT", // Long Text
+    "OB", // Other Byte
+    "OD", // Other Double
+    "OF", // Other Float
+    "OL", // Other Long
+    "OV", // Other 64-bit Very Long
+    "OW", // Other Word
+    "PN", // Person Name
+    "SH", // Short String
+    "SL", // Signed Long
+    "SQ", // Sequence of Items
+    "SS", // Signed Short
+    "ST", // Short Text
+    "SV", // Signed 64-bit Very Long
+    "TM", // Time
+    "UC", // Unlimited Characters
+    "UI", // Unique Identifier
+    "UL", // Unsigned Long
+    "UN", // Unknown
+    "UR", // Universal Resource
+    "US", // Unsigned Short
+    "UT", // Unlimited Text
+    "UV" // Unsigned 64-bit Very Long
+]);
+
+/**
  * DICOM VR (Value Representation) types that are allowed for bulkdata encoding
  * According to DICOMweb specification
  */
