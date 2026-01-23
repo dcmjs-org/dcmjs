@@ -420,8 +420,13 @@ export class AsyncDicomReader {
             const bitsAllocated = listener.information?.bitsAllocated;
             const bitsPerFrame = rows * cols * samplesPerPixel * bitsAllocated;
             if (bitsPerFrame % 8 !== 0) {
+                // Check if this is an odd-length bit frame (bitsAllocated = 1)
+                if (bitsAllocated === 1) {
+                    // Use readUncompressedBitFrame for odd-length bit frames
+                    return await this.readUncompressedBitFrame(tagInfo);
+                }
                 throw new Error(
-                    `Single bit odd length not supported: ${rows},${cols} ${samplesPerPixel} ${bitsAllocated}`
+                    `Odd frame length must be single bit: ${rows},${cols} ${samplesPerPixel} ${bitsAllocated}`
                 );
             }
             frameLength = bitsPerFrame / 8;
@@ -432,6 +437,96 @@ export class AsyncDicomReader {
             await this._emitSplitValues(frameLength);
             listener.pop();
             // console.log(stream.getBufferMemoryInfo());
+        }
+    }
+
+    /**
+     * Reads uncompressed pixel data with support for odd frame lengths (in bits).
+     * This method handles cases where frames are packed sequentially bit-by-bit,
+     * without restarting at byte boundaries. Each frame is unpacked starting at byte 0.
+     *
+     * For odd-length bit frames:
+     * - bitsAllocated is always 1 (single bit per pixel)
+     * - rows * cols * samplesPerPixel is not a multiple of 8
+     * - Frames are packed sequentially into bits without byte alignment
+     * - Each frame is unpacked to start at byte 0
+     *
+     * @param {Object} tagInfo - Tag information containing length and other metadata
+     */
+    async readUncompressedBitFrame(tagInfo) {
+        const { length } = tagInfo;
+        const { listener, stream } = this;
+
+        const numberOfFrames = parseInt(
+            listener.information?.numberOfFrames || 1
+        );
+
+        const rows = listener.information?.rows;
+        const cols = listener.information?.columns;
+        const samplesPerPixel = listener.information?.samplesPerPixel || 1;
+        const bitsAllocated = listener.information?.bitsAllocated;
+
+        if (!rows || !cols || !bitsAllocated) {
+            throw new Error(
+                "Missing required pixel data information: rows, columns, or bitsAllocated"
+            );
+        }
+
+        // For odd-length bit frames, bitsAllocated should be 1
+        if (bitsAllocated !== 1) {
+            throw new Error(
+                `Odd-length bit frames require bitsAllocated=1, got ${bitsAllocated}`
+            );
+        }
+
+        const bitsPerFrame = rows * cols * samplesPerPixel * bitsAllocated;
+        const bytesPerFrame = Math.ceil(bitsPerFrame / 8);
+        const totalBits = bitsPerFrame * numberOfFrames;
+        const totalBytes = Math.ceil(totalBits / 8);
+        if (totalBytes !== length) {
+            throw new Error(
+                `The calculated length ${totalBytes} does not match the actual length ${length}`
+            );
+        }
+
+        // Read all pixel data at once since frames are packed sequentially
+        await stream.ensureAvailable(length);
+        const allPixelData = stream.readArrayBuffer(totalBytes);
+        stream.consume();
+
+        // Extract each frame, unpacking bits so each frame starts at byte 0
+        for (let frameNumber = 0; frameNumber < numberOfFrames; frameNumber++) {
+            listener.startObject([]);
+
+            // Calculate the bit offset for this frame in the packed data
+            const bitOffset = frameNumber * bitsPerFrame;
+
+            // Create a buffer for this frame (starting at byte 0)
+            const frameBuffer = new ArrayBuffer(bytesPerFrame);
+            const frameView = new Uint8Array(frameBuffer);
+            const sourceView = new Uint8Array(allPixelData);
+
+            // Extract bits for this frame
+            for (let bitIndex = 0; bitIndex < bitsPerFrame; bitIndex++) {
+                const globalBitIndex = bitOffset + bitIndex;
+                const sourceByteIndex = Math.floor(globalBitIndex / 8);
+                const sourceBitIndex = globalBitIndex % 8;
+                const targetByteIndex = Math.floor(bitIndex / 8);
+                const targetBitIndex = bitIndex % 8;
+
+                // Read the bit from source
+                const sourceByte = sourceView[sourceByteIndex];
+                const bitValue = (sourceByte >> (7 - sourceBitIndex)) & 1;
+
+                // Write the bit to target (starting at byte 0)
+                if (bitValue) {
+                    frameView[targetByteIndex] |= 1 << (7 - targetBitIndex);
+                }
+            }
+
+            // Deliver the frame buffer
+            listener.value(frameBuffer);
+            listener.pop();
         }
     }
 

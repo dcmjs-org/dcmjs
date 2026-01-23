@@ -7,6 +7,7 @@ import {
 } from "../src/constants/dicom";
 import { getTestDataset } from "./testUtils.js";
 import { videoTestMeta, videoTestDict } from "./video-test-dict.js";
+import { oddFrameBitData } from "./odd-frame-bit-data.js";
 
 const { DicomDict, DicomMessage } = dcmjs.data;
 const { AsyncDicomReader } = dcmjs.async;
@@ -448,5 +449,106 @@ describe("AsyncDicomReader", () => {
         const frag3Part2Data = new Uint8Array(flatPixelData[3]);
         expect(frag3Part2Data[0]).toBe(0x03);
         expect(frag3Part2Data[1023]).toBe(0x03);
+    });
+
+    test("readUncompressedBitFrame with 3 frames having odd total bit length", async () => {
+        // Test data: 3 frames, each with 7 bits (odd)
+        // Total: 21 bits (odd, not even byte-aligned, requires 3 bytes)
+
+        // Create pixel data buffer with 3 frames (3 bytes total for 21 bits)
+        const packedData = oddFrameBitData.getPackedData();
+        const pixelDataBuffer = new Uint8Array(packedData);
+
+        // Create AsyncDicomReader and set up the stream
+        const reader = new AsyncDicomReader();
+        const listener = new DicomMetadataListener();
+
+        // Set up listener information
+        listener.information = {
+            rows: oddFrameBitData.rows,
+            columns: oddFrameBitData.columns,
+            samplesPerPixel: oddFrameBitData.samplesPerPixel,
+            bitsAllocated: oddFrameBitData.bitsAllocated,
+            numberOfFrames: oddFrameBitData.numberOfFrames.toString()
+        };
+
+        // Set the listener on the reader (required for readUncompressed to access listener.information)
+        reader.listener = listener;
+
+        // Add pixel data to stream
+        reader.stream.addBuffer(pixelDataBuffer.buffer);
+        reader.stream.setComplete();
+
+        // Create tag info for pixel data
+        const tagInfo = {
+            tag: TagHex.PixelData,
+            length: oddFrameBitData.totalBytes,
+            vr: "OW"
+        };
+
+        // Call readUncompressed, which should detect odd-length frames and call readUncompressedBitFrame
+        // The method expects frames to be stored in an array structure
+        const framesArray = [];
+        listener.startObject(framesArray);
+        await reader.readUncompressed(tagInfo);
+        const frames = listener.pop();
+
+        // Verify pixel data information
+        expect(listener.information.rows).toBe(oddFrameBitData.rows);
+        expect(listener.information.columns).toBe(oddFrameBitData.columns);
+        expect(listener.information.samplesPerPixel).toBe(
+            oddFrameBitData.samplesPerPixel
+        );
+        expect(listener.information.bitsAllocated).toBe(
+            oddFrameBitData.bitsAllocated
+        );
+        expect(listener.information.numberOfFrames).toBe(
+            oddFrameBitData.numberOfFrames.toString()
+        );
+
+        // Verify frames structure
+        expect(Array.isArray(frames)).toBe(true);
+        expect(frames.length).toBe(3);
+
+        // Verify each frame
+        const bytesPerFrame = Math.ceil(oddFrameBitData.bitsPerFrame / 8);
+        expect(bytesPerFrame).toBe(1); // 7 bits = 1 byte
+
+        // Get expected unpacked frames
+        const expectedFrames = oddFrameBitData.getExpectedFrames();
+
+        for (let i = 0; i < frames.length; i++) {
+            expect(Array.isArray(frames[i])).toBe(true);
+            // Each frame should be an array containing the frame data
+            const frameChunks = frames[i];
+            expect(frameChunks.length).toBe(1); // Single chunk per frame (1 byte each)
+
+            // Verify the chunk is an ArrayBuffer
+            expect(frameChunks[0]).toBeInstanceOf(ArrayBuffer);
+            expect(frameChunks[0].byteLength).toBe(bytesPerFrame);
+
+            // Verify the unpacked frame data (each frame starts at byte 0)
+            const frameData = new Uint8Array(frameChunks[0]);
+            const expectedData = expectedFrames[i];
+            expect(frameData.length).toBe(expectedData.length);
+            // Compare the first byte (only 7 bits are valid, but we compare the whole byte)
+            expect(frameData[0]).toBe(expectedData[0]);
+        }
+
+        // Verify total bit length is odd (not even byte-aligned)
+        const totalBits = oddFrameBitData.totalBits;
+        expect(totalBits).toBe(21);
+        expect(totalBits % 2).toBe(1); // Odd number
+        expect(totalBits % 8).not.toBe(0); // Not even byte-aligned (21 % 8 = 5)
+
+        // Verify total bytes read matches expected
+        let totalBytesRead = 0;
+        for (const frame of frames) {
+            for (const chunk of frame) {
+                totalBytesRead += chunk.byteLength;
+            }
+        }
+        expect(totalBytesRead).toBe(oddFrameBitData.totalBytes);
+        expect(totalBytesRead).toBe(3); // 3 bytes for 21 bits
     });
 });
