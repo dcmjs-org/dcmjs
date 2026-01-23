@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `ArrayBufferExpanderFilter` is a filter for `DicomMetadataListener` that converts `ArrayBuffer[]` child values into expanded `listener.startArray()` and `value(fragment)` calls. This is particularly useful when working with compressed or fragmented pixel data that may be delivered as an array of ArrayBuffers.
+The `ArrayBufferExpanderFilter` is a filter for `DicomMetadataListener` that converts `ArrayBuffer[]` child values into expanded `listener.startObject([])` and `value(fragment)` calls. This is particularly useful when working with compressed or fragmented pixel data that may be delivered as an array of ArrayBuffers.
 
 ## Purpose
 
@@ -10,13 +10,18 @@ When the `AsyncDicomReader` reads compressed pixel data, it can deliver frame da
 
 1. **Compact format**: A single `ArrayBuffer[]` value passed to `listener.value()`
 2. **Expanded format**: A sequence of calls:
-   - `listener.startArray()`
+   - `listener.startObject([])`
    - Multiple `listener.value(fragment)` calls (one per ArrayBuffer)
    - `listener.pop()`
 
 The `ArrayBufferExpanderFilter` automatically converts format #1 into format #2, ensuring consistent handling regardless of how the reader delivers the data.
 
-**Important**: When the `AsyncDicomReader` delivers `ArrayBuffer[]` directly to `value()`, it does NOT call `startArray()`/`pop()` around them. The expander filter makes those calls to properly represent the array structure, then captures the result and assigns it to the tag's `Value` field.
+**Important**: 
+- Each frame is ALWAYS delivered as an array (ArrayBuffer[]), even for single frames
+- Video transfer syntaxes are handled as though they were a single frame
+- Binary data can be delivered fragmented - a single frame may be split across multiple ArrayBuffer fragments
+- Multiple fragments are combined into one array per frame
+- When the `AsyncDicomReader` delivers `ArrayBuffer[]` directly to `value()`, it does NOT call `startObject([])`/`pop()` around them. The expander filter makes those calls to properly represent the array structure, then captures the result and assigns it to the tag's `Value` field.
 
 ## Usage
 
@@ -98,8 +103,8 @@ function createStreamingFilter(onFrameFragment) {
       return next(tag, tagInfo);
     },
     
-    startArray(next, dest) {
-      if (inPixelData) {
+    startObject(next, dest) {
+      if (inPixelData && Array.isArray(dest)) {
         // Starting a new frame with multiple fragments
         currentFrameFragments = [];
       }
@@ -155,7 +160,7 @@ The `ArrayBufferExpanderFilter` is a filter object that integrates with `DicomMe
 1. When `value(next, v)` is called, it checks if the value is an array of ArrayBuffers
 2. If yes:
    - Saves the current tag context (via `this.current`)
-   - Calls `this.startArray()` to create a new array context
+   - Calls `this.startObject([])` to create a new array context
    - Calls `this.value(fragment)` for each ArrayBuffer in the array
    - Calls `this.pop()` to get the resulting array structure
    - Assigns that array to the tag's `Value` field
@@ -163,9 +168,9 @@ The `ArrayBufferExpanderFilter` is a filter object that integrates with `DicomMe
 
 When used as a filter in `DicomMetadataListener`, `this` refers to the listener instance, giving the filter access to all listener methods and properties.
 
-This ensures that any subsequent filters or processing logic always receives individual fragments through the proper `startArray/value/pop` sequence, regardless of how the `AsyncDicomReader` delivers them.
+This ensures that any subsequent filters or processing logic always receives individual fragments through the proper `startObject([])/value/pop` sequence, regardless of how the `AsyncDicomReader` delivers them.
 
-The resulting data structure will have a `Value` array containing the individual fragments.
+The resulting data structure will have a `Value` array containing the individual fragments. Note that each frame is always delivered as an array, and binary data can be fragmented across multiple ArrayBuffer chunks.
 
 ## Detection Logic
 
@@ -225,13 +230,13 @@ Filter method that intercepts value calls.
 - `v` (any): The value being set
 
 **Behavior:**
-- If `v` is an `ArrayBuffer[]`, expands it into `startArray/value/pop` sequence
+- If `v` is an `ArrayBuffer[]`, expands it into `startObject([])/value/pop` sequence
 - Otherwise, calls `next(v)` to pass through to the next filter
 
 **Context:**
 When called, `this` refers to the `DicomMetadataListener` instance, providing access to:
 - `this.current` - Current parsing state
-- `this.startArray()` - Start array method
+- `this.startObject([])` - Start array method (arrays are created via `startObject([])`)
 - `this.value()` - Value method
 - `this.pop()` - Pop method
 - `this.fmi` - File Meta Information

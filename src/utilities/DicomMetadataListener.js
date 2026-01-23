@@ -61,6 +61,12 @@ export function createInformationFilter(tags = DEFAULT_INFORMATION_TAGS) {
  * There are additional listeners defined in @cornerstonejs/metadata as well as
  * other event sources in that package.
  *
+ * **Important behaviors:**
+ * - Each frame is ALWAYS delivered as an array (ArrayBuffer[]), even for single frames
+ * - Video transfer syntaxes are handled as though they were a single frame
+ * - Binary data can be delivered fragmented - a single frame may be split across multiple ArrayBuffer fragments
+ * - Multiple fragments are combined into one array per frame
+ *
  * **WARNING** This class is still under development, do not count on the API
  * not changing a bit over the next few dcmjs releases.
  */
@@ -252,7 +258,11 @@ export class DicomMetadataListener {
     }
 
     /**
-     * Base implementation: Registers a new value for the current destination being created
+     * Base implementation: Registers a new value for the current destination being created.
+     *
+     * Note: Binary data (ArrayBuffer) can be delivered fragmented across multiple calls.
+     * Multiple fragments are combined into arrays. Each frame is always delivered as an array.
+     *
      * @private
      */
     _baseValue(v) {
