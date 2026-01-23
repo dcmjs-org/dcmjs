@@ -1,6 +1,6 @@
 /**
  * A filter for DicomMetadataListener that converts ArrayBuffer[] child values
- * into expanded listener.startArray() and value(fragment) calls.
+ * into expanded listener.startObject([]) and value(fragment) calls.
  *
  * This is useful when you have compressed or fragmented pixel data delivered
  * as an array of ArrayBuffers and want to process each fragment individually
@@ -25,13 +25,13 @@ export const ArrayBufferExpanderFilter = {
      *
      * When the value is an array where every element is an ArrayBuffer:
      * 1. Saves the current tag context
-     * 2. Calls this.startArray() to create a new array context
+     * 2. Calls this.startObject([]) to create a new array context
      * 3. Calls this.value(fragment) for each ArrayBuffer in the array
      * 4. Calls this.pop() to get the resulting array
      * 5. Assigns that array to the tag's Value field
      *
      * This is necessary because when AsyncDicomReader delivers ArrayBuffer[]
-     * directly to value(), it does not call startArray/pop around them, so we
+     * directly to value(), it does not call startObject/pop around them, so we
      * must make those calls to properly represent the array structure.
      *
      * Otherwise, it passes the value through unchanged to the next filter.
@@ -49,13 +49,13 @@ export const ArrayBufferExpanderFilter = {
             )
         ) {
             // Expand the ArrayBuffer[] into the proper sequence
-            // The reader hasn't called startArray for this, so we must
+            // The reader hasn't called startObject for this, so we must
 
             // Save the current tag context
             const tagContext = this.current;
 
-            // Call startArray to create a new array context
-            this.startArray();
+            // Call startObject with an array to create a new array context
+            this.startObject([]);
 
             // Add each fragment
             for (const fragment of v) {

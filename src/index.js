@@ -103,7 +103,8 @@ const dcmjs = {
     sr,
     utilities,
     log,
-    anonymizer
+    anonymizer,
+    async
 };
 
 DicomDict.setDicomMessageClass(DicomMessage);

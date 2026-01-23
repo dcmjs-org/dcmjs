@@ -81,7 +81,7 @@ export class DicomMetadataListener {
      *        to track in listener.information. If not provided, uses default tags.
      * @param {...Object} filters - Optional filter objects that can intercept
      *        method calls. Each filter can have methods like addTag, startObject,
-     *        startArray, pop, or value. Each filter method receives a 'next'
+     *        pop, or value. Each filter method receives a 'next'
      *        function as the first argument, followed by the same arguments as
      *        the original method.
      *
@@ -109,7 +109,6 @@ export class DicomMetadataListener {
         if (
             typeof options.addTag === "function" ||
             typeof options.startObject === "function" ||
-            typeof options.startArray === "function" ||
             typeof options.pop === "function" ||
             typeof options.value === "function"
         ) {
@@ -154,7 +153,7 @@ export class DicomMetadataListener {
      * @private
      */
     _createMethodChains() {
-        const methods = ["addTag", "startObject", "startArray", "pop", "value"];
+        const methods = ["addTag", "startObject", "pop", "value"];
 
         for (const methodName of methods) {
             const baseMethod =
@@ -216,8 +215,8 @@ export class DicomMetadataListener {
         // Objects/sequences are nested structures, so they increment the level
         // Root object is at level 0, nested objects are one level deeper
         const level = this.current ? (this.current.level ?? 0) + 1 : 0;
-        if (Array.isArray(this.current?.dest)) {
-            this.current.dest.push(dest);
+        if (this.current) {
+            this.value(dest);
         }
         this.current = {
             parent: this.current,
@@ -228,39 +227,25 @@ export class DicomMetadataListener {
     }
 
     /**
-     * Base implementation: Starts a new array, using the provided value
-     * @private
-     */
-    _baseStartArray(dest = []) {
-        // Arrays/sequences are nested structures, so they increment the level
-        const level = this.current ? (this.current.level ?? 0) + 1 : 0;
-        const currentDest = this.current?.dest;
-        if (Array.isArray(currentDest)) {
-            currentDest.push(dest);
-        } else {
-            currentDest.Value = dest;
-        }
-        this.current = {
-            parent: this.current,
-            dest,
-            type: "array",
-            level: level
-        };
-    }
-
-    /**
      * Base implementation: Pops the current value being created off the stack.
      * @private
      */
     _basePop() {
         const result = this.current.pop?.() ?? this.current.dest;
-        if (
-            result.Value === null ||
-            result.Value?.length === 0 ||
-            (result.Value?.length === 1 &&
-                (result.Value[0] === null || result.Value[0] === undefined))
+        if (result.InlineBinary) {
+            console.log(
+                "********* InlineBinary already set",
+                result,
+                this.current
+            );
+        }
+        if (result.Value === null) {
+            result.Value = [];
+        } else if (
+            result.Value?.length === 1 &&
+            (result.Value[0] === null || result.Value[0] === undefined)
         ) {
-            delete result.Value;
+            result.Value = [];
         }
         this.current = this.current.parent;
         return result;

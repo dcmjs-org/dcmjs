@@ -47,12 +47,12 @@ describe("ArrayBufferExpanderFilter", () => {
     });
 
     describe("value() method - ArrayBuffer[] expansion", () => {
-        it("expands ArrayBuffer[] into startArray + multiple value calls + pop", () => {
+        it("expands ArrayBuffer[] into startObject[] + multiple value calls + pop", () => {
             // Track the sequence of calls using a custom tracking filter
             const callSequence = [];
             const trackingFilter = {
-                startArray(next, dest) {
-                    callSequence.push({ method: "startArray" });
+                startObject(next, dest) {
+                    callSequence.push({ method: "startObject" });
                     return next(dest);
                 },
                 value(next, v) {
@@ -75,6 +75,9 @@ describe("ArrayBufferExpanderFilter", () => {
             listener.startObject({});
             listener.addTag("7FE00010", { vr: "OB" }); // Pixel Data
 
+            // Clear the sequence after setup
+            callSequence.length = 0;
+
             // Create ArrayBuffer array
             const buffer1 = new ArrayBuffer(100);
             const buffer2 = new ArrayBuffer(200);
@@ -85,22 +88,25 @@ describe("ArrayBufferExpanderFilter", () => {
             listener.value(arrayBuffers);
 
             // Verify the call sequence
-            expect(callSequence.length).toBe(5); // startArray + 3 values + pop
-            expect(callSequence[0].method).toBe("startArray");
+            // startObject([]) calls value([]) internally, then 3 fragment values, then pop
+            expect(callSequence.length).toBe(6); // startObject([]) + value([]) + 3 fragment values + pop
+            expect(callSequence[0].method).toBe("startObject");
             expect(callSequence[1].method).toBe("value");
-            expect(callSequence[1].value).toBe(buffer1);
+            expect(Array.isArray(callSequence[1].value)).toBe(true); // value([]) from startObject
             expect(callSequence[2].method).toBe("value");
-            expect(callSequence[2].value).toBe(buffer2);
+            expect(callSequence[2].value).toBe(buffer1);
             expect(callSequence[3].method).toBe("value");
-            expect(callSequence[3].value).toBe(buffer3);
-            expect(callSequence[4].method).toBe("pop");
+            expect(callSequence[3].value).toBe(buffer2);
+            expect(callSequence[4].method).toBe("value");
+            expect(callSequence[4].value).toBe(buffer3);
+            expect(callSequence[5].method).toBe("pop");
         });
 
         it("expands Uint8Array[] (typed array views) into fragments", () => {
             const callSequence = [];
             const trackingFilter = {
-                startArray(next, dest) {
-                    callSequence.push({ method: "startArray" });
+                startObject(next, dest) {
+                    callSequence.push({ method: "startObject" });
                     return next(dest);
                 },
                 value(next, v) {
@@ -122,6 +128,9 @@ describe("ArrayBufferExpanderFilter", () => {
             listener.startObject({});
             listener.addTag("7FE00010", { vr: "OB" });
 
+            // Clear the sequence after setup
+            callSequence.length = 0;
+
             // Create typed array views
             const view1 = new Uint8Array(50);
             const view2 = new Uint8Array(150);
@@ -131,13 +140,16 @@ describe("ArrayBufferExpanderFilter", () => {
             listener.value(typedArrays);
 
             // Verify expansion
-            expect(callSequence.length).toBe(4); // startArray + 2 values + pop
-            expect(callSequence[0].method).toBe("startArray");
+            // startObject([]) calls value([]) internally, then 2 fragment values, then pop
+            expect(callSequence.length).toBe(5); // startObject([]) + value([]) + 2 fragment values + pop
+            expect(callSequence[0].method).toBe("startObject");
             expect(callSequence[1].method).toBe("value");
-            expect(callSequence[1].value).toBe(view1);
+            expect(Array.isArray(callSequence[1].value)).toBe(true); // value([]) from startObject
             expect(callSequence[2].method).toBe("value");
-            expect(callSequence[2].value).toBe(view2);
-            expect(callSequence[3].method).toBe("pop");
+            expect(callSequence[2].value).toBe(view1);
+            expect(callSequence[3].method).toBe("value");
+            expect(callSequence[3].value).toBe(view2);
+            expect(callSequence[4].method).toBe("pop");
         });
 
         it("passes through non-ArrayBuffer[] values unchanged", () => {

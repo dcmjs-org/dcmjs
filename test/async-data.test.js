@@ -1,8 +1,14 @@
 import fs from "fs";
-import { AsyncDicomReader } from "../src/AsyncDicomReader";
-import { DicomMetadataListener } from "../src/utilities/DicomMetadataListener";
-import { TagHex } from "../src/constants/dicom";
+import dcmjs from "../src/index.js";
+import { TagHex, IMPLICIT_LITTLE_ENDIAN } from "../src/constants/dicom";
 import { getTestDataset } from "./testUtils.js";
+
+const { DicomDict, DicomMessage } = dcmjs.data;
+const { AsyncDicomReader } = dcmjs.async;
+const { DicomMetadataListener } = dcmjs.utilities;
+
+// Ensure DicomMessage is set on DicomDict
+DicomDict.setDicomMessageClass(DicomMessage);
 
 describe("AsyncDicomReader", () => {
     test("DICOM part 10 complete listener uncompressed", async () => {
@@ -136,5 +142,144 @@ describe("AsyncDicomReader", () => {
         if (dict[TagHex.Rows]) {
             expect(dict[TagHex.Rows].Value[0]).toBeDefined();
         }
+    });
+
+    describe("LEI object data tests", () => {
+        let leiBuffer;
+        let parsedDict;
+
+        beforeAll(async () => {
+            // Create an LEI object containing a sequence with a code value
+            const dicomDict = new DicomDict({
+                [TagHex.TransferSyntaxUID]: {
+                    vr: "UI",
+                    Value: [IMPLICIT_LITTLE_ENDIAN]
+                }
+            });
+
+            // Add a sequence (Concept Code Sequence - 0040A043) with a single item
+            // containing a Code Value (00080100)
+            dicomDict.dict["0040A043"] = {
+                vr: "SQ",
+                Value: [
+                    {
+                        "00080100": {
+                            vr: "SH",
+                            Value: ["TEST123"]
+                        }
+                    }
+                ]
+            };
+
+            // Add Per-frame Functional Groups Sequence (52009229) with two frames
+            // Each frame contains a Functional Group Sequence (52009230) with one functional group
+            dicomDict.dict["52009229"] = {
+                vr: "SQ",
+                Value: [
+                    {
+                        // Frame 1: Contains a Functional Group Sequence with one functional group
+                        52009230: {
+                            vr: "SQ",
+                            Value: [
+                                {
+                                    // Functional group containing a code value
+                                    "00080100": {
+                                        vr: "SH",
+                                        Value: ["FRAME1_CODE"]
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        // Frame 2: Contains a Functional Group Sequence with one functional group
+                        52009230: {
+                            vr: "SQ",
+                            Value: [
+                                {
+                                    // Functional group containing a code value
+                                    "00080100": {
+                                        vr: "SH",
+                                        Value: ["FRAME2_CODE"]
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            };
+
+            // Write to buffer (this creates a Part 10 file)
+            leiBuffer = dicomDict.write();
+
+            // Parse with AsyncDicomReader
+            const reader = new AsyncDicomReader();
+            const listener = new DicomMetadataListener();
+
+            reader.stream.addBuffer(leiBuffer);
+            reader.stream.setComplete();
+
+            const result = await reader.readFile({ listener });
+            parsedDict = result.dict;
+        });
+
+        test("sequence has a single object containing the code value", () => {
+            // Check that the sequence exists
+            expect(parsedDict["0040A043"]).toBeDefined();
+            expect(parsedDict["0040A043"].vr).toBe("SQ");
+            expect(parsedDict["0040A043"].Value).toBeDefined();
+            expect(Array.isArray(parsedDict["0040A043"].Value)).toBe(true);
+
+            // Check that the sequence has a single object
+            expect(parsedDict["0040A043"].Value.length).toBe(1);
+
+            // Check that the single object contains the code value
+            const sequenceItem = parsedDict["0040A043"].Value[0];
+            expect(sequenceItem).toBeDefined();
+            expect(sequenceItem["00080100"]).toBeDefined();
+            expect(sequenceItem["00080100"].Value).toBeDefined();
+            expect(sequenceItem["00080100"].Value[0]).toBe("TEST123");
+        });
+
+        test("per-frame functional groups sequence has two frames with functional groups", () => {
+            // Check that the Per-frame Functional Groups Sequence exists
+            expect(parsedDict["52009229"]).toBeDefined();
+            expect(parsedDict["52009229"].vr).toBe("SQ");
+            expect(parsedDict["52009229"].Value).toBeDefined();
+            expect(Array.isArray(parsedDict["52009229"].Value)).toBe(true);
+
+            // Check that the sequence has two frames
+            expect(parsedDict["52009229"].Value.length).toBe(2);
+
+            // Check Frame 1
+            const frame1 = parsedDict["52009229"].Value[0];
+            expect(frame1).toBeDefined();
+            expect(frame1["52009230"]).toBeDefined(); // Functional Group Sequence
+            expect(frame1["52009230"].vr).toBe("SQ");
+            expect(Array.isArray(frame1["52009230"].Value)).toBe(true);
+            expect(frame1["52009230"].Value.length).toBe(1); // Single functional group
+
+            // Check functional group in Frame 1
+            const functionalGroup1 = frame1["52009230"].Value[0];
+            expect(functionalGroup1).toBeDefined();
+            expect(functionalGroup1["00080100"]).toBeDefined();
+            expect(functionalGroup1["00080100"].Value).toBeDefined();
+            expect(functionalGroup1["00080100"].Value[0]).toBe("FRAME1_CODE");
+
+            // Check Frame 2
+            const frame2 = parsedDict["52009229"].Value[1];
+            expect(frame2).toBeDefined();
+            expect(frame2["52009230"]).toBeDefined(); // Functional Group Sequence
+            expect(frame2["52009230"].vr).toBe("SQ");
+            expect(Array.isArray(frame2["52009230"].Value)).toBe(true);
+            expect(frame2["52009230"].Value.length).toBe(1); // Single functional group
+
+            // Check functional group in Frame 2
+            const functionalGroup2 = frame2["52009230"].Value[0];
+            expect(functionalGroup2).toBeDefined();
+            expect(functionalGroup2["00080100"]).toBeDefined();
+            expect(functionalGroup2["00080100"].Value).toBeDefined();
+            expect(functionalGroup2["00080100"].Value[0]).toBe("FRAME2_CODE");
+        });
     });
 });

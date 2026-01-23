@@ -273,7 +273,6 @@ export class AsyncDicomReader {
                 ? Number.MAX_SAFE_INTEGER
                 : stream.offset + length;
         const dest = [];
-        listener.startArray(dest);
         while (stream.offset < endOffset && (await stream.ensureAvailable())) {
             const tagInfo = this.readTagHeader(syntax, options);
             const { tag } = tagInfo;
@@ -286,7 +285,6 @@ export class AsyncDicomReader {
                 dest.push(result);
             } else if (tag === TagHex.SequenceDelimitationEnd) {
                 // Sequence of undefined lengths end in sequence delimitation item
-                listener.pop();
                 return dest;
             } else {
                 console.warn("Unknown tag info", length, tagInfo);
@@ -294,7 +292,6 @@ export class AsyncDicomReader {
             }
         }
         // Sequences of defined length end at the end offset
-        listener.pop();
     }
 
     readPixelData(listener, tagInfo) {
