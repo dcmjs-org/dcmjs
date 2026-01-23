@@ -35,27 +35,32 @@ export default class SplitDataView {
         if (!this.consumed || !this.offsets.length) {
             return;
         }
-        const nextOffset = this.offsets[this.consumed.length];
-        const nextLength = this.lengths[this.consumed.length];
-        if (nextOffset === undefined || nextLength === undefined) {
-            return;
+        while (true) {
+            const nextOffset = this.offsets[this.consumed.length];
+            const nextLength = this.lengths[this.consumed.length];
+            if (nextOffset === undefined || nextLength === undefined) {
+                return;
+            }
+            const currentEnd = nextOffset + nextLength;
+            if (this.consumeOffset < currentEnd) {
+                // Haven't finished consuming all the data in the current block
+                return;
+            }
+            // Consume the entire buffer for now
+            this.consumed.push(
+                this.consumeListener?.(
+                    this.buffers,
+                    0,
+                    Math.min(
+                        this.buffers.length,
+                        nextOffset - this.consumeOffset
+                    )
+                )
+            );
+            this.buffers[this.consumed.length - 1] = null;
+            this.views[this.consumed.length - 1] = null;
+            // Continue loop to check if there are more buffers to consume
         }
-        const currentEnd = nextOffset + nextLength;
-        if (this.consumeOffset < currentEnd) {
-            // Haven't finished consuming all the data in the current block
-            return;
-        }
-        // Consume the entire buffer for now
-        this.consumed.push(
-            this.consumeListener?.(
-                this.buffers,
-                0,
-                Math.min(this.buffers.length, nextOffset - this.consumeOffset)
-            )
-        );
-        this.buffers[this.consumed.length - 1] = null;
-        this.views[this.consumed.length - 1] = null;
-        this.consume(offset);
     }
 
     /**

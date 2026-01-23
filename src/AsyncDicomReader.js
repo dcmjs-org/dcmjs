@@ -9,7 +9,8 @@ import {
     TagHex,
     encodingMapping,
     UNDEFINED_LENGTH_FIX,
-    VALID_VRS
+    VALID_VRS,
+    isVideoTransferSyntax
 } from "./constants/dicom";
 import { Tag } from "./Tag";
 import { DicomMessage, singleVRs } from "./DicomMessage";
@@ -30,6 +31,8 @@ export class AsyncDicomReader {
 
     constructor(options = {}) {
         this.isLittleEndian = options?.isLittleEndian;
+        // Default maxFragmentSize is 128 MB (128 * 1024 * 1024 bytes)
+        this.maxFragmentSize = options?.maxFragmentSize ?? 128 * 1024 * 1024;
         this.stream = new ReadBufferStream(null, this.isLittleEndian, {
             clearBuffers: true,
             ...options
@@ -248,14 +251,14 @@ export class AsyncDicomReader {
             if (this.isSequence(tagInfo)) {
                 await this.readSequence(listener, tagInfo, options);
             } else if (tagObj.isPixelDataTag()) {
-                await this.readPixelData(listener, tagInfo);
+                await this.readPixelData(tagInfo);
             } else if (length === UNDEFINED_LENGTH_FIX) {
                 throw new Error(
                     `Can't handle tag ${tagInfo.tag} with -1 length and not sequence`
                 );
             } else if (addTagResult?.expectsRaw === true && length > 0) {
                 // Deliver raw binary data when requested
-                await this.readRawBinary(listener, tagInfo);
+                await this.readRawBinary(tagInfo);
             } else {
                 await this.readSingle(tagInfo, listener, options);
             }
@@ -272,20 +275,18 @@ export class AsyncDicomReader {
             length === UNDEFINED_LENGTH_FIX
                 ? Number.MAX_SAFE_INTEGER
                 : stream.offset + length;
-        const dest = [];
         while (stream.offset < endOffset && (await stream.ensureAvailable())) {
             const tagInfo = this.readTagHeader(syntax, options);
             const { tag } = tagInfo;
             if (tag === TagHex.Item) {
                 listener.startObject();
-                const result = await this.read(listener, {
+                await this.read(listener, {
                     ...options,
                     untilOffset: endOffset
                 });
-                dest.push(result);
             } else if (tag === TagHex.SequenceDelimitationEnd) {
                 // Sequence of undefined lengths end in sequence delimitation item
-                return dest;
+                return;
             } else {
                 console.warn("Unknown tag info", length, tagInfo);
                 throw new Error();
@@ -294,24 +295,56 @@ export class AsyncDicomReader {
         // Sequences of defined length end at the end offset
     }
 
-    readPixelData(listener, tagInfo) {
+    readPixelData(tagInfo) {
         if (tagInfo.length === -1) {
-            return this.readCompressed(listener, tagInfo);
+            return this.readCompressed(tagInfo);
         }
 
-        return this.readUncompressed(listener, tagInfo);
+        return this.readUncompressed(tagInfo);
+    }
+
+    /**
+     * Emits one or more listener.value() calls for a fragment, splitting if needed.
+     * This does NOT start/pop any array contexts; callers control the surrounding structure.
+     */
+    async _emitSplitValues(length) {
+        const { stream, listener } = this;
+        const { maxFragmentSize } = this;
+        let offset = 0;
+        while (offset < length) {
+            const chunkSize = Math.min(maxFragmentSize, length - offset);
+            await stream.ensureAvailable(chunkSize);
+            const buffer = stream.readArrayBuffer(chunkSize);
+            listener.value(buffer);
+            offset += chunkSize;
+            stream.consume();
+        }
     }
 
     /**
      * Reads compressed streams.
      */
-    async readCompressed(listener, _tagInfo) {
-        const { stream } = this;
+    async readCompressed(_tagInfo) {
+        const { stream, listener } = this;
+        const transferSyntaxUid = this.syntax;
 
         await stream.ensureAvailable();
 
-        const offsets = await this.readOffsets();
-        if (offsets?.length) {
+        // Check if this is a video transfer syntax
+        const isVideo = isVideoTransferSyntax(transferSyntaxUid);
+
+        // Check number of frames - only use video logic for single frame (or undefined)
+        const numberOfFrames = listener.information?.numberOfFrames;
+        const isSingleFrame = !numberOfFrames || parseInt(numberOfFrames) <= 1;
+
+        let offsets = await this.readOffsets();
+
+        const singleArray = isVideo || isSingleFrame;
+
+        if (singleArray && !offsets) {
+            offsets = [0];
+        }
+        if (offsets) {
             // Last frame ends when the sequence ends, so merge the frame data
             offsets.push(Number.MAX_SAFE_INTEGER / 2);
         }
@@ -326,9 +359,8 @@ export class AsyncDicomReader {
             const frameTag = this.readTagHeader();
             if (frameTag.tag === TagHex.SequenceDelimitationEnd) {
                 if (lastFrame) {
-                    listener.value(
-                        lastFrame.length === 1 ? lastFrame[0] : lastFrame
-                    );
+                    // Always deliver frames as arrays, using streaming splitFrame
+                    listener.pop();
                 }
                 return;
             }
@@ -336,27 +368,19 @@ export class AsyncDicomReader {
                 throw new Error(`frame tag isn't item: ${frameTag.tag}`);
             }
             const { length } = frameTag;
-            await stream.ensureAvailable(length);
-            const frame = stream.readArrayBuffer(length);
-            // Collect values into an array for child elements
+            if (!lastFrame) {
+                lastFrame = [];
+                listener.startObject(lastFrame);
+            }
+            await this._emitSplitValues(length);
+
             if (
-                offsets?.length &&
-                stream.offset < offsets[frameNumber + 1] + startOffset
+                !offsets ||
+                stream.offset >= offsets[frameNumber + 1] + startOffset
             ) {
-                lastFrame ||= [];
-                lastFrame.push(frame);
-            } else if (lastFrame) {
-                lastFrame.push(frame);
-                listener.value(
-                    lastFrame.length === 1 ? lastFrame[0] : lastFrame
-                );
                 lastFrame = null;
+                listener.pop();
                 frameNumber++;
-                // console.log(stream.getBufferMemoryInfo());
-            } else {
-                listener.value(frame);
-                frameNumber++;
-                // console.log(stream.getBufferMemoryInfo());
             }
         }
     }
@@ -375,45 +399,38 @@ export class AsyncDicomReader {
         for (let i = 0; i < numOfFrames; i++) {
             offsets.push(this.stream.readUint32());
         }
-        if (offsets.length === 1) {
-            // Don't merge single frames or video
-            return [];
-        }
         return offsets;
     }
 
     /**
      * Reads uncompressed pixel data, delivering it to the listener streaming it.
      */
-    async readUncompressed(listener, tagInfo) {
+    async readUncompressed(tagInfo) {
         const { length } = tagInfo;
-        const { stream } = this;
+        const { listener } = this;
 
-        const numberOfFrames = listener.information?.numberOfFrames;
-        if (!numberOfFrames || parseInt(numberOfFrames) === 1) {
-            await stream.ensureAvailable(length);
-            const arrayBuffer = stream.readUint8Array(length);
-            listener.value(arrayBuffer.buffer);
-            // console.log(stream.getBufferMemoryInfo());
-            return [arrayBuffer.buffer];
+        const numberOfFrames = parseInt(
+            listener.information?.numberOfFrames || 1
+        );
+        let frameLength = length;
+        if (numberOfFrames > 1) {
+            const rows = listener.information?.rows;
+            const cols = listener.information?.columns;
+            const samplesPerPixel = listener.information?.samplesPerPixel;
+            const bitsAllocated = listener.information?.bitsAllocated;
+            const bitsPerFrame = rows * cols * samplesPerPixel * bitsAllocated;
+            if (bitsPerFrame % 8 !== 0) {
+                throw new Error(
+                    `Single bit odd length not supported: ${rows},${cols} ${samplesPerPixel} ${bitsAllocated}`
+                );
+            }
+            frameLength = bitsPerFrame / 8;
         }
-        const rows = listener.information?.rows;
-        const cols = listener.information?.columns;
-        const samplesPerPixel = listener.information?.samplesPerPixel;
-        const bitsAllocated = listener.information?.bitsAllocated;
-        const bitsPerFrame = rows * cols * samplesPerPixel * bitsAllocated;
-        if (bitsPerFrame % 8 !== 0) {
-            throw new Error(
-                `Single bit odd length not supported: ${rows},${cols} ${samplesPerPixel} ${bitsAllocated}`
-            );
-        }
-        const frameLength = bitsPerFrame / 8;
 
         for (let frameNumber = 0; frameNumber < numberOfFrames; frameNumber++) {
-            await stream.ensureAvailable(frameLength);
-            const arrayBuffer = stream.readUint8Array(frameLength);
-            listener.value(arrayBuffer);
-            stream.consume();
+            listener.startObject([]);
+            await this._emitSplitValues(frameLength);
+            listener.pop();
             // console.log(stream.getBufferMemoryInfo());
         }
     }
@@ -422,24 +439,9 @@ export class AsyncDicomReader {
      * Reads raw binary data in chunks and delivers it to the listener.
      * This method reads data in 64KB chunks to manage memory efficiently.
      */
-    async readRawBinary(listener, tagInfo) {
+    async readRawBinary(tagInfo) {
         const { length } = tagInfo;
-        const { stream } = this;
-        const CHUNK_SIZE = 64 * 1024; // 64KB chunks
-
-        let remainingBytes = length;
-
-        while (remainingBytes > 0) {
-            const chunkSize = Math.min(CHUNK_SIZE, remainingBytes);
-            await stream.ensureAvailable(chunkSize);
-            const chunk = stream.readArrayBuffer(chunkSize);
-            listener.value(chunk);
-            remainingBytes -= chunkSize;
-
-            // Consume the buffer to free up memory between chunks
-            stream.consume();
-            // console.log(stream.getBufferMemoryInfo());
-        }
+        this._emitSplitValues(length);
     }
 
     isSequence(tagInfo) {

@@ -41,6 +41,39 @@ export const unencapsulatedTransferSyntaxes = {
 };
 
 /**
+ * Video transfer syntax UIDs (MPEG2, H.264, H.265)
+ * These transfer syntaxes treat the entire pixel data stream as a single frame
+ * regardless of the number of fragments.
+ */
+export const videoTransferSyntaxUIDs = new Set([
+    "1.2.840.10008.1.2.4.100", // MPEG2 Main Profile @ Main Level
+    "1.2.840.10008.1.2.4.100.1", // MPEG2 Main Profile @ Main Level (retired)
+    "1.2.840.10008.1.2.4.101", // MPEG2 Main Profile @ High Level
+    "1.2.840.10008.1.2.4.101.1", // MPEG2 Main Profile @ High Level (retired)
+    "1.2.840.10008.1.2.4.102", // MPEG-4 AVC/H.264 High Profile / Level 4.1
+    "1.2.840.10008.1.2.4.102.1", // MPEG-4 AVC/H.264 High Profile / Level 4.1 (retired)
+    "1.2.840.10008.1.2.4.103", // MPEG-4 AVC/H.264 BD-compatible High Profile / Level 4.1
+    "1.2.840.10008.1.2.4.103.1", // MPEG-4 AVC/H.264 BD-compatible High Profile / Level 4.1 (retired)
+    "1.2.840.10008.1.2.4.104", // MPEG-4 AVC/H.264 High Profile / Level 4.2 For 2D Video
+    "1.2.840.10008.1.2.4.104.1", // MPEG-4 AVC/H.264 High Profile / Level 4.2 For 2D Video (retired)
+    "1.2.840.10008.1.2.4.105", // MPEG-4 AVC/H.264 High Profile / Level 4.2 For 3D Video
+    "1.2.840.10008.1.2.4.105.1", // MPEG-4 AVC/H.264 High Profile / Level 4.2 For 3D Video (retired)
+    "1.2.840.10008.1.2.4.106", // MPEG-4 AVC/H.264 Stereo High Profile / Level 4.2
+    "1.2.840.10008.1.2.4.106.1", // MPEG-4 AVC/H.264 Stereo High Profile / Level 4.2 (retired)
+    "1.2.840.10008.1.2.4.107", // HEVC/H.265 Main Profile / Level 5.1
+    "1.2.840.10008.1.2.4.108" // HEVC/H.265 Main 10 Profile / Level 5.1
+]);
+
+/**
+ * Checks if a transfer syntax UID is a video transfer syntax
+ * @param {string} uid - Transfer syntax UID to check
+ * @returns {boolean} - True if the UID is a video transfer syntax
+ */
+export function isVideoTransferSyntax(uid) {
+    return uid && videoTransferSyntaxUIDs.has(uid);
+}
+
+/**
  * This is an enumeration of some HEX values for the tag strings, used to replace
  * constants in a few places.
  */

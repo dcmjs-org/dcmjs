@@ -256,6 +256,10 @@ export class DicomMetadataListener {
      * @private
      */
     _baseValue(v) {
+        if (Array.isArray(this.current.dest)) {
+            this.current.dest.push(v);
+            return;
+        }
         this.current.dest.Value ||= [];
         this.current.dest.Value.push(v);
     }
