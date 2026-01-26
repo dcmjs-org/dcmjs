@@ -556,20 +556,14 @@ describe("AsyncDicomReader", () => {
         const url =
             "https://github.com/dcmjs-org/data/releases/download/binary-parsing-stressors/large-private-tags.dcm";
         const dcmPath = await getTestDataset(url, "large-private-tags.dcm");
-        
+
         // First, read the file with DicomMessage to identify which private tags exist
         // and determine their order relative to PixelData
         const syncDict = DicomMessage.readFile(fs.readFileSync(dcmPath).buffer);
-        
-        // Private tags have odd group numbers (e.g., 0x0009, 0x0011, 0x0013, etc.)
-        const isPrivateTag = tag => {
-            const group = parseInt(tag.substring(0, 4), 16);
-            return group % 2 === 1; // Odd group number indicates private tag
-        };
-        
+
         // Get all tags in order (approximate - dict keys may not preserve exact order)
         const { dict } = syncDict;
-        
+
         const privateCreator = dict["7FE10010"];
         expect(privateCreator.Value[0]).toBe("GEMS_Ultrasound_MovieGroup_001");
         expect(privateCreator.vr).toBe("LO");
