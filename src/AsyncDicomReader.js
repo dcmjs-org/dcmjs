@@ -536,7 +536,7 @@ export class AsyncDicomReader {
      */
     async readRawBinary(tagInfo) {
         const { length } = tagInfo;
-        this._emitSplitValues(length);
+        await this._emitSplitValues(length);
     }
 
     isSequence(tagInfo) {
