@@ -19,7 +19,7 @@ import { ValueRepresentation } from "./ValueRepresentation.js";
 
 export const singleVRs = ["SQ", "OF", "OW", "OB", "UN", "LT"];
 
-class DicomMessage {
+export class DicomMessage {
     static read(
         bufferStream,
         syntax,
@@ -393,5 +393,3 @@ class DicomMessage {
         return DicomMetaDictionary.dictionary[tag.toString()];
     }
 }
-
-export { DicomMessage };

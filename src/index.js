@@ -12,6 +12,8 @@ import { ValueRepresentation } from "./ValueRepresentation.js";
 import { Colors } from "./colors.js";
 import log from "./log.js";
 
+import { AsyncDicomReader } from "./AsyncDicomReader.js";
+
 import {
     datasetToDict,
     datasetToBuffer,
@@ -41,10 +43,11 @@ import { DSRNormalizer } from "./normalizers.js";
 import adapters from "./adapters/index.js";
 import utilities from "./utilities/index.js";
 import sr from "./sr/index.js";
+import * as constants from "./constants/dicom.js";
 
 import { cleanTags, getTagsNameToEmpty } from "./anonymizer.js";
 
-let data = {
+const data = {
     BitArray,
     ReadBufferStream,
     DeflatedReadBufferStream,
@@ -60,7 +63,11 @@ let data = {
     datasetToBlob
 };
 
-let derivations = {
+const async = {
+    AsyncDicomReader
+};
+
+const derivations = {
     DerivedDataset,
     DerivedPixels,
     DerivedImage,
@@ -69,7 +76,7 @@ let derivations = {
     ParametricMap
 };
 
-let normalizers = {
+const normalizers = {
     Normalizer,
     ImageNormalizer,
     MRImageNormalizer,
@@ -81,7 +88,7 @@ let normalizers = {
     DSRNormalizer
 };
 
-let anonymizer = {
+const anonymizer = {
     cleanTags,
     getTagsNameToEmpty
 };
@@ -89,13 +96,15 @@ let anonymizer = {
 const dcmjs = {
     DICOMWEB,
     adapters,
+    constants,
     data,
     derivations,
     normalizers,
     sr,
     utilities,
     log,
-    anonymizer
+    anonymizer,
+    async
 };
 
 DicomDict.setDicomMessageClass(DicomMessage);
@@ -106,13 +115,15 @@ Tag.setDicomMessageClass(DicomMessage);
 export {
     DICOMWEB,
     adapters,
+    anonymizer,
+    async,
+    constants,
     data,
     derivations,
     normalizers,
     sr,
     utilities,
-    log,
-    anonymizer
+    log
 };
 
 export { dcmjs as default };

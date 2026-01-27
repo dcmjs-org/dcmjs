@@ -8,12 +8,14 @@ import {
     UNDEFINED_LENGTH,
     TagHex,
     encodingMapping,
-    UNDEFINED_LENGTH_FIX
+    UNDEFINED_LENGTH_FIX,
+    VALID_VRS,
+    isVideoTransferSyntax
 } from "./constants/dicom";
 import { Tag } from "./Tag";
 import { DicomMessage, singleVRs } from "./DicomMessage";
 import { DicomMetaDictionary } from "./DicomMetaDictionary";
-import { DicomMetadataListener } from "./utilities";
+import { DicomMetadataListener } from "./utilities/DicomMetadataListener.js";
 import { log } from "./log.js";
 
 /**
@@ -29,6 +31,8 @@ export class AsyncDicomReader {
 
     constructor(options = {}) {
         this.isLittleEndian = options?.isLittleEndian;
+        // Default maxFragmentSize is 128 MB (128 * 1024 * 1024 bytes)
+        this.maxFragmentSize = options?.maxFragmentSize ?? 128 * 1024 * 1024;
         this.stream = new ReadBufferStream(null, this.isLittleEndian, {
             clearBuffers: true,
             ...options
@@ -39,6 +43,9 @@ export class AsyncDicomReader {
      * Reads the preamble and checks for the DICM marker.
      * Returns true if found/read, leaving the stream past the
      * marker, or false, having not found the marker.
+     *
+     * If no preamble is found, attempts to detect raw LEI/LEE encoding
+     * by examining the first tag structure.
      */
     async readPreamble() {
         const { stream } = this;
@@ -47,18 +54,118 @@ export class AsyncDicomReader {
         stream.increment(128);
         if (stream.readAsciiString(4) !== "DICM") {
             stream.reset();
+            // No preamble found - try to detect raw dataset encoding
+            await this.detectRawEncoding();
             return false;
         }
         return true;
     }
 
+    /**
+     * Detects whether a raw dataset (no Part 10 preamble) is LEI or LEE encoded.
+     * This is done by examining the first tag structure:
+     * - LEI: Tag (4 bytes) + Length (4 bytes) - no VR
+     * - LEE: Tag (4 bytes) + VR (2 bytes ASCII) + Length (2 or 4 bytes)
+     *
+     * We check if bytes 4-5 look like a valid DICOM VR (2 ASCII letters that
+     * match known VR codes). If a valid VR is detected, we use LEE, otherwise LEI.
+     */
+    async detectRawEncoding() {
+        const { stream } = this;
+        await stream.ensureAvailable(8); // Need at least 8 bytes (tag + length) to detect
+
+        stream.reset();
+        stream.setEndian(true); // Little endian for both LEI and LEE
+
+        // Read the tag (first 4 bytes)
+        const group = stream.readUint16();
+        stream.readUint16();
+
+        // Verify this looks like a DICOM file - first tag should be in group 0008
+        if (group !== 0x0008) {
+            throw new Error(
+                `Invalid DICOM file: expected first tag group to be 0x0008, found 0x${group
+                    .toString(16)
+                    .padStart(4, "0")}`
+            );
+        }
+
+        // Check if bytes 4-5 (after tag) look like a valid VR (2 ASCII letters)
+        const byte4 = stream.peekUint8(0);
+        const byte5 = stream.peekUint8(1);
+
+        // If we're going to assume LEI, check the length is even (DICOM requirement)
+        // Read the length value (4 bytes after tag in LEI format) as little-endian uint32
+        await stream.ensureAvailable(8); // Need at least 8 bytes (tag + length)
+        const potentialLength = stream.view.getUint32(stream.offset, true); // true = little endian
+
+        const isASCIILetter = byte => {
+            return (
+                (byte >= 0x41 && byte <= 0x5a) || // A-Z
+                (byte >= 0x61 && byte <= 0x7a)
+            ); // a-z
+        };
+
+        if (isASCIILetter(byte4) && isASCIILetter(byte5)) {
+            // Check if it's a valid VR code
+            const vrCandidate = String.fromCharCode(byte4, byte5).toUpperCase();
+            if (VALID_VRS.has(vrCandidate)) {
+                // Valid VR detected - this is LEE (Explicit Little Endian)
+                this.syntax = EXPLICIT_LITTLE_ENDIAN;
+            } else {
+                // ASCII letters but not a valid VR - assume LEI
+                // But first check if the length is odd (invalid for DICOM)
+                if (potentialLength % 2 !== 0) {
+                    throw new Error(
+                        `Invalid DICOM file: detected LEI encoding but length is odd (${potentialLength}), which is not allowed in DICOM`
+                    );
+                }
+                this.syntax = IMPLICIT_LITTLE_ENDIAN;
+            }
+        } else {
+            // Not ASCII letters - must be LEI (Implicit Little Endian)
+            // Check if the length is odd (invalid for DICOM)
+            if (potentialLength % 2 !== 0) {
+                throw new Error(
+                    `Invalid DICOM file: detected LEI encoding but length is odd (${potentialLength}), which is not allowed in DICOM`
+                );
+            }
+            this.syntax = IMPLICIT_LITTLE_ENDIAN;
+        }
+
+        // Reset stream to beginning for reading
+        stream.reset();
+    }
+
     async readFile(options = undefined) {
         const hasPreamble = await this.readPreamble();
         if (!hasPreamble) {
-            throw new Error("TODO - can't handle no preamble file");
+            // Handle raw dataset (no Part 10 preamble)
+            // Encoding should already be detected in readPreamble()
+            this.meta = {}; // No meta header for raw datasets
+            const listener = options?.listener || new DicomMetadataListener();
+
+            if (listener.information) {
+                const { information } = listener;
+                information.transferSyntaxUid = this.syntax;
+            }
+
+            this.dict ||= {};
+            listener.startObject(this.dict);
+            this.dict = await this.read(listener, options);
+
+            return this;
         }
         this.meta = await this.readMeta(options);
         const listener = options?.listener || new DicomMetadataListener();
+
+        if (listener.information) {
+            const { information } = listener;
+            information.transferSyntaxUid = this.syntax;
+            information.sopInstanceUid =
+                this.meta?.[TagHex.MediaStoreSOPInstanceUID]?.Value[0];
+        }
+
         this.dict ||= {};
         listener.startObject(this.dict);
         this.dict = await this.read(listener, options);
@@ -133,7 +240,6 @@ export class AsyncDicomReader {
                 return listener.pop();
             }
             if (tagObj.isInstruction()) {
-                console.warn("SKipping instruction:", tag);
                 continue;
             }
             if (tagObj.group() === 0 || tag === TagHex.DataSetTrailingPadding) {
@@ -141,15 +247,18 @@ export class AsyncDicomReader {
                 stream.increment(tagObj.length);
                 continue;
             }
-            listener.addTag(tag, tagInfo);
+            const addTagResult = listener.addTag(tag, tagInfo);
             if (this.isSequence(tagInfo)) {
                 await this.readSequence(listener, tagInfo, options);
             } else if (tagObj.isPixelDataTag()) {
-                await this.readPixelData(listener, tagInfo);
+                await this.readPixelData(tagInfo);
             } else if (length === UNDEFINED_LENGTH_FIX) {
                 throw new Error(
                     `Can't handle tag ${tagInfo.tag} with -1 length and not sequence`
                 );
+            } else if (addTagResult?.expectsRaw === true && length > 0) {
+                // Deliver raw binary data when requested
+                await this.readRawBinary(tagInfo);
             } else {
                 await this.readSingle(tagInfo, listener, options);
             }
@@ -166,49 +275,76 @@ export class AsyncDicomReader {
             length === UNDEFINED_LENGTH_FIX
                 ? Number.MAX_SAFE_INTEGER
                 : stream.offset + length;
-        const dest = [];
-        listener.startArray(dest);
         while (stream.offset < endOffset && (await stream.ensureAvailable())) {
             const tagInfo = this.readTagHeader(syntax, options);
             const { tag } = tagInfo;
             if (tag === TagHex.Item) {
                 listener.startObject();
-                const result = await this.read(listener, {
+                await this.read(listener, {
                     ...options,
                     untilOffset: endOffset
                 });
-                dest.push(result);
             } else if (tag === TagHex.SequenceDelimitationEnd) {
                 // Sequence of undefined lengths end in sequence delimitation item
-                listener.pop();
-                return dest;
+                return;
             } else {
                 console.warn("Unknown tag info", length, tagInfo);
                 throw new Error();
             }
         }
         // Sequences of defined length end at the end offset
-        listener.pop();
     }
 
-    readPixelData(listener, tagInfo) {
+    readPixelData(tagInfo) {
         if (tagInfo.length === -1) {
-            return this.readCompressed(listener, tagInfo);
+            return this.readCompressed(tagInfo);
         }
 
-        return this.readUncompressed(listener, tagInfo);
+        return this.readUncompressed(tagInfo);
+    }
+
+    /**
+     * Emits one or more listener.value() calls for a fragment, splitting if needed.
+     * This does NOT start/pop any array contexts; callers control the surrounding structure.
+     */
+    async _emitSplitValues(length) {
+        const { stream, listener } = this;
+        const { maxFragmentSize } = this;
+        let offset = 0;
+        while (offset < length) {
+            const chunkSize = Math.min(maxFragmentSize, length - offset);
+            await stream.ensureAvailable(chunkSize);
+            const buffer = stream.readArrayBuffer(chunkSize);
+            listener.value(buffer);
+            offset += chunkSize;
+            stream.consume();
+        }
     }
 
     /**
      * Reads compressed streams.
      */
-    async readCompressed(listener, _tagInfo) {
-        const { stream } = this;
+    async readCompressed(_tagInfo) {
+        const { stream, listener } = this;
+        const transferSyntaxUid = this.syntax;
 
         await stream.ensureAvailable();
 
-        const offsets = await this.readOffsets();
-        if (offsets.length) {
+        // Check if this is a video transfer syntax
+        const isVideo = isVideoTransferSyntax(transferSyntaxUid);
+
+        // Check number of frames - only use video logic for single frame (or undefined)
+        const numberOfFrames = listener.information?.numberOfFrames;
+        const isSingleFrame = !numberOfFrames || parseInt(numberOfFrames) <= 1;
+
+        let offsets = await this.readOffsets();
+
+        const singleArray = isVideo || isSingleFrame;
+
+        if (singleArray && !offsets) {
+            offsets = [0];
+        }
+        if (offsets) {
             // Last frame ends when the sequence ends, so merge the frame data
             offsets.push(Number.MAX_SAFE_INTEGER / 2);
         }
@@ -223,9 +359,8 @@ export class AsyncDicomReader {
             const frameTag = this.readTagHeader();
             if (frameTag.tag === TagHex.SequenceDelimitationEnd) {
                 if (lastFrame) {
-                    listener.value(
-                        lastFrame.length === 1 ? lastFrame[0] : lastFrame
-                    );
+                    // Always deliver frames as arrays, using streaming splitFrame
+                    listener.pop();
                 }
                 return;
             }
@@ -233,24 +368,18 @@ export class AsyncDicomReader {
                 throw new Error(`frame tag isn't item: ${frameTag.tag}`);
             }
             const { length } = frameTag;
-            await stream.ensureAvailable(length);
-            const frame = stream.readArrayBuffer(length);
-            // Collect values into an array for child elements
+            if (!lastFrame) {
+                lastFrame = [];
+                listener.startObject(lastFrame);
+            }
+            await this._emitSplitValues(length);
+
             if (
-                offsets?.length &&
-                stream.offset < offsets[frameNumber + 1] + startOffset
+                !offsets ||
+                stream.offset >= offsets[frameNumber + 1] + startOffset
             ) {
-                lastFrame ||= [];
-                lastFrame.push(frame);
-            } else if (lastFrame) {
-                lastFrame.push(frame);
-                listener.value(
-                    lastFrame.length === 1 ? lastFrame[0] : lastFrame
-                );
                 lastFrame = null;
-                frameNumber++;
-            } else {
-                listener.value(frame);
+                listener.pop();
                 frameNumber++;
             }
         }
@@ -270,45 +399,144 @@ export class AsyncDicomReader {
         for (let i = 0; i < numOfFrames; i++) {
             offsets.push(this.stream.readUint32());
         }
-        if (offsets.length === 1) {
-            // Don't merge single frames or video
-            return [];
-        }
         return offsets;
     }
 
     /**
      * Reads uncompressed pixel data, delivering it to the listener streaming it.
      */
-    async readUncompressed(listener, tagInfo) {
+    async readUncompressed(tagInfo) {
         const { length } = tagInfo;
-        const { stream } = this;
+        const { listener } = this;
 
-        const numberOfFrames = listener.getValue(TagHex.NumberOfFrames);
-        if (!numberOfFrames || parseInt(numberOfFrames) === 1) {
-            await stream.ensureAvailable(length);
-            const arrayBuffer = stream.readUint8Array(length);
-            listener.value(arrayBuffer.buffer);
-            return [arrayBuffer.buffer];
+        const numberOfFrames = parseInt(
+            listener.information?.numberOfFrames || 1
+        );
+        let frameLength = length;
+        if (numberOfFrames > 1) {
+            const rows = listener.information?.rows;
+            const cols = listener.information?.columns;
+            const samplesPerPixel = listener.information?.samplesPerPixel;
+            const bitsAllocated = listener.information?.bitsAllocated;
+            const bitsPerFrame = rows * cols * samplesPerPixel * bitsAllocated;
+            if (bitsPerFrame % 8 !== 0) {
+                // Check if this is an odd-length bit frame (bitsAllocated = 1)
+                if (bitsAllocated === 1) {
+                    // Use readUncompressedBitFrame for odd-length bit frames
+                    return await this.readUncompressedBitFrame(tagInfo);
+                }
+                throw new Error(
+                    `Odd frame length must be single bit: ${rows},${cols} ${samplesPerPixel} ${bitsAllocated}`
+                );
+            }
+            frameLength = bitsPerFrame / 8;
         }
-        const rows = listener.getValue(TagHex.Rows);
-        const cols = listener.getValue(TagHex.Columns);
-        const samplesPerPixel = listener.getValue(TagHex.SamplesPerPixel);
-        const bitsAllocated = listener.getValue(TagHex.BitsAllocated);
-        const bitsPerFrame = rows * cols * samplesPerPixel * bitsAllocated;
-        if (bitsPerFrame % 8 !== 0) {
-            throw new Error(
-                `Single bit odd length not supported: ${rows},${cols} ${samplesPerPixel} ${bitsAllocated}`
-            );
-        }
-        const frameLength = bitsPerFrame / 8;
 
         for (let frameNumber = 0; frameNumber < numberOfFrames; frameNumber++) {
-            await stream.ensureAvailable(frameLength);
-            const arrayBuffer = stream.readUint8Array(frameLength);
-            listener.value(arrayBuffer);
-            stream.consume();
+            listener.startObject([]);
+            await this._emitSplitValues(frameLength);
+            listener.pop();
+            // console.log(stream.getBufferMemoryInfo());
         }
+    }
+
+    /**
+     * Reads uncompressed pixel data with support for odd frame lengths (in bits).
+     * This method handles cases where frames are packed sequentially bit-by-bit,
+     * without restarting at byte boundaries. Each frame is unpacked starting at byte 0.
+     *
+     * For odd-length bit frames:
+     * - bitsAllocated is always 1 (single bit per pixel)
+     * - rows * cols * samplesPerPixel is not a multiple of 8
+     * - Frames are packed sequentially into bits without byte alignment
+     * - Each frame is unpacked to start at byte 0
+     *
+     * @param {Object} tagInfo - Tag information containing length and other metadata
+     */
+    async readUncompressedBitFrame(tagInfo) {
+        const { length } = tagInfo;
+        const { listener, stream } = this;
+
+        const numberOfFrames = parseInt(
+            listener.information?.numberOfFrames || 1
+        );
+
+        const rows = listener.information?.rows;
+        const cols = listener.information?.columns;
+        const samplesPerPixel = listener.information?.samplesPerPixel || 1;
+        const bitsAllocated = listener.information?.bitsAllocated;
+
+        if (!rows || !cols || !bitsAllocated) {
+            throw new Error(
+                "Missing required pixel data information: rows, columns, or bitsAllocated"
+            );
+        }
+
+        // For odd-length bit frames, bitsAllocated should be 1
+        if (bitsAllocated !== 1) {
+            throw new Error(
+                `Odd-length bit frames require bitsAllocated=1, got ${bitsAllocated}`
+            );
+        }
+
+        const bitsPerFrame = rows * cols * samplesPerPixel * bitsAllocated;
+        const bytesPerFrame = Math.ceil(bitsPerFrame / 8);
+        const totalBits = bitsPerFrame * numberOfFrames;
+        const totalBytes = Math.ceil(totalBits / 8);
+        if (totalBytes !== length) {
+            throw new Error(
+                `The calculated length ${totalBytes} does not match the actual length ${length}`
+            );
+        }
+
+        // Read all pixel data at once since frames are packed sequentially
+        await stream.ensureAvailable(length);
+        const allPixelData = stream.readArrayBuffer(totalBytes);
+        stream.consume();
+
+        // Extract each frame, unpacking bits so each frame starts at byte 0
+        for (let frameNumber = 0; frameNumber < numberOfFrames; frameNumber++) {
+            listener.startObject([]);
+
+            // Calculate the bit offset for this frame in the packed data
+            const bitOffset = frameNumber * bitsPerFrame;
+
+            // Create a buffer for this frame (starting at byte 0)
+            const frameBuffer = new ArrayBuffer(bytesPerFrame);
+            const frameView = new Uint8Array(frameBuffer);
+            const sourceView = new Uint8Array(allPixelData);
+
+            // Extract bits for this frame
+            for (let bitIndex = 0; bitIndex < bitsPerFrame; bitIndex++) {
+                const globalBitIndex = bitOffset + bitIndex;
+                const sourceByteIndex = Math.floor(globalBitIndex / 8);
+                const sourceBitIndex = globalBitIndex % 8;
+                const targetByteIndex = Math.floor(bitIndex / 8);
+                const targetBitIndex = bitIndex % 8;
+
+                // Read the bit from source
+                const sourceByte = sourceView[sourceByteIndex];
+                const bitValue = (sourceByte >> (7 - sourceBitIndex)) & 1;
+
+                // Write the bit to target (starting at byte 0)
+                if (bitValue) {
+                    frameView[targetByteIndex] |= 1 << (7 - targetBitIndex);
+                }
+            }
+
+            // Deliver the frame buffer
+            listener.value(frameBuffer);
+            listener.pop();
+        }
+    }
+
+    /**
+     * Reads raw binary data in chunks and delivers it to the listener.
+     * This method reads data in 64KB chunks to manage memory efficiently.
+     */
+    async readRawBinary(tagInfo) {
+        const { length } = tagInfo;
+        this._emitSplitValues(length);
     }
 
     isSequence(tagInfo) {
@@ -362,8 +590,7 @@ export class AsyncDicomReader {
                     // This should work for any tag after PixelRepresentation,
                     // which is all but 2 of the xs code values.
                     const signed =
-                        this.listener.getValue(TagHex.PixelRepresentation) ===
-                        0;
+                        this.listener.information?.pixelRepresentation === 0;
                     vrType = signed ? "SS" : "US";
                 } else if (tagObj.isPrivateCreator()) {
                     vrType = "LO";

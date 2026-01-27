@@ -35,27 +35,32 @@ export default class SplitDataView {
         if (!this.consumed || !this.offsets.length) {
             return;
         }
-        const nextOffset = this.offsets[this.consumed.length];
-        const nextLength = this.lengths[this.consumed.length];
-        if (nextOffset === undefined || nextLength === undefined) {
-            return;
+        while (true) {
+            const nextOffset = this.offsets[this.consumed.length];
+            const nextLength = this.lengths[this.consumed.length];
+            if (nextOffset === undefined || nextLength === undefined) {
+                return;
+            }
+            const currentEnd = nextOffset + nextLength;
+            if (this.consumeOffset < currentEnd) {
+                // Haven't finished consuming all the data in the current block
+                return;
+            }
+            // Consume the entire buffer for now
+            this.consumed.push(
+                this.consumeListener?.(
+                    this.buffers,
+                    0,
+                    Math.min(
+                        this.buffers.length,
+                        nextOffset - this.consumeOffset
+                    )
+                )
+            );
+            this.buffers[this.consumed.length - 1] = null;
+            this.views[this.consumed.length - 1] = null;
+            // Continue loop to check if there are more buffers to consume
         }
-        const currentEnd = nextOffset + nextLength;
-        if (this.consumeOffset < currentEnd) {
-            // Haven't finished consuming all the data in the current block
-            return;
-        }
-        // Consume the entire buffer for now
-        this.consumed.push(
-            this.consumeListener?.(
-                this.buffers,
-                0,
-                Math.min(this.buffers.length, nextOffset - this.consumeOffset)
-            )
-        );
-        this.buffers[this.consumed.length - 1] = null;
-        this.views[this.consumed.length - 1] = null;
-        this.consume(offset);
     }
 
     /**
@@ -346,5 +351,51 @@ export default class SplitDataView {
         if (writeCommit) {
             this.writeCommit(view, offset);
         }
+    }
+
+    /**
+     * Reports on the amount of memory held by the buffers in the view.
+     * @param {number} consumeOffset - The current consume offset (typically from BufferStream.offset)
+     * @returns {Object} An object containing:
+     *   - bufferCount: Number of buffers still held (not null)
+     *   - totalSize: Total size of all buffers in bytes
+     *   - consumeOffset: The current consume offset
+     *   - buffersBeforeOffset: Number of buffers before the consume offset
+     *   - bytesBeforeOffset: Total bytes before the consume offset
+     */
+    getBufferMemoryInfo(consumeOffset) {
+        let bufferCount = 0;
+        let totalSize = 0;
+        let buffersBeforeOffset = 0;
+        let bytesBeforeOffset = 0;
+        const currentConsumeOffset = consumeOffset ?? this.consumeOffset;
+
+        for (let i = 0; i < this.buffers.length; i++) {
+            const buffer = this.buffers[i];
+            if (buffer !== null && buffer !== undefined) {
+                bufferCount++;
+                totalSize += buffer.byteLength;
+
+                // Count buffers and bytes that are before the consume offset
+                const bufferStart = this.offsets[i];
+                const bufferEnd = bufferStart + this.lengths[i];
+                if (bufferEnd <= currentConsumeOffset) {
+                    // Buffer is completely before the offset
+                    buffersBeforeOffset++;
+                    bytesBeforeOffset += buffer.byteLength;
+                } else if (bufferStart < currentConsumeOffset) {
+                    // Buffer spans the offset, count the portion before it
+                    bytesBeforeOffset += currentConsumeOffset - bufferStart;
+                }
+            }
+        }
+
+        return {
+            bufferCount,
+            totalSize,
+            consumeOffset: currentConsumeOffset,
+            buffersBeforeOffset,
+            bytesBeforeOffset
+        };
     }
 }

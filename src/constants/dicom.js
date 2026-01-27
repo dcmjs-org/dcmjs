@@ -41,6 +41,39 @@ export const unencapsulatedTransferSyntaxes = {
 };
 
 /**
+ * Video transfer syntax UIDs (MPEG2, H.264, H.265)
+ * These transfer syntaxes treat the entire pixel data stream as a single frame
+ * regardless of the number of fragments.
+ */
+export const videoTransferSyntaxUIDs = new Set([
+    "1.2.840.10008.1.2.4.100", // MPEG2 Main Profile @ Main Level
+    "1.2.840.10008.1.2.4.100.1", // MPEG2 Main Profile @ Main Level (retired)
+    "1.2.840.10008.1.2.4.101", // MPEG2 Main Profile @ High Level
+    "1.2.840.10008.1.2.4.101.1", // MPEG2 Main Profile @ High Level (retired)
+    "1.2.840.10008.1.2.4.102", // MPEG-4 AVC/H.264 High Profile / Level 4.1
+    "1.2.840.10008.1.2.4.102.1", // MPEG-4 AVC/H.264 High Profile / Level 4.1 (retired)
+    "1.2.840.10008.1.2.4.103", // MPEG-4 AVC/H.264 BD-compatible High Profile / Level 4.1
+    "1.2.840.10008.1.2.4.103.1", // MPEG-4 AVC/H.264 BD-compatible High Profile / Level 4.1 (retired)
+    "1.2.840.10008.1.2.4.104", // MPEG-4 AVC/H.264 High Profile / Level 4.2 For 2D Video
+    "1.2.840.10008.1.2.4.104.1", // MPEG-4 AVC/H.264 High Profile / Level 4.2 For 2D Video (retired)
+    "1.2.840.10008.1.2.4.105", // MPEG-4 AVC/H.264 High Profile / Level 4.2 For 3D Video
+    "1.2.840.10008.1.2.4.105.1", // MPEG-4 AVC/H.264 High Profile / Level 4.2 For 3D Video (retired)
+    "1.2.840.10008.1.2.4.106", // MPEG-4 AVC/H.264 Stereo High Profile / Level 4.2
+    "1.2.840.10008.1.2.4.106.1", // MPEG-4 AVC/H.264 Stereo High Profile / Level 4.2 (retired)
+    "1.2.840.10008.1.2.4.107", // HEVC/H.265 Main Profile / Level 5.1
+    "1.2.840.10008.1.2.4.108" // HEVC/H.265 Main 10 Profile / Level 5.1
+]);
+
+/**
+ * Checks if a transfer syntax UID is a video transfer syntax
+ * @param {string} uid - Transfer syntax UID to check
+ * @returns {boolean} - True if the UID is a video transfer syntax
+ */
+export function isVideoTransferSyntax(uid) {
+    return uid && videoTransferSyntaxUIDs.has(uid);
+}
+
+/**
  * This is an enumeration of some HEX values for the tag strings, used to replace
  * constants in a few places.
  */
@@ -58,7 +91,13 @@ export const TagHex = {
     NumberOfFrames: "00280008",
     SpecificCharacterSet: "00080005",
     PixelRepresentation: "00280103",
-    DataSetTrailingPadding: "FFFCFFFC"
+    DataSetTrailingPadding: "FFFCFFFC",
+    StudyInstanceUID: "0020000D",
+    SeriesInstanceUID: "0020000E",
+    SOPInstanceUID: "00080018",
+    TimezoneOffsetFromUTC: "00080201",
+    AvailableTransferSyntaxUID: "00083002",
+    MediaStorageSOPInstanceUID: "00020003"
 };
 
 export const encodingMapping = {
@@ -97,3 +136,110 @@ export const encodingMapping = {
     "iso-2022-58": "gb2312",
     gbk: "gbk"
 };
+
+/**
+ * Maps DICOM tag hex strings to their normalized lower camelCase names
+ * for use in listener.information tracking
+ */
+export const TAG_NAME_MAP = {
+    "0020000D": "studyInstanceUid",
+    "0020000E": "seriesInstanceUid",
+    "00080018": "sopInstanceUid",
+    "00020010": "transferSyntaxUid",
+    "00083002": "availableTransferSyntaxUid",
+    "00080201": "timezoneOffsetFromUtc",
+    "00080005": "specificCharacterSet",
+    "00280008": "numberOfFrames",
+    "00280010": "rows",
+    "00280011": "columns",
+    "00280002": "samplesPerPixel",
+    "00280100": "bitsAllocated",
+    "00280103": "pixelRepresentation"
+};
+
+/**
+ * Default tags to track in listener.information
+ */
+export const DEFAULT_INFORMATION_TAGS = new Set([
+    "0020000D", // StudyInstanceUID
+    "0020000E", // SeriesInstanceUID
+    "00080018", // SOPInstanceUID
+    "00020010", // TransferSyntaxUID
+    "00083002", // AvailableTransferSyntaxUID
+    "00080201", // TimezoneOffsetFromUTC
+    "00080005", // SpecificCharacterSet
+    "00280008", // NumberOfFrames
+    "00280010", // Rows
+    "00280011", // Columns
+    "00280002", // SamplesPerPixel
+    "00280100", // BitsAllocated
+    "00280103" // PixelRepresentation
+]);
+
+/**
+ * All valid DICOM VR (Value Representation) codes
+ */
+export const VALID_VRS = new Set([
+    "AE", // Application Entity
+    "AS", // Age String
+    "AT", // Attribute Tag
+    "CS", // Code String
+    "DA", // Date
+    "DS", // Decimal String
+    "DT", // Date Time
+    "FL", // Floating Point Single
+    "FD", // Floating Point Double
+    "IS", // Integer String
+    "LO", // Long String
+    "LT", // Long Text
+    "OB", // Other Byte
+    "OD", // Other Double
+    "OF", // Other Float
+    "OL", // Other Long
+    "OV", // Other 64-bit Very Long
+    "OW", // Other Word
+    "PN", // Person Name
+    "SH", // Short String
+    "SL", // Signed Long
+    "SQ", // Sequence of Items
+    "SS", // Signed Short
+    "ST", // Short Text
+    "SV", // Signed 64-bit Very Long
+    "TM", // Time
+    "UC", // Unlimited Characters
+    "UI", // Unique Identifier
+    "UL", // Unsigned Long
+    "UN", // Unknown
+    "UR", // Universal Resource
+    "US", // Unsigned Short
+    "UT", // Unlimited Text
+    "UV" // Unsigned 64-bit Very Long
+]);
+
+/**
+ * DICOM VR (Value Representation) types that are allowed for bulkdata encoding
+ * According to DICOMweb specification
+ */
+export const BULKDATA_VRS = new Set([
+    "DS", // Decimal String
+    "FL", // Floating Point Single
+    "FD", // Floating Point Double
+    "IS", // Integer String
+    "LT", // Long Text
+    "OB", // Other Byte
+    "OD", // Other Double
+    "OF", // Other Float
+    "OL", // Other Long
+    "OV", // Other 64-bit Very Long
+    "OW", // Other Word
+    "SL", // Signed Long
+    "SS", // Signed Short
+    "ST", // Short Text
+    "SV", // Signed 64-bit Very Long
+    "UC", // Unlimited Characters
+    "UL", // Unsigned Long
+    "UN", // Unknown
+    "US", // Unsigned Short
+    "UT", // Unlimited Text
+    "UV" // Unsigned 64-bit Very Long
+]);
