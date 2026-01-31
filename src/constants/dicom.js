@@ -34,10 +34,10 @@ export const SEQUENCE_DELIMITER_TAG = 0xfffee0dd;
 // Nearly all transfer syntaxes are encapsulated, so record those which are
 // unencapsulated as the exceptions.
 export const unencapsulatedTransferSyntaxes = {
-    IMPLICIT_LITTLE_ENDIAN: true,
-    EXPLICIT_BIG_ENDIAN: true,
-    DEFLATED_EXPLICIT_LITTLE_ENDIAN: true,
-    EXPLICIT_LITTLE_ENDIAN: true
+    [IMPLICIT_LITTLE_ENDIAN]: true,
+    [EXPLICIT_BIG_ENDIAN]: true,
+    [DEFLATED_EXPLICIT_LITTLE_ENDIAN]: true,
+    [EXPLICIT_LITTLE_ENDIAN]: true
 };
 
 /**
