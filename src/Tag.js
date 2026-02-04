@@ -136,12 +136,10 @@ class Tag {
         const vr = ValueRepresentation.createByTypeString(vrType);
         const useSyntax = DicomMessage._normalizeSyntax(syntax);
 
-        const implicit = useSyntax == IMPLICIT_LITTLE_ENDIAN ? true : false;
+        const implicit = useSyntax === IMPLICIT_LITTLE_ENDIAN;
         const isLittleEndian =
-            useSyntax == IMPLICIT_LITTLE_ENDIAN ||
-            useSyntax == EXPLICIT_LITTLE_ENDIAN
-                ? true
-                : false;
+            useSyntax === IMPLICIT_LITTLE_ENDIAN ||
+            useSyntax === EXPLICIT_LITTLE_ENDIAN;
         const isEncapsulated =
             this.isPixelDataTag() && DicomMessage.isEncapsulated(syntax);
 
