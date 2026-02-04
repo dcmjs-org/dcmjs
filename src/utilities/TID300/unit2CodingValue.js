@@ -192,7 +192,7 @@ const unit2CodingValue = units => {
         return {
             CodeValue: `[arb'U]{${units}}`,
             CodingSchemeDesignator: "UCUM",
-            CodeMeaning: `[arb'U'] ${units}`
+            CodeMeaning: `arbitrary ${units}`
         };
     }
     return codingUnit;
