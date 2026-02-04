@@ -1,11 +1,253 @@
 import fs from "fs";
+import crypto from "crypto";
 import dcmjs from "../src/index.js";
 import { deepEqual } from "../src/utilities/deepEqual";
+import {
+    DEFLATED_EXPLICIT_LITTLE_ENDIAN,
+    UNDEFINED_LENGTH,
+    TagHex
+} from "../src/constants/dicom.js";
 
 import { getTestDataset } from "./testUtils";
 import { DicomMetaDictionary } from "../src/DicomMetaDictionary";
 
 const { DicomDict, DicomMessage } = dcmjs.data;
+
+// Implicit VR Little Endian - dataset uses tag (4) + length (4) + value
+const IMPLICIT_LITTLE_ENDIAN_UID = "1.2.840.10008.1.2";
+// VRs that use 32-bit length in Explicit VR (reserved 2 + length 4 after VR)
+const EXPLICIT_VR_LENGTH32 = [
+    "OB",
+    "OW",
+    "OF",
+    "SQ",
+    "UN",
+    "UC",
+    "UR",
+    "UT",
+    "OD"
+];
+
+/**
+ * Parses a raw DICOM buffer and returns the PixelData element's length and raw bytes.
+ * Reads up to PixelData, then reads the tag's length field (checking it's not -1) and value.
+ * Supports both Implicit and Explicit VR Little Endian for the dataset.
+ *
+ * @param {ArrayBuffer|Uint8Array} buffer - Raw DICOM file buffer
+ * @param {string} [transferSyntaxUID] - Optional. If provided, used to decide Implicit vs Explicit VR (e.g. from meta); avoids parsing meta.
+ * @returns {{ length: number, data: ArrayBuffer } | null} - PixelData length and bytes, or null if not found
+ */
+function readPixelDataFromRawBuffer(buffer, transferSyntaxUIDHint) {
+    // Ensure we have a contiguous ArrayBuffer (getBuffer may return view with shared buffer)
+    let arrayBuf;
+    if (buffer instanceof ArrayBuffer) {
+        arrayBuf = buffer;
+    } else {
+        const len = buffer.byteLength ?? buffer.length;
+        arrayBuf = buffer.buffer.slice(
+            buffer.byteOffset ?? 0,
+            (buffer.byteOffset ?? 0) + len
+        );
+    }
+    const view = new DataView(arrayBuf);
+    const isLittleEndian = true;
+
+    let offset = 132; // Skip preamble (128) + "DICM" (4)
+    if (offset + 4 > arrayBuf.byteLength) return null;
+
+    // Parse meta header - first element is FileMetaInformationGroupLength (Explicit VR)
+    offset += 4; // tag
+    offset += 2; // VR
+    offset += 2; // elem length (2 for UL)
+    const metaLength = view.getUint32(offset, isLittleEndian);
+    offset += 4;
+    const metaEnd = Math.min(offset + metaLength, arrayBuf.byteLength);
+
+    // Parse meta to find Transfer Syntax UID (0002,0010) for dataset VR format (unless hint provided)
+    let transferSyntaxUID = transferSyntaxUIDHint ?? IMPLICIT_LITTLE_ENDIAN_UID;
+    if (transferSyntaxUIDHint == null) {
+        while (offset < metaEnd && offset + 8 <= arrayBuf.byteLength) {
+            const group = view.getUint16(offset, isLittleEndian);
+            const element = view.getUint16(offset + 2, isLittleEndian);
+            offset += 4;
+            const vr = String.fromCharCode(
+                view.getUint8(offset),
+                view.getUint8(offset + 1)
+            );
+            offset += 2;
+            let elemLen;
+            if (EXPLICIT_VR_LENGTH32.includes(vr)) {
+                offset += 2; // reserved
+                elemLen = view.getUint32(offset, isLittleEndian);
+                offset += 4;
+            } else {
+                elemLen = view.getUint16(offset, isLittleEndian);
+                offset += 2;
+            }
+            if (offset + elemLen > arrayBuf.byteLength) break;
+            if (group === 0x0002 && element === 0x0010) {
+                // Transfer Syntax UID - value is ASCII
+                transferSyntaxUID = String.fromCharCode(
+                    ...new Uint8Array(arrayBuf, offset, elemLen)
+                )
+                    .replace(/\0/g, "")
+                    .trim();
+                break;
+            }
+            offset += elemLen;
+        }
+    }
+    offset = metaEnd;
+
+    // Detect Implicit vs Explicit from Transfer Syntax UID; fallback: Explicit if first dataset tag has 2-char VR (A-Z) after tag
+    let implicitDataset = transferSyntaxUID === IMPLICIT_LITTLE_ENDIAN_UID;
+    if (offset + 6 <= arrayBuf.byteLength) {
+        const b0 = view.getUint8(offset + 4);
+        const b1 = view.getUint8(offset + 5);
+        const looksLikeExplicitVR =
+            b0 >= 0x41 && b0 <= 0x5a && b1 >= 0x41 && b1 <= 0x5a;
+        if (looksLikeExplicitVR) implicitDataset = false;
+    }
+    const PIXEL_DATA_TAG = 0x7fe00010;
+    const SEQUENCE_ITEM_TAG = 0xfffee000;
+    const SEQUENCE_DELIMITER_TAG = 0xfffee0dd;
+    const ITEM_DELIMITATION_TAG = 0xfffee00d;
+
+    while (offset < arrayBuf.byteLength - 8) {
+        const group = view.getUint16(offset, isLittleEndian);
+        const element = view.getUint16(offset + 2, isLittleEndian);
+        const tagValue = (group << 16) | element;
+        offset += 4;
+
+        let length;
+        if (implicitDataset) {
+            length = view.getUint32(offset, isLittleEndian);
+            offset += 4;
+        } else {
+            const vr = String.fromCharCode(
+                view.getUint8(offset),
+                view.getUint8(offset + 1)
+            );
+            offset += 2;
+            if (EXPLICIT_VR_LENGTH32.includes(vr)) {
+                offset += 2; // reserved
+                length = view.getUint32(offset, isLittleEndian);
+                offset += 4;
+            } else {
+                length = view.getUint16(offset, isLittleEndian);
+                offset += 2;
+            }
+        }
+
+        if (tagValue === PIXEL_DATA_TAG) {
+            if (length === UNDEFINED_LENGTH || length === -1) {
+                return { length: -1, data: null };
+            }
+            if (offset + length > arrayBuf.byteLength) return null;
+            const data = arrayBuf.slice(offset, offset + length);
+            return { length, data };
+        }
+
+        if (length === UNDEFINED_LENGTH) {
+            // Skip undefined-length sequence (Item FFFE,E000 or Delimiter FFFE,E0DD)
+            while (offset < arrayBuf.byteLength - 8) {
+                const itemGroup = view.getUint16(offset, isLittleEndian);
+                const itemElement = view.getUint16(offset + 2, isLittleEndian);
+                const itemTagValue = (itemGroup << 16) | itemElement;
+                offset += 4;
+                const itemLength = view.getUint32(offset, isLittleEndian);
+                offset += 4;
+                if (itemTagValue === SEQUENCE_DELIMITER_TAG) break;
+                if (itemTagValue === SEQUENCE_ITEM_TAG) {
+                    if (
+                        itemLength === UNDEFINED_LENGTH ||
+                        itemLength === 0xffffffff
+                    ) {
+                        // Skip undefined-length item until Item Delimitation (FFFE,E00D); item uses same VR as dataset
+                        let itemOffset = offset;
+                        while (itemOffset < arrayBuf.byteLength - 8) {
+                            const delGroup = view.getUint16(
+                                itemOffset,
+                                isLittleEndian
+                            );
+                            const delElement = view.getUint16(
+                                itemOffset + 2,
+                                isLittleEndian
+                            );
+                            const delTag = (delGroup << 16) | delElement;
+                            itemOffset += 4;
+                            let delLen;
+                            if (implicitDataset) {
+                                delLen = view.getUint32(
+                                    itemOffset,
+                                    isLittleEndian
+                                );
+                                itemOffset += 4;
+                            } else {
+                                const vr = String.fromCharCode(
+                                    view.getUint8(itemOffset),
+                                    view.getUint8(itemOffset + 1)
+                                );
+                                itemOffset += 2;
+                                if (EXPLICIT_VR_LENGTH32.includes(vr)) {
+                                    itemOffset += 2;
+                                    delLen = view.getUint32(
+                                        itemOffset,
+                                        isLittleEndian
+                                    );
+                                    itemOffset += 4;
+                                } else {
+                                    delLen = view.getUint16(
+                                        itemOffset,
+                                        isLittleEndian
+                                    );
+                                    itemOffset += 2;
+                                }
+                            }
+                            if (delTag === ITEM_DELIMITATION_TAG) break;
+                            itemOffset += delLen > 0 ? delLen : 0;
+                        }
+                        offset = itemOffset;
+                    } else {
+                        offset += itemLength;
+                    }
+                }
+            }
+        } else if (length > 0) {
+            offset += length;
+        }
+    }
+    return null;
+}
+
+function getPixelDataBytes(pixelDataValue) {
+    const chunks = [];
+    const flatten = arr => {
+        for (const item of arr) {
+            if (item instanceof ArrayBuffer) {
+                chunks.push(new Uint8Array(item));
+            } else if (Array.isArray(item)) {
+                flatten(item);
+            }
+        }
+    };
+    flatten(pixelDataValue);
+    const totalLength = chunks.reduce((sum, c) => sum + c.byteLength, 0);
+    const result = new Uint8Array(totalLength);
+    let offset = 0;
+    for (const chunk of chunks) {
+        result.set(chunk, offset);
+        offset += chunk.byteLength;
+    }
+    return result.buffer;
+}
+
+function hashArrayBuffer(buffer) {
+    return crypto
+        .createHash("sha256")
+        .update(new Uint8Array(buffer))
+        .digest("hex");
+}
 
 describe("lossless-read-write", () => {
     describe("storeRaw option", () => {
@@ -1032,6 +1274,80 @@ describe("lossless-read-write", () => {
         for (let i = 0; i < uint.length; i++) {
             expect(uintOut[i]).toBe(uint[i]);
         }
+    });
+
+    test("uncompressed PixelData written with explicit length (524288) for streaming read", () => {
+        // test/sample-dicom.dcm is uncompressed data
+        const buffer = fs.readFileSync("test/sample-dicom.dcm");
+        const dicomDict = DicomMessage.readFile(buffer.buffer);
+        const { dict } = dicomDict;
+
+        // Get original pixel data and compute hash
+        const originalPixelBytes = getPixelDataBytes(
+            dict[TagHex.PixelData].Value
+        );
+        const originalHash = hashArrayBuffer(originalPixelBytes);
+
+        // Write to memory buffer
+        const natural = DicomMetaDictionary.naturalizeDataset(dict);
+        dicomDict.dict = DicomMetaDictionary.denaturalizeDataset(natural);
+        const outputBuffer = dicomDict.write();
+        const writtenDict = DicomMessage.readFile(outputBuffer);
+
+        // PixelData must be written with explicit length 524288 (512*512*2), NOT undefined length, so a streaming reader can read it
+        const writtenPixelBytes = getPixelDataBytes(
+            writtenDict.dict[TagHex.PixelData].Value
+        );
+        expect(writtenPixelBytes.byteLength).toBe(524288);
+
+        // Hash of pixel data must match original
+        const writtenHash = hashArrayBuffer(writtenPixelBytes);
+        expect(writtenHash).toBe(originalHash);
+    });
+
+    test("Deflated Explicit VR Little Endian: PixelData written with explicit length (unencapsulated)", () => {
+        // When Transfer Syntax is DEFLATED_EXPLICIT_LITTLE_ENDIAN, pixel data is unencapsulated
+        // (raw bytes). The fix ensures unencapsulatedTransferSyntaxes includes it so PixelData
+        // is written with explicit length, not as encapsulated (undefined length). This test
+        // fails on master (without the fix) and passes with the fix.
+        const pixelBytes = new ArrayBuffer(4);
+        new Uint8Array(pixelBytes).set([0x01, 0x02, 0x03, 0x04]);
+        const transferSyntaxUid = DEFLATED_EXPLICIT_LITTLE_ENDIAN;
+        const meta = {
+            [TagHex.FileMetaInformationGroupLength]: {
+                vr: "UL",
+                Value: [32]
+            },
+            [TagHex.TransferSyntaxUID]: {
+                vr: "UI",
+                Value: [transferSyntaxUid]
+            }
+        };
+        const dict = {
+            [TagHex.PixelData]: {
+                vr: "OW",
+                Value: [pixelBytes]
+            }
+        };
+        const dicomDict = new DicomDict(meta);
+        dicomDict.dict = dict;
+
+        const outputBuffer = dicomDict.write();
+        const arrayBuf =
+            outputBuffer instanceof ArrayBuffer
+                ? outputBuffer
+                : outputBuffer.buffer.slice(
+                      outputBuffer.byteOffset,
+                      outputBuffer.byteOffset + outputBuffer.byteLength
+                  );
+        const pixelInfo = readPixelDataFromRawBuffer(
+            arrayBuf,
+            transferSyntaxUid
+        );
+        expect(pixelInfo).not.toBeNull();
+        expect(pixelInfo.length).not.toBe(-1);
+        expect(pixelInfo.data).not.toBeNull();
+        expect(pixelInfo.data.byteLength).toBe(4);
     });
 
     test("compressed data should be read correctly as arraybuffer", () => {

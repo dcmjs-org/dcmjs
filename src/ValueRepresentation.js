@@ -406,7 +406,7 @@ class BinaryRepresentation extends ValueRepresentation {
         this._storeRaw = false;
     }
 
-    writeBytes(stream, value, syntax, isEncapsulated, writeOptions = {}) {
+    writeBytes(stream, value, _syntax, isEncapsulated, writeOptions = {}) {
         var i;
         var binaryStream;
         var { fragmentMultiframe = true } = writeOptions;
