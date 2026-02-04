@@ -190,10 +190,9 @@ const unit2CodingValue = units => {
         log.error("Unspecified units", units);
 
         return {
-            CodeValue: `arb'${units}`,
+            CodeValue: "[arb'U]",
             CodingSchemeDesignator: "UCUM",
-            CodeMeaning: units,
-            CodingSchemeVersion: "1.4"
+            CodeMeaning: `[arb'U'] ${units}`
         };
     }
     return codingUnit;
