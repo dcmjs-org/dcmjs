@@ -4,6 +4,19 @@
     "description": "Javascript implementation of DICOM manipulation",
     "main": "build/dcmjs.js",
     "module": "build/dcmjs.es.js",
+    "exports": {
+        ".": {
+            "import": "./build/dcmjs.es.js",
+            "require": "./build/dcmjs.js"
+        },
+        "./dictionary": "./generate/dictionary.mjs"
+    },
+    "files": [
+        "build",
+        "generate/dictionary.mjs",
+        "README.md",
+        "License.txt"
+    ],
     "directories": {
         "example": "examples"
     },
@@ -15,7 +28,8 @@
         "dev": "rollup -c -w",
         "format": "prettier --write 'src/**/*.js' 'test/**/*.js'",
         "format:check": "prettier --check 'src/**/*.js' 'test/**/*.js'",
-        "lint": "eslint --fix 'src/**/*.js' 'test/**/*.js'"
+        "lint": "eslint --fix 'src/**/*.js' 'test/**/*.js'",
+        "pack-dictionary": "node generate/pack_dicom.mjs"
     },
     "repository": {
         "type": "git",

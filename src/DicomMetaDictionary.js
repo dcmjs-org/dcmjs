@@ -1,4 +1,4 @@
-import dictionary from "./dictionary";
+import { dictionary } from "./dictionary.fast.js";
 import log from "./log.js";
 import addAccessors from "./utilities/addAccessors";
 import { ValueRepresentation } from "./ValueRepresentation";
