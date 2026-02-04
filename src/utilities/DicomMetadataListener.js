@@ -78,6 +78,36 @@ export class DicomMetadataListener {
     information = null;
 
     /**
+     * Optional backpressure (drain) function. When set, the reader will await
+     * the returned promise before emitting more fragment values, to avoid
+     * having too many open streams or overwhelming the consumer.
+     */
+    _drain = () => Promise.resolve();
+
+    /**
+     * Set the drain (pushback) function for backpressure. The function should
+     * return a Promise that resolves when it is safe to emit more data (e.g.
+     * when unsettled stream write count is below a limit). Node.js streams use
+     * the term "drain" for this (see Writable 'drain' event).
+     *
+     * @param {(() => Promise<void>) | null} fn - Function that returns a Promise, or null to clear
+     */
+    setDrain(fn) {
+        this._drain = typeof fn === "function" ? fn : null;
+    }
+
+    /**
+     * Returns a Promise that resolves when the drain condition is met (or
+     * immediately if no drain is set). Call this before emitting values to
+     * apply backpressure.
+     *
+     * @returns {Promise<void>}
+     */
+    awaitDrain() {
+        return this._drain() || Promise.resolve();
+    }
+
+    /**
      * Creates a new DicomMetadataListener instance.
      *
      * @param {Object} options - Configuration options
