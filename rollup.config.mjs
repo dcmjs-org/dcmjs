@@ -50,6 +50,7 @@ export default {
         //builtins(),
         // babelRuntime(),
         babel({
+            babelHelpers: "bundled",
             exclude: "node_modules/**"
         }),
         json()
