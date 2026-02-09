@@ -309,6 +309,7 @@ export class AsyncDicomReader {
      */
     async _emitSplitValues(length) {
         const { stream, listener } = this;
+        await listener.awaitDrain?.();
         const { maxFragmentSize } = this;
         let offset = 0;
         while (offset < length) {

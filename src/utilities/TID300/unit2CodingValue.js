@@ -163,6 +163,13 @@ noUnitCodeValues.forEach(codeValue => {
     unitCodeMap[codeValue] = NO_UNIT;
 });
 
+unitCodeMap["HU"] = {
+    CodingSchemeDesignator: "UCUM",
+    CodingSchemeVersion: "1.4",
+    CodeValue: "[hnsf'U]",
+    CodeMeaning: "Hounsfield unit"
+};
+
 unitCodeMap["mm\xB2"] = {
     CodingSchemeDesignator: "UCUM",
     CodingSchemeVersion: "1.4",
@@ -170,12 +177,6 @@ unitCodeMap["mm\xB2"] = {
     CodeMeaning: "mm2"
 };
 
-const MM_UNIT = {
-    CodeValue: "mm",
-    CodingSchemeDesignator: "UCUM",
-    CodingSchemeVersion: "1.4",
-    CodeMeaning: "millimeter"
-};
 /** Converts the given unit into the
  * specified coding values.
  * Has .measurementMap on the function specifying global units for measurements.
@@ -187,7 +188,12 @@ const unit2CodingValue = units => {
     const codingUnit = unitCodeMap[units] || unitCodeMap[baseUnit];
     if (!codingUnit) {
         log.error("Unspecified units", units);
-        return MM_UNIT;
+
+        return {
+            CodeValue: `[arb'U]{${units}}`,
+            CodingSchemeDesignator: "UCUM",
+            CodeMeaning: `arbitrary ${units}`
+        };
     }
     return codingUnit;
 };
