@@ -5,8 +5,7 @@
  *
  * Times:
  * - Old dictionary (generate/dictionary.mjs) vs new (src/dictionary.fast.js)
- * - ESM main, ESM private, UMD
- * - ESM total vs UMD comparison.
+ * - ESM vs UMD (both register privates up front).
  */
 
 import { fileURLToPath } from "url";
@@ -27,41 +26,43 @@ async function main() {
     console.log("--- Dictionary load benchmark (Bun) ---\n");
 
     // Old vs new dictionary (direct dynamic import)
-    const oldDictMs = await timeImport(oldDictPath);
-    console.log(`Old dictionary (generate/dictionary.mjs): ${oldDictMs.toFixed(2)} ms`);
     const newDictMs = await timeImport(newDictPath);
-    console.log(`New dictionary (src/dictionary.fast.js):  ${newDictMs.toFixed(2)} ms`);
+    console.log(
+        `New dictionary (src/dictionary.fast.js):  ${newDictMs.toFixed(2)} ms`
+    );
+    const oldDictMs = await timeImport(oldDictPath);
+    console.log(
+        `Old dictionary (generate/dictionary.mjs): ${oldDictMs.toFixed(2)} ms`
+    );
     const dictRatio = oldDictMs / newDictMs;
-    console.log(`Old/New: ${dictRatio.toFixed(2)}x (${dictRatio > 1 ? "new faster" : "old faster"})\n`);
+    console.log(
+        `Old/New: ${dictRatio.toFixed(2)}x (${
+            dictRatio > 1 ? "new faster" : "old faster"
+        })\n`
+    );
 
     const esmPath = join(buildDir, "dcmjs.es.js");
     const umdPath = join(buildDir, "dcmjs.js");
 
-    // 1. ESM main
-    const esmMainMs = await timeImport(esmPath);
-    console.log(`ESM main (dcmjs.es.js):        ${esmMainMs.toFixed(2)} ms`);
+    // 1. ESM (main + privates registered up front)
+    const esmMs = await timeImport(esmPath);
+    console.log(`ESM (dcmjs.es.js):            ${esmMs.toFixed(2)} ms`);
 
-    // 2. ESM private (loadPrivateTags) — ESM already in cache, so time only loadPrivateTags()
-    const dcmjs = await import(esmPath);
-    const loadPrivateStart = performance.now();
-    await (dcmjs.default?.loadPrivateTags?.() ?? Promise.resolve());
-    const esmPrivateMs = performance.now() - loadPrivateStart;
-    console.log(`ESM private (loadPrivateTags): ${esmPrivateMs.toFixed(2)} ms`);
-
-    const esmTotalMs = esmMainMs + esmPrivateMs;
-    console.log(`ESM total:                    ${esmTotalMs.toFixed(2)} ms\n`);
-
-    // 3. UMD
+    // 2. UMD
     const umdMs = await timeImport(umdPath);
     console.log(`UMD (dcmjs.js):               ${umdMs.toFixed(2)} ms\n`);
 
-    const ratio = esmTotalMs / umdMs;
+    const ratio = esmMs / umdMs;
     console.log("--- Comparison ---");
-    console.log(`ESM total / UMD: ${ratio.toFixed(2)}x (${ratio > 1 ? "UMD faster" : "ESM faster"})`);
+    console.log(
+        `ESM total / UMD: ${ratio.toFixed(2)}x (${
+            ratio > 1 ? "UMD faster" : "ESM faster"
+        })`
+    );
     console.log("------------------\n");
 }
 
-main().catch((err) => {
+main().catch(err => {
     console.error(err);
     process.exit(1);
 });

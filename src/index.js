@@ -6,8 +6,11 @@ import { WriteBufferStream } from "./BufferStream.js";
 import { DicomDict } from "./DicomDict.js";
 import { DicomMessage } from "./DicomMessage.js";
 import { DicomMetaDictionary } from "./DicomMetaDictionary.js";
-import { loadPrivateTags } from "./loadPrivateTags.js";
+import { registerPrivatesModule } from "./dictionary.fast.js";
+import * as privateData from "./dictionary.private.data.js";
 import { DICOMWEB } from "./dicomweb.js";
+
+registerPrivatesModule(privateData);
 import { Tag } from "./Tag.js";
 import { ValueRepresentation } from "./ValueRepresentation.js";
 import { Colors } from "./colors.js";
@@ -121,7 +124,6 @@ export {
     constants,
     data,
     derivations,
-    loadPrivateTags,
     normalizers,
     sr,
     utilities,

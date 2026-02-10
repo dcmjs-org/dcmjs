@@ -1,11 +1,11 @@
 import { lookupTagHex, lookupTagRangeHex } from "./dicom.lookup.js";
 
-/** Set by registerPrivatesModule() or at UMD build time. */
+/** Set by registerPrivatesModule() at startup (index.js / index.umd). */
 let privateModule = null;
 
 /**
  * Register the private tag module (e.g. from dictionary.private.data.js).
- * UMD build calls this at startup with the inlined module; ESM uses loadPrivateTags.
+ * Called at startup so privates are always available.
  */
 export function registerPrivatesModule(module) {
     privateModule = module;
@@ -105,7 +105,7 @@ export const dictionary = new Proxy(Object.create(null), {
             return entry;
         }
 
-        // Private tags: require registerPrivatesModule() or loadPrivateTags() in ESM
+        // Private tags: require registerPrivatesModule() at startup
         if (isPrivateTagKey(prop)) {
             if (!privateModule) return undefined;
             const v = privateModule.lookupPrivateTag(prop);
