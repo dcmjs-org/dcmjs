@@ -4,6 +4,7 @@ const nodeConsole = new Console(process.stdout, process.stderr);
 // Mock loglevel
 const createMockLogger = () => {
     const logger = {
+        trace: jest.fn(),
         debug: jest.fn(),
         info: jest.fn(),
         warn: jest.fn(),

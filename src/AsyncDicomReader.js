@@ -18,6 +18,8 @@ import { DicomMetaDictionary } from "./DicomMetaDictionary";
 import { DicomMetadataListener } from "./utilities/DicomMetadataListener.js";
 import { log } from "./log.js";
 
+const readLog = log.getLogger("AsyncDicomReader");
+
 /**
  * This is an asynchronous binary DICOM reader.
  *
@@ -39,13 +41,18 @@ export class AsyncDicomReader {
         });
     }
 
+    /** Sentinel returned when stream is Part 10 but has no preamble (starts with meta). */
+    static PART10_NO_PREAMBLE = Symbol("PART10_NO_PREAMBLE");
+
     /**
      * Reads the preamble and checks for the DICM marker.
      * Returns true if found/read, leaving the stream past the
-     * marker, or false, having not found the marker.
+     * marker; PART10_NO_PREAMBLE if the stream starts with group 0002 (meta);
+     * or false for a raw dataset (no meta).
      *
-     * If no preamble is found, attempts to detect raw LEI/LEE encoding
-     * by examining the first tag structure.
+     * If no preamble is found, checks the first tag: when it is (0002,xxxx)
+     * the stream is treated as Part 10 without preamble; otherwise raw dataset
+     * encoding is detected from the first tag structure.
      */
     async readPreamble() {
         const { stream } = this;
@@ -54,7 +61,14 @@ export class AsyncDicomReader {
         stream.increment(128);
         if (stream.readAsciiString(4) !== "DICM") {
             stream.reset();
-            // No preamble found - try to detect raw dataset encoding
+            await stream.ensureAvailable(4);
+            stream.setEndian(true); // Part 10 meta and tag are little-endian
+            const group = stream.readUint16();
+            stream.readUint16(); // element
+            stream.reset();
+            if (group === 0x0002) {
+                return AsyncDicomReader.PART10_NO_PREAMBLE;
+            }
             await this.detectRawEncoding();
             return false;
         }
@@ -81,12 +95,10 @@ export class AsyncDicomReader {
         const group = stream.readUint16();
         stream.readUint16();
 
-        // Verify this looks like a DICOM file - first tag should be in group 0008
-        if (group !== 0x0008) {
+        // Part 10 meta (group 0002) is handled in readPreamble; raw dataset can start with 0008, 0028, etc.
+        if (group === 0x0002) {
             throw new Error(
-                `Invalid DICOM file: expected first tag group to be 0x0008, found 0x${group
-                    .toString(16)
-                    .padStart(4, "0")}`
+                "Invalid DICOM file: stream starts with meta (0002,xxxx) but was not handled as Part 10"
             );
         }
 
@@ -139,6 +151,26 @@ export class AsyncDicomReader {
 
     async readFile(options = undefined) {
         const hasPreamble = await this.readPreamble();
+        if (hasPreamble === AsyncDicomReader.PART10_NO_PREAMBLE) {
+            // Part 10 without preamble: stream starts at (0002,0000) or rest of meta
+            // When (0002,0000) is stripped, meta can start with other 0002 tags.
+            // Allow reading meta without group-length in this mode.
+            this.meta = await this.readMeta({ ...options, ignoreErrors: true });
+            const listener = options?.listener || new DicomMetadataListener();
+
+            if (listener.information) {
+                const { information } = listener;
+                information.transferSyntaxUid = this.syntax;
+                information.sopInstanceUid =
+                    this.meta?.[TagHex.MediaStoreSOPInstanceUID]?.Value[0];
+            }
+
+            this.dict ||= {};
+            listener.startObject(this.dict);
+            this.dict = await this.read(listener, options);
+
+            return this;
+        }
         if (!hasPreamble) {
             // Handle raw dataset (no Part 10 preamble)
             // Encoding should already be detected in readPreamble()
@@ -230,6 +262,7 @@ export class AsyncDicomReader {
         const { stream } = this;
         await stream.ensureAvailable();
         while (stream.offset < untilOffset && stream.isAvailable(1, false)) {
+            readLog.debug("read loop", stream.offset, untilOffset);
             // Consume before reading the tag so that data before the
             // current tag can be cleared.
             stream.consume();
@@ -276,6 +309,7 @@ export class AsyncDicomReader {
                 ? Number.MAX_SAFE_INTEGER
                 : stream.offset + length;
         while (stream.offset < endOffset && (await stream.ensureAvailable())) {
+            readLog.debug("readSequence loop", stream.offset, endOffset);
             const tagInfo = this.readTagHeader(syntax, options);
             const { tag } = tagInfo;
             if (tag === TagHex.Item) {
@@ -311,8 +345,14 @@ export class AsyncDicomReader {
         const { stream, listener } = this;
         await listener.awaitDrain?.();
         const { maxFragmentSize } = this;
+        if (typeof maxFragmentSize !== "number" || maxFragmentSize <= 0) {
+            throw new Error(
+                `maxFragmentSize must be a positive number, got ${maxFragmentSize}`
+            );
+        }
         let offset = 0;
         while (offset < length) {
+            readLog.trace("_emitSplitValues loop", offset, length);
             const chunkSize = Math.min(maxFragmentSize, length - offset);
             await stream.ensureAvailable(chunkSize);
             const buffer = stream.readArrayBuffer(chunkSize);
@@ -355,6 +395,7 @@ export class AsyncDicomReader {
         let lastFrame = null;
 
         while (true) {
+            readLog.debug("readCompressed frame loop", frameNumber);
             stream.consume();
             await stream.ensureAvailable();
             const frameTag = this.readTagHeader();
@@ -398,6 +439,7 @@ export class AsyncDicomReader {
         const numOfFrames = tagInfo.length / 4;
         await this.stream.ensureAvailable(tagInfo.length);
         for (let i = 0; i < numOfFrames; i++) {
+            readLog.trace("readOffsets loop", i, numOfFrames);
             offsets.push(this.stream.readUint32());
         }
         return offsets;
@@ -413,7 +455,7 @@ export class AsyncDicomReader {
         const numberOfFrames = parseInt(
             listener.information?.numberOfFrames || 1
         );
-        let frameLength = length;
+        const frameLength = Math.floor(length / numberOfFrames);
         if (numberOfFrames > 1) {
             const rows = listener.information?.rows;
             const cols = listener.information?.columns;
@@ -430,10 +472,15 @@ export class AsyncDicomReader {
                     `Odd frame length must be single bit: ${rows},${cols} ${samplesPerPixel} ${bitsAllocated}`
                 );
             }
-            frameLength = bitsPerFrame / 8;
+            if (length % numberOfFrames !== 0) {
+                throw new Error(
+                    `Invalid frame length: ${length} for ${numberOfFrames} frames`
+                );
+            }
         }
 
         for (let frameNumber = 0; frameNumber < numberOfFrames; frameNumber++) {
+            readLog.trace("readUncompressed loop", frameNumber, numberOfFrames);
             listener.startObject([]);
             await this._emitSplitValues(frameLength);
             listener.pop();
@@ -497,6 +544,11 @@ export class AsyncDicomReader {
 
         // Extract each frame, unpacking bits so each frame starts at byte 0
         for (let frameNumber = 0; frameNumber < numberOfFrames; frameNumber++) {
+            readLog.trace(
+                "readUncompressedBitFrame loop",
+                frameNumber,
+                numberOfFrames
+            );
             listener.startObject([]);
 
             // Calculate the bit offset for this frame in the packed data
@@ -651,6 +703,7 @@ export class AsyncDicomReader {
             const times = length / vr.maxLength;
             let i = 0;
             while (i++ < times) {
+                readLog.trace("readSingle multi-value loop", i, times);
                 const { value } = vr.read(stream, vr.maxLength, syntax);
                 values.push(value);
             }

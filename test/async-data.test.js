@@ -8,6 +8,13 @@ import {
 import { getTestDataset } from "./testUtils.js";
 import { videoTestMeta, videoTestDict } from "./video-test-dict.js";
 import { oddFrameBitData } from "./odd-frame-bit-data.js";
+import {
+    createSampleDicom,
+    stripPreamble,
+    stripPreambleAndMetaLength,
+    stripUntilDataset,
+    defaultImage
+} from "./helper/sampleDicomPart10.js";
 
 const { DicomDict, DicomMessage } = dcmjs.data;
 const { AsyncDicomReader } = dcmjs.async;
@@ -571,5 +578,267 @@ describe("AsyncDicomReader", () => {
         const [sq0] = privateSq.Value;
         const obj1002 = sq0["7FE11002"];
         expect(obj1002.Value[0]).toBe("2D+Trace");
+    });
+
+    describe("sample DICOM Part 10 helper and AsyncDicomReader", () => {
+        test("default 3-frame 64x32 8-bit image reads back correctly", async () => {
+            const buffer = createSampleDicom();
+            const reader = new AsyncDicomReader();
+            const listener = new DicomMetadataListener();
+
+            reader.stream.addBuffer(buffer);
+            reader.stream.setComplete();
+
+            const { meta, dict } = await reader.readFile({ listener });
+
+            expect(meta[TagHex.TransferSyntaxUID].Value[0]).toBe(
+                "1.2.840.10008.1.2.1"
+            );
+            expect(dict[TagHex.Rows].Value[0]).toBe(defaultImage.rows);
+            expect(dict[TagHex.Columns].Value[0]).toBe(defaultImage.columns);
+            expect(Number(dict[TagHex.NumberOfFrames].Value[0])).toBe(
+                defaultImage.numberOfFrames
+            );
+            const frames = dict[TagHex.PixelData].Value;
+            expect(Array.isArray(frames)).toBe(true);
+            expect(frames.length).toBe(defaultImage.numberOfFrames);
+            const bytesPerFrame = defaultImage.frameBytes;
+            for (let i = 0; i < frames.length; i++) {
+                expect(Array.isArray(frames[i])).toBe(true);
+                let frameBytes = 0;
+                for (const chunk of frames[i]) {
+                    frameBytes += chunk.byteLength;
+                }
+                expect(frameBytes).toBe(bytesPerFrame);
+            }
+        });
+
+        test("odd bit length pixel data uncompressed uses readUncompressedBitFrame", async () => {
+            const packedData = oddFrameBitData.getPackedData();
+            const buffer = createSampleDicom(
+                {
+                    dict: {
+                        [TagHex.Rows]: {
+                            vr: "US",
+                            Value: [oddFrameBitData.rows]
+                        },
+                        [TagHex.Columns]: {
+                            vr: "US",
+                            Value: [oddFrameBitData.columns]
+                        },
+                        [TagHex.SamplesPerPixel]: {
+                            vr: "US",
+                            Value: [oddFrameBitData.samplesPerPixel]
+                        },
+                        [TagHex.BitsAllocated]: {
+                            vr: "US",
+                            Value: [oddFrameBitData.bitsAllocated]
+                        },
+                        [TagHex.NumberOfFrames]: {
+                            vr: "IS",
+                            Value: [String(oddFrameBitData.numberOfFrames)]
+                        }
+                    }
+                },
+                {
+                    pixelData: [packedData],
+                    pixelDataLength: oddFrameBitData.totalBytes
+                }
+            );
+
+            const reader = new AsyncDicomReader();
+            const listener = new DicomMetadataListener();
+
+            reader.stream.addBuffer(buffer);
+            reader.stream.setComplete();
+
+            const { dict } = await reader.readFile({ listener });
+
+            expect(dict[TagHex.Rows].Value[0]).toBe(oddFrameBitData.rows);
+            expect(dict[TagHex.Columns].Value[0]).toBe(oddFrameBitData.columns);
+            expect(dict[TagHex.BitsAllocated].Value[0]).toBe(
+                oddFrameBitData.bitsAllocated
+            );
+            expect(Number(dict[TagHex.NumberOfFrames].Value[0])).toBe(
+                oddFrameBitData.numberOfFrames
+            );
+
+            const frames = dict[TagHex.PixelData].Value;
+            expect(Array.isArray(frames)).toBe(true);
+            expect(frames.length).toBe(oddFrameBitData.numberOfFrames);
+
+            const bytesPerFrame = Math.ceil(oddFrameBitData.bitsPerFrame / 8);
+            const expectedFrames = oddFrameBitData.getExpectedFrames();
+            for (let i = 0; i < frames.length; i++) {
+                expect(Array.isArray(frames[i])).toBe(true);
+                let frameBytes = 0;
+                const frameChunks = frames[i];
+                for (const chunk of frameChunks) {
+                    frameBytes += chunk.byteLength;
+                }
+                expect(frameBytes).toBe(bytesPerFrame);
+                const frameData = new Uint8Array(frameChunks[0]);
+                expect(frameData[0]).toBe(expectedFrames[i][0]);
+            }
+        });
+
+        test("strip helpers remove preamble, meta length, or up to dataset", () => {
+            const buffer = createSampleDicom();
+            const u8 =
+                buffer instanceof ArrayBuffer
+                    ? new Uint8Array(buffer)
+                    : new Uint8Array(
+                          buffer.buffer,
+                          buffer.byteOffset,
+                          buffer.byteLength
+                      );
+            const len = u8.length;
+
+            const afterPreamble = stripPreamble(buffer);
+            expect(afterPreamble.byteLength).toBe(len - 132);
+            expect(new Uint8Array(afterPreamble)[0]).toBe(0x02); // group 0002
+            expect(new Uint8Array(afterPreamble)[1]).toBe(0x00);
+
+            const afterMetaLength = stripPreambleAndMetaLength(buffer);
+            expect(afterMetaLength.byteLength).toBe(len - 144); // (0002,0000) is 12 bytes
+
+            const datasetOnly = stripUntilDataset(buffer);
+            expect(datasetOnly.byteLength).toBeLessThanOrEqual(len);
+            expect(datasetOnly.byteLength).toBeGreaterThanOrEqual(0);
+            if (datasetOnly.byteLength > 0) {
+                const dsU8 = new Uint8Array(datasetOnly);
+                expect(dsU8[0]).toBeDefined();
+                expect(dsU8[1]).toBeDefined();
+            }
+        });
+
+        test("uncompressed pixel data length not multiple of number of frames throws", async () => {
+            const bytesPerFrame = 10;
+            const numFrames = 3;
+            const invalidTotalLength = bytesPerFrame * numFrames + 1; // 31 bytes
+            const pixelData = new ArrayBuffer(invalidTotalLength);
+
+            const buffer = createSampleDicom(
+                {
+                    dict: {
+                        [TagHex.Rows]: { vr: "US", Value: [5] },
+                        [TagHex.Columns]: { vr: "US", Value: [2] },
+                        [TagHex.NumberOfFrames]: {
+                            vr: "IS",
+                            Value: [String(numFrames)]
+                        }
+                    }
+                },
+                {
+                    pixelData: [pixelData],
+                    pixelDataLength: invalidTotalLength
+                }
+            );
+
+            const reader = new AsyncDicomReader();
+            const listener = new DicomMetadataListener();
+
+            reader.stream.addBuffer(buffer);
+            reader.stream.setComplete();
+
+            await expect(reader.readFile({ listener })).rejects.toThrow(
+                /Invalid frame length/
+            );
+        });
+
+        describe("AsyncDicomReader reads stripped Part 10", () => {
+            /** Copy to a plain ArrayBuffer so addBuffer doesn't use a view's underlying buffer. */
+            function toArrayBuffer(buf) {
+                const u8 =
+                    buf instanceof ArrayBuffer
+                        ? new Uint8Array(buf)
+                        : new Uint8Array(
+                              buf.buffer,
+                              buf.byteOffset,
+                              buf.byteLength
+                          );
+                const out = new ArrayBuffer(u8.length);
+                new Uint8Array(out).set(u8);
+                return out;
+            }
+
+            /** One contiguous full Part 10 buffer for all strip tests. */
+            let fullCopy;
+            beforeAll(() => {
+                fullCopy = toArrayBuffer(createSampleDicom());
+            });
+
+            function expectDefaultImageRead(meta, dict) {
+                expect(dict[TagHex.Rows].Value[0]).toBe(defaultImage.rows);
+                expect(dict[TagHex.Columns].Value[0]).toBe(
+                    defaultImage.columns
+                );
+                expect(Number(dict[TagHex.NumberOfFrames].Value[0])).toBe(
+                    defaultImage.numberOfFrames
+                );
+                const frames = dict[TagHex.PixelData].Value;
+                expect(Array.isArray(frames)).toBe(true);
+                expect(frames.length).toBe(defaultImage.numberOfFrames);
+                for (let i = 0; i < frames.length; i++) {
+                    let frameBytes = 0;
+                    for (const chunk of frames[i]) {
+                        frameBytes += chunk.byteLength;
+                    }
+                    expect(frameBytes).toBe(defaultImage.frameBytes);
+                }
+            }
+
+            test("reads file with preamble stripped", async () => {
+                const buffer = toArrayBuffer(stripPreamble(fullCopy));
+
+                const reader = new AsyncDicomReader();
+                const listener = new DicomMetadataListener();
+                reader.stream.addBuffer(buffer);
+                reader.stream.setComplete();
+
+                const { meta, dict } = await reader.readFile({ listener });
+
+                expect(meta[TagHex.TransferSyntaxUID].Value[0]).toBe(
+                    "1.2.840.10008.1.2.1"
+                );
+                expectDefaultImageRead(meta, dict);
+            });
+
+            test("reads file with preamble + (0002,0000) length header stripped", async () => {
+                const buffer = toArrayBuffer(
+                    stripPreambleAndMetaLength(fullCopy)
+                );
+
+                const reader = new AsyncDicomReader();
+                const listener = new DicomMetadataListener();
+                reader.stream.addBuffer(buffer);
+                reader.stream.setComplete();
+
+                const { meta, dict } = await reader.readFile({ listener });
+
+                expect(meta[TagHex.TransferSyntaxUID].Value[0]).toBe(
+                    "1.2.840.10008.1.2.1"
+                );
+                expectDefaultImageRead(meta, dict);
+            });
+
+            test("reads file with entire meta section stripped", async () => {
+                const stripped = stripUntilDataset(fullCopy);
+                expect(stripped.byteLength).toBeGreaterThan(0);
+
+                const reader = new AsyncDicomReader();
+                const listener = new DicomMetadataListener();
+                reader.stream.addBuffer(stripped);
+                reader.stream.setComplete();
+
+                const { meta, dict } = await reader.readFile({ listener });
+
+                expect(meta).toEqual({});
+                expect(listener.information.transferSyntaxUid).toBe(
+                    "1.2.840.10008.1.2.1"
+                );
+                expectDefaultImageRead(meta, dict);
+            });
+        });
     });
 });

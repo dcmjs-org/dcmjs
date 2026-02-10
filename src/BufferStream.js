@@ -210,6 +210,15 @@ export class BufferStream {
     }
 
     readUint8Array(length) {
+        if (this.offset + length > this.endOffset) {
+            throw new Error(
+                `Stream has insufficient data: requested ${length} bytes at offset ${
+                    this.offset
+                }, but only ${
+                    this.endOffset - this.offset
+                } bytes available (endOffset ${this.endOffset})`
+            );
+        }
         const arr = new Uint8Array(
             this.view.slice(this.offset, this.offset + length)
         );
