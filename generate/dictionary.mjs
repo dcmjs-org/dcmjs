@@ -56026,3 +56026,4 @@ const dictionary = {
 };
 
 export default dictionary;
+export { dictionary };

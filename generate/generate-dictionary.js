@@ -8,9 +8,9 @@ const https = require('https');
 const xml2js = require('xml2js');
 
 require('@babel/register');
-const DICTIONARY_PATH = './src/dictionary.js';
+const DICTIONARY_PATH = '../dcmjs/generate/dictionary.js';
 const dictionary = require(DICTIONARY_PATH).default;
-const { Tag } = require('./src/Tag');
+const { Tag } = require('../src/Tag');
 
 async function main() {
   const tags = [];
