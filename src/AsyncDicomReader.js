@@ -314,9 +314,20 @@ export class AsyncDicomReader {
             const { tag } = tagInfo;
             if (tag === TagHex.Item) {
                 listener.startObject();
+                // For defined-length items, use the item's own end offset
+                // so read() stops at the item boundary and returns control
+                // to readSequence for the next item. Without this, all
+                // items in a defined-length sequence get merged into the
+                // first item because read() treats subsequent Item tags
+                // as instructions and skips them.
+                const itemLength = tagInfo.length;
+                const itemUntilOffset =
+                    itemLength === UNDEFINED_LENGTH_FIX
+                        ? endOffset
+                        : Math.min(stream.offset + itemLength, endOffset);
                 await this.read(listener, {
                     ...options,
-                    untilOffset: endOffset
+                    untilOffset: itemUntilOffset
                 });
             } else if (tag === TagHex.SequenceDelimitationEnd) {
                 // Sequence of undefined lengths end in sequence delimitation item
