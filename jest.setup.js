@@ -23,10 +23,15 @@ const createMockLogger = () => {
 
 const mockLog = createMockLogger();
 
+// Cache named loggers so repeated getLogger() calls return the same instance
+const namedLoggers = {};
 mockLog.getLogger = jest.fn(name => {
-    const namedLogger = createMockLogger();
-    namedLogger.name = name;
-    return namedLogger;
+    if (!namedLoggers[name]) {
+        const namedLogger = createMockLogger();
+        namedLogger.name = name;
+        namedLoggers[name] = namedLogger;
+    }
+    return namedLoggers[name];
 });
 
 jest.mock("loglevel", () => mockLog);
