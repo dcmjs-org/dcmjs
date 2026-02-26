@@ -237,7 +237,7 @@ export class DicomMetaDictionary {
                         if (dataset._vrMap && dataset._vrMap[naturalName]) {
                             dataItem.vr = dataset._vrMap[naturalName];
                         } else {
-                            log.error(
+                            log.debug(
                                 "No value representation given for",
                                 naturalName
                             );
@@ -294,7 +294,7 @@ export class DicomMetaDictionary {
             } else {
                 const validMetaNames = ["_vrMap", "_meta"];
                 if (validMetaNames.indexOf(name) == -1) {
-                    log.warn(
+                    log.debug(
                         "Unknown name in dataset",
                         name,
                         ":",

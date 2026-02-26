@@ -16,9 +16,9 @@ import { Tag } from "./Tag";
 import { DicomMessage, singleVRs } from "./DicomMessage";
 import { DicomMetaDictionary } from "./DicomMetaDictionary";
 import { DicomMetadataListener } from "./utilities/DicomMetadataListener.js";
-import { log } from "./log.js";
+import { dcmjsLog } from "./log.js";
 
-const readLog = log.getLogger("AsyncDicomReader");
+const readLog = dcmjsLog.getLogger("AsyncDicomReader.dcmjs");
 
 /**
  * This is an asynchronous binary DICOM reader.
@@ -741,7 +741,7 @@ export class AsyncDicomReader {
                     coding = encodingMapping[coding];
                     this.stream.setDecoder(new TextDecoder(coding));
                 } else if (options?.ignoreErrors) {
-                    log.warn(
+                    readLog.warn(
                         `Unsupported character set: ${coding}, using default character set`
                     );
                 } else {

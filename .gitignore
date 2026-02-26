@@ -9,3 +9,4 @@ yarn-error.log
 .DS_Store
 build
 *.code-workspace
+.claude
