@@ -1,12 +1,17 @@
 import { DicomMetaDictionary } from "../DicomMetaDictionary.js";
 import DerivedPixels from "./DerivedPixels";
 import DerivedDataset from "./DerivedDataset";
-import { Normalizer } from "../normalizers.js";
 import { BitArray } from "../bitArray.js";
+
+let Normalizer;
 
 export default class Segmentation extends DerivedPixels {
     constructor(datasets, options = { includeSliceSpacing: true }) {
         super(datasets, options);
+    }
+
+    static setNormalizer(normalizer) {
+        Normalizer = normalizer;
     }
 
     derive() {

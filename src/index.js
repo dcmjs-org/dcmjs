@@ -6,11 +6,17 @@ import { WriteBufferStream } from "./BufferStream.js";
 import { DicomDict } from "./DicomDict.js";
 import { DicomMessage } from "./DicomMessage.js";
 import { DicomMetaDictionary } from "./DicomMetaDictionary.js";
+import { registerPrivatesModule } from "./dictionary.fast.js";
+import * as privateData from "./dictionary.private.data.js";
 import { DICOMWEB } from "./dicomweb.js";
+
+registerPrivatesModule(privateData);
 import { Tag } from "./Tag.js";
 import { ValueRepresentation } from "./ValueRepresentation.js";
 import { Colors } from "./colors.js";
 import log from "./log.js";
+
+import { AsyncDicomReader } from "./AsyncDicomReader.js";
 
 import {
     datasetToDict,
@@ -41,10 +47,11 @@ import { DSRNormalizer } from "./normalizers.js";
 import adapters from "./adapters/index.js";
 import utilities from "./utilities/index.js";
 import sr from "./sr/index.js";
+import * as constants from "./constants/dicom.js";
 
 import { cleanTags, getTagsNameToEmpty } from "./anonymizer.js";
 
-let data = {
+const data = {
     BitArray,
     ReadBufferStream,
     DeflatedReadBufferStream,
@@ -60,7 +67,11 @@ let data = {
     datasetToBlob
 };
 
-let derivations = {
+const async = {
+    AsyncDicomReader
+};
+
+const derivations = {
     DerivedDataset,
     DerivedPixels,
     DerivedImage,
@@ -69,7 +80,7 @@ let derivations = {
     ParametricMap
 };
 
-let normalizers = {
+const normalizers = {
     Normalizer,
     ImageNormalizer,
     MRImageNormalizer,
@@ -81,7 +92,7 @@ let normalizers = {
     DSRNormalizer
 };
 
-let anonymizer = {
+const anonymizer = {
     cleanTags,
     getTagsNameToEmpty
 };
@@ -89,13 +100,15 @@ let anonymizer = {
 const dcmjs = {
     DICOMWEB,
     adapters,
+    constants,
     data,
     derivations,
     normalizers,
     sr,
     utilities,
     log,
-    anonymizer
+    anonymizer,
+    async
 };
 
 DicomDict.setDicomMessageClass(DicomMessage);
@@ -106,13 +119,15 @@ Tag.setDicomMessageClass(DicomMessage);
 export {
     DICOMWEB,
     adapters,
+    anonymizer,
+    async,
+    constants,
     data,
     derivations,
     normalizers,
     sr,
     utilities,
-    log,
-    anonymizer
+    log
 };
 
 export { dcmjs as default };

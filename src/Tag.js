@@ -1,7 +1,10 @@
 import { WriteBufferStream } from "./BufferStream.js";
 import {
     EXPLICIT_LITTLE_ENDIAN,
-    IMPLICIT_LITTLE_ENDIAN
+    IMPLICIT_LITTLE_ENDIAN,
+    SEQUENCE_DELIMITER_TAG,
+    SEQUENCE_ITEM_TAG,
+    UNDEFINED_LENGTH
 } from "./constants/dicom";
 import { ValueRepresentation } from "./ValueRepresentation.js";
 
@@ -38,8 +41,20 @@ class Tag {
         );
     }
 
+    get cleanString() {
+        this._cleanString ||= this.toCleanString();
+        return this._cleanString;
+    }
+
     is(t) {
         return this.value == t;
+    }
+
+    /**
+     * @returns true if the tag is an Item or Delimiter instruction
+     */
+    isInstruction() {
+        return this.group() === 0xfffe;
     }
 
     group() {
@@ -58,6 +73,16 @@ class Tag {
         const group = this.group();
         const element = this.element();
         return group % 2 === 1 && element < 0x100 && element > 0x00;
+    }
+
+    isMetaInformation() {
+        return this.group() < 0x0008;
+    }
+
+    isPrivateValue() {
+        const group = this.group();
+        const element = this.element();
+        return group % 2 === 1 && element > 0x100;
     }
 
     static fromString(str) {
@@ -82,16 +107,39 @@ class Tag {
         return Tag.fromNumbers(group, element);
     }
 
+    /**
+     * Reads the stream looking for the sequence item tags, returning them
+     * as a buffer, and returning null on sequence delimiter tag.
+     */
+    static getNextSequenceItemData(stream) {
+        const nextTag = this.readTag(stream);
+        if (nextTag.is(SEQUENCE_ITEM_TAG)) {
+            const itemLength = stream.readUint32();
+            const buffer = stream.getBuffer(
+                stream.offset,
+                stream.offset + itemLength
+            );
+            stream.increment(itemLength);
+            return buffer;
+        } else if (nextTag.is(SEQUENCE_DELIMITER_TAG)) {
+            // Read SequenceDelimiterItem value for the SequenceDelimiterTag
+            if (stream.readUint32() !== 0) {
+                throw Error("SequenceDelimiterItem tag value was not zero");
+            }
+            return null;
+        }
+
+        throw Error("Invalid tag in sequence");
+    }
+
     write(stream, vrType, values, syntax, writeOptions) {
         const vr = ValueRepresentation.createByTypeString(vrType);
         const useSyntax = DicomMessage._normalizeSyntax(syntax);
 
-        const implicit = useSyntax == IMPLICIT_LITTLE_ENDIAN ? true : false;
+        const implicit = useSyntax === IMPLICIT_LITTLE_ENDIAN;
         const isLittleEndian =
-            useSyntax == IMPLICIT_LITTLE_ENDIAN ||
-            useSyntax == EXPLICIT_LITTLE_ENDIAN
-                ? true
-                : false;
+            useSyntax === IMPLICIT_LITTLE_ENDIAN ||
+            useSyntax === EXPLICIT_LITTLE_ENDIAN;
         const isEncapsulated =
             this.isPixelDataTag() && DicomMessage.isEncapsulated(syntax);
 
@@ -125,7 +173,7 @@ class Tag {
         }
 
         if (vrType == "SQ") {
-            valueLength = 0xffffffff;
+            valueLength = UNDEFINED_LENGTH;
         }
         var written = tagStream.size + 4;
 
@@ -139,7 +187,7 @@ class Tag {
             const isBig16Length =
                 !vr.isLength32() &&
                 valueLength >= 0x10000 &&
-                valueLength !== 0xffffffff;
+                valueLength !== UNDEFINED_LENGTH;
             if (vr.isLength32() || isBig16Length) {
                 // Write as vr UN for big values
                 stream.writeAsciiString(isBig16Length ? "UN" : vr.type);
@@ -160,5 +208,7 @@ class Tag {
         return written;
     }
 }
+
+ValueRepresentation.setTagClass(Tag);
 
 export { Tag };

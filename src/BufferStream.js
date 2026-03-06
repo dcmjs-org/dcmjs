@@ -1,20 +1,8 @@
 import pako from "pako";
 import SplitDataView from "./SplitDataView";
+import { toFloat } from "./utilities/toFloat";
+import { toInt } from "./utilities/toInt";
 import { DicomMetaDictionary } from "./DicomMetaDictionary";
-
-function toInt(val) {
-    if (isNaN(val)) {
-        throw new Error("Not a number: " + val);
-    } else if (typeof val == "string") {
-        return parseInt(val);
-    } else return val;
-}
-
-function toFloat(val) {
-    if (typeof val == "string") {
-        return parseFloat(val);
-    } else return val;
-}
 
 /**
  * Facilitates the conversion of binary buffers from a DICOM encoding scheme to
@@ -90,18 +78,69 @@ class DicomBufferCODEC {
     }
 }
 
-class BufferStream {
+export class BufferStream {
     offset = 0;
     startOffset = 0;
     isLittleEndian = false;
     size = 0;
     view = new SplitDataView();
+    /** The available listeners are those waiting for a query response */
+    availableListeners = [];
+
+    /** Indicates if this buffer stream is complete/has finished being created */
+    isComplete = false;
+
+    /** A flag to set to indicate to clear buffers as they get consumed */
+    clearBuffers = false;
 
     codec = new DicomBufferCODEC();
 
     constructor(options = null) {
         this.isLittleEndian = options?.littleEndian || this.isLittleEndian;
         this.view.defaultSize = options?.defaultSize ?? this.view.defaultSize;
+        this.clearBuffers = options.clearBuffers || false;
+    }
+
+    /**
+     * Mark this stream as having finished being written or read from
+     */
+    setComplete(value = true) {
+        this.isComplete = value;
+        this.notifyAvailableListeners();
+    }
+
+    /**
+     * Indicates if the value length is currently available in the already
+     * read/defined portion of the stream.
+     *
+     * By default this will test if the buffer is complete as well,
+     * but this can be changed with orComplete=false.
+     */
+    isAvailable(length, orComplete = true) {
+        return (
+            this.offset + length <= this.endOffset ||
+            (orComplete && this.isComplete)
+        );
+    }
+
+    /**
+     * Ensures that the specified number of bytes are available OR that it is
+     * EOF.  By default waits for at least 1k to be available.
+     */
+    ensureAvailable(bytes = 1024) {
+        if (!this.isAvailable(bytes)) {
+            return new Promise(resolve => {
+                const recheckAvailable = () => {
+                    if (this.isAvailable(bytes)) {
+                        resolve(true);
+                        return;
+                    }
+                    this.availableListeners.push(recheckAvailable);
+                };
+                recheckAvailable();
+            });
+        }
+        return true;
     }
 
     setDecoder(dicomEncoding, ignoreErrors) {
@@ -116,6 +155,11 @@ class BufferStream {
         return this.view.slice(start, end);
     }
 
+    /**
+     * @deprecated Gets the entire buffer at once.  Suggest using the
+     *     view instead, and writing an iterator over the parts to finish
+     *     writing it.
+     */
     getBuffer(start = 0, end = this.size) {
         if (this.noCopy) {
             return new Uint8Array(this.slice(start, end));
@@ -245,11 +289,24 @@ class BufferStream {
     }
 
     readUint8Array(length) {
+        if (this.offset + length > this.endOffset) {
+            throw new Error(
+                `Stream has insufficient data: requested ${length} bytes at offset ${
+                    this.offset
+                }, but only ${
+                    this.endOffset - this.offset
+                } bytes available (endOffset ${this.endOffset})`
+            );
+        }
         const arr = new Uint8Array(
             this.view.slice(this.offset, this.offset + length)
         );
         this.increment(length);
         return arr;
+    }
+
+    readArrayBuffer(length) {
+        return this.readUint8Array(length).buffer;
     }
 
     readUint16Array(length) {
@@ -351,6 +408,7 @@ class BufferStream {
         );
         this.offset += stream.size;
         this.size = this.offset;
+        this.endOffset = this.size;
         return this.view.availableSize;
     }
 
@@ -363,6 +421,20 @@ class BufferStream {
     }
 
     /**
+     * Reads from an async stream delivering to addBuffer.
+     */
+    async fromAsyncStream(stream) {
+        for await (const chunk of stream) {
+            const ab = chunk.buffer.slice(
+                chunk.byteOffset,
+                chunk.byteOffset + chunk.byteLength
+            );
+            this.addBuffer(ab);
+        }
+        this.setComplete();
+    }
+
+    /**
      * Adds the buffer to the end of the current buffers list,
      * updating the size etc.
      *
@@ -370,11 +442,45 @@ class BufferStream {
      * @param {*} options.start for the start of the new buffer to use
      * @param {*} options.end for the end of the buffer to use
      * @param {*} options.transfer to transfer the buffer to be owned
+     *     Transfer will default true if the entire buffer is being added.
+     *     It should be set explicitly to false to NOT transfer.
      */
     addBuffer(buffer, options = null) {
+        if (!buffer) {
+            // Silently ignore null buffers.
+            return;
+        }
         this.view.addBuffer(buffer, options);
         this.size = this.view.size;
+        this.endOffset = this.size;
+        this.notifyAvailableListeners();
         return this.size;
+    }
+
+    notifyAvailableListeners() {
+        const existingListeners = [...this.availableListeners];
+        this.availableListeners.splice(0, this.availableListeners.length);
+        existingListeners.forEach(listener => listener());
+    }
+
+    /**
+     * Consumes the data up to the given offset.
+     * This will clear the references to the data buffers, and will
+     * cause resets etc to fail.
+     * The default offset is the current position, so everything already read.
+     */
+    consume(offset = this.offset) {
+        if (!this.clearBuffers) {
+            return;
+        }
+        this.view.consume(offset);
+    }
+
+    /**
+     * Returns true if the stream has data in the given range.
+     */
+    hasData(start, end = start + 1) {
+        return this.view.hasData(start, end);
     }
 
     more(length) {
@@ -392,6 +498,7 @@ class BufferStream {
             this.slice(this.offset, this.offset + length)
         );
         this.increment(length);
+        newBuf.setComplete();
 
         return newBuf;
     }
@@ -402,15 +509,27 @@ class BufferStream {
     }
 
     end() {
-        return this.offset >= this.view.byteLength;
+        return this.isComplete && this.offset >= this.end;
     }
 
     toEnd() {
         this.offset = this.view.byteLength;
     }
+
+    /**
+     * Reports on the amount of memory held by the buffers in the view.
+     * @returns {Object} An object containing:
+     *   - bufferCount: Number of buffers still held (not null)
+     *   - totalSize: Total size of all buffers in bytes
+     *   - consumeOffset: The current consume offset
+     *   - buffersBeforeOffset: Number of buffers before the consume offset
+     */
+    getBufferMemoryInfo() {
+        return this.view.getBufferMemoryInfo(this.offset);
+    }
 }
 
-class ReadBufferStream extends BufferStream {
+export class ReadBufferStream extends BufferStream {
     constructor(
         buffer,
         littleEndian,
@@ -420,13 +539,15 @@ class ReadBufferStream extends BufferStream {
             noCopy: false
         }
     ) {
-        super({ littleEndian });
+        super({ ...options, littleEndian });
         this.noCopy = options.noCopy;
 
         if (buffer instanceof BufferStream) {
             this.view.from(buffer.view, options);
+            this.isComplete = true;
         } else if (buffer) {
             this.view.addBuffer(buffer);
+            this.isComplete = true;
         }
         this.offset = options.start ?? buffer?.offset ?? 0;
         this.size = options.stop || buffer?.size || buffer?.byteLength || 0;
@@ -441,7 +562,7 @@ class ReadBufferStream extends BufferStream {
     }
 
     end() {
-        return this.offset >= this.endOffset;
+        return this.isComplete && this.offset >= this.endOffset;
     }
 
     toEnd() {
@@ -507,7 +628,7 @@ class ReadBufferStream extends BufferStream {
     }
 }
 
-class DeflatedReadBufferStream extends ReadBufferStream {
+export class DeflatedReadBufferStream extends ReadBufferStream {
     constructor(stream, options) {
         const inflatedBuffer = pako.inflateRaw(
             stream.getBuffer(stream.offset, stream.size)
@@ -516,7 +637,7 @@ class DeflatedReadBufferStream extends ReadBufferStream {
     }
 }
 
-class WriteBufferStream extends BufferStream {
+export class WriteBufferStream extends BufferStream {
     constructor(defaultSize, littleEndian) {
         super({ defaultSize, littleEndian });
         this.size = 0;

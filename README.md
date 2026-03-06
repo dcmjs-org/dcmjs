@@ -1,6 +1,6 @@
 <div align="center">
   <h1>dcmjs</h1>
-  <p>JavaScript implementation of DICOM manipulation. This code is an outgrowth of several efforts to implement web applications for medical imaging.</p>
+  <p>JavaScript implementation of DICOM manipulation. This code is an outgrowth of several efforts to implement web applications for medical imaging.  the package should also work fine on node.</p>
 </div>
 
 <hr />
@@ -106,6 +106,56 @@ git-cz --non-interactive --type=fix --subject="commit message"
 
 More info at [git-cz](https://www.npmjs.com/package/git-cz).
 
+## DICOM Dictionary
+
+The dcmjs library includes DICOM data dictionaries that map DICOM tags to their metadata (VR, VM, etc.). To optimize load performance, the library uses a pre-compiled "fast dictionary" format.
+
+### Dictionary Files
+
+- **`src/dictionary.fast.js`** - Pre-compiled fast dictionary (used at runtime)
+- **`generate/dictionary.mjs`** - Source dictionary generator
+- **`src/privateDictionary.js`** - Private tag definitions
+
+### Updating the Dictionary
+
+When DICOM standards are updated or new tags need to be added:
+
+1. **Generate the dictionary from DICOM standards** (downloads latest PS3.6 and PS3.7 XML from dicom.nema.org):
+   ```bash
+   npm run generate-dictionary
+   ```
+   This creates/updates `generate/dictionary.js` with the latest tag definitions.
+
+2. **Pack the dictionary into optimized format**:
+   ```bash
+   npm run pack-dictionary
+   ```
+   This generates the optimized `src/dictionary.fast.js` used at runtime.
+
+### Why the Fast Dictionary?
+
+The fast dictionary was introduced to significantly improve library load performance. The original dictionary format required complex runtime processing during module initialization, which added substantial overhead, especially in applications that frequently import dcmjs.
+
+**Performance Benchmark Results (Bun):**
+
+```
+Old dictionary (generate/dictionary.mjs): 181.16 ms
+New dictionary (src/dictionary.fast.js):    19.04 ms
+Performance improvement: 9.52x faster
+
+ESM main (dcmjs.es.js):         112.01 ms
+ESM private (loadPrivateTags):    0.01 ms
+ESM total:                      112.01 ms
+
+UMD (dcmjs.js):                  72.11 ms
+```
+
+The fast dictionary reduces initial load time by over 9x, making it especially beneficial for:
+- Server-side applications that spawn multiple workers
+- Build tools and bundlers
+- Applications with frequent module reloading during development
+- Environments where startup time is critical
+
 ## Community Participation
 
 Use this repository's issues page to report any bugs. Please follow [SSCCE](http://sscce.org/) guidelines when submitting issues.
@@ -167,6 +217,7 @@ The developers gratefully acknowledge their research support:
 - The [Neuroimage Analysis Center](http://nac.spl.harvard.edu)
 - The [National Center for Image Guided Therapy](http://ncigt.org)
 - The [NCI Imaging Data Commons](https://imagingdatacommons.github.io/) NCI Imaging Data Commons: contract number 19X037Q from Leidos Biomedical Research under Task Order HHSN26100071 from NCI
+- dcmjs is being used and partially supported by [dicom-curate](https://github.com/bebbi/dicom-curate)
 
 ## Logging
 

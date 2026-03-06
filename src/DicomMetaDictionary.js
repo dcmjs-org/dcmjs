@@ -1,9 +1,10 @@
-import dictionary from "./dictionary";
+import { dictionary } from "./dictionary.fast.js";
+import { getAllStandardTagEntries } from "./dicom.lookup.js";
 import log from "./log.js";
 import addAccessors from "./utilities/addAccessors";
 import { ValueRepresentation } from "./ValueRepresentation";
 
-class DicomMetaDictionary {
+export class DicomMetaDictionary {
     // intakes a custom dictionary that will be used to parse/denaturalize the dataset
     constructor(customDictionary) {
         this.customDictionary = customDictionary;
@@ -101,7 +102,8 @@ class DicomMetaDictionary {
         return namedDataset;
     }
 
-    /** converts from DICOM JSON Model dataset to a natural dataset
+    /**
+     * converts from DICOM JSON Model dataset to a natural dataset
      * - sequences become lists
      * - single element lists are replaced by their first element,
      *     with single element lists remaining lists, but being a
@@ -331,9 +333,21 @@ class DicomMetaDictionary {
 
     static _generateNameMap() {
         DicomMetaDictionary.nameMap = {};
+        const entries = getAllStandardTagEntries();
+        for (let i = 0; i < entries.length; i++) {
+            const e = entries[i];
+            const dict = {
+                tag: e.tag,
+                vr: e.vr,
+                vm: e.vm,
+                name: e.name,
+                version: "DICOM"
+            };
+            DicomMetaDictionary.nameMap[e.name] = dict;
+        }
         Object.keys(DicomMetaDictionary.dictionary).forEach(tag => {
-            var dict = DicomMetaDictionary.dictionary[tag];
-            if (dict.version !== "PrivateTag") {
+            const dict = DicomMetaDictionary.dictionary[tag];
+            if (dict && dict.version !== "PrivateTag") {
                 DicomMetaDictionary.nameMap[dict.name] = dict;
             }
         });
@@ -341,9 +355,29 @@ class DicomMetaDictionary {
 
     static _generateCustomNameMap(dictionary) {
         const nameMap = {};
+        if (dictionary === DicomMetaDictionary.dictionary) {
+            const entries = getAllStandardTagEntries();
+            for (let i = 0; i < entries.length; i++) {
+                const e = entries[i];
+                nameMap[e.name] = {
+                    tag: e.tag,
+                    vr: e.vr,
+                    vm: e.vm,
+                    name: e.name,
+                    version: "DICOM"
+                };
+            }
+            Object.keys(dictionary).forEach(tag => {
+                const dict = dictionary[tag];
+                if (dict && dict.version !== "PrivateTag") {
+                    nameMap[dict.name] = dict;
+                }
+            });
+            return nameMap;
+        }
         Object.keys(dictionary).forEach(tag => {
             var dict = dictionary[tag];
-            if (dict.version !== "PrivateTag") {
+            if (dict && dict.version != "PrivateTag") {
                 nameMap[dict.name] = dict;
             }
         });
@@ -480,10 +514,10 @@ DicomMetaDictionary.encapsulatedSyntaxes = [
     "1.2.840.10008.1.2.4.202",
     "1.2.840.10008.1.2.4.203"
 ];
+// Avoid loops in imports
+ValueRepresentation.setDicomMetaDictionary(DicomMetaDictionary);
 
 DicomMetaDictionary.dictionary = dictionary;
 
 DicomMetaDictionary._generateNameMap();
 DicomMetaDictionary._generateUIDMap();
-
-export { DicomMetaDictionary };

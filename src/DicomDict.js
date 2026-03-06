@@ -1,5 +1,6 @@
 import { WriteBufferStream } from "./BufferStream";
 import { ValueRepresentation } from "./ValueRepresentation";
+import { TagHex } from "./constants/dicom";
 
 const EXPLICIT_LITTLE_ENDIAN = "1.2.840.10008.1.2.1";
 
@@ -28,8 +29,8 @@ class DicomDict {
         fileStream.writeAsciiString("DICM");
 
         var metaStream = new WriteBufferStream(1024);
-        if (!this.meta["00020010"]) {
-            this.meta["00020010"] = {
+        if (!this.meta[TagHex.TransferSyntaxUID]) {
+            this.meta[TagHex.TransferSyntaxUID] = {
                 vr: "UI",
                 Value: [EXPLICIT_LITTLE_ENDIAN]
             };
@@ -37,7 +38,7 @@ class DicomDict {
         DicomMessage.write(this.meta, metaStream, metaSyntax, writeOptions);
         DicomMessage.writeTagObject(
             fileStream,
-            "00020000",
+            TagHex.FileMetaInformationGroupLength,
             "UL",
             metaStream.size,
             metaSyntax,
@@ -45,7 +46,7 @@ class DicomDict {
         );
         fileStream.concat(metaStream);
 
-        var useSyntax = this.meta["00020010"].Value[0];
+        var useSyntax = this.meta[TagHex.TransferSyntaxUID].Value[0];
         DicomMessage.write(this.dict, fileStream, useSyntax, writeOptions);
         return fileStream.getBuffer();
     }

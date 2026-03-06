@@ -2,9 +2,9 @@ import { ReadBufferStream } from "../src/BufferStream";
 
 const size = 128;
 const buffer = new ArrayBuffer(size);
-const createView = new DataView(buffer);
+const dataView = new DataView(buffer);
 for (let i = 0; i < size; i++) {
-    createView.setUint8(i, i % 256);
+    dataView.setUint8(i, i % 256);
 }
 
 describe("ReadBufferStream Tests", () => {
@@ -92,6 +92,67 @@ describe("ReadBufferStream Tests", () => {
             );
             expect(subStream.available).toBe(16);
             expect(subStream.readUint8()).toBe(32);
+        });
+    });
+
+    describe("isAvailable", () => {
+        it("determines when data is correctly available", () => {
+            const stream = new ReadBufferStream(null, false, {
+                clearBuffers: true
+            });
+            expect(stream.isAvailable(0)).toBe(true);
+            expect(stream.isAvailable(1)).toBe(false);
+            stream.addBuffer(buffer.slice(0, 7));
+            expect(stream.isAvailable(7)).toBe(true);
+            expect(stream.isAvailable(8)).toBe(false);
+
+            // Read all 4 available/in position
+            expect(stream.readUint32()).toBe(dataView.getUint32(0));
+            expect(stream.hasData(7, 8)).toBe(false);
+            expect(stream.isAvailable(3)).toBe(true);
+            expect(stream.isAvailable(4)).toBe(false);
+
+            // Read 3 in one buffer, 1 in next
+            stream.addBuffer(buffer.slice(7, 8));
+            expect(stream.readUint32()).toBe(dataView.getUint32(4));
+            expect(stream.hasData(0, 8)).toBe(true);
+            expect(stream.isAvailable(1)).toBe(false);
+            expect(stream.isAvailable(0)).toBe(true);
+
+            stream.addBuffer(buffer.slice(8, 10));
+            stream.addBuffer(buffer.slice(10, 12));
+            expect(stream.readUint32()).toBe(dataView.getUint32(8));
+
+            stream.addBuffer(buffer.slice(12, 13));
+            stream.addBuffer(buffer.slice(13, 16));
+            expect(stream.readUint32()).toBe(dataView.getUint32(12));
+
+            // Check that buffers can get consumed
+            stream.consume();
+            expect(stream.hasData(0, 7)).toBe(false);
+            expect(stream.hasData(7)).toBe(false);
+            expect(stream.hasData(15)).toBe(false);
+            expect(stream.hasData(16)).toBe(false);
+
+            // Every byte from a different buffer
+            stream.addBuffer(buffer.slice(16, 17));
+            expect(stream.hasData(16)).toBe(true);
+            stream.addBuffer(buffer.slice(17, 18));
+            stream.addBuffer(buffer.slice(18, 19));
+            stream.addBuffer(buffer.slice(19, 20));
+            expect(stream.readUint32()).toBe(dataView.getUint32(16));
+            expect(stream.isAvailable(1)).toBe(false);
+
+            // Now read the rest and check isAvailable
+            stream.addBuffer(buffer.slice(20, buffer.byteLength));
+            const remaining = buffer.byteLength - 20;
+            expect(stream.isAvailable(remaining)).toBe(true);
+            expect(stream.isAvailable(remaining + 1)).toBe(false);
+
+            stream.setComplete();
+            expect(stream.isAvailable(remaining + 1)).toBe(true);
+            expect(stream.isAvailable(remaining, false)).toBe(true);
+            expect(stream.isAvailable(remaining + 1, false)).toBe(false);
         });
     });
 });

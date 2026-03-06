@@ -13,45 +13,55 @@ const pkg = JSON.parse(
     readFileSync(new URL("./package.json", import.meta.url), "utf8")
 );
 
-export default {
-    input: "src/index.js",
-    output: [
-        {
+const sharedPlugins = [
+    replace({
+        "process.env.LOG_LEVEL": JSON.stringify(
+            process.env.LOG_LEVEL || "warn"
+        ),
+        preventAssignment: true
+    }),
+    resolve({
+        browser: true
+    }),
+    commonjs(),
+    babel({
+        babelHelpers: "bundled",
+        exclude: "node_modules/**"
+    }),
+    json()
+];
+
+export default [
+    {
+        input: "src/index.js",
+        output: {
+            dir: "build",
+            format: "es",
+            entryFileNames: "dcmjs.es.js",
+            chunkFileNames: "dcmjs.[name]-[hash].js",
+            sourcemap: true
+        },
+        plugins: sharedPlugins
+    },
+    {
+        input: "src/index.js",
+        output: {
             file: pkg.main,
             format: "umd",
             name: "dcmjs",
             sourcemap: true
         },
-        {
+        plugins: sharedPlugins
+    },
+    {
+        input: "src/index.js",
+        output: {
             file: pkg.main.replace(/\.js$/, ".min.js"),
             format: "umd",
             name: "dcmjs",
             sourcemap: true,
             plugins: [terser()]
         },
-        {
-            file: pkg.module,
-            format: "es",
-            sourcemap: true
-        }
-    ],
-    plugins: [
-        replace({
-            "process.env.LOG_LEVEL": JSON.stringify(
-                process.env.LOG_LEVEL || "warn"
-            ),
-            preventAssignment: true
-        }),
-        resolve({
-            browser: true
-        }),
-        commonjs(),
-        //  globals(),
-        //builtins(),
-        // babelRuntime(),
-        babel({
-            exclude: "node_modules/**"
-        }),
-        json()
-    ]
-};
+        plugins: sharedPlugins
+    }
+];

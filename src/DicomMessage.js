@@ -4,7 +4,11 @@ import {
     EXPLICIT_BIG_ENDIAN,
     EXPLICIT_LITTLE_ENDIAN,
     IMPLICIT_LITTLE_ENDIAN,
-    VM_DELIMITER
+    VM_DELIMITER,
+    TagHex,
+    encodingMapping,
+    unencapsulatedTransferSyntaxes,
+    UNDEFINED_LENGTH
 } from "./constants/dicom.js";
 import { DicomDict } from "./DicomDict.js";
 import { DicomMetaDictionary } from "./DicomMetaDictionary.js";
@@ -13,7 +17,9 @@ import { log } from "./log.js";
 import { deepEqual } from "./utilities/deepEqual";
 import { ValueRepresentation } from "./ValueRepresentation.js";
 
-class DicomMessage {
+export const singleVRs = ["SQ", "OF", "OW", "OB", "UN", "LT"];
+
+export class DicomMessage {
     static read(
         bufferStream,
         syntax,
@@ -68,7 +74,7 @@ class DicomMessage {
                     bufferStream.offset = previousTagOffset;
                     break;
                 }
-                if (cleanTagString === "00080005") {
+                if (cleanTagString === TagHex.SpecificCharacterSet) {
                     if (readInfo.values.length > 0) {
                         bufferStream.setDecoder(
                             readInfo.values[0],
@@ -123,7 +129,7 @@ class DicomMessage {
     }
 
     static isEncapsulated(syntax) {
-        return DicomMetaDictionary.encapsulatedSyntaxes.indexOf(syntax) !== -1;
+        return !unencapsulatedTransferSyntaxes[syntax];
     }
 
     static readFile(
@@ -153,7 +159,7 @@ class DicomMessage {
         var el = DicomMessage._readTag(stream, useSyntax);
 
         var metaHeader = {};
-        if (el.tag.toCleanString() !== "00020000") {
+        if (el.tag.cleanString !== TagHex.FileMetaInformationGroupLength) {
             // meta length tag is missing
             if (!options.ignoreErrors) {
                 throw new Error(
@@ -180,7 +186,7 @@ class DicomMessage {
         }
 
         //get the syntax
-        var mainSyntax = metaHeader["00020010"].Value[0];
+        var mainSyntax = metaHeader[TagHex.TransferSyntaxUID].Value[0];
 
         //in case of deflated dataset, decompress and continue
         if (mainSyntax === DEFLATED_EXPLICIT_LITTLE_ENDIAN) {
@@ -287,7 +293,7 @@ class DicomMessage {
                 vrType = elementData.vr;
             } else {
                 //unknown tag
-                if (length === 0xffffffff) {
+                if (length == UNDEFINED_LENGTH) {
                     vrType = "SQ";
                 } else if (tag.isPixelDataTag()) {
                     vrType = "OW";
@@ -380,5 +386,3 @@ class DicomMessage {
         return DicomMetaDictionary.dictionary[tag.toString()];
     }
 }
-
-export { DicomMessage };

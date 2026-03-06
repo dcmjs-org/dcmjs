@@ -5,6 +5,12 @@ on:
     branches:
       - master
 
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  id-token: write
+
 jobs:
   publish-package:
     runs-on: ubuntu-latest
@@ -13,11 +19,14 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 24
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Install packages
         uses: bahmutov/npm-install@v1
@@ -29,9 +38,8 @@ jobs:
         run: npm run build
 
       - name: Semantic release
-        uses: cycjimmy/semantic-release-action@v3
-        with:
-          semantic_version: 19.0.2
+        uses: cycjimmy/semantic-release-action@v6
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: true

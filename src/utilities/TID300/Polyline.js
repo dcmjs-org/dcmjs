@@ -1,5 +1,6 @@
 import TID300Measurement from "./TID300Measurement";
-import unit2CodingValue from "./unit2CodingValue";
+import TID320ContentItem from "./TID320ContentItem.js";
+import MeasurementBuilder from "../MeasurementBuilder.js";
 
 export default class Polyline extends TID300Measurement {
     contentItem() {
@@ -11,6 +12,11 @@ export default class Polyline extends TID300Measurement {
             use3DSpatialCoordinates = false,
             perimeter,
             unit = "mm",
+            modalityUnit,
+            min,
+            max,
+            mean,
+            stdDev,
             ReferencedFrameOfReferenceUID
         } = this.props;
 
@@ -19,67 +25,54 @@ export default class Polyline extends TID300Measurement {
             use3DSpatialCoordinates
         });
 
-        // TODO: Add Mean and STDev value of (modality?) pixels
-        return this.getMeasurement([
+        const measurementConfigs = [
             {
-                RelationshipType: "CONTAINS",
-                ValueType: "NUM",
-                ConceptNameCodeSequence: {
-                    CodeValue: "131191004",
-                    CodingSchemeDesignator: "SCT",
-                    CodeMeaning: "Perimeter"
-                },
-                MeasuredValueSequence: {
-                    MeasurementUnitsCodeSequence: unit2CodingValue(unit),
-                    NumericValue: perimeter
-                },
-                ContentSequence: {
-                    RelationshipType: "INFERRED FROM",
-                    ValueType: use3DSpatialCoordinates ? "SCOORD3D" : "SCOORD",
-                    GraphicType: "POLYLINE",
-                    GraphicData,
-                    ReferencedFrameOfReferenceUID: use3DSpatialCoordinates
-                        ? ReferencedFrameOfReferenceUID
-                        : undefined,
-                    ContentSequence: use3DSpatialCoordinates
-                        ? undefined
-                        : {
-                              RelationshipType: "SELECTED FROM",
-                              ValueType: "IMAGE",
-                              ReferencedSOPSequence
-                          }
-                }
+                value: perimeter,
+                unit: unit,
+                builder: MeasurementBuilder.createPerimeterMeasurement
             },
             {
-                // TODO: This feels weird to repeat the GraphicData
-                RelationshipType: "CONTAINS",
-                ValueType: "NUM",
-                ConceptNameCodeSequence: {
-                    CodeValue: "G-A166",
-                    CodingSchemeDesignator: "SRT",
-                    CodeMeaning: "Area" // TODO: Look this up from a Code Meaning dictionary
-                },
-                MeasuredValueSequence: {
-                    MeasurementUnitsCodeSequence: unit2CodingValue(areaUnit),
-                    NumericValue: area
-                },
-                ContentSequence: {
-                    RelationshipType: "INFERRED FROM",
-                    ValueType: use3DSpatialCoordinates ? "SCOORD3D" : "SCOORD",
-                    GraphicType: "POLYLINE",
-                    GraphicData,
-                    ReferencedFrameOfReferenceUID: use3DSpatialCoordinates
-                        ? ReferencedFrameOfReferenceUID
-                        : undefined,
-                    ContentSequence: use3DSpatialCoordinates
-                        ? undefined
-                        : {
-                              RelationshipType: "SELECTED FROM",
-                              ValueType: "IMAGE",
-                              ReferencedSOPSequence
-                          }
-                }
+                value: area,
+                unit: areaUnit,
+                builder: MeasurementBuilder.createAreaMeasurement
+            },
+            {
+                value: max,
+                unit: modalityUnit,
+                builder: MeasurementBuilder.createMaxMeasurement
+            },
+            {
+                value: min,
+                unit: modalityUnit,
+                builder: MeasurementBuilder.createMinMeasurement
+            },
+            {
+                value: mean,
+                unit: modalityUnit,
+                builder: MeasurementBuilder.createMeanMeasurement
+            },
+            {
+                value: stdDev,
+                unit: modalityUnit,
+                builder: MeasurementBuilder.createStdDevMeasurement
             }
-        ]);
+        ];
+        const scoordContentItem = new TID320ContentItem({
+            graphicType: "POLYLINE",
+            graphicData: GraphicData,
+            use3DSpatialCoordinates,
+            referencedSOPSequence: ReferencedSOPSequence,
+            referencedFrameOfReferenceUID: ReferencedFrameOfReferenceUID
+        }).contentItem();
+
+        const measurements = measurementConfigs
+            .filter(config => config.value !== undefined)
+            .map((config, index) =>
+                config.builder(config.value, config.unit, {
+                    scoordContentItem: index === 0 ? scoordContentItem : null
+                })
+            );
+
+        return this.getMeasurement(measurements);
     }
 }
