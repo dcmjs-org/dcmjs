@@ -8,7 +8,7 @@ import { DicomMetaDictionary } from "./DicomMetaDictionary";
  * Facilitates the conversion of binary buffers from a DICOM encoding scheme to
  * a web supported string encoding scheme and vice versa.
  */
-class DicomBufferCODEC {
+export class DicomBufferCODEC {
     encoder = new TextEncoder("utf-8");
     decoder = new TextDecoder("latin1");
 
@@ -643,8 +643,3 @@ export class WriteBufferStream extends BufferStream {
         this.size = 0;
     }
 }
-
-export { DicomBufferCODEC };
-export { ReadBufferStream };
-export { DeflatedReadBufferStream };
-export { WriteBufferStream };
