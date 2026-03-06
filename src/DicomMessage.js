@@ -280,14 +280,14 @@ export class DicomMessage {
         }
     ) {
         const { untilTag, includeUntilTagValue } = options;
-        var implicit = syntax === IMPLICIT_LITTLE_ENDIAN,
+        const implicit = syntax === IMPLICIT_LITTLE_ENDIAN,
             isLittleEndian =
                 syntax === IMPLICIT_LITTLE_ENDIAN ||
                 syntax === EXPLICIT_LITTLE_ENDIAN;
 
-        var oldEndian = stream.isLittleEndian;
+        const oldEndian = stream.isLittleEndian;
         stream.setEndian(isLittleEndian);
-        var tag = Tag.readTag(stream);
+        const tag = Tag.readTag(stream);
 
         if (untilTag === tag.toCleanString() && untilTag !== null) {
             if (!includeUntilTagValue) {
@@ -295,18 +295,18 @@ export class DicomMessage {
             }
         }
 
-        var length = null,
+        let length = null,
             vr = null,
             vrType;
 
         if (implicit) {
             length = stream.readUint32();
-            var elementData = DicomMessage.lookupTag(tag);
+            const elementData = DicomMessage.lookupTag(tag);
             if (elementData) {
                 vrType = elementData.vr;
             } else {
                 //unknown tag
-                if (length == UNDEFINED_LENGTH) {
+                if (length === UNDEFINED_LENGTH) {
                     vrType = "SQ";
                 } else if (tag.isPixelDataTag()) {
                     vrType = "OW";
@@ -342,10 +342,10 @@ export class DicomMessage {
             }
         }
 
-        var values = [];
-        var rawValues = [];
+        let values = [];
+        let rawValues = [];
         if (vr.isBinary() && length > vr.maxLength && !vr.noMultiple) {
-            var times = length / vr.maxLength,
+            const times = length / vr.maxLength,
                 i = 0;
             while (i++ < times) {
                 const { rawValue, value } = vr.read(
