@@ -7,11 +7,11 @@ import {
     VM_DELIMITER,
     UNDEFINED_LENGTH,
     TagHex,
-    encodingMapping,
     UNDEFINED_LENGTH_FIX,
     VALID_VRS,
     isVideoTransferSyntax
 } from "./constants/dicom";
+import { encodingMapping } from "./constants/encodings";
 import { Tag } from "./Tag";
 import { DicomMessage, singleVRs } from "./DicomMessage";
 import { DicomMetaDictionary } from "./DicomMetaDictionary";
@@ -720,13 +720,13 @@ export class AsyncDicomReader {
             }
         } else {
             const value = vr.read(stream, length, syntax)?.value;
-            if (!vr.isBinary() && singleVRs.indexOf(vr.type) == -1) {
+            if (!vr.isBinary() && singleVRs.indexOf(vr.type) === -1) {
                 values = value;
                 if (typeof value === "string") {
                     const delimiterChar = String.fromCharCode(VM_DELIMITER);
                     values = vr.dropPadByte(value.split(delimiterChar));
                 }
-            } else if (vr.type == "OW" || vr.type == "OB") {
+            } else if (vr.type === "OW" || vr.type === "OB") {
                 values = value;
             } else {
                 Array.isArray(value) ? (values = value) : values.push(value);
@@ -738,8 +738,7 @@ export class AsyncDicomReader {
                 let [coding] = values;
                 coding = coding.replace(/[_ ]/g, "-").toLowerCase();
                 if (coding in encodingMapping) {
-                    coding = encodingMapping[coding];
-                    this.stream.setDecoder(new TextDecoder(coding));
+                    this.stream.setDecoder(coding);
                 } else if (options?.ignoreErrors) {
                     log.warn(
                         `Unsupported character set: ${coding}, using default character set`
