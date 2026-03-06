@@ -9,11 +9,12 @@ import {
     TagHex,
     UNDEFINED_LENGTH_FIX,
     VALID_VRS,
+    singleVRs,
     isVideoTransferSyntax
 } from "./constants/dicom";
 import { encodingMapping } from "./constants/encodings";
 import { Tag } from "./Tag";
-import { DicomMessage, singleVRs } from "./DicomMessage";
+import { DicomMessage } from "./DicomMessage";
 import { DicomMetaDictionary } from "./DicomMetaDictionary";
 import { DicomMetadataListener } from "./utilities/DicomMetadataListener.js";
 import { log } from "./utilities/log.js";
@@ -720,7 +721,7 @@ export class AsyncDicomReader {
             }
         } else {
             const value = vr.read(stream, length, syntax)?.value;
-            if (!vr.isBinary() && singleVRs.indexOf(vr.type) === -1) {
+            if (!vr.isBinary() && !singleVRs.has(vr.type)) {
                 values = value;
                 if (typeof value === "string") {
                     const delimiterChar = String.fromCharCode(VM_DELIMITER);
@@ -737,7 +738,7 @@ export class AsyncDicomReader {
             if (values.length > 0) {
                 let [coding] = values;
                 coding = coding.replace(/[_ ]/g, "-").toLowerCase();
-                if (coding in encodingMapping) {
+                if (encodingMapping.has(coding)) {
                     this.stream.setDecoder(coding);
                 } else if (options?.ignoreErrors) {
                     log.warn(
