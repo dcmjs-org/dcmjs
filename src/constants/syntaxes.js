@@ -1,4 +1,4 @@
-export const encapsulatedSyntaxes = [
+export const encapsulatedSyntaxes = new Set([
     "1.2.840.10008.1.2.4.50",
     "1.2.840.10008.1.2.4.51",
     "1.2.840.10008.1.2.4.57",
@@ -19,4 +19,4 @@ export const encapsulatedSyntaxes = [
     "1.2.840.10008.1.2.4.201",
     "1.2.840.10008.1.2.4.202",
     "1.2.840.10008.1.2.4.203"
-];
+]);
