@@ -59,7 +59,7 @@ export class DicomMessage {
         }
     ) {
         const { ignoreErrors, untilTag, stopOnGreaterTag } = options;
-        var dict = {};
+        let dict = {};
         try {
             let previousTagOffset;
             while (!bufferStream.end()) {
@@ -132,7 +132,7 @@ export class DicomMessage {
             forceStoreRaw: false
         }
     ) {
-        var stream = new ReadBufferStream(buffer, null, {
+        const stream = new ReadBufferStream(buffer, null, {
                 noCopy: options.noCopy
             }),
             useSyntax = EXPLICIT_LITTLE_ENDIAN;
@@ -143,12 +143,12 @@ export class DicomMessage {
         }
 
         // save position before reading first tag
-        var metaStartPos = stream.offset;
+        const metaStartPos = stream.offset;
 
         // read the first tag to check if it's the meta length tag
-        var el = DicomMessage._readTag(stream, useSyntax);
+        const el = DicomMessage._readTag(stream, useSyntax);
 
-        var metaHeader = {};
+        let metaHeader = {};
         if (el.tag.cleanString !== TagHex.FileMetaInformationGroupLength) {
             // meta length tag is missing
             if (!options.ignoreErrors) {
@@ -168,15 +168,15 @@ export class DicomMessage {
             });
         } else {
             // meta length tag is present
-            var metaLength = el.values[0];
+            const metaLength = el.values[0];
 
             // read header buffer using the specified meta length
-            var metaStream = stream.more(metaLength);
+            const metaStream = stream.more(metaLength);
             metaHeader = DicomMessage._read(metaStream, useSyntax, options);
         }
 
         //get the syntax
-        var mainSyntax = metaHeader[TagHex.TransferSyntaxUID].Value[0];
+        let mainSyntax = metaHeader[TagHex.TransferSyntaxUID].Value[0];
 
         //in case of deflated dataset, decompress and continue
         if (mainSyntax === DEFLATED_EXPLICIT_LITTLE_ENDIAN) {
@@ -186,30 +186,30 @@ export class DicomMessage {
         }
 
         mainSyntax = DicomMessage._normalizeSyntax(mainSyntax);
-        var objects = DicomMessage._read(stream, mainSyntax, options);
+        const objects = DicomMessage._read(stream, mainSyntax, options);
 
-        var dicomDict = new DicomDict(metaHeader);
+        const dicomDict = new DicomDict(metaHeader);
         dicomDict.dict = objects;
 
         return dicomDict;
     }
 
     static writeTagObject(stream, tagString, vr, values, syntax, writeOptions) {
-        var tag = Tag.fromString(tagString);
+        const tag = Tag.fromString(tagString);
 
         tag.write(stream, vr, values, syntax, writeOptions);
     }
 
     static write(jsonObjects, useStream, syntax, writeOptions) {
-        var written = 0;
+        let written = 0;
 
-        var sortedTags = Object.keys(jsonObjects).sort();
+        const sortedTags = Object.keys(jsonObjects).sort();
         sortedTags.forEach(function (tagString) {
-            var tag = Tag.fromString(tagString),
+            const tag = Tag.fromString(tagString),
                 tagObject = jsonObjects[tagString],
                 vrType = tagObject.vr;
 
-            var values = DicomMessage._getTagWriteValues(vrType, tagObject);
+            const values = DicomMessage._getTagWriteValues(vrType, tagObject);
 
             written += tag.write(
                 useStream,
@@ -337,7 +337,7 @@ export class DicomMessage {
         } else {
             const { rawValue, value } =
                 vr.read(stream, length, syntax, options) || {};
-            if (!vr.isBinary() && !ValueRepresentation.singleVRs.has(vr.type)) {
+            if (!vr.isBinary() && !singleVRs.has(vr.type)) {
                 rawValues = rawValue;
                 values = value;
                 if (typeof value === "string") {
