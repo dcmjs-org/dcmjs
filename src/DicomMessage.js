@@ -64,7 +64,7 @@ export class DicomMessage {
             let previousTagOffset;
             while (!bufferStream.end()) {
                 previousTagOffset = bufferStream.offset;
-                const readInfo = DicomMessage._readTag(
+                let readInfo = DicomMessage._readTag(
                     bufferStream,
                     syntax,
                     options
