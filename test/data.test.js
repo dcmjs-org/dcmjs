@@ -4,7 +4,7 @@ import fsPromises from "fs/promises";
 import path from "path";
 import { WriteBufferStream } from "../src/BufferStream";
 import dcmjs from "../src/index.js";
-import { log } from "./../src/log.js";
+import { log } from "../src/utilities/log.js";
 import { getTestDataset, getZippedTestDataset } from "./testUtils.js";
 
 import { promisify } from "util";

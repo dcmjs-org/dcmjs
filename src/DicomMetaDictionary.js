@@ -1,6 +1,6 @@
 import { dictionary } from "./dictionary.fast.js";
 import { getAllStandardTagEntries } from "./dicom.lookup.js";
-import log from "./log.js";
+import log from "./utilities/log.js";
 import addAccessors from "./utilities/addAccessors";
 import { ValueRepresentation } from "./ValueRepresentation";
 import { encapsulatedSyntaxes } from "./constants/syntaxes";

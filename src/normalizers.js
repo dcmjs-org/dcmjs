@@ -1,4 +1,4 @@
-import log from "./log.js";
+import log from "./utilities/log.js";
 import { DicomMetaDictionary } from "./DicomMetaDictionary.js";
 import { DerivedImage } from "./derivations/index.js";
 import Segmentation from "./derivations/Segmentation.js";

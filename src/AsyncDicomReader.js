@@ -16,7 +16,7 @@ import { Tag } from "./Tag";
 import { DicomMessage, singleVRs } from "./DicomMessage";
 import { DicomMetaDictionary } from "./DicomMetaDictionary";
 import { DicomMetadataListener } from "./utilities/DicomMetadataListener.js";
-import { log } from "./log.js";
+import { log } from "./utilities/log.js";
 
 const readLog = log.getLogger("AsyncDicomReader");
 

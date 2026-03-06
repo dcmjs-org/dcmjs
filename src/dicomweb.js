@@ -1,4 +1,4 @@
-import log from "./log.js";
+import log from "./utilities/log.js";
 
 class DICOMWEB {
     /*
