@@ -3,6 +3,9 @@ import { getAllStandardTagEntries } from "./dicom.lookup.js";
 import log from "./log.js";
 import addAccessors from "./utilities/addAccessors";
 import { ValueRepresentation } from "./ValueRepresentation";
+import { encapsulatedSyntaxes } from "./constants/syntaxes";
+import { defaultEncoding, encodingMapping } from "./constants/encodings";
+import { sopClassNamesByUID } from "./constants/sopClassUIDs";
 
 export class DicomMetaDictionary {
     // intakes a custom dictionary that will be used to parse/denaturalize the dataset
@@ -17,7 +20,7 @@ export class DicomMetaDictionary {
             return rawTag;
         }
         if (rawTag.length === 8 && rawTag === rawTag.match(/[0-9a-fA-F]*/)[0]) {
-            var tag = rawTag.toUpperCase();
+            const tag = rawTag.toUpperCase();
             return "(" + tag.substring(0, 4) + "," + tag.substring(4, 8) + ")";
         }
     }
@@ -210,11 +213,11 @@ export class DicomMetaDictionary {
 
     // keep the static function to support previous calls to the class
     static denaturalizeDataset(dataset, nameMap = DicomMetaDictionary.nameMap) {
-        var unnaturalDataset = {};
+        let unnaturalDataset = {};
         Object.keys(dataset).forEach(naturalName => {
             // check if it's a sequence
-            var name = naturalName;
-            var entry = nameMap[name];
+            const name = naturalName;
+            const entry = nameMap[name];
             if (entry) {
                 let dataValue = dataset[naturalName];
 
@@ -228,7 +231,7 @@ export class DicomMetaDictionary {
                         ? dataset._vrMap[naturalName]
                         : entry.vr;
 
-                var dataItem = ValueRepresentation.addTagAccessors({ vr });
+                const dataItem = ValueRepresentation.addTagAccessors({ vr });
 
                 dataItem.Value = dataset[naturalName];
 
@@ -253,7 +256,7 @@ export class DicomMetaDictionary {
                     );
 
                     if (entry.vr === "SQ") {
-                        var unnaturalValues = [];
+                        let unnaturalValues = [];
                         for (
                             let datasetIndex = 0;
                             datasetIndex < dataItem.Value.length;
@@ -289,7 +292,7 @@ export class DicomMetaDictionary {
                     }
                 }
 
-                var tag = DicomMetaDictionary.unpunctuateTag(entry.tag);
+                const tag = DicomMetaDictionary.unpunctuateTag(entry.tag);
                 unnaturalDataset[tag] = dataItem;
             } else {
                 const validMetaNames = ["_vrMap", "_meta"];
@@ -376,8 +379,8 @@ export class DicomMetaDictionary {
             return nameMap;
         }
         Object.keys(dictionary).forEach(tag => {
-            var dict = dictionary[tag];
-            if (dict && dict.version != "PrivateTag") {
+            const dict = dictionary[tag];
+            if (dict && dict.version !== "PrivateTag") {
                 nameMap[dict.name] = dict;
             }
         });
@@ -386,8 +389,8 @@ export class DicomMetaDictionary {
 
     static _generateUIDMap() {
         DicomMetaDictionary.sopClassUIDsByName = {};
-        Object.keys(DicomMetaDictionary.sopClassNamesByUID).forEach(uid => {
-            var name = DicomMetaDictionary.sopClassNamesByUID[uid];
+        Object.keys(sopClassNamesByUID).forEach(uid => {
+            const name = sopClassNamesByUID[uid];
             DicomMetaDictionary.sopClassUIDsByName[name] = uid;
         });
     }
@@ -404,116 +407,25 @@ export class DicomMetaDictionary {
     // so we can use decoding APIs to correctly handle DICOM buffers.
     static getNativeEncoding(dicomEncoding, ignoreErrors = false) {
         const coding = dicomEncoding.replace(/[_ ]/g, "-").toLowerCase();
-        if (coding in DicomMetaDictionary.encodingMapping) {
-            return DicomMetaDictionary.encodingMapping[coding];
+        if (coding in encodingMapping) {
+            return encodingMapping[coding];
         } else if (ignoreErrors) {
             log.warn(
                 `Unsupported character set: ${coding}, using default 
-                character set ${DicomMetaDictionary.defaultEncoding}`
+                character set ${defaultEncoding}`
             );
         } else {
             throw Error(`Unsupported character set: ${coding}`);
         }
-        return DicomMetaDictionary.defaultEncoding;
+        return defaultEncoding;
     }
 }
 
-// Subset of those listed at:
-// http://dicom.nema.org/medical/dicom/current/output/html/part04.html#sect_B.5
-DicomMetaDictionary.sopClassNamesByUID = {
-    "1.2.840.10008.5.1.4.1.1.20": "NMImage",
-    "1.2.840.10008.5.1.4.1.1.2": "CTImage",
-    "1.2.840.10008.5.1.4.1.1.2.1": "EnhancedCTImage",
-    "1.2.840.10008.5.1.4.1.1.2.2": "LegacyConvertedEnhancedCTImage",
-    "1.2.840.10008.5.1.4.1.1.3.1": "USMultiframeImage",
-    "1.2.840.10008.5.1.4.1.1.4": "MRImage",
-    "1.2.840.10008.5.1.4.1.1.4.1": "EnhancedMRImage",
-    "1.2.840.10008.5.1.4.1.1.4.2": "MRSpectroscopy",
-    "1.2.840.10008.5.1.4.1.1.4.3": "EnhancedMRColorImage",
-    "1.2.840.10008.5.1.4.1.1.4.4": "LegacyConvertedEnhancedMRImage",
-    "1.2.840.10008.5.1.4.1.1.6.1": "USImage",
-    "1.2.840.10008.5.1.4.1.1.6.2": "EnhancedUSVolume",
-    "1.2.840.10008.5.1.4.1.1.7": "SecondaryCaptureImage",
-    "1.2.840.10008.5.1.4.1.1.30": "ParametricMapStorage",
-    "1.2.840.10008.5.1.4.1.1.66": "RawData",
-    "1.2.840.10008.5.1.4.1.1.66.1": "SpatialRegistration",
-    "1.2.840.10008.5.1.4.1.1.66.2": "SpatialFiducials",
-    "1.2.840.10008.5.1.4.1.1.66.3": "DeformableSpatialRegistration",
-    "1.2.840.10008.5.1.4.1.1.66.4": "Segmentation",
-    "1.2.840.10008.5.1.4.1.1.66.7": "LabelmapSegmentation", // Labelmap Segmentation SOP Class UID
-    "1.2.840.10008.5.1.4.1.1.67": "RealWorldValueMapping",
-    "1.2.840.10008.5.1.4.1.1.88.11": "BasicTextSR",
-    "1.2.840.10008.5.1.4.1.1.88.22": "EnhancedSR",
-    "1.2.840.10008.5.1.4.1.1.88.33": "ComprehensiveSR",
-    "1.2.840.10008.5.1.4.1.1.88.34": "Comprehensive3DSR",
-    "1.2.840.10008.5.1.4.1.1.128": "PETImage",
-    "1.2.840.10008.5.1.4.1.1.130": "EnhancedPETImage",
-    "1.2.840.10008.5.1.4.1.1.128.1": "LegacyConvertedEnhancedPETImage",
-    "1.2.840.10008.5.1.4.1.1.77.1.5.1": "OphthalmicPhotography8BitImage",
-    "1.2.840.10008.5.1.4.1.1.77.1.5.4": "OphthalmicTomographyImage"
-};
+// TODO: Is this assignment necessary?
+DicomMetaDictionary.sopClassNamesByUID = sopClassNamesByUID;
+DicomMetaDictionary.encapsulatedSyntaxes = encapsulatedSyntaxes;
+DicomMetaDictionary.encodingMapping = encodingMapping;
 
-DicomMetaDictionary.encodingMapping = {
-    "": "iso-8859-1",
-    "iso-ir-6": "iso-8859-1",
-    "iso-ir-13": "shift-jis",
-    "iso-ir-100": "latin1",
-    "iso-ir-101": "iso-8859-2",
-    "iso-ir-109": "iso-8859-3",
-    "iso-ir-110": "iso-8859-4",
-    "iso-ir-126": "iso-ir-126",
-    "iso-ir-127": "iso-ir-127",
-    "iso-ir-138": "iso-ir-138",
-    "iso-ir-144": "iso-ir-144",
-    "iso-ir-148": "iso-ir-148",
-    "iso-ir-166": "tis-620",
-    "iso-2022-ir-6": "iso-8859-1",
-    "iso-2022-ir-13": "shift-jis",
-    "iso-2022-ir-87": "iso-2022-jp",
-    "iso-2022-ir-100": "latin1",
-    "iso-2022-ir-101": "iso-8859-2",
-    "iso-2022-ir-109": "iso-8859-3",
-    "iso-2022-ir-110": "iso-8859-4",
-    "iso-2022-ir-126": "iso-ir-126",
-    "iso-2022-ir-127": "iso-ir-127",
-    "iso-2022-ir-138": "iso-ir-138",
-    "iso-2022-ir-144": "iso-ir-144",
-    "iso-2022-ir-148": "iso-ir-148",
-    "iso-2022-ir-149": "euc-kr",
-    "iso-2022-ir-159": "iso-2022-jp",
-    "iso-2022-ir-166": "tis-620",
-    "iso-2022-ir-58": "iso-ir-58",
-    "iso-ir-192": "utf-8",
-    gb18030: "gb18030",
-    "iso-2022-gbk": "gbk",
-    "iso-2022-58": "gb2312",
-    gbk: "gbk"
-};
-
-DicomMetaDictionary.defaultEncoding = "latin1";
-
-DicomMetaDictionary.encapsulatedSyntaxes = [
-    "1.2.840.10008.1.2.4.50",
-    "1.2.840.10008.1.2.4.51",
-    "1.2.840.10008.1.2.4.57",
-    "1.2.840.10008.1.2.4.70",
-    "1.2.840.10008.1.2.4.80",
-    "1.2.840.10008.1.2.4.81",
-    "1.2.840.10008.1.2.4.90",
-    "1.2.840.10008.1.2.4.91",
-    "1.2.840.10008.1.2.4.92",
-    "1.2.840.10008.1.2.4.93",
-    "1.2.840.10008.1.2.4.94",
-    "1.2.840.10008.1.2.4.95",
-    "1.2.840.10008.1.2.5",
-    "1.2.840.10008.1.2.6.1",
-    "1.2.840.10008.1.2.4.100",
-    "1.2.840.10008.1.2.4.102",
-    "1.2.840.10008.1.2.4.103",
-    "1.2.840.10008.1.2.4.201",
-    "1.2.840.10008.1.2.4.202",
-    "1.2.840.10008.1.2.4.203"
-];
 // Avoid loops in imports
 ValueRepresentation.setDicomMetaDictionary(DicomMetaDictionary);
 
