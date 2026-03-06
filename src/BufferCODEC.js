@@ -1,5 +1,6 @@
 import { DicomMetaDictionary } from "./DicomMetaDictionary";
 import { defaultEncoding } from "./constants/encodings";
+import { selectNativeEncoding } from "./utilities/selectEncoding";
 
 /**
  * Facilitates the conversion of binary buffers from a DICOM encoding scheme to
@@ -36,10 +37,7 @@ export class DicomBufferCODEC {
      * @param {boolean} ignoreErrors
      */
     setDecoder(dicomEncoding, ignoreErrors = false) {
-        let coding = DicomMetaDictionary.getNativeEncoding(
-            dicomEncoding,
-            ignoreErrors
-        );
+        let coding = selectNativeEncoding(dicomEncoding, ignoreErrors);
         this.setNativeDecoder(coding);
     }
 
