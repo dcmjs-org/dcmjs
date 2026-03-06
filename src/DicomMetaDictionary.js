@@ -407,7 +407,7 @@ export class DicomMetaDictionary {
     // so we can use decoding APIs to correctly handle DICOM buffers.
     static getNativeEncoding(dicomEncoding, ignoreErrors = false) {
         const coding = dicomEncoding.replace(/[_ ]/g, "-").toLowerCase();
-        if (coding in encodingMapping) {
+        if (encodingMapping.has(coding)) {
             return encodingMapping[coding];
         } else if (ignoreErrors) {
             log.warn(
