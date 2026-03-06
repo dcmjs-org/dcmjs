@@ -127,7 +127,8 @@ export class DicomMetaDictionary {
             if (entry) {
                 naturalName = entry.name;
 
-                if (entry.vr === "ox") {
+                // Keep as == don't check for strict equality...
+                if (entry.vr == "ox") {
                     // when the vr is data-dependent, keep track of the original type
                     naturalDataset._vrMap[naturalName] = data.vr;
                 }
@@ -401,23 +402,6 @@ export class DicomMetaDictionary {
             dataset,
             this.customNameMap
         );
-    }
-
-    // Translates the DICOM specified encoding into a Web or native encoding target
-    // so we can use decoding APIs to correctly handle DICOM buffers.
-    static getNativeEncoding(dicomEncoding, ignoreErrors = false) {
-        const coding = dicomEncoding.replace(/[_ ]/g, "-").toLowerCase();
-        if (encodingMapping.has(coding)) {
-            return encodingMapping[coding];
-        } else if (ignoreErrors) {
-            log.warn(
-                `Unsupported character set: ${coding}, using default 
-                character set ${defaultEncoding}`
-            );
-        } else {
-            throw Error(`Unsupported character set: ${coding}`);
-        }
-        return defaultEncoding;
     }
 }
 

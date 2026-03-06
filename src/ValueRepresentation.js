@@ -286,8 +286,8 @@ class ValueRepresentation {
         let total = 0;
 
         for (let i = 0; i < valarr.length; i++) {
-            const checkValue = valarr[i],
-                checklen = lengths[i],
+            const checkValue = valarr[i];
+            let checklen = lengths[i],
                 isString = false,
                 displaylen = checklen;
             if (checkValue === null || allowInvalidVRLength) {
@@ -965,7 +965,7 @@ class PersonName extends EncodedStringRepresentation {
             // Ignore linter here and keep the new to properly convert into a string.
             value = new String(value);
         }
-        if (value !== undefined) {
+        if (value != undefined) {
             if (typeof value === "object") {
                 return dicomJson.pnAddValueAccessors(value);
             } else {
