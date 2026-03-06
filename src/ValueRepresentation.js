@@ -5,8 +5,9 @@ import {
     PN_COMPONENT_DELIMITER,
     VM_DELIMITER
 } from "./constants/dicom.js";
-import { log, validationLog } from "./log.js";
+import { log, validationLog } from "./utilities/log.js";
 import dicomJson from "./utilities/dicomJson.js";
+import { binaryVRs, singleVRs, length32VRs } from "./constants/dicom.js";
 
 // We replace the tag with a Proxy which intercepts assignments to obj[valueProp]
 // and adds additional overrides/accessors to the value if need be. If valueProp
@@ -25,7 +26,7 @@ import dicomJson from "./utilities/dicomJson.js";
 // TODO: refactor with addAccessors.js in mind
 const tagProxyHandler = {
     set(target, prop, value) {
-        var vrType;
+        let vrType;
         if (
             ["values", "Value"].includes(prop) &&
             target.vr &&
@@ -65,18 +66,13 @@ function toWindows(inputArray, size) {
 
 let DicomMessage, Tag, DicomMetaDictionary;
 
-const binaryVRs = ["FL", "FD", "SL", "SS", "UL", "US", "AT"],
-    length32VRs = ["OB", "OW", "OF", "SQ", "UC", "UR", "UT", "UN", "OD"],
-    singleVRs = ["SQ", "OF", "OW", "OB", "UN", "LT"];
-
 class ValueRepresentation {
     constructor(type) {
         this.type = type;
         this.multi = false;
-        this._isBinary = binaryVRs.indexOf(this.type) != -1;
-        this._allowMultiple =
-            !this._isBinary && singleVRs.indexOf(this.type) == -1;
-        this._isLength32 = length32VRs.indexOf(this.type) != -1;
+        this._isBinary = binaryVRs.has(this.type);
+        this._allowMultiple = !this._isBinary && !singleVRs.has(this.type);
+        this._isLength32 = length32VRs.has(this.type);
         this._storeRaw = true;
     }
 
@@ -230,7 +226,7 @@ class ValueRepresentation {
         if (stream.peekUint8(length - 1) !== this.padByte) {
             return stream.readAsciiString(length);
         } else {
-            var val = stream.readAsciiString(length - 1);
+            const val = stream.readAsciiString(length - 1);
             stream.increment(1);
             return val;
         }
@@ -250,24 +246,24 @@ class ValueRepresentation {
     }
 
     write(stream, type) {
-        var args = Array.from(arguments);
+        const args = Array.from(arguments);
         if (args[2] === null || args[2] === "" || args[2] === undefined) {
             return [stream.writeAsciiString("")];
         } else {
-            var written = [],
+            const written = [],
                 valueArgs = args.slice(2),
                 func = stream["write" + type];
             if (Array.isArray(valueArgs[0])) {
                 if (valueArgs[0].length < 1) {
                     written.push(0);
                 } else {
-                    var self = this;
+                    const self = this;
                     valueArgs[0].forEach(function (v, k) {
                         if (self.allowMultiple() && k > 0) {
                             stream.writeUint8(VM_DELIMITER);
                         }
-                        var singularArgs = [v].concat(valueArgs.slice(1));
-                        var byteCount = func.apply(stream, singularArgs);
+                        const singularArgs = [v].concat(valueArgs.slice(1));
+                        const byteCount = func.apply(stream, singularArgs);
                         written.push(byteCount);
                     });
                 }
@@ -285,12 +281,12 @@ class ValueRepresentation {
         writeOptions = { allowInvalidVRLength: false }
     ) {
         const { allowInvalidVRLength } = writeOptions;
-        var valid = true,
-            valarr = Array.isArray(value) ? value : [value],
-            total = 0;
+        let valid = true;
+        const valarr = Array.isArray(value) ? value : [value];
+        let total = 0;
 
-        for (var i = 0; i < valarr.length; i++) {
-            var checkValue = valarr[i],
+        for (let i = 0; i < valarr.length; i++) {
+            const checkValue = valarr[i],
                 checklen = lengths[i],
                 isString = false,
                 displaylen = checklen;
@@ -299,7 +295,7 @@ class ValueRepresentation {
             } else if (this.checkLength) {
                 valid = this.checkLength(checkValue);
             } else if (this.maxCharLength) {
-                var check = this.maxCharLength; //, checklen = checkValue.length;
+                const check = this.maxCharLength; //, checklen = checkValue.length;
                 valid = checkValue.length <= check;
                 displaylen = checkValue.length;
                 isString = true;
@@ -308,7 +304,7 @@ class ValueRepresentation {
             }
 
             if (!valid) {
-                var errmsg =
+                const errmsg =
                     "Value exceeds max length, vr: " +
                     this.type +
                     ", value: " +
@@ -325,7 +321,7 @@ class ValueRepresentation {
         }
 
         //check for odd
-        var written = total;
+        let written = total;
         if (total & 1) {
             stream.writeUint8(this.padByte);
             written++;
@@ -345,14 +341,14 @@ class ValueRepresentation {
     }
 
     static createByTypeString(type) {
-        var vr = VRinstances[type];
+        let vr = VRinstances[type];
         if (vr === undefined) {
-            if (type == "ox") {
+            if (type === "ox") {
                 // TODO: determine VR based on context (could be 1 byte pixel data)
                 // https://github.com/dgobbi/vtk-dicom/issues/38
                 validationLog.error("Invalid vr type", type, "- using OW");
                 vr = VRinstances["OW"];
-            } else if (type == "xs") {
+            } else if (type === "xs") {
                 validationLog.error("Invalid vr type", type, "- using US");
                 vr = VRinstances["US"];
             } else {
@@ -407,17 +403,17 @@ class BinaryRepresentation extends ValueRepresentation {
     }
 
     writeBytes(stream, value, _syntax, isEncapsulated, writeOptions = {}) {
-        var i;
-        var binaryStream;
-        var { fragmentMultiframe = true } = writeOptions;
+        let i;
+        let binaryStream;
+        let { fragmentMultiframe = true } = writeOptions;
         value = value === null || value === undefined ? [] : value;
         if (isEncapsulated) {
-            var fragmentSize = 1024 * 20,
-                frames = value.length,
-                startOffset = [];
+            const fragmentSize = 1024 * 20,
+                frames = value.length;
+            let startOffset = [];
 
             // Calculate a total length for storing binary stream
-            var bufferLength = 0;
+            let bufferLength = 0;
             for (i = 0; i < frames; i++) {
                 const needsPadding = Boolean(value[i].byteLength & 1);
                 bufferLength += value[i].byteLength + (needsPadding ? 1 : 0);
@@ -440,27 +436,27 @@ class BinaryRepresentation extends ValueRepresentation {
                 const needsPadding = Boolean(value[i].byteLength & 1);
 
                 startOffset.push(binaryStream.size);
-                var frameBuffer = value[i],
+                const frameBuffer = value[i],
                     frameStream = new ReadBufferStream(frameBuffer);
 
-                var fragmentsLength = 1;
+                let fragmentsLength = 1;
                 if (fragmentMultiframe) {
                     fragmentsLength = Math.ceil(
                         frameStream.size / fragmentSize
                     );
                 }
 
-                for (var j = 0, fragmentStart = 0; j < fragmentsLength; j++) {
+                for (let j = 0, fragmentStart = 0; j < fragmentsLength; j++) {
                     const isFinalFragment = j === fragmentsLength - 1;
 
-                    var fragmentEnd = fragmentStart + frameStream.size;
+                    let fragmentEnd = fragmentStart + frameStream.size;
                     if (fragmentMultiframe) {
                         fragmentEnd = fragmentStart + fragmentSize;
                     }
                     if (isFinalFragment) {
                         fragmentEnd = frameStream.size;
                     }
-                    var fragStream = new ReadBufferStream(
+                    const fragStream = new ReadBufferStream(
                         frameStream.getBuffer(fragmentStart, fragmentEnd)
                     );
                     fragmentStart = fragmentEnd;
@@ -493,7 +489,7 @@ class BinaryRepresentation extends ValueRepresentation {
 
             return 0xffffffff;
         } else {
-            var binaryData = value[0];
+            const binaryData = value[0];
             binaryStream = new ReadBufferStream(binaryData);
             stream.concat(binaryStream);
             return super.writeBytes(
@@ -506,18 +502,18 @@ class BinaryRepresentation extends ValueRepresentation {
     }
 
     readBytes(stream, length) {
-        if (length == 0xffffffff) {
-            var itemTagValue = Tag.readTag(stream),
-                frames = [];
+        if (length === 0xffffffff) {
+            const itemTagValue = Tag.readTag(stream);
+            let frames = [];
 
             if (itemTagValue.is(0xfffee000)) {
-                var itemLength = stream.readUint32(),
-                    numOfFrames = 1,
+                const itemLength = stream.readUint32();
+                let numOfFrames = 1,
                     offsets = [];
                 if (itemLength > 0x0) {
                     //has frames
                     numOfFrames = itemLength / 4;
-                    var i = 0;
+                    let i = 0;
                     while (i++ < numOfFrames) {
                         offsets.push(stream.readUint32());
                     }
@@ -623,7 +619,7 @@ class BinaryRepresentation extends ValueRepresentation {
             }
             return frames;
         } else {
-            var bytes;
+            let bytes;
             /*if (this.type == 'OW') {
                 bytes = stream.readUint16Array(length);
             } else if (this.type == 'OB') {
@@ -953,8 +949,8 @@ class PersonName extends EncodedStringRepresentation {
     }
 
     static checkComponentLengths(components) {
-        for (var i in components) {
-            var cmp = components[i];
+        for (let i in components) {
+            const cmp = components[i];
             // As per table 6.2-1 in the spec
             if (cmp.length > 64) return false;
         }
@@ -966,9 +962,9 @@ class PersonName extends EncodedStringRepresentation {
     // style string, regardless of typeof value
     addValueAccessors(value) {
         if (typeof value === "string") {
-            value = new String(value);
+            value = String(value);
         }
-        if (value != undefined) {
+        if (value !== undefined) {
             if (typeof value === "object") {
                 return dicomJson.pnAddValueAccessors(value);
             } else {
@@ -1003,7 +999,7 @@ class PersonName extends EncodedStringRepresentation {
             // https://dicom.nema.org/dicom/2013/output/chtml/part05/sect_6.4.html
             const values = value.split(String.fromCharCode(VM_DELIMITER));
 
-            for (var pnString of values) {
+            for (let pnString of values) {
                 const components = pnString.split(
                     String.fromCharCode(PN_COMPONENT_DELIMITER)
                 );
@@ -1089,41 +1085,41 @@ class SequenceOfItems extends ValueRepresentation {
         if (sqlength == 0x0) {
             return []; //contains no dataset
         } else {
-            var undefLength = sqlength == 0xffffffff,
-                elements = [],
+            const undefLength = sqlength === 0xffffffff;
+            let elements = [],
                 read = 0;
 
             while (true) {
-                var tag = Tag.readTag(stream),
-                    length = null;
+                const tag = Tag.readTag(stream);
+                let length = null;
                 read += 4;
 
                 if (tag.is(0xfffee0dd)) {
                     stream.readUint32();
                     break;
-                } else if (!undefLength && read == sqlength) {
+                } else if (!undefLength && read === sqlength) {
                     break;
                 } else if (tag.is(0xfffee000)) {
                     length = stream.readUint32();
                     read += 4;
-                    var itemStream = null,
-                        toRead = 0,
-                        undef = length == 0xffffffff;
+                    let itemStream = null,
+                        toRead = 0;
+                    const undef = length === 0xffffffff;
 
                     if (undef) {
-                        var stack = 0;
+                        let stack = 0;
 
                         /* eslint-disable-next-line no-constant-condition */
                         while (1) {
-                            var g = stream.readUint16();
-                            if (g == 0xfffe) {
+                            const g = stream.readUint16();
+                            if (g === 0xfffe) {
                                 // some control tag is about to be read
-                                var ge = stream.readUint16();
+                                const ge = stream.readUint16();
 
                                 let itemLength = stream.readUint32();
                                 stream.increment(-4);
 
-                                if (ge == 0xe00d) {
+                                if (ge === 0xe00d) {
                                     if (itemLength === 0) {
                                         // item delimitation tag (0xfffee00d) + item length (0x00000000) has been read
                                         stack--;
@@ -1140,11 +1136,11 @@ class SequenceOfItems extends ValueRepresentation {
                                         // anything else has been read
                                         toRead += 2;
                                     }
-                                } else if (ge == 0xe000) {
+                                } else if (ge === 0xe000) {
                                     // a new item has been found
                                     toRead += 4;
 
-                                    if (itemLength == 0xffffffff) {
+                                    if (itemLength === 0xffffffff) {
                                         // a new item with undefined length has been found
                                         stack++;
                                     }
@@ -1168,10 +1164,10 @@ class SequenceOfItems extends ValueRepresentation {
                         read += toRead;
                         if (undef) stream.increment(8);
 
-                        var items = DicomMessage._read(itemStream, syntax);
+                        const items = DicomMessage._read(itemStream, syntax);
                         elements.push(items);
                     }
-                    if (!undefLength && read == sqlength) {
+                    if (!undefLength && read === sqlength) {
                         break;
                     }
                 }
@@ -1184,8 +1180,8 @@ class SequenceOfItems extends ValueRepresentation {
         let written = 0;
 
         if (value) {
-            for (var i = 0; i < value.length; i++) {
-                var item = value[i];
+            for (let i = 0; i < value.length; i++) {
+                const item = value[i];
                 super.write(stream, "Uint16", 0xfffe);
                 super.write(stream, "Uint16", 0xe000);
                 super.write(stream, "Uint32", 0xffffffff);
@@ -1438,10 +1434,10 @@ class ParsedUnknownValue extends BinaryRepresentation {
         const vr = ValueRepresentation.createByTypeString(this.type);
 
         if (vr.isBinary() && length > vr.maxLength && !vr.noMultiple) {
-            var values = [];
-            var rawValues = [];
-            var times = length / vr.maxLength,
-                i = 0;
+            const times = length / vr.maxLength;
+            let values = [];
+            let rawValues = [];
+            let i = 0;
 
             while (i++ < times) {
                 const { rawValue, value } = vr.read(

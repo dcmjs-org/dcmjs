@@ -6,19 +6,17 @@ import {
     IMPLICIT_LITTLE_ENDIAN,
     VM_DELIMITER,
     TagHex,
-    encodingMapping,
+    singleVRs,
     unencapsulatedTransferSyntaxes,
     UNDEFINED_LENGTH
 } from "./constants/dicom.js";
 import { DicomDict } from "./DicomDict.js";
 import { DicomMetaDictionary } from "./DicomMetaDictionary.js";
 import { Tag } from "./Tag.js";
-import { log } from "./log.js";
+import { log } from "./utilities/log.js";
 import { deepEqual } from "./utilities/deepEqual";
 import { ValueRepresentation } from "./ValueRepresentation.js";
 import { defaultDICOMEncoding } from "./constants/encodings";
-
-export const singleVRs = ["SQ", "OF", "OW", "OB", "UN", "LT"];
 
 export class DicomMessage {
     static read(
@@ -360,10 +358,7 @@ export class DicomMessage {
         } else {
             const { rawValue, value } =
                 vr.read(stream, length, syntax, options) || {};
-            if (
-                !vr.isBinary() &&
-                ValueRepresentation.singleVRs.indexOf(vr.type) === -1
-            ) {
+            if (!vr.isBinary() && !ValueRepresentation.singleVRs.has(vr.type)) {
                 rawValues = rawValue;
                 values = value;
                 if (typeof value === "string") {

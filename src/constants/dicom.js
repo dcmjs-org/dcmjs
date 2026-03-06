@@ -206,3 +206,17 @@ export const BULKDATA_VRS = new Set([
     "UT", // Unlimited Text
     "UV" // Unsigned 64-bit Very Long
 ]);
+
+export const binaryVRs = new Set(["FL", "FD", "SL", "SS", "UL", "US", "AT"]),
+    length32VRs = new Set([
+        "OB",
+        "OW",
+        "OF",
+        "SQ",
+        "UC",
+        "UR",
+        "UT",
+        "UN",
+        "OD"
+    ]),
+    singleVRs = new Set(["SQ", "OF", "OW", "OB", "UN", "LT"]);
