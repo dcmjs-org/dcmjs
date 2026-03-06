@@ -2,6 +2,10 @@ import { defaultDICOMEncoding } from "../constants/encodings";
 import { log } from "./log";
 
 export function selectEncoding(values, ignoreErrors = false) {
+    if (!values || !Array.isArray(values)) {
+        return defaultDICOMEncoding; // default encoding
+    }
+
     switch (values.length) {
         case 0:
             return defaultDICOMEncoding; // default encoding
