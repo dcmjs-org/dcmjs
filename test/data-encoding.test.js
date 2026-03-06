@@ -3,8 +3,30 @@ import dcmjs from "../src/index.js";
 import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
+import { defaultDICOMEncoding } from "../src/constants/encodings";
 
 const { DicomMetaDictionary, DicomMessage } = dcmjs.data;
+
+const testEncodingItems = [
+    "utf8",
+    "multiple",
+    "one",
+    "none"
+];
+
+const testEncodings = {
+    utf8: [defaultDICOMEncoding],
+    multiple: ["ISO_IR 13", "ISO_IR 166"],
+    one: ["ISO_IR 6"],
+    none: []
+};
+
+const expectedEncodings = {
+    utf8: defaultDICOMEncoding,
+    multiple: "ISO_IR 13",
+    one: "ISO_IR 6",
+    none: defaultDICOMEncoding
+};
 
 const expectedPatientNames = {
     SCSARAB: "قباني^لنزار",
@@ -20,6 +42,14 @@ const expectedPatientNames = {
     //"SCSH32": "X",
     //"SCSI2": "X",
 };
+
+it("test_encoding_selection", async () => {
+    testEncodingItems.forEach(item => {
+        const encoding = DicomMessage._selectEncoding(testEncodings[item], true);
+        const expected = expectedEncodings[item];
+        expect(encoding).toEqual(expected);
+    });
+});
 
 it("test_encodings", async () => {
     const url =
@@ -53,7 +83,9 @@ it("test_encodings", async () => {
             expect(String(newDataset.PatientName)).toEqual(
                 expectedPatientNames[fileName]
             );
-            expect(newDataset.SpecificCharacterSet).toEqual("ISO_IR 192");
+            expect(newDataset.SpecificCharacterSet).toEqual(
+                defaultDICOMEncoding
+            );
         }
     });
 });

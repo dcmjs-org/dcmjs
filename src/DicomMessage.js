@@ -16,6 +16,7 @@ import { Tag } from "./Tag.js";
 import { log } from "./log.js";
 import { deepEqual } from "./utilities/deepEqual";
 import { ValueRepresentation } from "./ValueRepresentation.js";
+import { defaultDICOMEncoding } from "./constants/encodings";
 
 export const singleVRs = ["SQ", "OF", "OW", "OB", "UN", "LT"];
 
@@ -75,25 +76,15 @@ export class DicomMessage {
                     break;
                 }
                 if (cleanTagString === TagHex.SpecificCharacterSet) {
-                    if (readInfo.values.length > 0) {
-                        bufferStream.setDecoder(
-                            readInfo.values[0],
-                            ignoreErrors
-                        );
-                    }
-                    if (readInfo.values.length > 1) {
-                        if (ignoreErrors) {
-                            log.warn(
-                                "Using multiple character sets is not supported, proceeding with just the first character set",
-                                readInfo.values
-                            );
-                        } else {
-                            throw Error(
-                                `Using multiple character sets is not supported: ${readInfo.values}`
-                            );
-                        }
-                    }
-                    readInfo.values = ["ISO_IR 192"]; // change SpecificCharacterSet to UTF-8
+                    const encoding = DicomMessage._selectEncoding(
+                        readInfo.values,
+                        ignoreErrors
+                    );
+                    bufferStream.setDecoder(encoding, ignoreErrors);
+
+                    // Are we resetting the encoding here because the stream will decode the input buffer from source
+                    // encoding to UTF-8?
+                    readInfo.values = defaultDICOMEncoding; // change SpecificCharacterSet to UTF-8
                 }
 
                 dict[cleanTagString] = ValueRepresentation.addTagAccessors({
@@ -113,6 +104,28 @@ export class DicomMessage {
                 return dict;
             }
             throw err;
+        }
+    }
+
+    static _selectEncoding(values, ignoreErrors = false) {
+        switch (values.length) {
+            case 0:
+                return defaultDICOMEncoding; // default encoding
+            case 1:
+                return values[0];
+            default:
+                if (!ignoreErrors) {
+                    throw Error(
+                        `Using multiple character sets is not supported: ${values}`
+                    );
+                }
+
+                // Fallthrough to warn and select first encoding
+                log.warn(
+                    "Using multiple character sets is not supported, proceeding with just the first character set",
+                    values
+                );
+                return values[0];
         }
     }
 

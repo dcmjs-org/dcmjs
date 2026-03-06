@@ -36,3 +36,4 @@ export const encodingMapping = {
 };
 
 export const defaultEncoding = "latin1";
+export const defaultDICOMEncoding = "iso-ir-192";
