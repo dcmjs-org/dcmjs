@@ -17,6 +17,7 @@ import { log } from "./utilities/log.js";
 import { deepEqual } from "./utilities/deepEqual";
 import { ValueRepresentation } from "./ValueRepresentation.js";
 import { defaultDICOMEncoding } from "./constants/encodings";
+import { selectEncoding } from "./utilities/selectEncoding";
 
 export class DicomMessage {
     static read(
@@ -74,7 +75,7 @@ export class DicomMessage {
                     break;
                 }
                 if (cleanTagString === TagHex.SpecificCharacterSet) {
-                    const encoding = DicomMessage._selectEncoding(
+                    const encoding = selectEncoding(
                         readInfo.values,
                         ignoreErrors
                     );
@@ -102,28 +103,6 @@ export class DicomMessage {
                 return dict;
             }
             throw err;
-        }
-    }
-
-    static _selectEncoding(values, ignoreErrors = false) {
-        switch (values.length) {
-            case 0:
-                return defaultDICOMEncoding; // default encoding
-            case 1:
-                return values[0];
-            default:
-                if (!ignoreErrors) {
-                    throw Error(
-                        `Using multiple character sets is not supported: ${values}`
-                    );
-                }
-
-                // Fallthrough to warn and select first encoding
-                log.warn(
-                    "Using multiple character sets is not supported, proceeding with just the first character set",
-                    values
-                );
-                return values[0];
         }
     }
 

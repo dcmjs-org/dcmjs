@@ -4,6 +4,7 @@ import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
 import { defaultDICOMEncoding } from "../src/constants/encodings";
+import { selectEncoding } from "../src/utilities/selectEncoding";
 
 const { DicomMetaDictionary, DicomMessage } = dcmjs.data;
 
@@ -45,7 +46,7 @@ const expectedPatientNames = {
 
 it("test_encoding_selection", async () => {
     testEncodingItems.forEach(item => {
-        const encoding = DicomMessage._selectEncoding(testEncodings[item], true);
+        const encoding = selectEncoding(testEncodings[item], true);
         const expected = expectedEncodings[item];
         expect(encoding).toEqual(expected);
     });
