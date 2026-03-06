@@ -132,7 +132,7 @@ export class DicomMessage {
             forceStoreRaw: false
         }
     ) {
-        const stream = new ReadBufferStream(buffer, null, {
+        let stream = new ReadBufferStream(buffer, null, {
                 noCopy: options.noCopy
             }),
             useSyntax = EXPLICIT_LITTLE_ENDIAN;
@@ -322,8 +322,8 @@ export class DicomMessage {
         let values = [];
         let rawValues = [];
         if (vr.isBinary() && length > vr.maxLength && !vr.noMultiple) {
-            const times = length / vr.maxLength,
-                i = 0;
+            const times = length / vr.maxLength;
+            let i = 0;
             while (i++ < times) {
                 const { rawValue, value } = vr.read(
                     stream,
