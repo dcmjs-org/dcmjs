@@ -962,7 +962,8 @@ class PersonName extends EncodedStringRepresentation {
     // style string, regardless of typeof value
     addValueAccessors(value) {
         if (typeof value === "string") {
-            value = String(value);
+            // Ignore linter here and keep the new to properly convert into a string.
+            value = new String(value);
         }
         if (value !== undefined) {
             if (typeof value === "object") {
