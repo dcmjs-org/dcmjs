@@ -38,7 +38,7 @@ export function selectNativeEncoding(dicomEncoding, ignoreErrors = false) {
         !dicomEncoding ||
         typeof dicomEncoding !== "string" ||
         dicomEncoding.length === 0 ||
-        dicomEncoding === "nope"
+        dicomEncoding === "nope" // In some tests, the dicom encoding passed is set to nope.
     ) {
         return defaultEncoding;
     }
