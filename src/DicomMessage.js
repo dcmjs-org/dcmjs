@@ -17,7 +17,7 @@ import { log } from "./utilities/log.js";
 import { deepEqual } from "./utilities/deepEqual";
 import { ValueRepresentation } from "./ValueRepresentation.js";
 import { defaultDICOMEncoding } from "./constants/encodings";
-import { selectEncoding } from "./utilities/selectEncoding";
+import { selectDICOMEncoding } from "./utilities/selectEncoding";
 
 export class DicomMessage {
     static read(
@@ -75,7 +75,7 @@ export class DicomMessage {
                     break;
                 }
                 if (cleanTagString === TagHex.SpecificCharacterSet) {
-                    const encoding = selectEncoding(
+                    const encoding = selectDICOMEncoding(
                         readInfo.values,
                         ignoreErrors
                     );

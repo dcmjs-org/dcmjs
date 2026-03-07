@@ -49,7 +49,24 @@ export class DicomBufferCODEC {
      * @param {string} webEncoding
      */
     setNativeEncoder(webEncoding) {
-        this.decoder = new TextDecoder(webEncoding);
+        this.decoder = new TextEncoder(webEncoding);
+    }
+
+    /**
+     * Main method for changing encoder.
+     *
+     * Given a DICOM encoding scheme like ISO 2022 IR 100, generate the correct
+     * string to store to disk.
+     *
+     * Optionally, include whether to ignore or throw an exception if dicom to
+     * web encoding is not found in our mapping
+     *
+     * @param {string} dicomEncoding
+     * @param {boolean} ignoreErrors
+     */
+    setEncoder(dicomEncoding, ignoreErrors = false) {
+        let coding = selectNativeEncoding(dicomEncoding, ignoreErrors);
+        this.setNativeEncoder(coding);
     }
 
     /**

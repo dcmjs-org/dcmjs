@@ -73,8 +73,20 @@ export class BufferStream {
         this.codec.setDecoder(dicomEncoding, ignoreErrors);
     }
 
-    setEndian(isLittle) {
-        this.isLittleEndian = isLittle;
+    setEncoder(dicomEncoding, ignoreErrors) {
+        this.codec.setEncoder(dicomEncoding, ignoreErrors);
+    }
+
+    setEndian(isLittleEndian = true) {
+        this.isLittleEndian = isLittleEndian;
+    }
+
+    setLittleEndian() {
+        this.isLittleEndian = true;
+    }
+
+    setBigEndian() {
+        this.isLittleEndian = false;
     }
 
     slice(start = this.startOffset, end = this.endOffset) {

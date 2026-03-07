@@ -878,7 +878,8 @@ describe("With a SpecificCharacterSet tag", () => {
         const stream = new WriteBufferStream(
             16 + specificCharacterSet.length + encodedBytes.length
         );
-        stream.isLittleEndian = true;
+        stream.setEncoder(specificCharacterSet);
+        stream.setLittleEndian();
 
         // Write SpecificCharacterSet tag
         stream.writeUint32(0x00050008);

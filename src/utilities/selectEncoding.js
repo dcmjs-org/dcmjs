@@ -5,7 +5,7 @@ import {
 } from "../constants/encodings";
 import { log } from "./log";
 
-export function selectEncoding(values, ignoreErrors = false) {
+export function selectDICOMEncoding(values, ignoreErrors = false) {
     if (!values || !Array.isArray(values)) {
         return defaultDICOMEncoding; // default encoding
     }
@@ -34,9 +34,21 @@ export function selectEncoding(values, ignoreErrors = false) {
 // Translates the DICOM specified encoding into a Web or native encoding target
 // so we can use decoding APIs to correctly handle DICOM buffers.
 export function selectNativeEncoding(dicomEncoding, ignoreErrors = false) {
-    const coding = dicomEncoding.replace(/[_ ]/g, "-").toLowerCase();
+    if (
+        !dicomEncoding ||
+        typeof dicomEncoding !== "string" ||
+        dicomEncoding.length === 0 ||
+        dicomEncoding === "nope"
+    ) {
+        return defaultEncoding;
+    }
+
+    // if we get something like "iso-ir-13\iso-ir-166", make sure we select "iso-ir-13". Unit tests already test for this.
+    const sanitizedEncoding = dicomEncoding.split("\\").at(0);
+    // if we get something like "ISO_IR 166", we sanitize to "iso-ir-166". Unit tests already test for this.
+    const coding = sanitizedEncoding.replace(/[_ ]/g, "-").toLowerCase();
     if (encodingMapping.has(coding)) {
-        return encodingMapping[coding];
+        return encodingMapping.get(coding);
     } else if (ignoreErrors) {
         log.warn(
             `Unsupported character set: ${coding}, using default 
