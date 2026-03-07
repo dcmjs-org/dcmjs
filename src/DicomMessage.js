@@ -6,18 +6,18 @@ import {
     IMPLICIT_LITTLE_ENDIAN,
     VM_DELIMITER,
     TagHex,
-    encodingMapping,
+    singleVRs,
     unencapsulatedTransferSyntaxes,
     UNDEFINED_LENGTH
 } from "./constants/dicom.js";
 import { DicomDict } from "./DicomDict.js";
 import { DicomMetaDictionary } from "./DicomMetaDictionary.js";
 import { Tag } from "./Tag.js";
-import { log } from "./log.js";
+import { log } from "./utilities/log.js";
 import { deepEqual } from "./utilities/deepEqual";
 import { ValueRepresentation } from "./ValueRepresentation.js";
-
-export const singleVRs = ["SQ", "OF", "OW", "OB", "UN", "LT"];
+import { defaultDICOMEncoding } from "./constants/encodings";
+import { selectDICOMEncoding } from "./utilities/selectEncoding";
 
 export class DicomMessage {
     static read(
@@ -59,12 +59,12 @@ export class DicomMessage {
         }
     ) {
         const { ignoreErrors, untilTag, stopOnGreaterTag } = options;
-        var dict = {};
+        let dict = {};
         try {
             let previousTagOffset;
             while (!bufferStream.end()) {
                 previousTagOffset = bufferStream.offset;
-                const readInfo = DicomMessage._readTag(
+                let readInfo = DicomMessage._readTag(
                     bufferStream,
                     syntax,
                     options
@@ -75,33 +75,19 @@ export class DicomMessage {
                     break;
                 }
                 if (cleanTagString === TagHex.SpecificCharacterSet) {
-                    if (readInfo.values.length > 0) {
-                        let coding = readInfo.values[0];
-                        coding = coding.replace(/[_ ]/g, "-").toLowerCase();
-                        if (coding in encodingMapping) {
-                            coding = encodingMapping[coding];
-                            bufferStream.setDecoder(new TextDecoder(coding));
-                        } else if (ignoreErrors) {
-                            log.warn(
-                                `Unsupported character set: ${coding}, using default character set`
-                            );
-                        } else {
-                            throw Error(`Unsupported character set: ${coding}`);
-                        }
-                    }
-                    if (readInfo.values.length > 1) {
-                        if (ignoreErrors) {
-                            log.warn(
-                                "Using multiple character sets is not supported, proceeding with just the first character set",
-                                readInfo.values
-                            );
-                        } else {
-                            throw Error(
-                                `Using multiple character sets is not supported: ${readInfo.values}`
-                            );
-                        }
-                    }
-                    readInfo.values = ["ISO_IR 192"]; // change SpecificCharacterSet to UTF-8
+                    // Note, I have seen a switch of encoding when entering SR nodes.
+                    // Watch out for potential corruption when reading. Since this library does not currently have a
+                    // way to detect when returning from a node, I cannot currently restore the previous context encoding.
+                    // TODO: Add a check for end of SR node and presence of encoding tag => create a global stack and pop last encoding.
+                    const encoding = selectDICOMEncoding(
+                        readInfo.values,
+                        ignoreErrors
+                    );
+                    bufferStream.setDecoder(encoding, ignoreErrors);
+
+                    // Are we resetting the encoding here because the stream will decode the input buffer from source
+                    // encoding to UTF-8?
+                    readInfo.values = defaultDICOMEncoding; // change SpecificCharacterSet to UTF-8
                 }
 
                 dict[cleanTagString] = ValueRepresentation.addTagAccessors({
@@ -126,9 +112,9 @@ export class DicomMessage {
 
     static _normalizeSyntax(syntax) {
         if (
-            syntax == IMPLICIT_LITTLE_ENDIAN ||
-            syntax == EXPLICIT_LITTLE_ENDIAN ||
-            syntax == EXPLICIT_BIG_ENDIAN
+            syntax === IMPLICIT_LITTLE_ENDIAN ||
+            syntax === EXPLICIT_LITTLE_ENDIAN ||
+            syntax === EXPLICIT_BIG_ENDIAN
         ) {
             return syntax;
         } else {
@@ -150,7 +136,7 @@ export class DicomMessage {
             forceStoreRaw: false
         }
     ) {
-        var stream = new ReadBufferStream(buffer, null, {
+        let stream = new ReadBufferStream(buffer, null, {
                 noCopy: options.noCopy
             }),
             useSyntax = EXPLICIT_LITTLE_ENDIAN;
@@ -161,12 +147,12 @@ export class DicomMessage {
         }
 
         // save position before reading first tag
-        var metaStartPos = stream.offset;
+        const metaStartPos = stream.offset;
 
         // read the first tag to check if it's the meta length tag
-        var el = DicomMessage._readTag(stream, useSyntax);
+        const el = DicomMessage._readTag(stream, useSyntax);
 
-        var metaHeader = {};
+        let metaHeader = {};
         if (el.tag.cleanString !== TagHex.FileMetaInformationGroupLength) {
             // meta length tag is missing
             if (!options.ignoreErrors) {
@@ -186,15 +172,15 @@ export class DicomMessage {
             });
         } else {
             // meta length tag is present
-            var metaLength = el.values[0];
+            const metaLength = el.values[0];
 
             // read header buffer using the specified meta length
-            var metaStream = stream.more(metaLength);
+            const metaStream = stream.more(metaLength);
             metaHeader = DicomMessage._read(metaStream, useSyntax, options);
         }
 
         //get the syntax
-        var mainSyntax = metaHeader[TagHex.TransferSyntaxUID].Value[0];
+        let mainSyntax = metaHeader[TagHex.TransferSyntaxUID].Value[0];
 
         //in case of deflated dataset, decompress and continue
         if (mainSyntax === DEFLATED_EXPLICIT_LITTLE_ENDIAN) {
@@ -204,30 +190,30 @@ export class DicomMessage {
         }
 
         mainSyntax = DicomMessage._normalizeSyntax(mainSyntax);
-        var objects = DicomMessage._read(stream, mainSyntax, options);
+        const objects = DicomMessage._read(stream, mainSyntax, options);
 
-        var dicomDict = new DicomDict(metaHeader);
+        const dicomDict = new DicomDict(metaHeader);
         dicomDict.dict = objects;
 
         return dicomDict;
     }
 
     static writeTagObject(stream, tagString, vr, values, syntax, writeOptions) {
-        var tag = Tag.fromString(tagString);
+        const tag = Tag.fromString(tagString);
 
         tag.write(stream, vr, values, syntax, writeOptions);
     }
 
     static write(jsonObjects, useStream, syntax, writeOptions) {
-        var written = 0;
+        let written = 0;
 
-        var sortedTags = Object.keys(jsonObjects).sort();
+        const sortedTags = Object.keys(jsonObjects).sort();
         sortedTags.forEach(function (tagString) {
-            var tag = Tag.fromString(tagString),
+            const tag = Tag.fromString(tagString),
                 tagObject = jsonObjects[tagString],
                 vrType = tagObject.vr;
 
-            var values = DicomMessage._getTagWriteValues(vrType, tagObject);
+            const values = DicomMessage._getTagWriteValues(vrType, tagObject);
 
             written += tag.write(
                 useStream,
@@ -275,16 +261,14 @@ export class DicomMessage {
         }
     ) {
         const { untilTag, includeUntilTagValue } = options;
-        var implicit = syntax == IMPLICIT_LITTLE_ENDIAN ? true : false,
+        const implicit = syntax === IMPLICIT_LITTLE_ENDIAN,
             isLittleEndian =
-                syntax == IMPLICIT_LITTLE_ENDIAN ||
-                syntax == EXPLICIT_LITTLE_ENDIAN
-                    ? true
-                    : false;
+                syntax === IMPLICIT_LITTLE_ENDIAN ||
+                syntax === EXPLICIT_LITTLE_ENDIAN;
 
-        var oldEndian = stream.isLittleEndian;
+        const oldEndian = stream.isLittleEndian;
         stream.setEndian(isLittleEndian);
-        var tag = Tag.readTag(stream);
+        const tag = Tag.readTag(stream);
 
         if (untilTag === tag.toCleanString() && untilTag !== null) {
             if (!includeUntilTagValue) {
@@ -292,22 +276,22 @@ export class DicomMessage {
             }
         }
 
-        var length = null,
+        let length = null,
             vr = null,
             vrType;
 
         if (implicit) {
             length = stream.readUint32();
-            var elementData = DicomMessage.lookupTag(tag);
+            const elementData = DicomMessage.lookupTag(tag);
             if (elementData) {
                 vrType = elementData.vr;
             } else {
                 //unknown tag
-                if (length == UNDEFINED_LENGTH) {
+                if (length === UNDEFINED_LENGTH) {
                     vrType = "SQ";
                 } else if (tag.isPixelDataTag()) {
                     vrType = "OW";
-                } else if (vrType == "xs") {
+                } else if (vrType === "xs") {
                     vrType = "US";
                 } else if (tag.isPrivateCreator()) {
                     vrType = "LO";
@@ -339,11 +323,11 @@ export class DicomMessage {
             }
         }
 
-        var values = [];
-        var rawValues = [];
+        let values = [];
+        let rawValues = [];
         if (vr.isBinary() && length > vr.maxLength && !vr.noMultiple) {
-            var times = length / vr.maxLength,
-                i = 0;
+            const times = length / vr.maxLength;
+            let i = 0;
             while (i++ < times) {
                 const { rawValue, value } = vr.read(
                     stream,
@@ -357,7 +341,7 @@ export class DicomMessage {
         } else {
             const { rawValue, value } =
                 vr.read(stream, length, syntax, options) || {};
-            if (!vr.isBinary() && singleVRs.indexOf(vr.type) == -1) {
+            if (!vr.isBinary() && !singleVRs.has(vr.type)) {
                 rawValues = rawValue;
                 values = value;
                 if (typeof value === "string") {
@@ -365,10 +349,10 @@ export class DicomMessage {
                     rawValues = vr.dropPadByte(rawValue.split(delimiterChar));
                     values = vr.dropPadByte(value.split(delimiterChar));
                 }
-            } else if (vr.type == "SQ") {
+            } else if (vr.type === "SQ") {
                 rawValues = rawValue;
                 values = value;
-            } else if (vr.type == "OW" || vr.type == "OB") {
+            } else if (vr.type === "OW" || vr.type === "OB") {
                 rawValues = rawValue;
                 values = value;
             } else {

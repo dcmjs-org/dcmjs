@@ -2,6 +2,7 @@ import pako from "pako";
 import SplitDataView from "./SplitDataView";
 import { toFloat } from "./utilities/toFloat";
 import { toInt } from "./utilities/toInt";
+import { DicomBufferCODEC } from "./BufferCODEC";
 
 export class BufferStream {
     offset = 0;
@@ -18,7 +19,7 @@ export class BufferStream {
     /** A flag to set to indicate to clear buffers as they get consumed */
     clearBuffers = false;
 
-    encoder = new TextEncoder("utf-8");
+    codec = new DicomBufferCODEC();
 
     constructor(options = null) {
         this.isLittleEndian = options?.littleEndian || this.isLittleEndian;
@@ -68,8 +69,24 @@ export class BufferStream {
         return true;
     }
 
-    setEndian(isLittle) {
-        this.isLittleEndian = isLittle;
+    setDecoder(dicomEncoding, ignoreErrors) {
+        this.codec.setDecoder(dicomEncoding, ignoreErrors);
+    }
+
+    setEncoder(dicomEncoding, ignoreErrors) {
+        this.codec.setEncoder(dicomEncoding, ignoreErrors);
+    }
+
+    setEndian(isLittleEndian = true) {
+        this.isLittleEndian = isLittleEndian;
+    }
+
+    setLittleEndian() {
+        this.isLittleEndian = true;
+    }
+
+    setBigEndian() {
+        this.isLittleEndian = false;
     }
 
     slice(start = this.startOffset, end = this.endOffset) {
@@ -169,7 +186,7 @@ export class BufferStream {
     }
 
     writeUTF8String(value) {
-        const encodedString = this.encoder.encode(value);
+        const encodedString = this.codec.encode(value);
         this.checkSize(encodedString.byteLength);
         this.view.writeBuffer(encodedString, this.offset);
         return this.increment(encodedString.byteLength);
@@ -300,7 +317,7 @@ export class BufferStream {
         const view = new DataView(
             this.slice(this.offset, this.offset + length)
         );
-        const result = this.decoder.decode(view);
+        const result = this.codec.decode(view);
         this.increment(length);
         return result;
     }
@@ -462,7 +479,6 @@ export class ReadBufferStream extends BufferStream {
     ) {
         super({ ...options, littleEndian });
         this.noCopy = options.noCopy;
-        this.decoder = new TextDecoder("latin1");
 
         if (buffer instanceof BufferStream) {
             this.view.from(buffer.view, options);
@@ -476,10 +492,6 @@ export class ReadBufferStream extends BufferStream {
 
         this.startOffset = this.offset;
         this.endOffset = this.size;
-    }
-
-    setDecoder(decoder) {
-        this.decoder = decoder;
     }
 
     reset() {

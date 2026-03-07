@@ -4,7 +4,7 @@ import fsPromises from "fs/promises";
 import path from "path";
 import { WriteBufferStream } from "../src/BufferStream";
 import dcmjs from "../src/index.js";
-import { log } from "./../src/log.js";
+import { log } from "../src/utilities/log.js";
 import { getTestDataset, getZippedTestDataset } from "./testUtils.js";
 
 import { promisify } from "util";
@@ -878,7 +878,8 @@ describe("With a SpecificCharacterSet tag", () => {
         const stream = new WriteBufferStream(
             16 + specificCharacterSet.length + encodedBytes.length
         );
-        stream.isLittleEndian = true;
+        stream.setEncoder(specificCharacterSet, readOptions.ignoreErrors);
+        stream.setLittleEndian();
 
         // Write SpecificCharacterSet tag
         stream.writeUint32(0x00050008);

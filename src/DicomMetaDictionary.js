@@ -1,8 +1,11 @@
 import { dictionary } from "./dictionary.fast.js";
 import { getAllStandardTagEntries } from "./dicom.lookup.js";
-import log from "./log.js";
+import log from "./utilities/log.js";
 import addAccessors from "./utilities/addAccessors";
 import { ValueRepresentation } from "./ValueRepresentation";
+import { encapsulatedSyntaxes } from "./constants/syntaxes";
+import { defaultEncoding, encodingMapping } from "./constants/encodings";
+import { sopClassNamesByUID } from "./constants/sopClassUIDs";
 
 export class DicomMetaDictionary {
     // intakes a custom dictionary that will be used to parse/denaturalize the dataset
@@ -17,7 +20,7 @@ export class DicomMetaDictionary {
             return rawTag;
         }
         if (rawTag.length === 8 && rawTag === rawTag.match(/[0-9a-fA-F]*/)[0]) {
-            var tag = rawTag.toUpperCase();
+            const tag = rawTag.toUpperCase();
             return "(" + tag.substring(0, 4) + "," + tag.substring(4, 8) + ")";
         }
     }
@@ -38,7 +41,7 @@ export class DicomMetaDictionary {
 
     static tagAsIntegerFromName(name) {
         const item = DicomMetaDictionary.nameMap[name];
-        if (item != undefined) {
+        if (item !== undefined) {
             return this.parseIntFromTag(item.tag);
         } else {
             return undefined;
@@ -52,7 +55,7 @@ export class DicomMetaDictionary {
         const cleanedDataset = {};
         Object.keys(dataset).forEach(tag => {
             const data = Object.assign({}, dataset[tag]);
-            if (data.vr == "SQ") {
+            if (data.vr === "SQ") {
                 const cleanedValues = [];
                 Object.keys(data.Value).forEach(index => {
                     cleanedValues.push(
@@ -64,7 +67,7 @@ export class DicomMetaDictionary {
                 // remove null characters from strings
                 data.Value = Object.keys(data.Value).map(index => {
                     const item = data.Value[index];
-                    if (item.constructor.name == "String") {
+                    if (item.constructor.name === "String") {
                         return item.replace(/\0/, "");
                     }
                     return item;
@@ -82,7 +85,7 @@ export class DicomMetaDictionary {
         var namedDataset = {};
         Object.keys(dataset).forEach(tag => {
             const data = Object.assign({}, dataset[tag]);
-            if (data.vr == "SQ") {
+            if (data.vr === "SQ") {
                 var namedValues = [];
                 Object.keys(data.Value).forEach(index => {
                     namedValues.push(
@@ -124,6 +127,7 @@ export class DicomMetaDictionary {
             if (entry) {
                 naturalName = entry.name;
 
+                // Keep as == don't check for strict equality...
                 if (entry.vr == "ox") {
                     // when the vr is data-dependent, keep track of the original type
                     naturalDataset._vrMap[naturalName] = data.vr;
@@ -202,7 +206,7 @@ export class DicomMetaDictionary {
         }
 
         value = value.map(entry =>
-            entry.constructor.name == "Number" ? String(entry) : entry
+            entry.constructor.name === "Number" ? String(entry) : entry
         );
 
         return value;
@@ -210,11 +214,11 @@ export class DicomMetaDictionary {
 
     // keep the static function to support previous calls to the class
     static denaturalizeDataset(dataset, nameMap = DicomMetaDictionary.nameMap) {
-        var unnaturalDataset = {};
+        let unnaturalDataset = {};
         Object.keys(dataset).forEach(naturalName => {
             // check if it's a sequence
-            var name = naturalName;
-            var entry = nameMap[name];
+            const name = naturalName;
+            const entry = nameMap[name];
             if (entry) {
                 let dataValue = dataset[naturalName];
 
@@ -228,12 +232,12 @@ export class DicomMetaDictionary {
                         ? dataset._vrMap[naturalName]
                         : entry.vr;
 
-                var dataItem = ValueRepresentation.addTagAccessors({ vr });
+                const dataItem = ValueRepresentation.addTagAccessors({ vr });
 
                 dataItem.Value = dataset[naturalName];
 
                 if (dataValue !== null) {
-                    if (entry.vr == "ox") {
+                    if (entry.vr === "ox") {
                         if (dataset._vrMap && dataset._vrMap[naturalName]) {
                             dataItem.vr = dataset._vrMap[naturalName];
                         } else {
@@ -252,8 +256,8 @@ export class DicomMetaDictionary {
                         dataItem.Value
                     );
 
-                    if (entry.vr == "SQ") {
-                        var unnaturalValues = [];
+                    if (entry.vr === "SQ") {
+                        let unnaturalValues = [];
                         for (
                             let datasetIndex = 0;
                             datasetIndex < dataItem.Value.length;
@@ -289,11 +293,11 @@ export class DicomMetaDictionary {
                     }
                 }
 
-                var tag = DicomMetaDictionary.unpunctuateTag(entry.tag);
+                const tag = DicomMetaDictionary.unpunctuateTag(entry.tag);
                 unnaturalDataset[tag] = dataItem;
             } else {
                 const validMetaNames = ["_vrMap", "_meta"];
-                if (validMetaNames.indexOf(name) == -1) {
+                if (validMetaNames.indexOf(name) === -1) {
                     log.warn(
                         "Unknown name in dataset",
                         name,
@@ -376,8 +380,8 @@ export class DicomMetaDictionary {
             return nameMap;
         }
         Object.keys(dictionary).forEach(tag => {
-            var dict = dictionary[tag];
-            if (dict && dict.version != "PrivateTag") {
+            const dict = dictionary[tag];
+            if (dict && dict.version !== "PrivateTag") {
                 nameMap[dict.name] = dict;
             }
         });
@@ -386,8 +390,8 @@ export class DicomMetaDictionary {
 
     static _generateUIDMap() {
         DicomMetaDictionary.sopClassUIDsByName = {};
-        Object.keys(DicomMetaDictionary.sopClassNamesByUID).forEach(uid => {
-            var name = DicomMetaDictionary.sopClassNamesByUID[uid];
+        sopClassNamesByUID.keys().forEach(uid => {
+            const name = sopClassNamesByUID.get(uid);
             DicomMetaDictionary.sopClassUIDsByName[name] = uid;
         });
     }
@@ -401,40 +405,10 @@ export class DicomMetaDictionary {
     }
 }
 
-// Subset of those listed at:
-// http://dicom.nema.org/medical/dicom/current/output/html/part04.html#sect_B.5
-DicomMetaDictionary.sopClassNamesByUID = {
-    "1.2.840.10008.5.1.4.1.1.20": "NMImage",
-    "1.2.840.10008.5.1.4.1.1.2": "CTImage",
-    "1.2.840.10008.5.1.4.1.1.2.1": "EnhancedCTImage",
-    "1.2.840.10008.5.1.4.1.1.2.2": "LegacyConvertedEnhancedCTImage",
-    "1.2.840.10008.5.1.4.1.1.3.1": "USMultiframeImage",
-    "1.2.840.10008.5.1.4.1.1.4": "MRImage",
-    "1.2.840.10008.5.1.4.1.1.4.1": "EnhancedMRImage",
-    "1.2.840.10008.5.1.4.1.1.4.2": "MRSpectroscopy",
-    "1.2.840.10008.5.1.4.1.1.4.3": "EnhancedMRColorImage",
-    "1.2.840.10008.5.1.4.1.1.4.4": "LegacyConvertedEnhancedMRImage",
-    "1.2.840.10008.5.1.4.1.1.6.1": "USImage",
-    "1.2.840.10008.5.1.4.1.1.6.2": "EnhancedUSVolume",
-    "1.2.840.10008.5.1.4.1.1.7": "SecondaryCaptureImage",
-    "1.2.840.10008.5.1.4.1.1.30": "ParametricMapStorage",
-    "1.2.840.10008.5.1.4.1.1.66": "RawData",
-    "1.2.840.10008.5.1.4.1.1.66.1": "SpatialRegistration",
-    "1.2.840.10008.5.1.4.1.1.66.2": "SpatialFiducials",
-    "1.2.840.10008.5.1.4.1.1.66.3": "DeformableSpatialRegistration",
-    "1.2.840.10008.5.1.4.1.1.66.4": "Segmentation",
-    "1.2.840.10008.5.1.4.1.1.66.7": "LabelmapSegmentation", // Labelmap Segmentation SOP Class UID
-    "1.2.840.10008.5.1.4.1.1.67": "RealWorldValueMapping",
-    "1.2.840.10008.5.1.4.1.1.88.11": "BasicTextSR",
-    "1.2.840.10008.5.1.4.1.1.88.22": "EnhancedSR",
-    "1.2.840.10008.5.1.4.1.1.88.33": "ComprehensiveSR",
-    "1.2.840.10008.5.1.4.1.1.88.34": "Comprehensive3DSR",
-    "1.2.840.10008.5.1.4.1.1.128": "PETImage",
-    "1.2.840.10008.5.1.4.1.1.130": "EnhancedPETImage",
-    "1.2.840.10008.5.1.4.1.1.128.1": "LegacyConvertedEnhancedPETImage",
-    "1.2.840.10008.5.1.4.1.1.77.1.5.1": "OphthalmicPhotography8BitImage",
-    "1.2.840.10008.5.1.4.1.1.77.1.5.4": "OphthalmicTomographyImage"
-};
+// TODO: Is this assignment necessary?
+DicomMetaDictionary.sopClassNamesByUID = sopClassNamesByUID;
+DicomMetaDictionary.encapsulatedSyntaxes = encapsulatedSyntaxes;
+DicomMetaDictionary.encodingMapping = encodingMapping;
 
 // Avoid loops in imports
 ValueRepresentation.setDicomMetaDictionary(DicomMetaDictionary);
