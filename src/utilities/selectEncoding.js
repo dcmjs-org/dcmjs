@@ -37,14 +37,13 @@ export function selectNativeEncoding(dicomEncoding, ignoreErrors = false) {
     if (
         !dicomEncoding ||
         typeof dicomEncoding !== "string" ||
-        dicomEncoding.length === 0 ||
-        dicomEncoding === "nope" // In some tests, the dicom encoding passed is set to nope.
+        dicomEncoding.length === 0
     ) {
         return defaultEncoding;
     }
 
     // if we get something like "iso-ir-13\iso-ir-166", make sure we select "iso-ir-13". Unit tests already test for this.
-    const sanitizedEncoding = dicomEncoding.split("\\").at(0);
+    const sanitizedEncoding = dicomEncoding.split("\\").at(0).trim();
     // if we get something like "ISO_IR 166", we sanitize to "iso-ir-166". Unit tests already test for this.
     const coding = sanitizedEncoding.replace(/[_ ]/g, "-").toLowerCase();
     if (encodingMapping.has(coding)) {

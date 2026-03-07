@@ -390,8 +390,8 @@ export class DicomMetaDictionary {
 
     static _generateUIDMap() {
         DicomMetaDictionary.sopClassUIDsByName = {};
-        Object.keys(sopClassNamesByUID).forEach(uid => {
-            const name = sopClassNamesByUID[uid];
+        sopClassNamesByUID.keys().forEach(uid => {
+            const name = sopClassNamesByUID.get(uid);
             DicomMetaDictionary.sopClassUIDsByName[name] = uid;
         });
     }

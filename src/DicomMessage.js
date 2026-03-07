@@ -75,6 +75,10 @@ export class DicomMessage {
                     break;
                 }
                 if (cleanTagString === TagHex.SpecificCharacterSet) {
+                    // Note, I have seen a switch of encoding when entering SR nodes.
+                    // Watch out for potential corruption when reading. Since this library does not currently have a
+                    // way to detect when returning from a node, I cannot currently restore the previous context encoding.
+                    // TODO: Add a check for end of SR node and presence of encoding tag => create a global stack and pop last encoding.
                     const encoding = selectDICOMEncoding(
                         readInfo.values,
                         ignoreErrors
