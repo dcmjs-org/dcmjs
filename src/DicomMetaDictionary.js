@@ -1,6 +1,6 @@
 import { dictionary } from "./dictionary.fast.js";
 import { getAllStandardTagEntries } from "./dicom.lookup.js";
-import log from "./log.js";
+import log, { validationLog } from "./log.js";
 import addAccessors from "./utilities/addAccessors";
 import { ValueRepresentation } from "./ValueRepresentation";
 
@@ -278,8 +278,13 @@ export class DicomMetaDictionary {
                             }
 
                             if (value.length > maxLength) {
-                                log.warn(
-                                    `Truncating value ${value} of ${naturalName} because it is longer than ${maxLength}`
+                                validationLog.error(
+                                    "Truncating value",
+                                    value,
+                                    "of",
+                                    naturalName,
+                                    "because it is longer than",
+                                    maxLength
                                 );
                                 return value.slice(0, maxLength);
                             } else {
@@ -294,7 +299,7 @@ export class DicomMetaDictionary {
             } else {
                 const validMetaNames = ["_vrMap", "_meta"];
                 if (validMetaNames.indexOf(name) == -1) {
-                    log.warn(
+                    validationLog.info(
                         "Unknown name in dataset",
                         name,
                         ":",

@@ -1,4 +1,4 @@
-import log from "../../log.js";
+import log, { validationLog } from "../../log.js";
 import ndarray from "ndarray";
 import { BitArray } from "../../bitArray.js";
 import { datasetToBlob } from "../../datasetToBlob.js";
@@ -593,10 +593,10 @@ function checkSEGsOverlapping(
         );
 
         if (!imageId) {
-            console.warn(
-                "Image not present in stack, can't import frame : " +
-                    frameSegment +
-                    "."
+            validationLog.warn(
+                "Image not present in stack, can't import frame :",
+                frameSegment,
+                "."
             );
             continue;
         }
@@ -783,10 +783,10 @@ function insertOverlappingPixelDataPlanar(
             );
 
             if (!imageId) {
-                console.warn(
-                    "Image not present in stack, can't import frame : " +
-                        i +
-                        "."
+                validationLog.warn(
+                    "Image not present in stack, can't import frame :",
+                    i,
+                    "."
                 );
                 continue;
             }
@@ -963,8 +963,10 @@ function insertPixelDataPlanar(
         );
 
         if (!imageId) {
-            console.warn(
-                "Image not present in stack, can't import frame : " + i + "."
+            validationLog.warn(
+                "Image not present in stack, can't import frame :",
+                i,
+                "."
             );
             continue;
         }

@@ -222,3 +222,5 @@ The developers gratefully acknowledge their research support:
 ## Logging
 
 This library uses [loglevel](https://github.com/pimterry/loglevel) for logging. By default, the log level is set to "warn". You can change the log level by setting the `LOG_LEVEL` environment variable or by using the `setLevel` method in your code.
+
+Named loggers (for example `validationLog`) can be turned up or down independently of the root log and of each other. That lets you enable validation messages without changing general logging, or silence validation in tests while keeping other logs. Use `getLogger(name)` for custom loggers, or the built-in `validationLog` (see `src/log.js`). Set level with e.g. `validationLog.setLevel("warn")` or `validationLog.setLevel(5)` for silent. Examples in this repo: validation truncation is logged at error level in [`src/DicomMetaDictionary.js`](src/DicomMetaDictionary.js) (search for `validationLog.error`), and a test that suppresses that output by setting the validation logger to silent only for that test is in [`test/data.test.js`](test/data.test.js) (search for `test_code_string_vr_truncated`).
