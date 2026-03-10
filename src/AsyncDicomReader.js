@@ -1,6 +1,8 @@
+import pako from "pako";
 import { ReadBufferStream } from "./BufferStream";
 import { ValueRepresentation } from "./ValueRepresentation";
 import {
+    DEFLATED_EXPLICIT_LITTLE_ENDIAN,
     EXPLICIT_BIG_ENDIAN,
     EXPLICIT_LITTLE_ENDIAN,
     IMPLICIT_LITTLE_ENDIAN,
@@ -189,6 +191,23 @@ export class AsyncDicomReader {
             return this;
         }
         this.meta = await this.readMeta(options);
+
+        // In case of deflated dataset, decompress remaining stream data
+        if (this.syntax === DEFLATED_EXPLICIT_LITTLE_ENDIAN) {
+            // Wait for entire stream to be available before inflating
+            await this.stream.ensureAvailable(Number.MAX_SAFE_INTEGER);
+            const remaining = this.stream.size - this.stream.offset;
+            const deflatedData = this.stream.readUint8Array(remaining);
+            const inflatedData = pako.inflateRaw(deflatedData);
+            this.stream = new ReadBufferStream(
+                inflatedData.buffer,
+                this.stream.isLittleEndian,
+                { clearBuffers: true }
+            );
+            this.stream.setComplete();
+            this.syntax = EXPLICIT_LITTLE_ENDIAN;
+        }
+
         const listener = options?.listener || new DicomMetadataListener();
 
         if (listener.information) {
