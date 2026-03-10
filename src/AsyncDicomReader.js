@@ -1,5 +1,4 @@
-import pako from "pako";
-import { ReadBufferStream } from "./BufferStream";
+import { DeflatedReadBufferStream, ReadBufferStream } from "./BufferStream";
 import { ValueRepresentation } from "./ValueRepresentation";
 import {
     DEFLATED_EXPLICIT_LITTLE_ENDIAN,
@@ -196,14 +195,9 @@ export class AsyncDicomReader {
         if (this.syntax === DEFLATED_EXPLICIT_LITTLE_ENDIAN) {
             // Wait for entire stream to be available before inflating
             await this.stream.ensureAvailable(Number.MAX_SAFE_INTEGER);
-            const remaining = this.stream.size - this.stream.offset;
-            const deflatedData = this.stream.readUint8Array(remaining);
-            const inflatedData = pako.inflateRaw(deflatedData);
-            this.stream = new ReadBufferStream(
-                inflatedData.buffer,
-                this.stream.isLittleEndian,
-                { clearBuffers: true }
-            );
+            this.stream = new DeflatedReadBufferStream(this.stream, {
+                clearBuffers: true
+            });
             this.stream.setComplete();
             this.syntax = EXPLICIT_LITTLE_ENDIAN;
         }
