@@ -737,9 +737,7 @@ describe("AsyncDicomReader", () => {
                 expect(frames.length).toBe(defaultImage.numberOfFrames);
                 for (let i = 0; i < frames.length; i++) {
                     expect(frames[i]).toBeInstanceOf(ArrayBuffer);
-                    expect(frames[i].byteLength).toBe(
-                        defaultImage.frameBytes
-                    );
+                    expect(frames[i].byteLength).toBe(defaultImage.frameBytes);
                 }
             }
 
@@ -837,9 +835,7 @@ describe("AsyncDicomReader", () => {
         test.each(expected)(
             "parses deflated file $file",
             async ({ file, tags }) => {
-                const buffer = fs.readFileSync(
-                    path.join(deflatedPath, file)
-                );
+                const buffer = fs.readFileSync(path.join(deflatedPath, file));
                 const ab = buffer.buffer.slice(
                     buffer.byteOffset,
                     buffer.byteOffset + buffer.byteLength
@@ -856,8 +852,7 @@ describe("AsyncDicomReader", () => {
                     "1.2.840.10008.1.2.1.99"
                 );
 
-                const dataset =
-                    DicomMetaDictionary.naturalizeDataset(dict);
+                const dataset = DicomMetaDictionary.naturalizeDataset(dict);
                 Object.keys(tags).forEach(t => {
                     expect(dataset[t]).toEqual(tags[t]);
                 });
