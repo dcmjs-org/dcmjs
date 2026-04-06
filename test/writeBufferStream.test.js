@@ -51,6 +51,21 @@ describe("WriteBufferStream Tests", () => {
         }
     });
 
+    it("writeBigUint64", () => {
+        const stream = new WriteBufferStream(25, true);
+        expect(stream).toBeDefined();
+        const expected = [];
+        for (let i = 0; i < 512; i++) {
+            expected[i] = BigInt(i) * BigInt("0x7fffffffffffff"); // 0x7fffffffffffff = (2^64 - 1) / 512
+            stream.writeBigUint64(expected[i]);
+        }
+        expect(stream.view.buffers.length).toBe(Math.ceil((512 * 8) / 25));
+        for (let i = 0; i < 512; i++) {
+            const actual = stream.view.getBigUint64(i * 8, stream.isLittleEndian);
+            expect(actual).toBe(expected[i]);
+        }
+    });
+
     it("writesLongStrings", () => {
         const stream = new WriteBufferStream(32, true);
         let string = "0";
@@ -74,6 +89,7 @@ describe("WriteBufferStream Tests", () => {
         out.writeInt16(-123);
         out.writeInt32(-234);
         out.writeInt8(-25);
+        out.writeBigUint64(BigInt(123456789));
         out.writeUint32(123);
         out.writeUint16(234);
         out.writeUint8(25);
@@ -91,6 +107,7 @@ describe("WriteBufferStream Tests", () => {
             expect(stream.readInt16()).toBe(-123);
             expect(stream.readInt32()).toBe(-234);
             expect(stream.readInt8()).toBe(-25);
+            expect(stream.readBigUint64()).toBe(BigInt(123456789));
             expect(stream.readUint32()).toBe(123);
             expect(stream.readUint16()).toBe(234);
             expect(stream.readUint8()).toBe(25);
