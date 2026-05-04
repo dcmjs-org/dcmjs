@@ -4,7 +4,7 @@ import fsPromises from "fs/promises";
 import path from "path";
 import { WriteBufferStream } from "../src/BufferStream";
 import dcmjs from "../src/index.js";
-import { log } from "./../src/log.js";
+import { log, validationLog } from "./../src/log.js";
 import { getTestDataset, getZippedTestDataset } from "./testUtils.js";
 
 import { promisify } from "util";
@@ -591,17 +591,23 @@ it("test_custom_dictionary", () => {
 
 it("test_code_string_vr_truncated", () => {
     // Create a dataset with a CS value that exceeds the 16-character limit and gets truncated
-    const testDataset = {
-        Modality: "MAGNETICRESONANCE"
-    };
+    const savedLevel = validationLog.getLevel();
+    validationLog.setLevel(5); // silent for this test to avoid validation error output
+    try {
+        const testDataset = {
+            Modality: "MAGNETICRESONANCE"
+        };
 
-    const denaturalizedDataset =
-        DicomMetaDictionary.denaturalizeDataset(testDataset);
+        const denaturalizedDataset =
+            DicomMetaDictionary.denaturalizeDataset(testDataset);
 
-    expect(denaturalizedDataset["00080060"].vr).toEqual("CS");
-    expect(denaturalizedDataset["00080060"].Value[0]).toEqual(
-        "MAGNETICRESONANC"
-    );
+        expect(denaturalizedDataset["00080060"].vr).toEqual("CS");
+        expect(denaturalizedDataset["00080060"].Value[0]).toEqual(
+            "MAGNETICRESONANC"
+        );
+    } finally {
+        validationLog.setLevel(savedLevel);
+    }
 });
 
 it("test_date_time_vr_range_matching_not_truncated", () => {

@@ -18,7 +18,7 @@ import { DicomMetaDictionary } from "./DicomMetaDictionary";
 import { DicomMetadataListener } from "./utilities/DicomMetadataListener.js";
 import { log } from "./log.js";
 
-const readLog = log.getLogger("AsyncDicomReader");
+const readLog = log.getLogger("dcmjs.AsyncDicomReader");
 
 /**
  * This is an asynchronous binary DICOM reader.

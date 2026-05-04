@@ -1,6 +1,6 @@
 {
     "name": "dcmjs",
-    "version": "0.49.2",
+    "version": "0.50.2",
     "description": "Javascript implementation of DICOM manipulation",
     "main": "build/dcmjs.js",
     "module": "build/dcmjs.es.js",
@@ -53,7 +53,7 @@
         "@rollup/plugin-json": "^6.1.0",
         "@rollup/plugin-node-resolve": "^15.2.3",
         "@rollup/plugin-replace": "^6.0.1",
-    "@rollup/plugin-terser": "^0.4.4",
+        "@rollup/plugin-terser": "^0.4.4",
         "acorn": "^7.1.0",
         "acorn-jsx": "^5.2.0",
         "eslint": "^9.30.1",
@@ -72,7 +72,7 @@
         "adm-zip": "^0.5.10",
         "gl-matrix": "^3.1.0",
         "lodash.clonedeep": "^4.5.0",
-        "loglevel": "^1.8.1",
+        "loglevel": "^1.9.2",
         "ndarray": "^1.0.19",
         "pako": "^2.0.4"
     },

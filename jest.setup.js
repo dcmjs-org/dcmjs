@@ -1,40 +1,20 @@
-const { Console } = require("console");
-const nodeConsole = new Console(process.stdout, process.stderr);
+// Jest setup - uses real loglevel, writing to stdout to avoid stack traces from console.warn/error.
+// Format: loggerName [LEVEL] message
+// Log level is controlled by LOG_LEVEL env (default "warn" in src/log.js).
 
-// Mock loglevel
-const createMockLogger = () => {
-    const logger = {
-        trace: jest.fn(),
-        debug: jest.fn(),
-        info: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
-        setLevel: jest.fn()
+const loglevel = require("loglevel");
+const { inspect } = require("util");
+
+loglevel.methodFactory = function (methodName, _level, loggerName) {
+    return function (...args) {
+        const message = args
+            .map((a) => (typeof a === "string" ? a : inspect(a)))
+            .join(" ");
+        const name =
+            loggerName != null && loggerName !== ""
+                ? String(loggerName)
+                : "log";
+        process.stdout.write(`${name} [${methodName.toUpperCase()}] ${message}\n`);
     };
-
-    // Modify warn to print directly to stdout instead of console.warn
-    logger.warn.mockImplementation((...args) => {
-        // This uses Node's real util.inspect internally
-        nodeConsole.warn("[warn]", ...args);
-    });
-
-    return logger;
 };
-
-const mockLog = createMockLogger();
-
-mockLog.getLogger = jest.fn(name => {
-    const namedLogger = createMockLogger();
-    namedLogger.name = name;
-    return namedLogger;
-});
-
-jest.mock("loglevel", () => mockLog);
-
-// Optional global access for assertions
-global.mockLog = mockLog;
-
-// Override console.warn to remove stack traces
-console.warn = nodeConsole.warn;
-console.time = nodeConsole.time;
-console.timeEnd = nodeConsole.timeEnd;
+loglevel.rebuild();

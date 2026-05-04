@@ -197,13 +197,13 @@ class ValueRepresentation {
                     value: this.defaultValue
                 };
             if (this.maxLength != length)
-                log.error(
-                    "Invalid length for fixed length tag, vr " +
-                        this.type +
-                        ", length " +
-                        this.maxLength +
-                        " != " +
-                        length
+                validationLog.warn(
+                    "Invalid length for fixed length tag, vr",
+                    this.type,
+                    ", expected length",
+                    this.maxLength,
+                    "!= actual",
+                    length
                 );
         }
         let rawValue = this.readBytes(stream, length, syntax);
@@ -350,13 +350,13 @@ class ValueRepresentation {
             if (type == "ox") {
                 // TODO: determine VR based on context (could be 1 byte pixel data)
                 // https://github.com/dgobbi/vtk-dicom/issues/38
-                validationLog.error("Invalid vr type", type, "- using OW");
+                validationLog.info("Invalid vr type", type, "- using OW");
                 vr = VRinstances["OW"];
             } else if (type == "xs") {
-                validationLog.error("Invalid vr type", type, "- using US");
+                validationLog.info("Invalid vr type", type, "- using US");
                 vr = VRinstances["US"];
             } else {
-                validationLog.error("Invalid vr type", type, "- using UN");
+                validationLog.info("Invalid vr type", type, "- using UN");
                 vr = VRinstances["UN"];
             }
         }
