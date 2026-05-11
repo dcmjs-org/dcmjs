@@ -5,10 +5,7 @@ const { AsyncDicomReader } = dcmjs.async;
 
 const EXPLICIT_LITTLE_ENDIAN = "1.2.840.10008.1.2.1";
 const TEST_UV_TAG = "00111011";
-const TEST_UV_VALUES = [
-    BigInt("9007199254741992"),
-    BigInt("9007199254741993")
-];
+const TEST_UV_VALUES = [BigInt("9007199254741992"), BigInt("9007199254741993")];
 
 DicomDict.setDicomMessageClass(DicomMessage);
 
