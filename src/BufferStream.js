@@ -156,6 +156,12 @@ export class BufferStream {
         return this.increment(4);
     }
 
+    writeBigUint64(value) {
+        this.checkSize(8);
+        this.view.setBigUint64(this.offset, value, this.isLittleEndian);
+        return this.increment(8);
+    }
+
     writeFloat(value) {
         this.checkSize(4);
         this.view.setFloat32(this.offset, toFloat(value), this.isLittleEndian);
@@ -185,6 +191,12 @@ export class BufferStream {
             this.view.setUint8(startOffset + i, charCode);
         }
         return this.increment(len);
+    }
+
+    readBigUint64() {
+        var val = this.view.getBigUint64(this.offset, this.isLittleEndian);
+        this.increment(8);
+        return val;
     }
 
     readUint32() {
