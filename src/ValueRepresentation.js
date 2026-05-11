@@ -65,7 +65,7 @@ function toWindows(inputArray, size) {
 
 let DicomMessage, Tag, DicomMetaDictionary;
 
-var binaryVRs = ["FL", "FD", "SL", "SS", "UL", "US", "AT"],
+var binaryVRs = ["FL", "FD", "SL", "SS", "UL", "US", "AT", "UV"],
     length32VRs = ["OB", "OW", "OF", "SQ", "UC", "UR", "UT", "UN", "OD", "UV"],
     singleVRs = ["SQ", "OF", "OW", "OB", "UN"];
 

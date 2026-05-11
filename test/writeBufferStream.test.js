@@ -61,7 +61,10 @@ describe("WriteBufferStream Tests", () => {
         }
         expect(stream.view.buffers.length).toBe(Math.ceil((512 * 8) / 25));
         for (let i = 0; i < 512; i++) {
-            const actual = stream.view.getBigUint64(i * 8, stream.isLittleEndian);
+            const actual = stream.view.getBigUint64(
+                i * 8,
+                stream.isLittleEndian
+            );
             expect(actual).toBe(expected[i]);
         }
     });

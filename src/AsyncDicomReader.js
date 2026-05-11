@@ -757,7 +757,8 @@ export class AsyncDicomReader {
             values = ["ISO_IR 192"];
         }
 
-        values.forEach(value => listener.value(value));
+        const valuesForListener = Array.isArray(values) ? values : [values];
+        valuesForListener.forEach(value => listener.value(value));
         return values;
     }
 }
