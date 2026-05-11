@@ -319,7 +319,7 @@ class MeasurementStatisticalProperties extends Template {
 
 class NormalRangeProperties extends Template {
     constructor(options) {
-        super(options);
+        super();
         if (options.values === undefined) {
             throw new Error(
                 "Option 'values' is required for NormalRangeProperties."
@@ -796,7 +796,7 @@ class SubjectContextSpecimen extends Template {
 
 class SubjectContextDevice extends Template {
     constructor(options) {
-        super(options);
+        super();
         if (options.name === undefined) {
             throw new Error(
                 "Option 'name' is required for SubjectContextDevice."
@@ -1164,7 +1164,7 @@ class VolumetricROIMeasurementsAndQualitativeEvaluations extends _ROIMeasurement
 
 class MeasurementsDerivedFromMultipleROIMeasurements extends Template {
     constructor(options) {
-        super(options);
+        super();
         if (options.derivation === undefined) {
             throw new Error(
                 "Option 'derivation' is required for " +
@@ -1433,7 +1433,7 @@ class MeasurementReport extends Template {
 
 class TimePointContext extends Template {
     constructor(options) {
-        super(options);
+        super();
         if (options.timePoint === undefined) {
             throw new Error(
                 "Option 'timePoint' is required for TimePointContext."
@@ -1588,7 +1588,7 @@ class AlgorithmIdentification extends Template {
 
 class TrackingIdentifier extends Template {
     constructor(options) {
-        super(options);
+        super();
         if (options.uid === undefined) {
             throw new Error("Option 'uid' is required for TrackingIdentifier.");
         }

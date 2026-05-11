@@ -1356,6 +1356,29 @@ class UnsignedLong extends ValueRepresentation {
     }
 }
 
+class Unsigned64BitVeryLong extends ValueRepresentation {
+    constructor() {
+        super("UV");
+        this.maxLength = 8;
+        this.padByte = PADDING_NULL;
+        this.fixed = true;
+        this.defaultValue = 0;
+    }
+
+    readBytes(stream) {
+        return stream.readBigUint64();
+    }
+
+    writeBytes(stream, value, writeOptions) {
+        return super.writeBytes(
+            stream,
+            value,
+            super.write(stream, "BigUint64", value),
+            writeOptions
+        );
+    }
+}
+
 class UniqueIdentifier extends AsciiStringRepresentation {
     constructor() {
         super("UI");
@@ -1524,7 +1547,8 @@ let VRinstances = {
     UN: new UnknownValue(),
     UR: new UniversalResource(),
     US: new UnsignedShort(),
-    UT: new UnlimitedText()
+    UT: new UnlimitedText(),
+    UV: new Unsigned64BitVeryLong()
 };
 
 ValueRepresentation.singleVRs = singleVRs;

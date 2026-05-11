@@ -754,9 +754,17 @@ export class AsyncDicomReader {
                     throw Error(`Unsupported character set: ${coding}`);
                 }
             }
+            // Normalize to UTF-8 in the stored value, matching the synchronous
+            // DicomMessage path which always rewrites SpecificCharacterSet to
+            // ISO_IR 192 after decoding (dcmjs always re-encodes output as UTF-8).
+            //
+            // TODO: the original charset value should also be preserved:
+            // it is needed for bulk data decoding.
+            values = ["ISO_IR 192"];
         }
 
-        values.forEach(value => listener.value(value));
+        const valuesForListener = Array.isArray(values) ? values : [values];
+        valuesForListener.forEach(value => listener.value(value));
         return values;
     }
 }
