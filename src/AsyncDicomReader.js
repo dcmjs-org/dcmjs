@@ -267,6 +267,16 @@ export class AsyncDicomReader {
             // current tag can be cleared.
             stream.consume();
             const tagInfo = this.readTagHeader(options);
+
+            // Stop when the requested tag boundary is reached.  readTagHeader()
+            // has already consumed the 4-byte tag but nothing beyond it, so
+            // stream.offset now points at the first byte after the tag (i.e.
+            // the VR field for explicit-LE).  Callers that need the start
+            // offset of the tag itself should subtract 4 from stream.offset.
+            if (tagInfo.isUntilTag) {
+                break;
+            }
+
             const { tag, tagObj, length } = tagInfo;
 
             if (tag === TagHex.ItemDelimitationEnd) {
@@ -627,7 +637,7 @@ export class AsyncDicomReader {
 
         if (untilTag && untilTag === tag) {
             if (!includeUntilTagValue) {
-                return { tag, tagObj, vr: 0, values: 0, untilTag: true };
+                return { tag, tagObj, vr: 0, values: 0, isUntilTag: true };
             }
         }
 
