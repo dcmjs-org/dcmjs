@@ -313,14 +313,19 @@ export class AsyncDicomReader {
 
     async readSequence(listener, sqTagInfo, options) {
         const { length } = sqTagInfo;
-        const { stream, syntax } = this;
+        const { stream } = this;
+        const sequenceReadSyntax =
+            sqTagInfo.sequenceReadSyntax ?? options?.readSyntax ?? this.syntax;
         const endOffset =
             length === UNDEFINED_LENGTH_FIX
                 ? Number.MAX_SAFE_INTEGER
                 : stream.offset + length;
         while (stream.offset < endOffset && (await stream.ensureAvailable())) {
             readLog.debug("readSequence loop", stream.offset, endOffset);
-            const tagInfo = this.readTagHeader(syntax, options);
+            const tagInfo = this.readTagHeader({
+                ...options,
+                readSyntax: sequenceReadSyntax
+            });
             const { tag } = tagInfo;
             if (tag === TagHex.Item) {
                 listener.startObject();
@@ -337,7 +342,8 @@ export class AsyncDicomReader {
                         : Math.min(stream.offset + itemLength, endOffset);
                 await this.read(listener, {
                     ...options,
-                    untilOffset: itemUntilOffset
+                    untilOffset: itemUntilOffset,
+                    readSyntax: sequenceReadSyntax
                 });
             } else if (tag === TagHex.SequenceDelimitationEnd) {
                 // Sequence of undefined lengths end in sequence delimitation item
@@ -627,10 +633,11 @@ export class AsyncDicomReader {
             includeUntilTagValue: false
         }
     ) {
-        const { stream, syntax } = this;
+        const { stream } = this;
         const { untilTag, includeUntilTagValue } = options;
-        const implicit = syntax == IMPLICIT_LITTLE_ENDIAN;
-        const isLittleEndian = syntax !== EXPLICIT_BIG_ENDIAN;
+        const effectiveSyntax = options?.readSyntax ?? this.syntax;
+        const implicit = effectiveSyntax == IMPLICIT_LITTLE_ENDIAN;
+        const isLittleEndian = effectiveSyntax !== EXPLICIT_BIG_ENDIAN;
         stream.setEndian(isLittleEndian);
         const tagObj = Tag.readTag(stream);
         const tag = tagObj.cleanString;
@@ -644,6 +651,7 @@ export class AsyncDicomReader {
         let length = null;
         let vr = null;
         let vrType;
+        let wireVrType = null;
 
         const isCommand = tagObj.group() === 0;
         if (tagObj.isInstruction()) {
@@ -675,6 +683,7 @@ export class AsyncDicomReader {
             vr = ValueRepresentation.createByTypeString(vrType);
         } else {
             vrType = stream.readVR();
+            wireVrType = vrType;
 
             if (vrType === "UN" && DicomMessage.lookupTag(tagObj)?.vr) {
                 vrType = DicomMessage.lookupTag(tagObj).vr;
@@ -692,6 +701,19 @@ export class AsyncDicomReader {
             }
         }
 
+        let sequenceReadSyntax;
+        if (
+            !implicit &&
+            wireVrType === "UN" &&
+            length > 0 &&
+            length !== UNDEFINED_LENGTH &&
+            stream.peekUint8(0) === 0xfe &&
+            stream.peekUint8(1) === 0xff
+        ) {
+            vr = ValueRepresentation.createByTypeString("SQ");
+            sequenceReadSyntax = IMPLICIT_LITTLE_ENDIAN;
+        }
+
         const punctuatedTag = DicomMetaDictionary.punctuateTag(tag);
         const entry = DicomMetaDictionary.dictionary[punctuatedTag];
 
@@ -703,7 +725,8 @@ export class AsyncDicomReader {
             tagObj,
             vm: entry?.vm,
             name: entry?.name,
-            length: length === UNDEFINED_LENGTH ? -1 : length
+            length: length === UNDEFINED_LENGTH ? -1 : length,
+            ...(sequenceReadSyntax !== undefined && { sequenceReadSyntax })
         };
         return header;
     }
@@ -716,7 +739,8 @@ export class AsyncDicomReader {
      */
     async readSingle(tagInfo, listener, options) {
         const { length } = tagInfo;
-        const { stream, syntax } = this;
+        const { stream } = this;
+        const readSyntax = options?.readSyntax ?? this.syntax;
         await this.stream.ensureAvailable(length);
         const vr = ValueRepresentation.createByTypeString(tagInfo.vr);
         let values = [];
@@ -725,11 +749,11 @@ export class AsyncDicomReader {
             let i = 0;
             while (i++ < times) {
                 readLog.trace("readSingle multi-value loop", i, times);
-                const { value } = vr.read(stream, vr.maxLength, syntax);
+                const { value } = vr.read(stream, vr.maxLength, readSyntax);
                 values.push(value);
             }
         } else {
-            const value = vr.read(stream, length, syntax)?.value;
+            const value = vr.read(stream, length, readSyntax)?.value;
             if (!vr.isBinary() && singleVRs.indexOf(vr.type) == -1) {
                 values = value;
                 if (typeof value === "string") {

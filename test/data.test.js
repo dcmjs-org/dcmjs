@@ -21,6 +21,11 @@ import {
     PADDING_SPACE
 } from "./../src/constants/dicom.js";
 
+import {
+    createPs352UnSequenceDatasetElementBuffer,
+    PS352_UN_SEQUENCE_UDI
+} from "./helper/ps352UnSequenceFixture.js";
+
 const { DicomMetaDictionary, DicomDict, DicomMessage, ReadBufferStream } =
     dcmjs.data;
 
@@ -1775,63 +1780,25 @@ describe("test OtherDouble ValueRepresentation", () => {
     });
 });
 
-// DICOM PS3.5 §6.2.2: an Explicit VR element encoded as UN with a defined
+// DICOM PS3.5 6.2.2: an Explicit VR element encoded as UN with a defined
 // length must be parsed using Implicit VR Little Endian when its payload
 // begins with the item-start delimiter 0xFFFEE000.
-it("parses a UN-encoded sequence (VR=UN, defined length) using Implicit VR LE per PS3.5 §6.2.2", () => {
-    // ---------- build the item payload (Implicit VR LE) ----------
-    // Tag (0018,1009) UniqueDeviceIdentifier — 4 bytes LE
-    const udi = "*+B220INTUITION040/$$+7INTUITION4.10.1%*"; // 40 chars
-    const udiBytes = new Uint8Array(udi.length);
-    for (let i = 0; i < udi.length; i++) udiBytes[i] = udi.charCodeAt(i);
+it("parses a UN-encoded sequence (VR=UN, defined length) using Implicit VR LE per PS3.5 6.2.2", () => {
+    const unElement = createPs352UnSequenceDatasetElementBuffer();
 
-    // item payload: tag (0018,1009) + 4-byte length + value
-    const itemPayload = new Uint8Array(4 + 4 + udi.length);
-    const ipView = new DataView(itemPayload.buffer);
-    ipView.setUint16(0, 0x0018, true); // group
-    ipView.setUint16(2, 0x1009, true); // element
-    ipView.setUint32(4, udi.length, true); // length
-    itemPayload.set(udiBytes, 8);
-
-    // ---------- wrap in an SQ item (Implicit VR LE item tags) ----------
-    // item start: (FFFE,E000) + 4-byte length
-    const itemBytes = new Uint8Array(4 + 4 + itemPayload.length);
-    const ibView = new DataView(itemBytes.buffer);
-    ibView.setUint16(0, 0xfffe, true); // group  → FE FF
-    ibView.setUint16(2, 0xe000, true); // element → 00 E0
-    ibView.setUint32(4, itemPayload.length, true);
-    itemBytes.set(itemPayload, 8);
-
-    // ---------- wrap as Explicit VR UN element ----------
-    // tag (0018,100A) UDISequence, VR="UN", 2 reserved bytes, 4-byte length
-    const unElement = new Uint8Array(4 + 2 + 2 + 4 + itemBytes.length);
-    const ueView = new DataView(unElement.buffer);
-    ueView.setUint16(0, 0x0018, true); // group
-    ueView.setUint16(2, 0x100a, true); // element
-    unElement[4] = 0x55; // 'U'
-    unElement[5] = 0x4e; // 'N'
-    ueView.setUint16(6, 0, true); // reserved
-    ueView.setUint32(8, itemBytes.length, true); // 4-byte length (UN uses 32-bit)
-    unElement.set(itemBytes, 12);
-
-    // ---------- parse ----------
-    const stream = new ReadBufferStream(unElement.buffer, true);
+    const stream = new ReadBufferStream(unElement, true);
     const result = DicomMessage._readTag(stream, EXPLICIT_LITTLE_ENDIAN);
 
-    // should have been promoted to SQ
     expect(result.vr.type).toBe("SQ");
 
-    // values must be a non-empty array of parsed item datasets (not [{} empty])
     expect(Array.isArray(result.values)).toBe(true);
     expect(result.values.length).toBeGreaterThan(0);
 
-    // the inner item must contain the UDI tag with the correct value
     const item = result.values[0];
     const udiTagKey = Object.keys(item).find(
         k => k.toUpperCase() === "00181009"
     );
     expect(udiTagKey).toBeTruthy();
-    // (0018,1009) is VR=UT in the dictionary, so implicit VR parsing returns a string
     const udiValue = item[udiTagKey].Value[0];
-    expect(udiValue.trimEnd()).toBe(udi);
+    expect(udiValue.trimEnd()).toBe(PS352_UN_SEQUENCE_UDI);
 });
