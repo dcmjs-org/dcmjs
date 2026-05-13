@@ -75,9 +75,9 @@
         "xml2js": "0.6.2"
     },
     "dependencies": {
-        "@babel/runtime-corejs3": "7.23.8",
-        "adm-zip": "0.5.10",
-        "gl-matrix": "3.4.3",
+        "@babel/runtime-corejs3": "7.29.2",
+        "adm-zip": "0.5.17",
+        "gl-matrix": "3.4.4",
         "lodash.clonedeep": "4.5.0",
         "loglevel": "1.9.2",
         "ndarray": "1.0.19",
