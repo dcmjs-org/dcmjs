@@ -67,7 +67,7 @@ The same versions can be installed with `npm install` or Yarn in **your** projec
 
 ## For Developers
 
-Building and testing this repository requires **[pnpm](https://pnpm.io/)**. The supported version is pinned under `packageManager` in `package.json`. With Node.js 16.13+, enable [Corepack](https://nodejs.org/api/corepack.html) and use pnpm for every install and script:
+Building and testing this repository requires **[pnpm](https://pnpm.io/)** and **Node.js 20 or newer** (Rollup’s dependency chain expects a modern `crypto` global; CI runs tests on Node 20 and 24, and runs the production Rollup build on Node 24). The pnpm version is pinned under `packageManager` in `package.json`. Enable [Corepack](https://nodejs.org/api/corepack.html) (`corepack enable`) and use pnpm for every install and script:
 
 ```bash
 corepack enable

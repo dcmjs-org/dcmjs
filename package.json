@@ -21,6 +21,9 @@
         "example": "examples"
     },
     "packageManager": "pnpm@9.15.9",
+    "engines": {
+        "node": ">=20"
+    },
     "scripts": {
         "prepare": "husky",
         "install:update-lockfile": "pnpm install --no-frozen-lockfile",
