@@ -21,6 +21,11 @@ import {
     PADDING_SPACE
 } from "./../src/constants/dicom.js";
 
+import {
+    createPs352UnSequenceDatasetElementBuffer,
+    PS352_UN_SEQUENCE_UDI
+} from "./helper/ps352UnSequenceFixture.js";
+
 const { DicomMetaDictionary, DicomDict, DicomMessage, ReadBufferStream } =
     dcmjs.data;
 
@@ -1773,4 +1778,27 @@ describe("test OtherDouble ValueRepresentation", () => {
         expect(data.dict["00701B02"]).toBeTruthy();
         expect(data.dict["00701B02"].Value[0]).toBe(1);
     });
+});
+
+// DICOM PS3.5 6.2.2: an Explicit VR element encoded as UN with a defined
+// length must be parsed using Implicit VR Little Endian when its payload
+// begins with the item-start delimiter 0xFFFEE000.
+it("parses a UN-encoded sequence (VR=UN, defined length) using Implicit VR LE per PS3.5 6.2.2", () => {
+    const unElement = createPs352UnSequenceDatasetElementBuffer();
+
+    const stream = new ReadBufferStream(unElement, true);
+    const result = DicomMessage._readTag(stream, EXPLICIT_LITTLE_ENDIAN);
+
+    expect(result.vr.type).toBe("SQ");
+
+    expect(Array.isArray(result.values)).toBe(true);
+    expect(result.values.length).toBeGreaterThan(0);
+
+    const item = result.values[0];
+    const udiTagKey = Object.keys(item).find(
+        k => k.toUpperCase() === "00181009"
+    );
+    expect(udiTagKey).toBeTruthy();
+    const udiValue = item[udiTagKey].Value[0];
+    expect(udiValue.trimEnd()).toBe(PS352_UN_SEQUENCE_UDI);
 });
