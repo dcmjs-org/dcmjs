@@ -1,11 +1,15 @@
-name: Run lint and format check
+name: pnpm audit
 
 on:
-  - push
-  - pull_request
+  push:
+    paths:
+      - "pnpm-lock.yaml"
+  pull_request:
+    paths:
+      - "pnpm-lock.yaml"
 
 jobs:
-  lint-and-format:
+  audit:
     runs-on: ubuntu-latest
     env:
       PNPM_CONFIG_FROZEN_LOCKFILE: "true"
@@ -28,8 +32,5 @@ jobs:
       - name: Install packages
         run: pnpm install
 
-      - name: Run ESLint
-        run: pnpm lint
-
-      - name: Check Prettier formatting
-        run: pnpm format:check
+      - name: Audit (fail on high or critical)
+        run: pnpm audit --audit-level=high

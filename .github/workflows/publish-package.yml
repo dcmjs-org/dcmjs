@@ -15,6 +15,8 @@ jobs:
   publish-package:
     runs-on: ubuntu-latest
     environment: publish
+    env:
+      PNPM_CONFIG_FROZEN_LOCKFILE: "true"
 
     steps:
       - name: Checkout repository
@@ -22,20 +24,26 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 24
           registry-url: 'https://registry.npmjs.org'
+          cache: pnpm
 
       - name: Install packages
-        uses: bahmutov/npm-install@v1
+        run: pnpm install
 
       - name: Run tests
-        run: npm run test
+        run: pnpm test
 
       - name: Run build
-        run: npm run build
+        run: pnpm build
 
       - name: Semantic release
         uses: cycjimmy/semantic-release-action@v6

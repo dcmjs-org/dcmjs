@@ -10,7 +10,7 @@
   # This is where we will look for package.json/.nvmrc/etc.
   base = ""
   publish = "examples/"
-  command = "npm run build:examples"
+  command = "pnpm run build:examples"
   environment = { NODE_VERSION = "18.18.0" }
 
 # Deploy Preview context: all deploys generated from a pull/merge request will
@@ -18,5 +18,5 @@
 [context.deploy-preview]
   base = ""
   publish = "examples/"
-  command = "npm run build:examples"
+  command = "pnpm run build:examples"
   environment = { NODE_VERSION = "18.18.0" }
