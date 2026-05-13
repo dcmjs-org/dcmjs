@@ -7,15 +7,11 @@
 
 import { DicomDict } from "../../src/DicomDict.js";
 import { DicomMessage } from "../../src/DicomMessage.js";
-import {
-    EXPLICIT_LITTLE_ENDIAN,
-    TagHex
-} from "../../src/constants/dicom.js";
+import { EXPLICIT_LITTLE_ENDIAN, TagHex } from "../../src/constants/dicom.js";
 
 DicomDict.setDicomMessageClass(DicomMessage);
 
-export const PS352_UN_SEQUENCE_UDI =
-    "*+B220INTUITION040/$$+7INTUITION4.10.1%*";
+export const PS352_UN_SEQUENCE_UDI = "*+B220INTUITION040/$$+7INTUITION4.10.1%*";
 
 /**
  * @returns {ArrayBuffer} UN element value only (item wrapper + implicit item dataset).
