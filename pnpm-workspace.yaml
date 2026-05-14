@@ -1,0 +1,6 @@
+# pnpm 11+ requires an explicit decision for dependencies with install scripts (see allowBuilds).
+packages:
+  - "."
+
+allowBuilds:
+  core-js-pure: false
