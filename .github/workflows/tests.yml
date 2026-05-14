@@ -10,7 +10,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node-version: [20, 24]
+        node-version: [22, 24]
     env:
       PNPM_CONFIG_FROZEN_LOCKFILE: "true"
 
