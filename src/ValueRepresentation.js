@@ -1,10 +1,6 @@
 import { ReadBufferStream, WriteBufferStream } from "./BufferStream.js";
-import {
-    PADDING_NULL,
-    PADDING_SPACE,
-    PN_COMPONENT_DELIMITER,
-    VM_DELIMITER
-} from "./constants/dicom.js";
+import { PN_COMPONENT_DELIMITER, VM_DELIMITER } from "./constants/dicom.js";
+import { defaultPadding, padBytes } from "./constants/padding";
 import { log, validationLog } from "./log.js";
 import dicomJson from "./utilities/dicomJson.js";
 
@@ -69,6 +65,74 @@ var binaryVRs = ["FL", "FD", "SL", "SS", "UL", "US", "AT", "UV"],
     length32VRs = ["OB", "OW", "OF", "SQ", "UC", "UR", "UT", "UN", "OD", "UV"],
     singleVRs = ["SQ", "OF", "OW", "OB", "UN"];
 
+/**
+ * ## [6.2 Value Representation (VR)](https://dicom.nema.org/medical/dicom/current/output/html/part05.html#sect_6.2)
+ * The Value Representation of a Data Element describes the data type and format of that Data Element's Value(s).
+ * [PS3.6](https://dicom.nema.org/medical/dicom/current/output/html/part06.html#PS3.6) lists the VR of each Data Element by
+ * Data Element Tag.
+ *
+ * **Values with VRs constructed of character strings, except in the case of the VR UI, shall be padded with SPACE
+ * characters (20H, in the Default Character Repertoire) when necessary to achieve even length. Values with a VR
+ * of UI shall be padded with a single trailing NULL (00H) character when necessary to achieve even length.
+ * Values with a VR of OB shall be padded with a single trailing NULL byte value (00H) when necessary to achieve
+ * even length.**
+ *
+ * All new VRs defined in future versions of DICOM shall be of the same Data Element Structure as defined in
+ * [Section 7.1.2](https://dicom.nema.org/medical/dicom/current/output/html/part05.html#sect_7.1.2)
+ * (i.e., following the format for VRs such as OB, OW, SQ and UN).
+ *
+ * ### Note
+ *
+ * 1. *Since all new VRs will be defined as specified in
+ * [Section 7.1.2](https://dicom.nema.org/medical/dicom/current/output/html/part05.html#sect_7.1.2), an
+ * implementation may choose to ignore VRs not recognized by applying the rules stated in
+ * [Section 7.1.2](https://dicom.nema.org/medical/dicom/current/output/html/part05.html#sect_7.1.2).*
+ *
+ * 2. *When converting a Data Set from an Explicit VR Transfer Syntax to a different Transfer Syntax, an
+ * implementation may copy Data Elements with unrecognized VRs in the following manner:*
+ *      -   *If the endianness of the Transfer Syntaxes is the same, the Value of the Data Element may be copied
+ *      unchanged and if the target Transfer Syntax is Explicit VR, the VR bytes copied unchanged. In practice
+ *      this only applies to Little Endian Transfer Syntaxes, since there was only one Big Endian Transfer Syntax
+ *      defined.*
+ *      -   *If the source Transfer Syntax is Little Endian and the target Transfer Syntax is the (retired)
+ *      Big Endian Explicit VR Transfer Syntax, then the Value of the Data Element may be copied unchanged and
+ *      the VR changed to UN, since being unrecognized, whether or not byte swapping is required is unknown. If the
+ *      VR were copied unchanged, the byte order of the Value might or might not be incorrect.*
+ *      -   *If the source Transfer Syntax is the (retired) Big Endian Explicit VR Transfer Syntax, then the
+ *      Data Element cannot be copied, because whether or not byte swapping is required is unknown, and there is
+ *      no equivalent of the UN VR to use when the Value is big endian rather than little endian.*
+ *
+ * *The issues of whether or not the Data Element may be copied, and what VR to use if copying, do not arise when
+ * converting a Data Set from Implicit VR Little Endian Transfer Syntax, since the VR would not be present to be
+ * unrecognized, and if the Data Element VR is not known from a data dictionary, then UN would be used.*
+ *
+ * An individual Value, including padding, shall not exceed the Length of Value, except in the case of the last
+ * Value of a multi-valued field as specified in [Section 6.4](https://dicom.nema.org/medical/dicom/current/output/html/part05.html#sect_6.4).
+ *
+ *
+ * ### Note
+ * The lengths of Value Representations for which the Character Repertoire can be extended or replaced are
+ * expressly specified in characters rather than bytes in
+ * [Table 6.2-1](https://dicom.nema.org/medical/dicom/current/output/html/part05.html#table_6.2-1). This is because
+ * the mapping from a character to the number of bytes used for that character's encoding may be dependent on the
+ * character set used.
+ *
+ * Escape Sequences used for Code Extension shall not be included in the count of characters.
+ *
+ * ### Note
+ * 1. *For Data Elements that were present in ACR-NEMA 1.0 and 2.0 and that have been retired, the specifications
+ * of Value Representation and Value Multiplicity provided are recommendations for the purpose of interpreting
+ * their Values in objects created in accordance with earlier versions of this Standard. These recommendations are
+ * suggested as most appropriate for a particular Data Element; however, there is no guarantee that historical
+ * objects will not violate some requirements or specified VR and/or VM.*
+ *
+ * 2. *The length of the Value of UC, UR and UT VRs is limited only by the size of the maximum unsigned integer
+ * representable in a 32 bit VL field minus two, since FFFFFFFFH is reserved and lengths are required to be even.*
+ *
+ * 3. *In previous editions of the Standard (see PS3.5-2015a), the TAB character was not listed as permitted for
+ * the ST, LT and UT VRs. It has been added for the convenience of formatting and the encoding of XML text.*
+ *
+ */
 class ValueRepresentation {
     constructor(type) {
         this.type = type;
@@ -78,6 +142,7 @@ class ValueRepresentation {
             !this._isBinary && singleVRs.indexOf(this.type) == -1;
         this._isLength32 = length32VRs.indexOf(this.type) != -1;
         this._storeRaw = true;
+        this._padByte = ValueRepresentation.selectPadByte(type);
     }
 
     static setDicomMessageClass(dicomMessageClass) {
@@ -90,6 +155,10 @@ class ValueRepresentation {
 
     static setTagClass(tagClass) {
         Tag = tagClass;
+    }
+
+    static selectPadByte(type) {
+        return padBytes.has(type) ? padBytes.get(type) : defaultPadding;
     }
 
     isBinary() {
@@ -169,14 +238,14 @@ class ValueRepresentation {
      */
     dropPadByte(values) {
         const maxLength = this.maxLength ?? this.maxCharLength;
-        if (!Array.isArray(values) || !maxLength || !this.padByte) {
+        if (!Array.isArray(values) || !maxLength || !this._padByte) {
             return values;
         }
 
         // Only consider multiple-value data elements, as max length issues arise from a delimiter
         // making the total length odd and necessitating a padding byte.
         if (values.length > 1) {
-            const padChar = String.fromCharCode(this.padByte);
+            const padChar = String.fromCharCode(this._padByte);
             const lastIdx = values.length - 1;
             const lastValue = values[lastIdx];
 
@@ -222,12 +291,12 @@ class ValueRepresentation {
     }
 
     readBytes(stream, length) {
-        return stream.readAsciiString(length);
+        return super.readPaddedAsciiString(stream, length);
     }
 
     readPaddedAsciiString(stream, length) {
         if (!length) return "";
-        if (stream.peekUint8(length - 1) !== this.padByte) {
+        if (stream.peekUint8(length - 1) !== this._padByte || this._storeRaw) {
             return stream.readAsciiString(length);
         } else {
             var val = stream.readAsciiString(length - 1);
@@ -240,8 +309,9 @@ class ValueRepresentation {
         if (!length) return "";
         const val = stream.readEncodedString(length);
         if (
-            val.length &&
-            val[val.length - 1] !== String.fromCharCode(this.padByte)
+            (val.length &&
+                val[val.length - 1] !== String.fromCharCode(this._padByte)) ||
+            this._storeRaw
         ) {
             return val;
         } else {
@@ -249,85 +319,101 @@ class ValueRepresentation {
         }
     }
 
-    write(stream, type) {
-        var args = Array.from(arguments);
-        if (args[2] === null || args[2] === "" || args[2] === undefined) {
-            return [stream.writeAsciiString("")];
+    /**
+     * Write array of values into stream with `ValueMultiplicity Delimiter`.
+     *
+     * ### Cases & Expected Behavior:
+     *
+     *  - If `value` is an `Array`:
+     *      - with `valueArgs = ["1.2.840.10008.1.2.1"]` => `singularArgs = Array(1) [1.2.840.10008.1.2.1]`
+     *      - with `valueArgs = ["1.2.840.10008.1.2.1"]` and `multiplicity = true` => `Array(1) [1.2.840.10008.1.2.1]`, `buffer => "1.2.840.10008.1.2.1"`
+     *      - with `valueArgs = ["5", "10"]` and `multiplicity = true` => `Array(1) ["5", "10"]`, `buffer => "5\\10"`
+     *  - Else:
+     *      - **write value**
+     *
+     * @param {BufferStream} stream
+     * @param {string} type
+     * @param {any | any[]} value
+     * @returns {*[]}
+     */
+    write(stream, type, value) {
+        const func = stream["write" + type];
+        let written = 0;
+
+        if (value === null || value === "" || value === undefined) {
+            return stream.writeAsciiString("");
         } else {
-            var written = [],
-                valueArgs = args.slice(2),
-                func = stream["write" + type];
-            if (Array.isArray(valueArgs[0])) {
-                if (valueArgs[0].length < 1) {
-                    written.push(0);
-                } else {
-                    var self = this;
-                    valueArgs[0].forEach(function (v, k) {
+            if (Array.isArray(value)) {
+                if (value.length >= 1) {
+                    const self = this;
+                    value.forEach(function (v, k) {
                         if (self.allowMultiple() && k > 0) {
                             stream.writeUint8(VM_DELIMITER);
+                            written++;
                         }
-                        var singularArgs = [v].concat(valueArgs.slice(1));
-                        var byteCount = func.apply(stream, singularArgs);
-                        written.push(byteCount);
+                        written += func.apply(stream, [v]);
                     });
                 }
             } else {
-                written.push(func.apply(stream, valueArgs));
+                written += func.apply(stream, [value]);
             }
             return written;
         }
     }
 
+    /**
+     * Method for validating value size and writing padding bytes as needed.
+     *
+     * **Values with VRs constructed of character strings, except in the case of the VR UI, shall be padded with SPACE
+     * characters (20H, in the Default Character Repertoire) when necessary to achieve even length. Values with a VR
+     * of UI shall be padded with a single trailing NULL (00H) character when necessary to achieve even length.
+     * Values with a VR of OB shall be padded with a single trailing NULL byte value (00H) when necessary to achieve
+     * even length.**
+     *
+     * @param {BufferStream} stream
+     * @param {any} value
+     * @param {number} length
+     * @param {Object} writeOptions
+     * @returns {number}
+     */
     writeBytes(
         stream,
         value,
-        lengths,
+        length,
         writeOptions = { allowInvalidVRLength: false }
     ) {
         const { allowInvalidVRLength } = writeOptions;
-        var valid = true,
-            valarr = Array.isArray(value) ? value : [value],
+        // Probably should be false by default and then truly confirm sizes.
+        let valid = value === null || allowInvalidVRLength,
             total = 0;
 
-        for (var i = 0; i < valarr.length; i++) {
-            var checkValue = valarr[i],
-                checklen = lengths[i],
-                isString = false,
-                displaylen = checklen;
-            if (checkValue === null || allowInvalidVRLength) {
-                valid = true;
-            } else if (this.checkLength) {
-                valid = this.checkLength(checkValue);
-            } else if (this.maxCharLength) {
-                var check = this.maxCharLength; //, checklen = checkValue.length;
-                valid = checkValue.length <= check;
-                displaylen = checkValue.length;
-                isString = true;
-            } else if (this.maxLength) {
-                valid = checklen <= this.maxLength;
-            }
+        let isString = false;
+        if (this.checkLength) {
+            valid = this.checkLength(value);
+        } else if (this.maxCharLength) {
+            valid = length <= this.maxCharLength;
+            isString = true;
+        } else if (this.maxLength) {
+            valid = length <= this.maxLength;
+        }
 
-            if (!valid) {
-                var errmsg =
-                    "Value exceeds max length, vr: " +
-                    this.type +
-                    ", value: " +
-                    checkValue +
-                    ", length: " +
-                    displaylen;
-                if (isString) log.info(errmsg);
-                else throw new Error(errmsg);
-            }
-            total += checklen;
+        if (!valid) {
+            const errmsg =
+                "Value exceeds max length, vr: " +
+                this.type +
+                ", value: " +
+                value +
+                ", length: " +
+                length;
+            if (isString) log.info(errmsg);
+            else throw new Error(errmsg);
         }
-        if (this.allowMultiple()) {
-            total += valarr.length ? valarr.length - 1 : 0;
-        }
+        total += length;
 
         //check for odd
-        var written = total;
-        if (total & 1) {
-            stream.writeUint8(this.padByte);
+        let written = total;
+        if (total & 1 && this._padByte !== null) {
+            stream.writeUint8(this._padByte);
             written++;
         }
         return written;
@@ -374,7 +460,7 @@ class AsciiStringRepresentation extends ValueRepresentation {
     }
 
     readBytes(stream, length) {
-        return stream.readAsciiString(length);
+        return super.readPaddedAsciiString(stream, length);
     }
 
     writeBytes(stream, value, writeOptions) {
@@ -390,7 +476,7 @@ class EncodedStringRepresentation extends ValueRepresentation {
     }
 
     readBytes(stream, length) {
-        return stream.readEncodedString(length);
+        return super.readPaddedEncodedString(stream, length);
     }
 
     writeBytes(stream, value, writeOptions) {
@@ -475,7 +561,7 @@ class BinaryRepresentation extends ValueRepresentation {
                     binaryStream.concat(fragStream);
 
                     if (addPaddingByte) {
-                        binaryStream.writeInt8(this.padByte);
+                        binaryStream.writeInt8(this._padByte);
                     }
                 }
             }
@@ -496,10 +582,15 @@ class BinaryRepresentation extends ValueRepresentation {
             var binaryData = value[0];
             binaryStream = new ReadBufferStream(binaryData);
             stream.concat(binaryStream);
+            // Make sure we can pass validation of the binary blob since these can be unbounded.
+            this.maxLength = Math.max(
+                binaryData.byteLength,
+                this.maxLength ?? binaryData.byteLength
+            );
             return super.writeBytes(
                 stream,
                 binaryData,
-                [binaryStream.size],
+                binaryStream.size,
                 writeOptions
             );
         }
@@ -640,11 +731,10 @@ class ApplicationEntity extends AsciiStringRepresentation {
     constructor() {
         super("AE");
         this.maxLength = 16;
-        this.padByte = PADDING_SPACE;
     }
 
     readBytes(stream, length) {
-        return stream.readAsciiString(length);
+        return super.readPaddedAsciiString(stream, length);
     }
 
     applyFormatting(value) {
@@ -656,13 +746,12 @@ class CodeString extends AsciiStringRepresentation {
     constructor() {
         super("CS");
         this.maxLength = 16;
-        this.padByte = PADDING_SPACE;
     }
 
     readBytes(stream, length) {
         const BACKSLASH = String.fromCharCode(VM_DELIMITER);
         return this.dropPadByte(
-            stream.readAsciiString(length).split(BACKSLASH)
+            super.readPaddedAsciiString(stream, length).split(BACKSLASH)
         );
     }
 
@@ -681,7 +770,6 @@ class AgeString extends AsciiStringRepresentation {
     constructor() {
         super("AS");
         this.maxLength = 4;
-        this.padByte = PADDING_SPACE;
         this.fixed = true;
         this.defaultValue = "";
     }
@@ -692,7 +780,6 @@ class AttributeTag extends ValueRepresentation {
         super("AT");
         this.maxLength = 4;
         this.valueLength = 4;
-        this.padByte = PADDING_NULL;
         this.fixed = true;
     }
 
@@ -715,7 +802,6 @@ class DateValue extends AsciiStringRepresentation {
         super("DA", value);
         this.maxLength = 8;
         this.rangeMatchingMaxLength = 18;
-        this.padByte = PADDING_SPACE;
         //this.fixed = true;
         this.defaultValue = "";
     }
@@ -735,7 +821,7 @@ class DateValue extends AsciiStringRepresentation {
 class NumericStringRepresentation extends AsciiStringRepresentation {
     readBytes(stream, length) {
         const BACKSLASH = String.fromCharCode(VM_DELIMITER);
-        const numStr = stream.readAsciiString(length);
+        const numStr = super.readPaddedAsciiString(stream, length);
 
         return this.dropPadByte(numStr.split(BACKSLASH));
     }
@@ -745,7 +831,6 @@ class DecimalString extends NumericStringRepresentation {
     constructor() {
         super("DS");
         this.maxLength = 16;
-        this.padByte = PADDING_SPACE;
     }
 
     applyFormatting(value) {
@@ -811,7 +896,6 @@ class DateTime extends AsciiStringRepresentation {
         super("DT");
         this.maxLength = 26;
         this.rangeMatchingMaxLength = 54;
-        this.padByte = PADDING_SPACE;
     }
 
     checkLength(value) {
@@ -830,7 +914,6 @@ class FloatingPointSingle extends ValueRepresentation {
     constructor() {
         super("FL");
         this.maxLength = 4;
-        this.padByte = PADDING_NULL;
         this.fixed = true;
         this.defaultValue = 0.0;
     }
@@ -857,7 +940,6 @@ class FloatingPointDouble extends ValueRepresentation {
     constructor() {
         super("FD");
         this.maxLength = 8;
-        this.padByte = PADDING_NULL;
         this.fixed = true;
         this.defaultValue = 0.0;
     }
@@ -884,7 +966,6 @@ class IntegerString extends NumericStringRepresentation {
     constructor() {
         super("IS");
         this.maxLength = 12;
-        this.padByte = PADDING_SPACE;
     }
 
     applyFormatting(value) {
@@ -917,11 +998,10 @@ class LongString extends EncodedStringRepresentation {
     constructor() {
         super("LO");
         this.maxCharLength = 64;
-        this.padByte = PADDING_SPACE;
     }
 
     readBytes(stream, length) {
-        return stream.readEncodedString(length);
+        return super.readPaddedEncodedString(stream, length);
     }
 
     applyFormatting(value) {
@@ -933,11 +1013,10 @@ class LongText extends EncodedStringRepresentation {
     constructor() {
         super("LT");
         this.maxCharLength = 10240;
-        this.padByte = PADDING_SPACE;
     }
 
     readBytes(stream, length) {
-        return stream.readEncodedString(length);
+        return super.readPaddedEncodedString(stream, length);
     }
 
     applyFormatting(value) {
@@ -949,7 +1028,6 @@ class PersonName extends EncodedStringRepresentation {
     constructor() {
         super("PN");
         this.maxLength = null;
-        this.padByte = PADDING_SPACE;
     }
 
     static checkComponentLengths(components) {
@@ -1041,11 +1119,10 @@ class ShortString extends EncodedStringRepresentation {
     constructor() {
         super("SH");
         this.maxCharLength = 16;
-        this.padByte = PADDING_SPACE;
     }
 
     readBytes(stream, length) {
-        return stream.readEncodedString(length);
+        return super.readPaddedEncodedString(stream, length);
     }
 
     applyFormatting(value) {
@@ -1057,7 +1134,6 @@ class SignedLong extends ValueRepresentation {
     constructor() {
         super("SL");
         this.maxLength = 4;
-        this.padByte = PADDING_NULL;
         this.fixed = true;
         this.defaultValue = 0;
     }
@@ -1080,7 +1156,6 @@ class SequenceOfItems extends ValueRepresentation {
     constructor() {
         super("SQ");
         this.maxLength = null;
-        this.padByte = PADDING_NULL;
         this.noMultiple = true;
         this._storeRaw = false;
     }
@@ -1208,7 +1283,7 @@ class SequenceOfItems extends ValueRepresentation {
         super.write(stream, "Uint32", 0x00000000);
         written += 8;
 
-        return super.writeBytes(stream, value, [written], writeOptions);
+        return super.writeBytes(stream, value, written, writeOptions);
     }
 }
 
@@ -1217,7 +1292,6 @@ class SignedShort extends ValueRepresentation {
         super("SS");
         this.maxLength = 2;
         this.valueLength = 2;
-        this.padByte = PADDING_NULL;
         this.fixed = true;
         this.defaultValue = 0;
     }
@@ -1240,11 +1314,10 @@ class ShortText extends EncodedStringRepresentation {
     constructor() {
         super("ST");
         this.maxCharLength = 1024;
-        this.padByte = PADDING_SPACE;
     }
 
     readBytes(stream, length) {
-        return stream.readEncodedString(length);
+        return super.readPaddedEncodedString(stream, length);
     }
 
     applyFormatting(value) {
@@ -1257,11 +1330,10 @@ class TimeValue extends AsciiStringRepresentation {
         super("TM");
         this.maxLength = 16;
         this.rangeMatchingMaxLength = 28;
-        this.padByte = PADDING_SPACE;
     }
 
     readBytes(stream, length) {
-        return stream.readAsciiString(length);
+        return super.readPaddedAsciiString(stream, length);
     }
 
     applyFormatting(value) {
@@ -1285,11 +1357,10 @@ class UnlimitedCharacters extends EncodedStringRepresentation {
         super("UC");
         this.maxLength = null;
         this.multi = true;
-        this.padByte = PADDING_SPACE;
     }
 
     readBytes(stream, length) {
-        return stream.readEncodedString(length);
+        return super.readPaddedEncodedString(stream, length);
     }
 
     applyFormatting(value) {
@@ -1301,11 +1372,10 @@ class UnlimitedText extends EncodedStringRepresentation {
     constructor() {
         super("UT");
         this.maxLength = null;
-        this.padByte = PADDING_SPACE;
     }
 
     readBytes(stream, length) {
-        return stream.readEncodedString(length);
+        return super.readPaddedEncodedString(stream, length);
     }
 
     applyFormatting(value) {
@@ -1317,7 +1387,6 @@ class UnsignedShort extends ValueRepresentation {
     constructor() {
         super("US");
         this.maxLength = 2;
-        this.padByte = PADDING_NULL;
         this.fixed = true;
         this.defaultValue = 0;
     }
@@ -1340,7 +1409,6 @@ class UnsignedLong extends ValueRepresentation {
     constructor() {
         super("UL");
         this.maxLength = 4;
-        this.padByte = PADDING_NULL;
         this.fixed = true;
         this.defaultValue = 0;
     }
@@ -1386,7 +1454,6 @@ class UniqueIdentifier extends AsciiStringRepresentation {
     constructor() {
         super("UI");
         this.maxLength = 64;
-        this.padByte = PADDING_NULL;
     }
 
     readBytes(stream, length) {
@@ -1426,11 +1493,10 @@ class UniversalResource extends AsciiStringRepresentation {
     constructor() {
         super("UR");
         this.maxLength = null;
-        this.padByte = PADDING_SPACE;
     }
 
     readBytes(stream, length) {
-        return stream.readAsciiString(length);
+        return super.readPaddedAsciiString(stream, length);
     }
 }
 
@@ -1438,7 +1504,6 @@ class UnknownValue extends BinaryRepresentation {
     constructor() {
         super("UN");
         this.maxLength = null;
-        this.padByte = PADDING_NULL;
         this.noMultiple = true;
     }
 }
@@ -1447,7 +1512,6 @@ class ParsedUnknownValue extends BinaryRepresentation {
     constructor(vr) {
         super(vr);
         this.maxLength = null;
-        this.padByte = 0;
         this.noMultiple = true;
         this._isBinary = true;
         this._allowMultiple = false;
@@ -1487,7 +1551,6 @@ class OtherWordString extends BinaryRepresentation {
     constructor() {
         super("OW");
         this.maxLength = null;
-        this.padByte = PADDING_NULL;
         this.noMultiple = true;
     }
 }
@@ -1496,7 +1559,6 @@ class OtherByteString extends BinaryRepresentation {
     constructor() {
         super("OB");
         this.maxLength = null;
-        this.padByte = PADDING_NULL;
         this.noMultiple = true;
     }
 }
@@ -1505,7 +1567,6 @@ class OtherDoubleString extends BinaryRepresentation {
     constructor() {
         super("OD");
         this.maxLength = null;
-        this.padByte = PADDING_NULL;
         this.noMultiple = true;
     }
 }
@@ -1514,7 +1575,6 @@ class OtherFloatString extends BinaryRepresentation {
     constructor() {
         super("OF");
         this.maxLength = null;
-        this.padByte = PADDING_NULL;
         this.noMultiple = true;
     }
 }
