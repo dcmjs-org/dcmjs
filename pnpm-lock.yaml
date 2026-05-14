@@ -42,6 +42,9 @@ importers:
       '@babel/register':
         specifier: 7.23.7
         version: 7.23.7(@babel/core@7.23.7)
+      '@eslint/js':
+        specifier: 9.39.4
+        version: 9.39.4
       '@rollup/plugin-babel':
         specifier: 6.1.0
         version: 6.1.0(@babel/core@7.23.7)(@types/babel__core@7.20.5)(rollup@4.60.3)
