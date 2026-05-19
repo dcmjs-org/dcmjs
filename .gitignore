@@ -1,4 +1,4 @@
-
+.claude
 *.sw*
 *~
 
@@ -6,6 +6,8 @@ node_modules
 .idea
 *.iml
 yarn-error.log
+pnpm-debug.log
 .DS_Store
 build
+examples/js/dcmjs*
 *.code-workspace

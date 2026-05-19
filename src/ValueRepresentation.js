@@ -741,6 +741,12 @@ class NumericStringRepresentation extends AsciiStringRepresentation {
     }
 }
 
+// DS/IS parsing hardening — https://github.com/dcmjs-org/dcmjs/security/advisories/GHSA-px68-xx5g-48q5
+function finiteParsedNumberOrNull(parsed) {
+    const n = Number(parsed);
+    return Number.isFinite(n) ? n : null;
+}
+
 class DecimalString extends NumericStringRepresentation {
     constructor() {
         super("DS");
@@ -750,8 +756,14 @@ class DecimalString extends NumericStringRepresentation {
 
     applyFormatting(value) {
         const formatNumber = numberStr => {
-            let returnVal = numberStr.trim().replace(/[^0-9.\\\-+e]/gi, "");
-            return returnVal === "" ? null : Number(returnVal);
+            if (numberStr === null || numberStr === undefined) {
+                return null;
+            }
+            const returnVal = String(numberStr)
+                .trim()
+                .replace(/[^0-9.\\\-+e]/gi, "");
+            if (returnVal === "") return null;
+            return finiteParsedNumberOrNull(returnVal);
         };
 
         if (Array.isArray(value)) {
@@ -889,8 +901,16 @@ class IntegerString extends NumericStringRepresentation {
 
     applyFormatting(value) {
         const formatNumber = numberStr => {
-            let returnVal = numberStr.trim().replace(/[^0-9.\\\-+e]/gi, "");
-            return returnVal === "" ? null : Number(returnVal);
+            if (numberStr === null || numberStr === undefined) {
+                return null;
+            }
+            const trimmed = String(numberStr).trim();
+            if (trimmed === "") return null;
+            // PS3.5: base-10 integer only (no decimal point, no exponent).
+            if (!/^[+-]?\d+$/.test(trimmed)) {
+                return null;
+            }
+            return finiteParsedNumberOrNull(trimmed);
         };
 
         if (Array.isArray(value)) {
