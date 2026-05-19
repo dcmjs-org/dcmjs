@@ -294,7 +294,8 @@ export class DicomMessage {
 
         var length = null,
             vr = null,
-            vrType;
+            vrType,
+            wireVrType = null; // VR as literally encoded in the stream (explicit mode)
 
         if (implicit) {
             length = stream.readUint32();
@@ -318,6 +319,7 @@ export class DicomMessage {
             vr = ValueRepresentation.createByTypeString(vrType);
         } else {
             vrType = stream.readVR();
+            wireVrType = vrType; // remember literal stream VR before any override
 
             if (
                 vrType === "UN" &&
@@ -339,6 +341,23 @@ export class DicomMessage {
             }
         }
 
+        // DICOM PS3.5 §6.2.2: a UN element with a defined length whose payload
+        // begins with the item-start delimiter (0xFFFE,E000 = FE FF 00 E0 in
+        // Little Endian) must be parsed as a Sequence using Implicit VR LE,
+        // regardless of the file's transfer syntax.
+        let readSyntax = syntax;
+        if (
+            wireVrType === "UN" &&
+            length > 0 &&
+            length !== UNDEFINED_LENGTH &&
+            stream.peekUint8(0) === 0xfe &&
+            stream.peekUint8(1) === 0xff
+        ) {
+            vrType = "SQ";
+            vr = ValueRepresentation.createByTypeString("SQ");
+            readSyntax = IMPLICIT_LITTLE_ENDIAN;
+        }
+
         var values = [];
         var rawValues = [];
         if (vr.isBinary() && length > vr.maxLength && !vr.noMultiple) {
@@ -348,7 +367,7 @@ export class DicomMessage {
                 const { rawValue, value } = vr.read(
                     stream,
                     vr.maxLength,
-                    syntax,
+                    readSyntax,
                     options
                 );
                 rawValues.push(rawValue);
@@ -356,7 +375,7 @@ export class DicomMessage {
             }
         } else {
             const { rawValue, value } =
-                vr.read(stream, length, syntax, options) || {};
+                vr.read(stream, length, readSyntax, options) || {};
             if (!vr.isBinary() && singleVRs.indexOf(vr.type) == -1) {
                 rawValues = rawValue;
                 values = value;
