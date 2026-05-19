@@ -22,7 +22,10 @@ function buildDefinedLengthSQBuffer(itemCodeValues, opts = {}) {
     const { undefinedSeqLength = false, undefinedItemLengths = false } = opts;
 
     // --- Meta header ---
-    const metaBody = new WriteBufferStream(256, true);
+    const metaBody = new WriteBufferStream({
+        defaultSize: 256,
+        littleEndian: true
+    });
     DicomMessage.writeTagObject(
         metaBody,
         TagHex.TransferSyntaxUID,
@@ -33,10 +36,16 @@ function buildDefinedLengthSQBuffer(itemCodeValues, opts = {}) {
     );
 
     // --- Sequence body: item headers + item content ---
-    const seqBody = new WriteBufferStream(4096, true);
+    const seqBody = new WriteBufferStream({
+        defaultSize: 4096,
+        littleEndian: true
+    });
     for (const val of itemCodeValues) {
         // Write item content using the standard writer
-        const itemBody = new WriteBufferStream(256, true);
+        const itemBody = new WriteBufferStream({
+            defaultSize: 256,
+            littleEndian: true
+        });
         DicomMessage.writeTagObject(
             itemBody,
             "00080100",
@@ -69,7 +78,10 @@ function buildDefinedLengthSQBuffer(itemCodeValues, opts = {}) {
     }
 
     // --- Assemble Part 10 ---
-    const file = new WriteBufferStream(8192, true);
+    const file = new WriteBufferStream({
+        defaultSize: 8192,
+        littleEndian: true
+    });
     file.writeUint8Repeat(0, 128);
     file.writeAsciiString("DICM");
     DicomMessage.writeTagObject(

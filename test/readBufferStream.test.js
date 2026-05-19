@@ -49,9 +49,10 @@ describe("ReadBufferStream Tests", () => {
 
     describe("substream", () => {
         it("gets range of buffer", () => {
-            const stream = new ReadBufferStream(buffer, false, {
+            const stream = new ReadBufferStream(buffer, {
                 start: 32,
-                stop: 64
+                stop: 64,
+                littleEndian: false
             });
             expect(stream.available).toBe(32);
             expect(stream.startOffset).toBe(32);
@@ -63,33 +64,34 @@ describe("ReadBufferStream Tests", () => {
         });
 
         it("creates subranges on buffer", () => {
-            const stream = new ReadBufferStream(buffer, false, {
+            const stream = new ReadBufferStream(buffer, {
                 start: 32,
-                stop: 64
+                stop: 64,
+                littleEndian: false
             });
-            const subStream = new ReadBufferStream(
-                stream.buffer,
-                stream.isLittleEndian,
-                { start: stream.offset, stop: stream.size }
-            );
+            const subStream = new ReadBufferStream(stream.buffer, {
+                start: stream.offset,
+                stop: stream.size,
+                littleEndian: stream.isLittleEndian
+            });
             expect(subStream.startOffset).toBe(32);
             expect(subStream.endOffset).toBe(64);
             expect(subStream.size).toBe(64);
         });
 
         it("creates subranges on stream", () => {
-            const stream = new ReadBufferStream(buffer, false, {
+            const stream = new ReadBufferStream(buffer, {
                 start: 32,
-                stop: 64
+                stop: 64,
+                littleEndian: false
             });
             // This is the recommended way of creating
             // a sub-stream as it allows either copying
             // or referencing the incoming stream data.
-            const subStream = new ReadBufferStream(
-                stream,
-                stream.isLittleEndian,
-                { stop: 48 }
-            );
+            const subStream = new ReadBufferStream(stream, {
+                stop: 48,
+                littleEndian: stream.isLittleEndian
+            });
             expect(subStream.available).toBe(16);
             expect(subStream.readUint8()).toBe(32);
         });
@@ -97,8 +99,9 @@ describe("ReadBufferStream Tests", () => {
 
     describe("isAvailable", () => {
         it("determines when data is correctly available", () => {
-            const stream = new ReadBufferStream(null, false, {
-                clearBuffers: true
+            const stream = new ReadBufferStream(null, {
+                clearBuffers: true,
+                littleEndian: false
             });
             expect(stream.isAvailable(0)).toBe(true);
             expect(stream.isAvailable(1)).toBe(false);

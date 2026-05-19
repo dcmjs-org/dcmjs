@@ -4,7 +4,7 @@ import fsPromises from "fs/promises";
 import path from "path";
 import { WriteBufferStream } from "../src/BufferStream";
 import dcmjs from "../src/index.js";
-import { log } from "./../src/log.js";
+import { log } from "../src/utilities/log.js";
 import { getTestDataset, getZippedTestDataset } from "./testUtils.js";
 
 import { promisify } from "util";
@@ -734,7 +734,7 @@ it("Writes encapsulated OB data which has an odd length with a padding byte in i
         _vrMap: { PixelData: "OB" }
     });
 
-    const stream = new WriteBufferStream(1024);
+    const stream = new WriteBufferStream({ defaultSize: 1024 });
     const bytesWritten = DicomMessage.write(
         dataset,
         stream,
@@ -875,10 +875,11 @@ describe("With a SpecificCharacterSet tag", () => {
         // - Tag #1: SpecificCharacterSet specifying the character set
         // - Tag #2: InstitutionName which is a long string tag that will have its value
         //           set to the encoded bytes
-        const stream = new WriteBufferStream(
-            16 + specificCharacterSet.length + encodedBytes.length
-        );
-        stream.isLittleEndian = true;
+        const stream = new WriteBufferStream({
+            defaultSize: 16 + specificCharacterSet.length + encodedBytes.length
+        });
+        stream.setEncoding(specificCharacterSet, readOptions.ignoreErrors);
+        stream.setLittleEndian();
 
         // Write SpecificCharacterSet tag
         stream.writeUint32(0x00050008);

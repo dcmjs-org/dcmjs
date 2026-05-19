@@ -22,13 +22,24 @@ class DicomDict {
         }
     }
 
-    write(writeOptions = { allowInvalidVRLength: false }) {
-        var metaSyntax = EXPLICIT_LITTLE_ENDIAN;
-        var fileStream = new WriteBufferStream(4096, true);
+    write(
+        writeOptions = {
+            allowInvalidVRLength: false
+        }
+    ) {
+        const metaSyntax = EXPLICIT_LITTLE_ENDIAN;
+        const fileStream = new WriteBufferStream({
+            defaultSize: 4096,
+            littleEndian: writeOptions.littleEndian
+        });
+
         fileStream.writeUint8Repeat(0, 128);
         fileStream.writeAsciiString("DICM");
 
-        var metaStream = new WriteBufferStream(1024);
+        const metaStream = new WriteBufferStream({
+            defaultSize: 1024,
+            littleEndian: writeOptions.littleEndian
+        });
         if (!this.meta[TagHex.TransferSyntaxUID]) {
             this.meta[TagHex.TransferSyntaxUID] = {
                 vr: "UI",
@@ -46,7 +57,7 @@ class DicomDict {
         );
         fileStream.concat(metaStream);
 
-        var useSyntax = this.meta[TagHex.TransferSyntaxUID].Value[0];
+        const useSyntax = this.meta[TagHex.TransferSyntaxUID].Value[0];
         DicomMessage.write(this.dict, fileStream, useSyntax, writeOptions);
         return fileStream.getBuffer();
     }

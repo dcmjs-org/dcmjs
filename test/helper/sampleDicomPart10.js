@@ -125,7 +125,10 @@ export function createSampleDicom(updates = {}, writeOptions = {}) {
     const useCustomPixelData =
         pixelData !== undefined || pixelDataLength !== undefined;
 
-    const metaStream = new WriteBufferStream(1024, true);
+    const metaStream = new WriteBufferStream({
+        defaultSize: 1024,
+        littleEndian: true
+    });
     if (!meta[TagHex.TransferSyntaxUID]) {
         meta[TagHex.TransferSyntaxUID] = {
             vr: "UI",
@@ -136,7 +139,10 @@ export function createSampleDicom(updates = {}, writeOptions = {}) {
         allowInvalidVRLength: false
     });
 
-    const fileStream = new WriteBufferStream(8192, true);
+    const fileStream = new WriteBufferStream({
+        defaultSize: 8192,
+        littleEndian: true
+    });
     fileStream.writeUint8Repeat(0, 128);
     fileStream.writeAsciiString("DICM");
     DicomMessage.writeTagObject(

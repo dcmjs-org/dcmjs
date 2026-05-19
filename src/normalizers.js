@@ -1,4 +1,4 @@
-import log from "./log.js";
+import log from "./utilities/log.js";
 import { DicomMetaDictionary } from "./DicomMetaDictionary.js";
 import { DerivedImage } from "./derivations/index.js";
 import Segmentation from "./derivations/Segmentation.js";
@@ -35,45 +35,50 @@ class Normalizer {
         sopClassUID = sopClassUID.replace(/[^0-9.]/g, ""); // TODO: clean all VRs as part of normalizing
         let toUID = DicomMetaDictionary.sopClassUIDsByName;
         let sopClassUIDMap = {};
-        sopClassUIDMap[toUID.NMImage] = NMImageNormalizer;
-        sopClassUIDMap[toUID.CTImage] = CTImageNormalizer;
-        sopClassUIDMap[toUID.ParametricMapStorage] = PMImageNormalizer;
-        sopClassUIDMap[toUID.MRImage] = MRImageNormalizer;
-        sopClassUIDMap[toUID.EnhancedCTImage] = EnhancedCTImageNormalizer;
-        sopClassUIDMap[toUID.LegacyConvertedEnhancedCTImage] =
+        sopClassUIDMap[toUID.get("NMImage")] = NMImageNormalizer;
+        sopClassUIDMap[toUID.get("CTImage")] = CTImageNormalizer;
+        sopClassUIDMap[toUID.get("ParametricMapStorage")] = PMImageNormalizer;
+        sopClassUIDMap[toUID.get("MRImage")] = MRImageNormalizer;
+        sopClassUIDMap[toUID.get("EnhancedCTImage")] =
             EnhancedCTImageNormalizer;
-        sopClassUIDMap[toUID.EnhancedMRImage] = EnhancedMRImageNormalizer;
-        sopClassUIDMap[toUID.LegacyConvertedEnhancedMRImage] =
+        sopClassUIDMap[toUID.get("LegacyConvertedEnhancedCTImage")] =
+            EnhancedCTImageNormalizer;
+        sopClassUIDMap[toUID.get("EnhancedMRImage")] =
             EnhancedMRImageNormalizer;
-        sopClassUIDMap[toUID.EnhancedUSVolume] = EnhancedUSVolumeNormalizer;
-        sopClassUIDMap[toUID.PETImage] = PETImageNormalizer;
-        sopClassUIDMap[toUID.EnhancedPETImage] = PETImageNormalizer;
-        sopClassUIDMap[toUID.LegacyConvertedEnhancedPETImage] =
+        sopClassUIDMap[toUID.get("LegacyConvertedEnhancedMRImage")] =
+            EnhancedMRImageNormalizer;
+        sopClassUIDMap[toUID.get("EnhancedUSVolume")] =
+            EnhancedUSVolumeNormalizer;
+        sopClassUIDMap[toUID.get("PETImage")] = PETImageNormalizer;
+        sopClassUIDMap[toUID.get("EnhancedPETImage")] = PETImageNormalizer;
+        sopClassUIDMap[toUID.get("LegacyConvertedEnhancedPETImage")] =
             PETImageNormalizer;
-        sopClassUIDMap[toUID.Segmentation] = SEGImageNormalizer;
-        sopClassUIDMap[toUID.DeformableSpatialRegistration] = DSRNormalizer;
-        sopClassUIDMap[toUID.OphthalmicPhotography8BitImage] =
+        sopClassUIDMap[toUID.get("Segmentation")] = SEGImageNormalizer;
+        sopClassUIDMap[toUID.get("DeformableSpatialRegistration")] =
+            DSRNormalizer;
+        sopClassUIDMap[toUID.get("OphthalmicPhotography8BitImage")] =
             OPImageNormalizer;
-        sopClassUIDMap[toUID.OphthalmicTomographyImage] = OCTImageNormalizer;
-        sopClassUIDMap[toUID.LabelmapSegmentation] = SEGImageNormalizer; // Labelmap Segmentation uses the same normalizer as Segmentation
+        sopClassUIDMap[toUID.get("OphthalmicTomographyImage")] =
+            OCTImageNormalizer;
+        sopClassUIDMap[toUID.get("LabelmapSegmentation")] = SEGImageNormalizer; // Labelmap Segmentation uses the same normalizer as Segmentation
         return sopClassUIDMap[sopClassUID];
     }
 
     static isMultiframeSOPClassUID(sopClassUID) {
         const toUID = DicomMetaDictionary.sopClassUIDsByName;
         const multiframeSOPClasses = [
-            toUID.NMImage,
-            toUID.EnhancedMRImage,
-            toUID.LegacyConvertedEnhancedMRImage,
-            toUID.EnhancedCTImage,
-            toUID.LegacyConvertedEnhancedCTImage,
-            toUID.EnhancedUSVolume,
-            toUID.EnhancedPETImage,
-            toUID.LegacyConvertedEnhancedPETImage,
-            toUID.Segmentation,
-            toUID.ParametricMapStorage,
-            toUID.OphthalmicTomographyImage,
-            toUID.LabelmapSegmentation // Labelmap Segmentation SOP Class UID
+            toUID.get("NMImage"),
+            toUID.get("EnhancedMRImage"),
+            toUID.get("LegacyConvertedEnhancedMRImage"),
+            toUID.get("EnhancedCTImage"),
+            toUID.get("LegacyConvertedEnhancedCTImage"),
+            toUID.get("EnhancedUSVolume"),
+            toUID.get("EnhancedPETImage"),
+            toUID.get("LegacyConvertedEnhancedPETImage"),
+            toUID.get("Segmentation"),
+            toUID.get("ParametricMapStorage"),
+            toUID.get("OphthalmicTomographyImage"),
+            toUID.get("LabelmapSegmentation") // Labelmap Segmentation SOP Class UID
         ];
         return multiframeSOPClasses.indexOf(sopClassUID) !== -1;
     }

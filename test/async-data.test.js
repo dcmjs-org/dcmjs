@@ -343,7 +343,10 @@ describe("AsyncDicomReader", () => {
 
         // Append compressed pixel data with fragments
         const WriteBufferStream = dcmjs.data.WriteBufferStream;
-        const writeStream = new WriteBufferStream(null, true);
+        const writeStream = new WriteBufferStream({
+            defaultSize: null,
+            littleEndian: true
+        });
 
         // Write the base buffer first
         const baseArray = new Uint8Array(baseBuffer);

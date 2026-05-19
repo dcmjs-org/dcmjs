@@ -3,7 +3,7 @@ import os from "os";
 import path from "path";
 import followRedirects from "follow-redirects";
 import AdmZip from "adm-zip";
-import { validationLog } from "./../src/log.js";
+import { validationLog } from "../src/utilities/log.js";
 
 const { https } = followRedirects;
 

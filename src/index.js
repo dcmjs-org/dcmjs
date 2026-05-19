@@ -14,7 +14,7 @@ registerPrivatesModule(privateData);
 import { Tag } from "./Tag.js";
 import { ValueRepresentation } from "./ValueRepresentation.js";
 import { Colors } from "./colors.js";
-import log from "./log.js";
+import log from "./utilities/log.js";
 
 import { AsyncDicomReader } from "./AsyncDicomReader.js";
 

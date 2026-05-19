@@ -100,43 +100,6 @@ export const TagHex = {
     MediaStorageSOPInstanceUID: "00020003"
 };
 
-export const encodingMapping = {
-    "": "iso-8859-1",
-    "iso-ir-6": "iso-8859-1",
-    "iso-ir-13": "shift-jis",
-    "iso-ir-100": "latin1",
-    "iso-ir-101": "iso-8859-2",
-    "iso-ir-109": "iso-8859-3",
-    "iso-ir-110": "iso-8859-4",
-    "iso-ir-126": "iso-ir-126",
-    "iso-ir-127": "iso-ir-127",
-    "iso-ir-138": "iso-ir-138",
-    "iso-ir-144": "iso-ir-144",
-    "iso-ir-148": "iso-ir-148",
-    "iso-ir-166": "tis-620",
-    "iso-2022-ir-6": "iso-8859-1",
-    "iso-2022-ir-13": "shift-jis",
-    "iso-2022-ir-87": "iso-2022-jp",
-    "iso-2022-ir-100": "latin1",
-    "iso-2022-ir-101": "iso-8859-2",
-    "iso-2022-ir-109": "iso-8859-3",
-    "iso-2022-ir-110": "iso-8859-4",
-    "iso-2022-ir-126": "iso-ir-126",
-    "iso-2022-ir-127": "iso-ir-127",
-    "iso-2022-ir-138": "iso-ir-138",
-    "iso-2022-ir-144": "iso-ir-144",
-    "iso-2022-ir-148": "iso-ir-148",
-    "iso-2022-ir-149": "euc-kr",
-    "iso-2022-ir-159": "iso-2022-jp",
-    "iso-2022-ir-166": "tis-620",
-    "iso-2022-ir-58": "iso-ir-58",
-    "iso-ir-192": "utf-8",
-    gb18030: "gb18030",
-    "iso-2022-gbk": "gbk",
-    "iso-2022-58": "gb2312",
-    gbk: "gbk"
-};
-
 /**
  * Maps DICOM tag hex strings to their normalized lower camelCase names
  * for use in listener.information tracking
@@ -243,3 +206,17 @@ export const BULKDATA_VRS = new Set([
     "UT", // Unlimited Text
     "UV" // Unsigned 64-bit Very Long
 ]);
+
+export const binaryVRs = new Set(["FL", "FD", "SL", "SS", "UL", "US", "AT"]),
+    length32VRs = new Set([
+        "OB",
+        "OW",
+        "OF",
+        "SQ",
+        "UC",
+        "UR",
+        "UT",
+        "UN",
+        "OD"
+    ]),
+    singleVRs = new Set(["SQ", "OF", "OW", "OB", "UN", "LT"]);

@@ -2,11 +2,14 @@ import pako from "pako";
 import SplitDataView from "./SplitDataView";
 import { toFloat } from "./utilities/toFloat";
 import { toInt } from "./utilities/toInt";
+import { DicomTextTranscode } from "./DicomTextTranscode";
+import { defaultDICOMEncoding } from "./constants/encodings";
+import { log } from "./utilities/log";
 
 export class BufferStream {
     offset = 0;
     startOffset = 0;
-    isLittleEndian = false;
+    isLittleEndian = true;
     size = 0;
     view = new SplitDataView();
     /** The available listeners are those waiting for a query response */
@@ -18,12 +21,14 @@ export class BufferStream {
     /** A flag to set to indicate to clear buffers as they get consumed */
     clearBuffers = false;
 
-    encoder = new TextEncoder("utf-8");
+    textTranscoder = new DicomTextTranscode();
 
     constructor(options = null) {
-        this.isLittleEndian = options?.littleEndian || this.isLittleEndian;
+        this.isLittleEndian = options?.littleEndian ?? this.isLittleEndian;
         this.view.defaultSize = options?.defaultSize ?? this.view.defaultSize;
-        this.clearBuffers = options.clearBuffers || false;
+        this.clearBuffers = options?.clearBuffers || false;
+
+        this.setEncoding(options?.encoding || defaultDICOMEncoding);
     }
 
     /**
@@ -68,8 +73,20 @@ export class BufferStream {
         return true;
     }
 
-    setEndian(isLittle) {
-        this.isLittleEndian = isLittle;
+    setEncoding(dicomEncoding, ignoreErrors) {
+        this.textTranscoder.setEncoding(dicomEncoding, ignoreErrors);
+    }
+
+    setEndian(isLittleEndian = true) {
+        this.isLittleEndian = isLittleEndian;
+    }
+
+    setLittleEndian() {
+        this.isLittleEndian = true;
+    }
+
+    setBigEndian() {
+        this.isLittleEndian = false;
     }
 
     slice(start = this.startOffset, end = this.endOffset) {
@@ -175,7 +192,7 @@ export class BufferStream {
     }
 
     writeUTF8String(value) {
-        const encodedString = this.encoder.encode(value);
+        const encodedString = this.textTranscoder.encode(value);
         this.checkSize(encodedString.byteLength);
         this.view.writeBuffer(encodedString, this.offset);
         return this.increment(encodedString.byteLength);
@@ -312,7 +329,7 @@ export class BufferStream {
         const view = new DataView(
             this.slice(this.offset, this.offset + length)
         );
-        const result = this.decoder.decode(view);
+        const result = this.textTranscoder.decode(view);
         this.increment(length);
         return result;
     }
@@ -465,33 +482,47 @@ export class BufferStream {
 export class ReadBufferStream extends BufferStream {
     constructor(
         buffer,
-        littleEndian,
         options = {
             start: null,
             stop: null,
-            noCopy: false
+            encoding: defaultDICOMEncoding,
+            noCopy: false,
+            littleEndian: true
         }
     ) {
-        super({ ...options, littleEndian });
-        this.noCopy = options.noCopy;
-        this.decoder = new TextDecoder("latin1");
+        options instanceof Object
+            ? {}
+            : log.warn(
+                  "The constructor API for ReadBufferStream has changed to include the" +
+                      " littleEndian option as part of the options object. Please, update your usage of the class. We are " +
+                      "using defaults now. See docs/BreakingChanges.md for more details."
+              );
+        const optionsOptions =
+            options instanceof Object
+                ? options
+                : {
+                      start: null,
+                      stop: null,
+                      encoding: defaultDICOMEncoding,
+                      noCopy: false,
+                      littleEndian: options
+                  };
+        super(optionsOptions);
+        this.noCopy = optionsOptions.noCopy;
 
         if (buffer instanceof BufferStream) {
-            this.view.from(buffer.view, options);
+            this.view.from(buffer.view, optionsOptions);
             this.isComplete = true;
         } else if (buffer) {
             this.view.addBuffer(buffer);
             this.isComplete = true;
         }
-        this.offset = options.start ?? buffer?.offset ?? 0;
-        this.size = options.stop || buffer?.size || buffer?.byteLength || 0;
+        this.offset = optionsOptions.start ?? buffer?.offset ?? 0;
+        this.size =
+            optionsOptions.stop || buffer?.size || buffer?.byteLength || 0;
 
         this.startOffset = this.offset;
         this.endOffset = this.size;
-    }
-
-    setDecoder(decoder) {
-        this.decoder = decoder;
     }
 
     reset() {
@@ -571,13 +602,30 @@ export class DeflatedReadBufferStream extends ReadBufferStream {
         const inflatedBuffer = pako.inflateRaw(
             stream.getBuffer(stream.offset, stream.size)
         );
-        super(inflatedBuffer.buffer, stream.littleEndian, options);
+        super(inflatedBuffer.buffer, {
+            littleEndian: stream.littleEndian,
+            ...options
+        });
     }
 }
 
 export class WriteBufferStream extends BufferStream {
-    constructor(defaultSize, littleEndian) {
-        super({ defaultSize, littleEndian });
+    constructor(options = null) {
+        options instanceof Object
+            ? {}
+            : log.warn(
+                  "The constructor API for WriteBufferStream has changed to include the" +
+                      " littleEndian option as part of the options object. Please, update your usage of the class. We are " +
+                      "using defaults now. See docs/BreakingChanges.md for more details."
+              );
+        const optionsOptions =
+            options instanceof Object
+                ? options
+                : {
+                      encoding: defaultDICOMEncoding,
+                      littleEndian: options
+                  };
+        super(optionsOptions);
         this.size = 0;
     }
 }

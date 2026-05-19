@@ -34,7 +34,7 @@ const EXPLICIT_VR_LENGTH32 = [
  * Supports both Implicit and Explicit VR Little Endian for the dataset.
  *
  * @param {ArrayBuffer|Uint8Array} buffer - Raw DICOM file buffer
- * @param {string} [transferSyntaxUID] - Optional. If provided, used to decide Implicit vs Explicit VR (e.g. from meta); avoids parsing meta.
+ * @param {string} [transferSyntaxUIDHint] - Optional. If provided, used to decide Implicit vs Explicit VR (e.g. from meta); avoids parsing meta.
  * @returns {{ length: number, data: ArrayBuffer } | null} - PixelData length and bytes, or null if not found
  */
 function readPixelDataFromRawBuffer(buffer, transferSyntaxUIDHint) {
@@ -294,6 +294,111 @@ describe("lossless-read-write", () => {
                 Value: [new Uint8Array([0x00, 0x00]).buffer]
             }
         };
+
+        const resultDataset = {
+            "00080008": {
+                vr: "CS",
+                Value: ["DERIVED"],
+                _rawValue: ["DERIVED "]
+            },
+            "00082112": {
+                vr: "SQ",
+                Value: [
+                    {
+                        "00081150": {
+                            vr: "UI",
+                            Value: ["1.2.840.10008.5.1.4.1.1.7"],
+                            _rawValue: ["1.2.840.10008.5.1.4.1.1.7"]
+                        }
+                    }
+                ],
+                _rawValue: undefined
+            },
+            "00180050": {
+                vr: "DS",
+                Value: [1],
+                _rawValue: ["1 "]
+            },
+            "00181708": {
+                vr: "IS",
+                Value: [426],
+                _rawValue: ["426 "]
+            },
+            "00189328": {
+                vr: "FD",
+                Value: [30.98],
+                _rawValue: [30.98]
+            },
+            "0020000D": {
+                vr: "UI",
+                Value: [
+                    "1.3.6.1.4.1.5962.99.1.2280943358.716200484.1363785608958.3.0"
+                ],
+                _rawValue: [
+                    "1.3.6.1.4.1.5962.99.1.2280943358.716200484.1363785608958.3.0"
+                ]
+            },
+            "00400254": {
+                vr: "LO",
+                Value: ["DUCTO/GALACTOGRAM 1 DUCT LT"],
+                _rawValue: ["DUCTO/GALACTOGRAM 1 DUCT LT "]
+            },
+            "7FE00010": {
+                vr: "OW",
+                Value: [new Uint8Array([0x00, 0x00]).buffer],
+                _rawValue: undefined
+            }
+        };
+
+        const metaResult = {
+            "00020010": {
+                Value: ["1.2.840.10008.1.2.1"],
+                _rawValue: ["1.2.840.10008.1.2.1"],
+                vr: "UI"
+            }
+        };
+
+        const testEncodings = [
+            "ISO_IR 6",
+            "ISO_IR 13",
+            "ISO_IR 166",
+            "iso-ir-100",
+            "iso-ir-192"
+        ];
+
+        test("Ignore _rawValue in write and read", () => {
+            const dicomDict = new DicomDict({});
+            dicomDict.dict = dataset;
+
+            // write and re-read
+            const writtenBuffer = dicomDict.write();
+            const outputDicomDict = DicomMessage.readFile(writtenBuffer);
+
+            const resultDicomDict = new DicomDict({});
+            resultDicomDict.meta = metaResult;
+            resultDicomDict.dict = resultDataset;
+
+            expect(outputDicomDict).toEqual(resultDicomDict);
+        });
+
+        test("Basic encoded write and read", () => {
+            testEncodings.forEach(encoding => {
+                const dicomDict = new DicomDict({});
+                dicomDict.dict = dataset;
+
+                // write and re-read
+                const writtenBuffer = dicomDict.write({
+                    encoding
+                });
+                const outputDicomDict = DicomMessage.readFile(writtenBuffer);
+
+                const resultDicomDict = new DicomDict({});
+                resultDicomDict.meta = metaResult;
+                resultDicomDict.dict = resultDataset;
+
+                expect(outputDicomDict).toEqual(resultDicomDict);
+            });
+        });
 
         test("storeRaw flag on VR should be respected by read", () => {
             const tagsWithoutRaw = ["00082112", "7FE00010"];

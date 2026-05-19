@@ -1,6 +1,6 @@
 import dcmjs from "../src/index.js";
 import fs from "fs";
-import { validationLog } from "./../src/log.js";
+import { validationLog } from "../src/utilities/log.js";
 
 // Ignore validation errors
 validationLog.setLevel(5);

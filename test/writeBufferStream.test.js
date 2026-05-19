@@ -2,7 +2,10 @@ import { ReadBufferStream, WriteBufferStream } from "../src/BufferStream";
 
 describe("WriteBufferStream Tests", () => {
     it("writeUint8", () => {
-        const stream = new WriteBufferStream(25, true);
+        const stream = new WriteBufferStream({
+            defaultSize: 25,
+            littleEndian: true
+        });
         expect(stream).toBeDefined();
         for (let i = 0; i < 512; i++) {
             stream.writeUint8(i % 256);
@@ -24,7 +27,10 @@ describe("WriteBufferStream Tests", () => {
     });
 
     it("writeUint16", () => {
-        const stream = new WriteBufferStream(25, true);
+        const stream = new WriteBufferStream({
+            defaultSize: 25,
+            littleEndian: true
+        });
         expect(stream).toBeDefined();
         for (let i = 0; i < 512; i++) {
             stream.writeUint16((i * 511) % 0x10000);
@@ -37,7 +43,10 @@ describe("WriteBufferStream Tests", () => {
     });
 
     it("writeUint32", () => {
-        const stream = new WriteBufferStream(25, true);
+        const stream = new WriteBufferStream({
+            defaultSize: 25,
+            littleEndian: true
+        });
         expect(stream).toBeDefined();
         const expected = [];
         for (let i = 0; i < 512; i++) {
@@ -70,7 +79,7 @@ describe("WriteBufferStream Tests", () => {
     });
 
     it("writesLongStrings", () => {
-        const stream = new WriteBufferStream(32, true);
+        const stream = new WriteBufferStream({ defaultSize: 32 });
         let string = "0";
         for (let i = 1; i < 512; i++) {
             string = string + ", " + i;
@@ -80,7 +89,7 @@ describe("WriteBufferStream Tests", () => {
     });
 
     describe("readWorksAfterWrite", () => {
-        const out = new WriteBufferStream(3, true);
+        const out = new WriteBufferStream({ defaultSize: 3 });
         const testStr = "Hello World";
         // 64 bits
         out.writeUint8Repeat(1, 128);
@@ -97,7 +106,12 @@ describe("WriteBufferStream Tests", () => {
         out.writeUint16(234);
         out.writeUint8(25);
         const firstSize = out.size;
-        out.concat(new ReadBufferStream(out, out.isLittleEndian, { start: 0 }));
+        out.concat(
+            new ReadBufferStream(out, {
+                start: 0,
+                littleEndian: out.isLittleEndian
+            })
+        );
         expect(out.size).toBe(firstSize * 2);
 
         const checkValues = stream => {
@@ -129,8 +143,9 @@ describe("WriteBufferStream Tests", () => {
         });
 
         it("Should clone with stream", () => {
-            const stream = new ReadBufferStream(out, out.isLittleEndian, {
-                start: 0
+            const stream = new ReadBufferStream(out, {
+                start: 0,
+                littleEndian: out.isLittleEndian
             });
             expect(stream.size).toBe(out.size);
             checkValues(stream);
@@ -140,13 +155,10 @@ describe("WriteBufferStream Tests", () => {
         });
 
         it("Should clone with buffer", () => {
-            const stream = new ReadBufferStream(
-                out.buffer,
-                out.isLittleEndian,
-                {
-                    stop: out.size
-                }
-            );
+            const stream = new ReadBufferStream(out.buffer, {
+                stop: out.size,
+                littleEndian: out.isLittleEndian
+            });
             expect(stream.size).toBe(out.size);
             checkValues(stream);
             // Second copy identical
@@ -155,10 +167,9 @@ describe("WriteBufferStream Tests", () => {
         });
 
         it("Should clone with slice", () => {
-            const stream = new ReadBufferStream(
-                out.slice(0, out.size),
-                out.isLittleEndian
-            );
+            const stream = new ReadBufferStream(out.slice(0, out.size), {
+                littleEndian: out.isLittleEndian
+            });
             expect(stream.size).toBe(out.size);
             checkValues(stream);
             // Second copy identical
