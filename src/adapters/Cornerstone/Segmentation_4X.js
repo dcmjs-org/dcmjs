@@ -1108,21 +1108,25 @@ function unpackPixelData(multiframe) {
 
     const pixelData = new Uint8Array(data);
 
-    const max = multiframe.MaximumFractionalValue;
-    const onlyMaxAndZero =
-        pixelData.find(element => element !== 0 && element !== max) ===
-        undefined;
+    // IDC: we encountered segmentations defined as fractional with a constant pixel values which is not the MaximumFractionalValue.
+    // Here we add the following check: if the labelmap has a constant value (independently by the value itself), it is considered a binary segmentation
+    const firstNonZeroIndex = pixelData.findIndex(element => element > 0);
+    const firstNonZeroValue = pixelData[firstNonZeroIndex];
+    const onlyOneValueAndZero =
+        pixelData.find(
+            element => element !== 0 && element !== firstNonZeroValue
+        ) === undefined;
 
-    if (!onlyMaxAndZero) {
-        // This is a fractional segmentation, which is not currently supported.
-        return;
+    if (onlyOneValueAndZero) {
+        log.warn(
+            "This segmentation object is actually binary... processing as such."
+        );
+
+        return pixelData;
     }
 
-    log.warn(
-        "This segmentation object is actually binary... processing as such."
-    );
-
-    return pixelData;
+    // This is a fractional segmentation, which is not currently supported.
+    return;
 }
 
 /**
