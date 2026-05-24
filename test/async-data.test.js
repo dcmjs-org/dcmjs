@@ -1,11 +1,12 @@
 import fs from "fs";
+import path from "path";
 import dcmjs from "../src/index.js";
 import {
     TagHex,
     IMPLICIT_LITTLE_ENDIAN,
     UNDEFINED_LENGTH
 } from "../src/constants/dicom";
-import { getTestDataset } from "./testUtils.js";
+import { getTestDataset, getZippedTestDataset } from "./testUtils.js";
 import { videoTestMeta, videoTestDict } from "./video-test-dict.js";
 import { oddFrameBitData } from "./odd-frame-bit-data.js";
 import {
@@ -16,7 +17,7 @@ import {
     defaultImage
 } from "./helper/sampleDicomPart10.js";
 
-const { DicomDict, DicomMessage } = dcmjs.data;
+const { DicomDict, DicomMessage, DicomMetaDictionary } = dcmjs.data;
 const { AsyncDicomReader } = dcmjs.async;
 const { DicomMetadataListener } = dcmjs.utilities;
 
@@ -61,13 +62,12 @@ describe("AsyncDicomReader", () => {
             "1.2.840.10008.1.2"
         );
         expect(dict[TagHex.Rows].Value[0]).toBe(512);
-        // Uncompressed PixelData now matches compressed: an array of frames, each frame an array of chunks
+        // With default singleBufferThreshold, small frames are merged into a single ArrayBuffer
         const frames = dict[TagHex.PixelData].Value;
         expect(Array.isArray(frames)).toBe(true);
         expect(frames.length).toBe(1);
-        expect(Array.isArray(frames[0])).toBe(true);
-        expect(frames[0].length).toBe(1);
-        expect(frames[0][0].byteLength).toBe(512 * 512 * 2);
+        expect(frames[0]).toBeInstanceOf(ArrayBuffer);
+        expect(frames[0].byteLength).toBe(512 * 512 * 2);
     });
 
     test("async reader listen test compressed", async () => {
@@ -86,12 +86,9 @@ describe("AsyncDicomReader", () => {
         const frames = dict[TagHex.PixelData].Value;
         expect(Array.isArray(frames)).toBe(true);
         expect(frames.length).toBe(1);
-        // Frames are always arrays, even for single fragments
-        expect(Array.isArray(frames[0])).toBe(true);
-        const frame0 = frames[0];
-        const chunk0 = frame0[0];
-        expect(chunk0).toBeInstanceOf(ArrayBuffer);
-        expect(chunk0.byteLength).toBe(101304);
+        // With default singleBufferThreshold, small frames are merged
+        expect(frames[0]).toBeInstanceOf(ArrayBuffer);
+        expect(frames[0].byteLength).toBe(101304);
     });
 
     test("compressed multiframe data test", async () => {
@@ -137,8 +134,9 @@ describe("AsyncDicomReader", () => {
         expect(numFrames).toBe(2);
         const frames = dict[TagHex.PixelData].Value;
         expect(frames.length).toBe(numFrames);
-        expect(frames[0].length).toBe(2);
-        expect(frames[1].length).toBe(2);
+        // With default singleBufferThreshold, fragments are merged per frame
+        expect(frames[0]).toBeInstanceOf(ArrayBuffer);
+        expect(frames[1]).toBeInstanceOf(ArrayBuffer);
     });
 
     test("raw LEI encoded file test", async () => {
@@ -412,50 +410,23 @@ describe("AsyncDicomReader", () => {
         expect(dict[TagHex.PixelData]).toBeDefined();
         const frames = dict[TagHex.PixelData].Value;
 
-        // Frames are always arrays, so for video we have a single frame containing all fragments
+        // Video: single frame containing all fragments
         expect(Array.isArray(frames)).toBe(true);
         expect(frames.length).toBe(1); // Single frame for video
 
-        // Get the fragments array from the first frame (unwrap 1 level if needed)
-        const pixelData = Array.isArray(frames[0][0])
-            ? frames[0][0]
-            : frames[0];
+        // With default singleBufferThreshold (10MB), all chunks are merged
+        // Total: 512 + 1024 + 2048 = 3584 bytes
+        expect(frames[0]).toBeInstanceOf(ArrayBuffer);
+        expect(frames[0].byteLength).toBe(3584);
 
-        // For video transfer syntax, all fragments should be combined into a single array
-        // Fragment 3 (2048 bytes) should be split into 2 fragments of 1024 bytes each
-        // So we should have: fragment1 (512), fragment2 (1024), fragment3_part1 (1024), fragment3_part2 (1024)
-        expect(Array.isArray(pixelData)).toBe(true);
-        // Expect 4 after splitting 2048 -> 2x1024; allow an extra nesting level and flatten if needed
-        const flatPixelData = pixelData.flat ? pixelData.flat() : pixelData;
-        expect(flatPixelData.length).toBe(4); // All fragments combined, with fragment3 split
-
-        // Verify fragment 1 (512 bytes, unchanged)
-        expect(flatPixelData[0]).toBeInstanceOf(ArrayBuffer);
-        expect(flatPixelData[0].byteLength).toBe(512);
-        const frag1Data = new Uint8Array(flatPixelData[0]);
-        expect(frag1Data[0]).toBe(0x01);
-        expect(frag1Data[511]).toBe(0x01);
-
-        // Verify fragment 2 (1024 bytes, unchanged)
-        expect(flatPixelData[1]).toBeInstanceOf(ArrayBuffer);
-        expect(flatPixelData[1].byteLength).toBe(1024);
-        const frag2Data = new Uint8Array(flatPixelData[1]);
-        expect(frag2Data[0]).toBe(0x02);
-        expect(frag2Data[1023]).toBe(0x02);
-
-        // Verify fragment 3 part 1 (1024 bytes, split from 2048)
-        expect(flatPixelData[2]).toBeInstanceOf(ArrayBuffer);
-        expect(flatPixelData[2].byteLength).toBe(1024);
-        const frag3Part1Data = new Uint8Array(flatPixelData[2]);
-        expect(frag3Part1Data[0]).toBe(0x03);
-        expect(frag3Part1Data[1023]).toBe(0x03);
-
-        // Verify fragment 3 part 2 (1024 bytes, split from 2048)
-        expect(flatPixelData[3]).toBeInstanceOf(ArrayBuffer);
-        expect(flatPixelData[3].byteLength).toBe(1024);
-        const frag3Part2Data = new Uint8Array(flatPixelData[3]);
-        expect(frag3Part2Data[0]).toBe(0x03);
-        expect(frag3Part2Data[1023]).toBe(0x03);
+        // Verify merged data: frag1 (0x01 * 512), frag2 (0x02 * 1024), frag3 (0x03 * 2048)
+        const allData = new Uint8Array(frames[0]);
+        expect(allData[0]).toBe(0x01);
+        expect(allData[511]).toBe(0x01);
+        expect(allData[512]).toBe(0x02);
+        expect(allData[1535]).toBe(0x02);
+        expect(allData[1536]).toBe(0x03);
+        expect(allData[3583]).toBe(0x03);
     });
 
     test("readUncompressedBitFrame with 3 frames having odd total bit length", async () => {
@@ -525,17 +496,12 @@ describe("AsyncDicomReader", () => {
         const expectedFrames = oddFrameBitData.getExpectedFrames();
 
         for (let i = 0; i < frames.length; i++) {
-            expect(Array.isArray(frames[i])).toBe(true);
-            // Each frame should be an array containing the frame data
-            const frameChunks = frames[i];
-            expect(frameChunks.length).toBe(1); // Single chunk per frame (1 byte each)
-
-            // Verify the chunk is an ArrayBuffer
-            expect(frameChunks[0]).toBeInstanceOf(ArrayBuffer);
-            expect(frameChunks[0].byteLength).toBe(bytesPerFrame);
+            // With default singleBufferThreshold, each frame is a single ArrayBuffer
+            expect(frames[i]).toBeInstanceOf(ArrayBuffer);
+            expect(frames[i].byteLength).toBe(bytesPerFrame);
 
             // Verify the unpacked frame data (each frame starts at byte 0)
-            const frameData = new Uint8Array(frameChunks[0]);
+            const frameData = new Uint8Array(frames[i]);
             const expectedData = expectedFrames[i];
             expect(frameData.length).toBe(expectedData.length);
             // Compare the first byte (only 7 bits are valid, but we compare the whole byte)
@@ -551,9 +517,7 @@ describe("AsyncDicomReader", () => {
         // Verify total bytes read matches expected
         let totalBytesRead = 0;
         for (const frame of frames) {
-            for (const chunk of frame) {
-                totalBytesRead += chunk.byteLength;
-            }
+            totalBytesRead += frame.byteLength;
         }
         expect(totalBytesRead).toBe(oddFrameBitData.totalBytes);
         expect(totalBytesRead).toBe(3); // 3 bytes for 21 bits
@@ -604,12 +568,9 @@ describe("AsyncDicomReader", () => {
             expect(frames.length).toBe(defaultImage.numberOfFrames);
             const bytesPerFrame = defaultImage.frameBytes;
             for (let i = 0; i < frames.length; i++) {
-                expect(Array.isArray(frames[i])).toBe(true);
-                let frameBytes = 0;
-                for (const chunk of frames[i]) {
-                    frameBytes += chunk.byteLength;
-                }
-                expect(frameBytes).toBe(bytesPerFrame);
+                // With default singleBufferThreshold, each frame is a single ArrayBuffer
+                expect(frames[i]).toBeInstanceOf(ArrayBuffer);
+                expect(frames[i].byteLength).toBe(bytesPerFrame);
             }
         });
 
@@ -670,14 +631,9 @@ describe("AsyncDicomReader", () => {
             const bytesPerFrame = Math.ceil(oddFrameBitData.bitsPerFrame / 8);
             const expectedFrames = oddFrameBitData.getExpectedFrames();
             for (let i = 0; i < frames.length; i++) {
-                expect(Array.isArray(frames[i])).toBe(true);
-                let frameBytes = 0;
-                const frameChunks = frames[i];
-                for (const chunk of frameChunks) {
-                    frameBytes += chunk.byteLength;
-                }
-                expect(frameBytes).toBe(bytesPerFrame);
-                const frameData = new Uint8Array(frameChunks[0]);
+                expect(frames[i]).toBeInstanceOf(ArrayBuffer);
+                expect(frames[i].byteLength).toBe(bytesPerFrame);
+                const frameData = new Uint8Array(frames[i]);
                 expect(frameData[0]).toBe(expectedFrames[i][0]);
             }
         });
@@ -780,11 +736,8 @@ describe("AsyncDicomReader", () => {
                 expect(Array.isArray(frames)).toBe(true);
                 expect(frames.length).toBe(defaultImage.numberOfFrames);
                 for (let i = 0; i < frames.length; i++) {
-                    let frameBytes = 0;
-                    for (const chunk of frames[i]) {
-                        frameBytes += chunk.byteLength;
-                    }
-                    expect(frameBytes).toBe(defaultImage.frameBytes);
+                    expect(frames[i]).toBeInstanceOf(ArrayBuffer);
+                    expect(frames[i].byteLength).toBe(defaultImage.frameBytes);
                 }
             }
 
@@ -840,5 +793,152 @@ describe("AsyncDicomReader", () => {
                 expectDefaultImageRead(meta, dict);
             });
         });
+    });
+
+    describe("deflated transfer syntax", () => {
+        let deflatedPath;
+
+        beforeAll(async () => {
+            const url =
+                "https://github.com/dcmjs-org/data/releases/download/deflate-transfer-syntax/deflate_tests.zip";
+            const unzipPath = await getZippedTestDataset(
+                url,
+                "deflate_tests.zip",
+                "deflate_tests"
+            );
+            deflatedPath = path.join(unzipPath, "deflate_tests");
+        }, 30000);
+
+        const expected = [
+            {
+                file: "image_dfl",
+                tags: { Modality: "OT", Rows: 512, Columns: 512 }
+            },
+            {
+                file: "report_dfl",
+                tags: {
+                    Modality: "SR",
+                    VerificationFlag: "UNVERIFIED",
+                    ContentDate: "20001110"
+                }
+            },
+            {
+                file: "wave_dfl",
+                tags: {
+                    Modality: "ECG",
+                    SynchronizationTrigger: "NO TRIGGER",
+                    ContentDate: "19991223"
+                }
+            }
+        ];
+
+        test.each(expected)(
+            "parses deflated file $file",
+            async ({ file, tags }) => {
+                const buffer = fs.readFileSync(path.join(deflatedPath, file));
+                const ab = buffer.buffer.slice(
+                    buffer.byteOffset,
+                    buffer.byteOffset + buffer.byteLength
+                );
+
+                const reader = new AsyncDicomReader();
+                const listener = new DicomMetadataListener();
+
+                reader.stream.addBuffer(ab);
+                reader.stream.setComplete();
+
+                const { meta, dict } = await reader.readFile({ listener });
+                expect(meta[TagHex.TransferSyntaxUID].Value[0]).toBe(
+                    "1.2.840.10008.1.2.1.99"
+                );
+
+                const dataset = DicomMetaDictionary.naturalizeDataset(dict);
+                Object.keys(tags).forEach(t => {
+                    expect(dataset[t]).toEqual(tags[t]);
+                });
+            }
+        );
+
+        test("parses deflated image_dfl with pixel data via streaming", async () => {
+            const stream = fs.createReadStream(
+                path.join(deflatedPath, "image_dfl"),
+                { highWaterMark: 4096 }
+            );
+            const reader = new AsyncDicomReader();
+            const listener = new DicomMetadataListener();
+
+            reader.stream.fromAsyncStream(stream);
+
+            const { dict } = await reader.readFile({ listener });
+            const dataset = DicomMetaDictionary.naturalizeDataset(dict);
+            expect(dataset.Rows).toBe(512);
+            expect(dataset.Columns).toBe(512);
+
+            // Verify pixel data is present
+            const frames = dict[TagHex.PixelData].Value;
+            expect(Array.isArray(frames)).toBe(true);
+            expect(frames.length).toBe(1);
+            // With default singleBufferThreshold, frame is a single ArrayBuffer
+            expect(frames[0]).toBeInstanceOf(ArrayBuffer);
+            // Verify total bytes match rows * columns * (bitsAllocated/8)
+            const rows = dict[TagHex.Rows].Value[0];
+            const cols = dict[TagHex.Columns].Value[0];
+            const bitsAllocated = dict[TagHex.BitsAllocated].Value[0];
+            expect(frames[0].byteLength).toBe(
+                rows * cols * (bitsAllocated / 8)
+            );
+        });
+    });
+
+    test("singleBufferThreshold=0 keeps frames as arrays of ArrayBuffer", async () => {
+        const buffer = createSampleDicom();
+        const reader = new AsyncDicomReader();
+        const listener = new DicomMetadataListener({
+            singleBufferThreshold: 0
+        });
+
+        reader.stream.addBuffer(buffer);
+        reader.stream.setComplete();
+
+        const { dict } = await reader.readFile({ listener });
+        const frames = dict[TagHex.PixelData].Value;
+        expect(Array.isArray(frames)).toBe(true);
+        expect(frames.length).toBe(defaultImage.numberOfFrames);
+        for (let i = 0; i < frames.length; i++) {
+            // With singleBufferThreshold=0, frames remain as arrays of chunks
+            expect(Array.isArray(frames[i])).toBe(true);
+            expect(frames[i].length).toBeGreaterThanOrEqual(1);
+            expect(frames[i][0]).toBeInstanceOf(ArrayBuffer);
+            let frameBytes = 0;
+            for (const chunk of frames[i]) {
+                frameBytes += chunk.byteLength;
+            }
+            expect(frameBytes).toBe(defaultImage.frameBytes);
+        }
+    });
+
+    test("frames exceeding singleBufferThreshold stay as arrays of ArrayBuffer", async () => {
+        const buffer = fs.readFileSync("test/sample-dicom.dcm");
+        const reader = new AsyncDicomReader();
+        // Set threshold to 1 byte so all frames exceed it
+        const listener = new DicomMetadataListener({
+            singleBufferThreshold: 1
+        });
+
+        reader.stream.addBuffer(buffer);
+        reader.stream.setComplete();
+
+        const { dict } = await reader.readFile({ listener });
+        const frames = dict[TagHex.PixelData].Value;
+        expect(Array.isArray(frames)).toBe(true);
+        expect(frames.length).toBe(1);
+        // 512*512*2 = 524288 bytes, well above 1 byte threshold
+        expect(Array.isArray(frames[0])).toBe(true);
+        expect(frames[0][0]).toBeInstanceOf(ArrayBuffer);
+        let totalBytes = 0;
+        for (const chunk of frames[0]) {
+            totalBytes += chunk.byteLength;
+        }
+        expect(totalBytes).toBe(512 * 512 * 2);
     });
 });
