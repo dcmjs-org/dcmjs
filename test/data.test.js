@@ -1457,11 +1457,11 @@ describe("test_un_vr", () => {
                     0x65, 0x5e, 0x4a, 0x61, 0x79, 0x5e, 0x41, 0x5e, 0x4a, 0x72,
                     0x2e, 0x20
                 ]).buffer,
-                ["Doe^John^A^Jr.^MD=Doe^Jay^A^Jr."],
+                ["Doe^John^A^Jr.^MD=Doe^Jay^A^Jr. "],
                 [
                     {
                         Alphabetic: "Doe^John^A^Jr.^MD",
-                        Ideographic: "Doe^Jay^A^Jr."
+                        Ideographic: "Doe^Jay^A^Jr. "
                     }
                 ]
             ],
@@ -1527,7 +1527,7 @@ describe("test_un_vr", () => {
                     0x31, 0x2e, 0x32, 0x2e, 0x38, 0x34, 0x30, 0x2e, 0x31, 0x30,
                     0x30, 0x30, 0x38, 0x2e, 0x31, 0x2e, 0x32, 0x2e, 0x31
                 ]).buffer,
-                ["1.2.840.10008.1.2.1"],
+                ["1.2.840.10008.1.2.1\0"],
                 ["1.2.840.10008.1.2.1"]
             ],
             [
