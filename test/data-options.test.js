@@ -44,6 +44,29 @@ it("test_untilTag", () => {
     expect(dataset.PixelData).toEqual(0);
 });
 
+it("normalizes untilTag before reading a file", () => {
+    const buffer = fs.readFileSync("test/sample-dicom.dcm");
+    const dicomData = DicomMessage.readFile(buffer.buffer, {
+        untilTag: "(7fe0,0010)",
+        includeUntilTagValue: false
+    });
+
+    const dataset = DicomMetaDictionary.naturalizeDataset(dicomData.dict);
+
+    expect(dataset.PixelData).toEqual(0);
+});
+
+it("throws when untilTag is not a valid tag", () => {
+    const buffer = fs.readFileSync("test/sample-dicom.dcm");
+
+    expect(() =>
+        DicomMessage.readFile(buffer.buffer, {
+            untilTag: "PixelData",
+            includeUntilTagValue: false
+        })
+    ).toThrow("Invalid untilTag: PixelData");
+});
+
 it("noCopy multiframe DICOM which has trailing padding", async () => {
     const url =
         "https://github.com/dcmjs-org/data/releases/download/binary-parsing-stressors/multiframe-ultrasound.dcm";

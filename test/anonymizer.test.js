@@ -1,6 +1,7 @@
 import dcmjs from "../src/index.js";
 import fs from "fs";
 import { validationLog } from "./../src/log.js";
+import { readFileArrayBuffer } from "./testUtils.js";
 
 // Ignore validation errors
 validationLog.setLevel(5);
@@ -41,7 +42,7 @@ it("test_anonymization", () => {
 
 it("test_anonymization_no_change_ref", () => {
     // given
-    const arrayBuffer = fs.readFileSync("test/sample-sr.dcm").buffer;
+    const arrayBuffer = readFileArrayBuffer("test/sample-sr.dcm");
     const dicomDict = DicomMessage.readFile(arrayBuffer);
 
     // multiple value name

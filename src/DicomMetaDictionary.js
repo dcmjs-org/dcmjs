@@ -29,6 +29,26 @@ export class DicomMetaDictionary {
         return tag.substring(1, 10).replace(",", "");
     }
 
+    static normalizeTag(tag) {
+        if (tag === null || tag === undefined) {
+            return tag;
+        }
+        const normalizedTag = String(tag)
+            .replace(/[(),\s]/g, "")
+            .toUpperCase();
+        if (/^[0-9A-F]{8}$/.test(normalizedTag)) {
+            return normalizedTag;
+        }
+    }
+
+    static normalizeTagOption(tag, optionName = "tag") {
+        const normalizedTag = DicomMetaDictionary.normalizeTag(tag);
+        if (tag !== null && tag !== undefined && !normalizedTag) {
+            throw new Error(`Invalid ${optionName}: ${tag}`);
+        }
+        return normalizedTag;
+    }
+
     static parseIntFromTag(tag) {
         const integerValue = parseInt(
             "0x" + DicomMetaDictionary.unpunctuateTag(tag)

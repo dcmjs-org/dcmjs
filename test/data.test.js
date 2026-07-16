@@ -5,7 +5,11 @@ import path from "path";
 import { WriteBufferStream } from "../src/BufferStream";
 import dcmjs from "../src/index.js";
 import { log } from "./../src/log.js";
-import { getTestDataset, getZippedTestDataset } from "./testUtils.js";
+import {
+    getTestDataset,
+    getZippedTestDataset,
+    readFileArrayBuffer
+} from "./testUtils.js";
 
 import { promisify } from "util";
 import arrayItem from "./arrayItem.json";
@@ -985,8 +989,8 @@ describe("The same DICOM file loaded from both DCM and JSON", () => {
     let jsonData;
 
     beforeEach(() => {
-        const file = fs.readFileSync("test/sample-sr.dcm");
-        dicomData = dcmjs.data.DicomMessage.readFile(file.buffer, {
+        const arrayBuffer = readFileArrayBuffer("test/sample-sr.dcm");
+        dicomData = dcmjs.data.DicomMessage.readFile(arrayBuffer, {
             // ignoreErrors: true,
         });
         jsonData = JSON.parse(JSON.stringify(sampleDicomSR));

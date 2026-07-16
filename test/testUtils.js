@@ -82,4 +82,20 @@ async function getTestDataset(url, filename) {
     return targetPath;
 }
 
-export { getTestDataset, getZippedTestDataset };
+function bufferToArrayBuffer(buffer) {
+    return buffer.buffer.slice(
+        buffer.byteOffset,
+        buffer.byteOffset + buffer.byteLength
+    );
+}
+
+function readFileArrayBuffer(filePath) {
+    return bufferToArrayBuffer(fs.readFileSync(filePath));
+}
+
+export {
+    bufferToArrayBuffer,
+    getTestDataset,
+    getZippedTestDataset,
+    readFileArrayBuffer
+};

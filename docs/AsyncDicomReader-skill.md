@@ -98,6 +98,71 @@ async function readWithCustomListener(arrayBuffer) {
 }
 ```
 
+### Reading Metadata from a Cancellable Stream
+
+`readFileFromAsyncStream()` accepts Node readable streams and browser
+`ReadableStream` sources. It owns the source lifecycle and stops the source
+when parsing completes or reaches an early-stop condition.
+
+```javascript
+import fs from "node:fs";
+import dcmjs from "dcmjs";
+
+const { AsyncDicomReader } = dcmjs.async;
+const { TagHex } = dcmjs.constants;
+
+const reader = new AsyncDicomReader();
+const source = fs.createReadStream("image.dcm");
+
+const result = await reader.readFileFromAsyncStream(source, {
+    untilTag: TagHex.PixelData,
+    includeUntilTagValue: false,
+    streamOptions: {
+        readAheadHighWaterMark: 64 * 1024
+    }
+});
+
+console.log(result.dict);
+console.log(result.stopInfo);
+```
+
+`readAheadHighWaterMark` applies between source chunks. A single incoming
+chunk is added atomically, so retained bytes may exceed the mark by up to one
+source chunk.
+
+The same API accepts a browser response body:
+
+```javascript
+const response = await fetch("/image.dcm");
+const reader = await AsyncDicomReader.readFileFromAsyncStream(response.body, {
+    untilTag: "7FE00010"
+});
+```
+
+The exposed pump distinguishes successful parser completion from external
+processing failure. The reader stops its source successfully after an
+`untilTag`, `stopOnGreaterTag`, or `shouldStop` match. An external workflow,
+such as a STOW handler, can reject the read with its own error:
+
+```javascript
+const readPromise = reader.readFileFromAsyncStream(source, options);
+const processingPromise = processIncomingRequest().catch(error => {
+    reader.pump.abort(error);
+    throw error;
+});
+
+await Promise.all([readPromise, processingPromise]);
+```
+
+`pump.abort(error)` rejects a read that is still pending. It cannot change the
+state of a read promise that has already fulfilled, so the processing promise
+must also be awaited as shown above.
+
+Generic async iterables remain supported by the lower-level
+`reader.stream.fromAsyncStream()` API. They are not accepted by
+`readFileFromAsyncStream()` because the async iterator protocol does not
+guarantee that `return()` interrupts a pending `next()` call.
+
 ## Architecture
 
 ### Core Components
@@ -402,6 +467,20 @@ Reads the entire DICOM file including meta information and dataset.
 
 **Returns:** `Promise<AsyncDicomReader>` - The reader instance
 
+#### `async readFileFromAsyncStream(stream, options)`
+Reads a DICOM file from a cancellable Node stream or browser
+`ReadableStream`. The source is stopped after parsing completes or reaches an
+early-stop condition.
+
+**Options:**
+- All `readFile()` options
+- `streamOptions.readAheadHighWaterMark` (number): Pause source reads between
+  chunks when unread bytes reach this threshold
+- `readerOptions` (Object, static factory only): Options for the reader
+  constructor
+
+**Returns:** `Promise<AsyncDicomReader>` - The reader instance
+
 #### `async readMeta(options)`
 Reads only the file meta information (Group 0x0002).
 
@@ -447,6 +526,10 @@ Reads a single tag header (tag, VR, length).
 - `dict` (Object): Dataset dictionary
 - `stream` (ReadBufferStream): Underlying buffer stream
 - `listener` (DicomMetadataListener): Current listener instance
+- `pump` (Object): Active stream handle exposing `abort(error)`, `failure`,
+  and `finished`
+- `stopInfo` (Object): Early-stop reason, tag/value offsets, available bytes,
+  and loaded end offset
 
 ## Common Patterns
 
@@ -720,7 +803,6 @@ The AsyncDicomReader is marked as preliminary. Future versions may include:
 - Files without DICM preamble
 - Improved streaming for network sources
 - Progress callbacks
-- Cancelable operations
 - More robust error recovery
 
 ## References

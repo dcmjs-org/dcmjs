@@ -18,6 +18,7 @@ import { deepEqual } from "./utilities/deepEqual";
 import { ValueRepresentation } from "./ValueRepresentation.js";
 
 export const singleVRs = ["SQ", "OF", "OW", "OB", "UN", "LT"];
+const NORMALIZED_READ_OPTIONS = Symbol("normalizedReadOptions");
 
 export class DicomMessage {
     static read(
@@ -42,10 +43,15 @@ export class DicomMessage {
         includeUntilTagValue = false
     ) {
         log.warn("DicomMessage.readTag to be deprecated after dcmjs 0.24.x");
-        return this._readTag(bufferStream, syntax, {
-            untilTag: untilTag,
-            includeUntilTagValue: includeUntilTagValue
-        });
+        return this._readTag(
+            bufferStream,
+            syntax,
+            this._normalizeReadOptions({
+                untilTag: untilTag,
+                includeUntilTagValue: includeUntilTagValue
+            }),
+            true
+        );
     }
 
     static _read(
@@ -58,6 +64,7 @@ export class DicomMessage {
             stopOnGreaterTag: false
         }
     ) {
+        options = DicomMessage._normalizeReadOptions(options);
         const { ignoreErrors, untilTag, stopOnGreaterTag } = options;
         var dict = {};
         try {
@@ -67,7 +74,8 @@ export class DicomMessage {
                 const readInfo = DicomMessage._readTag(
                     bufferStream,
                     syntax,
-                    options
+                    options,
+                    true
                 );
                 const cleanTagString = readInfo.tag.toCleanString();
                 if (untilTag && stopOnGreaterTag && cleanTagString > untilTag) {
@@ -164,7 +172,7 @@ export class DicomMessage {
         var metaStartPos = stream.offset;
 
         // read the first tag to check if it's the meta length tag
-        var el = DicomMessage._readTag(stream, useSyntax);
+        var el = DicomMessage._readTag(stream, useSyntax, undefined, true);
 
         var metaHeader = {};
         if (el.tag.cleanString !== TagHex.FileMetaInformationGroupLength) {
@@ -210,6 +218,24 @@ export class DicomMessage {
         dicomDict.dict = objects;
 
         return dicomDict;
+    }
+
+    static _normalizeReadOptions(options = {}) {
+        options ||= {};
+        if (options[NORMALIZED_READ_OPTIONS]) {
+            return options;
+        }
+        const normalizedOptions = {
+            ...options,
+            untilTag: DicomMetaDictionary.normalizeTagOption(
+                options.untilTag,
+                "untilTag"
+            )
+        };
+        Object.defineProperty(normalizedOptions, NORMALIZED_READ_OPTIONS, {
+            value: true
+        });
+        return normalizedOptions;
     }
 
     static writeTagObject(stream, tagString, vr, values, syntax, writeOptions) {
@@ -272,8 +298,12 @@ export class DicomMessage {
         options = {
             untilTag: null,
             includeUntilTagValue: false
-        }
+        },
+        optionsAreNormalized = false
     ) {
+        if (!optionsAreNormalized) {
+            options = DicomMessage._normalizeReadOptions(options);
+        }
         const { untilTag, includeUntilTagValue } = options;
         var implicit = syntax == IMPLICIT_LITTLE_ENDIAN ? true : false,
             isLittleEndian =

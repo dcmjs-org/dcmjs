@@ -19,6 +19,7 @@ import { DicomMetadataListener } from "./utilities/DicomMetadataListener.js";
 import { log } from "./log.js";
 
 const readLog = log.getLogger("AsyncDicomReader");
+const NORMALIZED_READ_OPTIONS = Symbol("normalizedReadOptions");
 
 /**
  * This is an asynchronous binary DICOM reader.
@@ -30,6 +31,8 @@ const readLog = log.getLogger("AsyncDicomReader");
  */
 export class AsyncDicomReader {
     syntax = EXPLICIT_LITTLE_ENDIAN;
+    stopInfo = null;
+    pump = null;
 
     constructor(options = {}) {
         this.isLittleEndian = options?.isLittleEndian;
@@ -44,6 +47,52 @@ export class AsyncDicomReader {
     /** Sentinel returned when stream is Part 10 but has no preamble (starts with meta). */
     static PART10_NO_PREAMBLE = Symbol("PART10_NO_PREAMBLE");
 
+    static async readFileFromAsyncStream(stream, options = {}) {
+        const { readerOptions, ...readOptions } = options;
+        const reader = new this(readerOptions);
+        return reader.readFileFromAsyncStream(stream, readOptions);
+    }
+
+    async readFileFromAsyncStream(stream, options = {}) {
+        const { streamOptions: inputStreamOptions, ...readOptions } = options;
+        const streamOptions = {
+            readAheadHighWaterMark: 1024,
+            ...inputStreamOptions,
+            requireCancellation: true
+        };
+
+        const pump = this.stream.pumpAsyncStream(stream, streamOptions);
+        this.pump = {
+            abort: pump.abort,
+            cancellable: pump.cancellable,
+            failure: pump.failure,
+            finished: pump.finished,
+            get aborted() {
+                return pump.aborted;
+            },
+            get reason() {
+                return pump.reason;
+            }
+        };
+        try {
+            const result = await Promise.race([
+                this.readFile(readOptions),
+                pump.failure
+            ]);
+            pump.stop();
+            await pump.finished;
+            return result;
+        } catch (error) {
+            pump.abort(error);
+            try {
+                await pump.finished;
+            } catch {
+                // Preserve the parsing, source, or externally supplied error.
+            }
+            throw error;
+        }
+    }
+
     /**
      * Reads the preamble and checks for the DICM marker.
      * Returns true if found/read, leaving the stream past the
@@ -56,7 +105,7 @@ export class AsyncDicomReader {
      */
     async readPreamble() {
         const { stream } = this;
-        await stream.ensureAvailable();
+        await stream.ensureAvailable(132);
         stream.reset();
         stream.increment(128);
         if (stream.readAsciiString(4) !== "DICM") {
@@ -150,6 +199,8 @@ export class AsyncDicomReader {
     }
 
     async readFile(options = undefined) {
+        options = this.normalizeReadOptions(options);
+        this.stopInfo = null;
         const hasPreamble = await this.readPreamble();
         if (hasPreamble === AsyncDicomReader.PART10_NO_PREAMBLE) {
             // Part 10 without preamble: stream starts at (0002,0000) or rest of meta
@@ -215,9 +266,9 @@ export class AsyncDicomReader {
      */
     async readMeta(options = undefined) {
         const { stream } = this;
-        await stream.ensureAvailable();
+        await stream.ensureAvailable(12);
         const { offset: metaStartPos } = stream;
-        const el = this.readTagHeader();
+        const el = this.readTagHeader(undefined, true);
         if (el.tag !== TagHex.FileMetaInformationGroupLength) {
             // meta length tag is missing
             if (!options?.ignoreErrors) {
@@ -257,16 +308,29 @@ export class AsyncDicomReader {
     }
 
     async read(listener, options) {
+        options = this.normalizeReadOptions(options);
         const untilOffset = options?.untilOffset || Number.MAX_SAFE_INTEGER;
+        const checksAfterTag =
+            options.includeUntilTagValue ||
+            typeof options.shouldStop === "function";
         this.listener = listener;
         const { stream } = this;
-        await stream.ensureAvailable();
-        while (stream.offset < untilOffset && stream.isAvailable(1, false)) {
+        await stream.ensureAvailable(12);
+        while (
+            !this.stopInfo &&
+            stream.offset < untilOffset &&
+            stream.isAvailable(1, false)
+        ) {
             readLog.debug("read loop", stream.offset, untilOffset);
             // Consume before reading the tag so that data before the
             // current tag can be cleared.
             stream.consume();
-            const tagInfo = this.readTagHeader(options);
+            const tagInfo = this.readTagHeader(options, true);
+
+            if (tagInfo.isPastUntilTag) {
+                this.setStopInfo("stopOnGreaterTag", tagInfo);
+                break;
+            }
 
             // Stop when the requested tag boundary is reached.  readTagHeader()
             // has already consumed the 4-byte tag but nothing beyond it, so
@@ -274,6 +338,7 @@ export class AsyncDicomReader {
             // the VR field for explicit-LE).  Callers that need the start
             // offset of the tag itself should subtract 4 from stream.offset.
             if (tagInfo.isUntilTag) {
+                this.setStopInfo("untilTag", tagInfo);
                 break;
             }
 
@@ -306,21 +371,74 @@ export class AsyncDicomReader {
                 await this.readSingle(tagInfo, listener, options);
             }
             listener.pop();
-            await this.stream.ensureAvailable();
+            if (this.stopInfo) {
+                break;
+            }
+            if (
+                checksAfterTag &&
+                (await this.shouldStopAfterTag(tagInfo, listener, options))
+            ) {
+                break;
+            }
+            await this.stream.ensureAvailable(12);
         }
         return listener.pop();
     }
 
+    async shouldStopAfterTag(tagInfo, listener, options) {
+        if (options?.includeUntilTagValue && options.untilTag === tagInfo.tag) {
+            this.setStopInfo("untilTag", tagInfo);
+            return true;
+        }
+
+        const { shouldStop } = options || {};
+        if (typeof shouldStop !== "function") {
+            return false;
+        }
+
+        const result = await shouldStop({
+            tagInfo,
+            listener,
+            reader: this,
+            stream: this.stream
+        });
+        if (!result) {
+            return false;
+        }
+
+        this.setStopInfo("shouldStop", tagInfo);
+        return true;
+    }
+
+    setStopInfo(reason, tagInfo) {
+        this.stopInfo = {
+            reason,
+            tag: tagInfo.tag,
+            offset: tagInfo.tagStartOffset,
+            tagStartOffset: tagInfo.tagStartOffset,
+            valueOffset: tagInfo.valueOffset,
+            valueLength: tagInfo.length,
+            stopOffset: this.stream.offset,
+            availableBytes: this.stream.available,
+            loadedEndOffset: this.stream.endOffset
+        };
+        return this.stopInfo;
+    }
+
     async readSequence(listener, sqTagInfo, options) {
         const { length } = sqTagInfo;
-        const { stream, syntax } = this;
+        const { stream } = this;
         const endOffset =
             length === UNDEFINED_LENGTH_FIX
                 ? Number.MAX_SAFE_INTEGER
                 : stream.offset + length;
-        while (stream.offset < endOffset && (await stream.ensureAvailable())) {
+        while (
+            !this.stopInfo &&
+            stream.offset < endOffset &&
+            (await stream.ensureAvailable(12))
+        ) {
             readLog.debug("readSequence loop", stream.offset, endOffset);
-            const tagInfo = this.readTagHeader(syntax, options);
+            const tagInfo = this.readTagHeader(undefined, true);
             const { tag } = tagInfo;
             if (tag === TagHex.Item) {
                 listener.startObject();
@@ -335,10 +453,18 @@ export class AsyncDicomReader {
                     itemLength === UNDEFINED_LENGTH_FIX
                         ? endOffset
                         : Math.min(stream.offset + itemLength, endOffset);
-                await this.read(listener, {
+                const itemOptions = {
                     ...options,
+                    untilTag: null,
+                    includeUntilTagValue: false,
+                    shouldStop: undefined,
+                    stopOnGreaterTag: false,
                     untilOffset: itemUntilOffset
-                });
+                };
+                await this.read(listener, itemOptions);
+                if (this.stopInfo) {
+                    return;
+                }
             } else if (tag === TagHex.SequenceDelimitationEnd) {
                 // Sequence of undefined lengths end in sequence delimitation item
                 return;
@@ -419,7 +545,7 @@ export class AsyncDicomReader {
             readLog.debug("readCompressed frame loop", frameNumber);
             stream.consume();
             await stream.ensureAvailable();
-            const frameTag = this.readTagHeader();
+            const frameTag = this.readTagHeader(undefined, true);
             if (frameTag.tag === TagHex.SequenceDelimitationEnd) {
                 if (lastFrame) {
                     // Always deliver frames as arrays, using streaming splitFrame
@@ -449,7 +575,7 @@ export class AsyncDicomReader {
     }
 
     async readOffsets() {
-        const tagInfo = this.readTagHeader();
+        const tagInfo = this.readTagHeader(undefined, true);
         if (tagInfo.tag !== TagHex.Item) {
             throw new Error(`Offsets tag is missing: ${tagInfo.tag}`);
         }
@@ -618,6 +744,24 @@ export class AsyncDicomReader {
         return vr === "SQ" || (vr === "UN" && length === UNDEFINED_LENGTH_FIX);
     }
 
+    normalizeReadOptions(options = {}) {
+        options ||= {};
+        if (options[NORMALIZED_READ_OPTIONS]) {
+            return options;
+        }
+        const normalizedOptions = {
+            ...options,
+            untilTag: DicomMetaDictionary.normalizeTagOption(
+                options.untilTag,
+                "untilTag"
+            )
+        };
+        Object.defineProperty(normalizedOptions, NORMALIZED_READ_OPTIONS, {
+            value: true
+        });
+        return normalizedOptions;
+    }
+
     /**
      * Reads a tag header.
      */
@@ -625,20 +769,46 @@ export class AsyncDicomReader {
         options = {
             untilTag: null,
             includeUntilTagValue: false
-        }
+        },
+        optionsAreNormalized = false
     ) {
+        if (!optionsAreNormalized) {
+            options = this.normalizeReadOptions(options);
+        }
         const { stream, syntax } = this;
         const { untilTag, includeUntilTagValue } = options;
         const implicit = syntax == IMPLICIT_LITTLE_ENDIAN;
         const isLittleEndian = syntax !== EXPLICIT_BIG_ENDIAN;
         stream.setEndian(isLittleEndian);
+        const tagStartOffset = stream.offset;
         const tagObj = Tag.readTag(stream);
         const tag = tagObj.cleanString;
 
         if (untilTag && untilTag === tag) {
             if (!includeUntilTagValue) {
-                return { tag, tagObj, vr: 0, values: 0, isUntilTag: true };
+                return {
+                    tag,
+                    tagObj,
+                    vr: 0,
+                    values: 0,
+                    isUntilTag: true,
+                    tagStartOffset,
+                    stopOffset: stream.offset
+                };
             }
+        }
+
+        if (untilTag && options.stopOnGreaterTag && tag > untilTag) {
+            stream.increment(tagStartOffset - stream.offset);
+            return {
+                tag,
+                tagObj,
+                vr: 0,
+                values: 0,
+                isPastUntilTag: true,
+                tagStartOffset,
+                stopOffset: stream.offset
+            };
         }
 
         let length = null;
@@ -703,7 +873,9 @@ export class AsyncDicomReader {
             tagObj,
             vm: entry?.vm,
             name: entry?.name,
-            length: length === UNDEFINED_LENGTH ? -1 : length
+            length: length === UNDEFINED_LENGTH ? -1 : length,
+            tagStartOffset,
+            valueOffset: stream.offset
         };
         return header;
     }

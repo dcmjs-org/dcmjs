@@ -11,9 +11,12 @@ export class BufferStream {
     view = new SplitDataView();
     /** The available listeners are those waiting for a query response */
     availableListeners = [];
+    readAheadListeners = [];
+    requestedAvailable = 0;
 
     /** Indicates if this buffer stream is complete/has finished being created */
     isComplete = false;
+    failure = null;
 
     /** A flag to set to indicate to clear buffers as they get consumed */
     clearBuffers = false;
@@ -32,6 +35,12 @@ export class BufferStream {
     setComplete(value = true) {
         this.isComplete = value;
         this.notifyAvailableListeners();
+        this.notifyReadAheadListeners();
+    }
+
+    setFailed(error) {
+        this.failure = error;
+        this.setComplete();
     }
 
     /**
@@ -53,10 +62,23 @@ export class BufferStream {
      * EOF.  By default waits for at least 1k to be available.
      */
     ensureAvailable(bytes = 1024) {
+        if (this.failure) {
+            return Promise.reject(this.failure);
+        }
         if (!this.isAvailable(bytes)) {
-            return new Promise(resolve => {
+            this.requestedAvailable = Math.max(this.requestedAvailable, bytes);
+            this.notifyReadAheadListeners();
+            return new Promise((resolve, reject) => {
                 const recheckAvailable = () => {
+                    if (this.failure) {
+                        reject(this.failure);
+                        return;
+                    }
                     if (this.isAvailable(bytes)) {
+                        if (this.requestedAvailable <= bytes) {
+                            this.requestedAvailable = 0;
+                        }
+                        this.notifyReadAheadListeners();
                         resolve(true);
                         return;
                     }
@@ -244,11 +266,10 @@ export class BufferStream {
 
     readUint16Array(length) {
         var sixlen = length / 2,
-            arr = new Uint16Array(sixlen),
-            i = 0;
-        while (i++ < sixlen) {
+            arr = new Uint16Array(sixlen);
+        for (let i = 0; i < sixlen; i++) {
             arr[i] = this.view.getUint16(this.offset, this.isLittleEndian);
-            this.offset += 2;
+            this.increment(2);
         }
         return arr;
     }
@@ -339,7 +360,7 @@ export class BufferStream {
             new Uint8Array(stream.slice(stream.startOffset, stream.size)),
             this.offset
         );
-        this.offset += stream.size;
+        this.increment(stream.size);
         this.size = this.offset;
         this.endOffset = this.size;
         return this.view.availableSize;
@@ -350,21 +371,357 @@ export class BufferStream {
         if (this.offset > this.size) {
             this.size = this.offset;
         }
+        if (this.readAheadListeners.length > 0) {
+            this.notifyReadAheadListeners();
+        }
+        if (step < 0 && this.availableListeners.length > 0) {
+            this.notifyAvailableListeners();
+        }
         return step;
     }
 
     /**
      * Reads from an async stream delivering to addBuffer.
      */
-    async fromAsyncStream(stream) {
-        for await (const chunk of stream) {
-            const ab = chunk.buffer.slice(
+    async fromAsyncStream(stream, options = {}) {
+        return this.pumpAsyncStream(stream, options).finished;
+    }
+
+    /**
+     * Starts reading from an async stream and returns a handle that can abort
+     * the source without requiring callers to read the rest of it first.
+     */
+    pumpAsyncStream(stream, options = {}) {
+        if (
+            options.requireCancellation &&
+            !BufferStream.isCancellableAsyncStream(stream)
+        ) {
+            throw new TypeError(
+                "Cancellable stream must be a Node stream or ReadableStream"
+            );
+        }
+        const source = BufferStream.asyncSourceFromStream(stream);
+        let rejectFailure;
+        let resolveStop;
+        const failure = new Promise((_resolve, reject) => {
+            rejectFailure = reject;
+        });
+        failure.catch(() => {});
+        const stopSignal = new Promise(resolve => {
+            resolveStop = resolve;
+        });
+        const state = {
+            cancelRequested: false,
+            cancelPromise: Promise.resolve(),
+            finalizing: false,
+            failure: undefined,
+            hasFailure: false,
+            settled: false,
+            stopSignal,
+            stopped: false
+        };
+
+        const reportFailure = error => {
+            if (state.hasFailure) {
+                return;
+            }
+            const failure = BufferStream.toError(error, "Async stream failed");
+            state.failure = failure;
+            state.hasFailure = true;
+            rejectFailure(failure);
+            this.setFailed(failure);
+        };
+
+        const cancel = error => {
+            if (error !== undefined) {
+                reportFailure(error);
+            }
+            if (state.cancelRequested || state.finalizing || state.settled) {
+                return;
+            }
+            state.cancelRequested = true;
+            state.stopped = true;
+            resolveStop();
+            const cancelSource =
+                error !== undefined ? source.abort : source.stop;
+            const reason =
+                error !== undefined
+                    ? state.failure
+                    : BufferStream.createStopReason();
+            state.cancelPromise = BufferStream.cancelSource(
+                cancelSource,
+                reason
+            );
+            if (error === undefined) {
+                this.setComplete();
+            }
+        };
+        state.cancel = cancel;
+        state.reportFailure = reportFailure;
+        state.removeErrorListener = source.onError?.(error =>
+            cancel(BufferStream.toError(error, "Async source failed"))
+        );
+
+        const finished = this._pumpAsyncStream(source, state, options);
+        finished.catch(() => {});
+
+        return {
+            abort: error => cancel(BufferStream.toError(error)),
+            cancellable: source.cancellable,
+            failure,
+            finished,
+            stop: () => cancel(),
+            get aborted() {
+                return state.hasFailure;
+            },
+            get reason() {
+                return state.failure;
+            },
+            get stopped() {
+                return state.stopped;
+            }
+        };
+    }
+
+    async _pumpAsyncStream(source, state, options) {
+        let reachedEnd = false;
+        try {
+            while (!state.stopped) {
+                const next = Promise.resolve()
+                    .then(() => source.next())
+                    .then(result => ({ result }));
+                const nextResult = await Promise.race([next, state.stopSignal]);
+                if (!nextResult || state.stopped) {
+                    break;
+                }
+                const { done, value } = nextResult.result;
+                if (done) {
+                    reachedEnd = true;
+                    break;
+                }
+                this.addBuffer(BufferStream.arrayBufferFromChunk(value));
+                await this.waitForReadAhead(
+                    options.readAheadHighWaterMark,
+                    state
+                );
+            }
+        } catch (error) {
+            const expectedStopError =
+                state.stopped &&
+                !state.hasFailure &&
+                source.isExpectedStopError?.(error);
+            const isReportedFailure =
+                state.hasFailure && error === state.failure;
+            if (!expectedStopError && !isReportedFailure) {
+                state.cancel(
+                    BufferStream.toError(error, "Async source failed")
+                );
+            }
+        } finally {
+            if (
+                reachedEnd &&
+                options.requireCancellation &&
+                !state.cancelRequested
+            ) {
+                state.cancel();
+            }
+            state.finalizing = true;
+            try {
+                await state.cancelPromise;
+            } catch (error) {
+                state.reportFailure(error);
+            } finally {
+                try {
+                    source.release?.();
+                } catch (error) {
+                    state.reportFailure(error);
+                }
+                state.removeErrorListener?.();
+                state.settled = true;
+                if (!state.hasFailure) {
+                    this.setComplete();
+                }
+            }
+        }
+
+        if (state.hasFailure) {
+            throw state.failure;
+        }
+    }
+
+    static createStopReason() {
+        return new Error("BufferStream stopped");
+    }
+
+    static toError(error, fallbackMessage = "BufferStream aborted") {
+        if (error instanceof Error) {
+            return error;
+        }
+        return new Error(error ? String(error) : fallbackMessage);
+    }
+
+    static cancelSource(cancelSource, reason) {
+        try {
+            return Promise.resolve(cancelSource?.(reason));
+        } catch (error) {
+            return Promise.reject(error);
+        }
+    }
+
+    static isCancellableAsyncStream(stream) {
+        if (typeof stream?.getReader === "function") {
+            return true;
+        }
+        return (
+            typeof stream?.[Symbol.asyncIterator] === "function" &&
+            typeof stream.destroy === "function" &&
+            typeof stream.once === "function" &&
+            typeof stream.on === "function" &&
+            typeof stream.off === "function"
+        );
+    }
+
+    static destroyNodeStream(stream, reason) {
+        if (
+            typeof stream.once !== "function" ||
+            typeof stream.on !== "function" ||
+            typeof stream.off !== "function"
+        ) {
+            stream.destroy(reason);
+            return Promise.resolve();
+        }
+        if (stream.closed) {
+            return Promise.resolve();
+        }
+
+        return new Promise((resolve, reject) => {
+            let destroyError;
+            let isSettled = false;
+            let waitTimer;
+            const cleanup = () => {
+                clearTimeout(waitTimer);
+                stream.off("close", onClose);
+                stream.off("error", onError);
+            };
+            const settle = () => {
+                if (isSettled) {
+                    return;
+                }
+                isSettled = true;
+                cleanup();
+                destroyError ? reject(destroyError) : resolve();
+            };
+            const onError = error => {
+                destroyError ||= error;
+            };
+            const onClose = () => settle();
+            const waitForClosed = () => {
+                if (stream.closed) {
+                    waitTimer = setTimeout(settle, 0);
+                } else {
+                    waitTimer = setTimeout(waitForClosed, 0);
+                }
+            };
+
+            stream.once("close", onClose);
+            stream.on("error", onError);
+            try {
+                stream.destroy(reason);
+                if (stream._readableState?.emitClose === false) {
+                    waitForClosed();
+                }
+            } catch (error) {
+                destroyError ||= error;
+                settle();
+            }
+        });
+    }
+
+    static asyncSourceFromStream(stream) {
+        if (typeof stream?.getReader === "function") {
+            const reader = stream.getReader();
+            return {
+                cancellable: true,
+                next: () => reader.read(),
+                abort: reason => reader.cancel(reason),
+                stop: reason => reader.cancel(reason),
+                release: () => reader.releaseLock()
+            };
+        }
+
+        const iterator = stream?.[Symbol.asyncIterator]?.();
+        if (iterator) {
+            const hasDestroy = typeof stream.destroy === "function";
+            const canObserveClose =
+                typeof stream.once === "function" &&
+                typeof stream.on === "function" &&
+                typeof stream.off === "function";
+            return {
+                cancellable: hasDestroy && canObserveClose,
+                next: () => iterator.next(),
+                abort: hasDestroy
+                    ? reason => BufferStream.destroyNodeStream(stream, reason)
+                    : reason => iterator.return?.(reason),
+                stop: hasDestroy
+                    ? () => BufferStream.destroyNodeStream(stream)
+                    : () => iterator.return?.(),
+                onError:
+                    typeof stream.on === "function" &&
+                    typeof stream.off === "function"
+                        ? handler => {
+                              stream.on("error", handler);
+                              return () => stream.off("error", handler);
+                          }
+                        : undefined,
+                isExpectedStopError: hasDestroy
+                    ? error =>
+                          error?.name === "AbortError" ||
+                          error?.code === "ABORT_ERR" ||
+                          error?.code === "ERR_STREAM_PREMATURE_CLOSE" ||
+                          error?.message === "Premature close"
+                    : undefined
+            };
+        }
+
+        throw new TypeError(
+            "Async stream must be an async iterable or ReadableStream"
+        );
+    }
+
+    static arrayBufferFromChunk(chunk) {
+        if (chunk instanceof ArrayBuffer) {
+            return chunk;
+        }
+        if (ArrayBuffer.isView(chunk)) {
+            return chunk.buffer.slice(
                 chunk.byteOffset,
                 chunk.byteOffset + chunk.byteLength
             );
-            this.addBuffer(ab);
         }
-        this.setComplete();
+        throw new TypeError("Async stream chunks must be ArrayBuffer views");
+    }
+    async waitForReadAhead(readAheadHighWaterMark, state) {
+        if (typeof readAheadHighWaterMark !== "number") {
+            return;
+        }
+
+        while (
+            !state.stopped &&
+            this.isPastReadAheadLimit(readAheadHighWaterMark)
+        ) {
+            await new Promise(resolve => {
+                this.readAheadListeners.push(resolve);
+            });
+        }
+    }
+
+    isPastReadAheadLimit(readAheadHighWaterMark) {
+        const limit = this.readAheadLimit(readAheadHighWaterMark);
+        return limit === 0 ? this.available > 0 : this.available >= limit;
+    }
+
+    readAheadLimit(readAheadHighWaterMark) {
+        return Math.max(0, readAheadHighWaterMark, this.requestedAvailable);
     }
 
     /**
@@ -393,6 +750,15 @@ export class BufferStream {
     notifyAvailableListeners() {
         const existingListeners = [...this.availableListeners];
         this.availableListeners.splice(0, this.availableListeners.length);
+        existingListeners.forEach(listener => listener());
+    }
+
+    notifyReadAheadListeners() {
+        if (this.readAheadListeners.length === 0) {
+            return;
+        }
+        const existingListeners = [...this.readAheadListeners];
+        this.readAheadListeners.splice(0, this.readAheadListeners.length);
         existingListeners.forEach(listener => listener());
     }
 
@@ -437,7 +803,7 @@ export class BufferStream {
     }
 
     reset() {
-        this.offset = 0;
+        this.increment(-this.offset);
         return this;
     }
 
@@ -446,7 +812,7 @@ export class BufferStream {
     }
 
     toEnd() {
-        this.offset = this.view.byteLength;
+        this.increment(this.view.byteLength - this.offset);
     }
 
     /**
@@ -495,7 +861,7 @@ export class ReadBufferStream extends BufferStream {
     }
 
     reset() {
-        this.offset = this.startOffset;
+        this.increment(this.startOffset - this.offset);
         return this;
     }
 
@@ -504,7 +870,7 @@ export class ReadBufferStream extends BufferStream {
     }
 
     toEnd() {
-        this.offset = this.endOffset;
+        this.increment(this.endOffset - this.offset);
     }
 
     writeUint8(value) {
