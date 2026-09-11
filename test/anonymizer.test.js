@@ -146,6 +146,43 @@ it("test_anonymization_keep_tag", () => {
     expect(seriesDescriptionTag.Value).toEqual(["Oberbauch  *sSSH/FB/4mm"]);
 });
 
+it("test_anonymization_dictionary_keyword_names", () => {
+    // given: tags that #345 reported as unmatched / missing in tagNamesToEmpty
+    const names = [
+        "ReferringPhysicianTelephoneNumbers",
+        "PhysiciansOfRecord",
+        "NameOfPhysiciansReadingStudy",
+        "OperatorsName",
+        "AdmittingDiagnosesDescription",
+        "Allergies",
+        "ResponsiblePersonRole"
+    ];
+    const dict = {};
+
+    names.forEach(name => {
+        const tagInfo = dcmjs.data.DicomMetaDictionary.nameMap[name];
+        expect(tagInfo).toBeDefined();
+        const tagString = dcmjs.data.Tag.fromPString(
+            tagInfo.tag
+        ).toCleanString();
+        dict[tagString] = { vr: tagInfo.vr, Value: ["PHI"] };
+    });
+
+    // when
+    cleanTags(dict);
+
+    // then: default cleanTags must resolve these keywords in nameMap and empty them
+    const emptyNames = getTagsNameToEmpty();
+    names.forEach(name => {
+        const tagInfo = dcmjs.data.DicomMetaDictionary.nameMap[name];
+        const tagString = dcmjs.data.Tag.fromPString(
+            tagInfo.tag
+        ).toCleanString();
+        expect(dict[tagString].Value).toEqual([]);
+        expect(emptyNames).toContain(name);
+    });
+});
+
 it("test_anonymization_anonymize_tag", () => {
     // given
     const arrayBuffer = fs.readFileSync("test/sample-dicom.dcm").buffer;
