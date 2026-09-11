@@ -65,8 +65,22 @@ function toWindows(inputArray, size) {
 
 let DicomMessage, Tag, DicomMetaDictionary;
 
-var binaryVRs = ["FL", "FD", "SL", "SS", "UL", "US", "AT", "UV"],
-    length32VRs = ["OB", "OW", "OF", "SQ", "UC", "UR", "UT", "UN", "OD", "UV"],
+var binaryVRs = ["FL", "FD", "SL", "SS", "UL", "US", "AT", "UV", "SV"],
+    length32VRs = [
+        "OB",
+        "OW",
+        "OF",
+        "SQ",
+        "UC",
+        "UR",
+        "UT",
+        "UN",
+        "OD",
+        "OL",
+        "OV",
+        "UV",
+        "SV"
+    ],
     singleVRs = ["SQ", "OF", "OW", "OB", "UN"];
 
 class ValueRepresentation {
@@ -1402,6 +1416,29 @@ class Unsigned64BitVeryLong extends ValueRepresentation {
     }
 }
 
+class Signed64BitVeryLong extends ValueRepresentation {
+    constructor() {
+        super("SV");
+        this.maxLength = 8;
+        this.padByte = PADDING_NULL;
+        this.fixed = true;
+        this.defaultValue = 0;
+    }
+
+    readBytes(stream) {
+        return stream.readBigInt64();
+    }
+
+    writeBytes(stream, value, writeOptions) {
+        return super.writeBytes(
+            stream,
+            value,
+            super.write(stream, "BigInt64", value),
+            writeOptions
+        );
+    }
+}
+
 class UniqueIdentifier extends AsciiStringRepresentation {
     constructor() {
         super("UI");
@@ -1539,6 +1576,24 @@ class OtherFloatString extends BinaryRepresentation {
     }
 }
 
+class OtherLongString extends BinaryRepresentation {
+    constructor() {
+        super("OL");
+        this.maxLength = null;
+        this.padByte = PADDING_NULL;
+        this.noMultiple = true;
+    }
+}
+
+class Other64BitVeryLongString extends BinaryRepresentation {
+    constructor() {
+        super("OV");
+        this.maxLength = null;
+        this.padByte = PADDING_NULL;
+        this.noMultiple = true;
+    }
+}
+
 // these VR instances are precreate and are reused for each requested vr/tag
 let VRinstances = {
     AE: new ApplicationEntity(),
@@ -1556,6 +1611,8 @@ let VRinstances = {
     OB: new OtherByteString(),
     OD: new OtherDoubleString(),
     OF: new OtherFloatString(),
+    OL: new OtherLongString(),
+    OV: new Other64BitVeryLongString(),
     OW: new OtherWordString(),
     PN: new PersonName(),
     SH: new ShortString(),
@@ -1563,6 +1620,7 @@ let VRinstances = {
     SQ: new SequenceOfItems(),
     SS: new SignedShort(),
     ST: new ShortText(),
+    SV: new Signed64BitVeryLong(),
     TM: new TimeValue(),
     UC: new UnlimitedCharacters(),
     UI: new UniqueIdentifier(),

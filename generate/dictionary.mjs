@@ -19706,30 +19706,30 @@ const dictionary = {
     },
     "(0066,0040)": {
         tag: "(0066,0040)",
-        vr: "UL",
+        vr: "OL",
         name: "LongPrimitivePointIndexList",
-        vm: "1-n",
+        vm: "1",
         version: "DICOM"
     },
     "(0066,0041)": {
         tag: "(0066,0041)",
-        vr: "UL",
+        vr: "OL",
         name: "LongTrianglePointIndexList",
-        vm: "3-3n",
+        vm: "1",
         version: "DICOM"
     },
     "(0066,0042)": {
         tag: "(0066,0042)",
-        vr: "UL",
+        vr: "OL",
         name: "LongEdgePointIndexList",
-        vm: "2-2n",
+        vm: "1",
         version: "DICOM"
     },
     "(0066,0043)": {
         tag: "(0066,0043)",
-        vr: "UL",
+        vr: "OL",
         name: "LongVertexPointIndexList",
-        vm: "1-n",
+        vm: "1",
         version: "DICOM"
     },
     "(0066,0101)": {
