@@ -273,6 +273,11 @@ export default class SplitDataView {
         return view.getBigUint64(offset - viewOffset, isLittleEndian);
     }
 
+    getBigInt64(offset, isLittleEndian) {
+        const { view, viewOffset } = this.findView(offset, 8);
+        return view.getBigInt64(offset - viewOffset, isLittleEndian);
+    }
+
     getFloat32(offset, isLittleEndian) {
         const { view, viewOffset } = this.findView(offset, 4);
         return view.getFloat32(offset - viewOffset, isLittleEndian);
@@ -323,6 +328,14 @@ export default class SplitDataView {
     setBigUint64(offset, value, isLittleEndian) {
         const { view, viewOffset, writeCommit } = this.findView(offset, 8);
         view.setBigUint64(offset - viewOffset, value, isLittleEndian);
+        if (writeCommit) {
+            this.writeCommit(view, offset);
+        }
+    }
+
+    setBigInt64(offset, value, isLittleEndian) {
+        const { view, viewOffset, writeCommit } = this.findView(offset, 8);
+        view.setBigInt64(offset - viewOffset, value, isLittleEndian);
         if (writeCommit) {
             this.writeCommit(view, offset);
         }
