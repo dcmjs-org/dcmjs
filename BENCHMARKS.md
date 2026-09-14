@@ -95,29 +95,63 @@ arrive, so memory stays flat no matter how big the file is. The table
 puts each library's actual strategy head-to-head — that asymmetry isn't
 unfair, it *is* the finding.
 
-Both runs on the same machine, same files, same warm file cache. The
-20.3 GB row is a single run (you don't repeat a 20 GB read for a
-median); the others are the median of three.
+**At this scale a second variable dominates the clock: the page cache.**
+A file that fits in RAM can be re-read *warm* at memory speed — here a
+measured **~16 GB/s**. A file read *cold*, freshly off disk, moves at
+whatever the disk delivers: on this machine a measured **~31 MB/s** (a
+slow APFS volume — a fast NVMe would be orders of magnitude quicker,
+which is exactly why the number is reported, not assumed). That is a
+~500× gap *per byte*, so the
+identical parse can take a fraction of a second warm or the better part
+of a minute cold. So we measure both states — and put **both libraries
+under the same cache state in each row**, so neither is handed a warm
+read while the other pays for the disk. (An earlier version of this
+table didn't, and the numbers were badly misleading.)
 
-| File | this fork (streamed) | upstream 0.52 (whole-file) |
-|---|---|---|
-| video48-small.dcm — 1.3 GB video instance | **0.22 s · 771 MB peak** | 45.6 s · 4,089 MB peak |
-| video48-h264-50mbps.dcm — 20.3 GB video instance | **670 s (limited by disk speed) · 2,165 MB peak** | **FAILS** — Node cannot put more than 2 GiB in one buffer |
+Measured on the same machine as above (Apple M4, 16 GB RAM); cold disk
+~31 MB/s. The fork's warm cell is the median of three; upstream's warm
+cell is given as a range because it is too unstable to summarize with
+one number (see below); cold cells are a single run. The 20.3 GB file is
+**bigger than RAM**, so it can only ever be read cold.
 
-Two things worth reading off that table:
+| File | Cache | this fork (streamed) | upstream 0.52 (whole-file) |
+|---|---|---|---|
+| video48-small.dcm — 1.3 GB | warm | **0.24 s · 800 MB** | 1.6–46 s · 2.5 GB |
+| video48-small.dcm — 1.3 GB | cold | **45 s · 741 MB** | 47 s · 3.2 GB |
+| video48-h264-50mbps.dcm — 20.3 GB | cold (>RAM) | **~700 s · 1.8 GB** | **FAILS** — Node cannot put >2 GiB in one buffer |
 
-- **At 1.3 GB the streamed parse is about 200× faster and uses about
-  5× less memory** — on the very same file. The streaming parser notes
-  where the video data sits and skips over it, while the whole-file
-  approach copies all 1.3 GB through memory several times (hence the
-  4 GB peak).
+Three things worth reading off that table:
+
+- **Warm, the streamed parse is cheap *and stable*** — ~0.24 s at
+  ~800 MB, run after run. Upstream on the very same warm file is slower
+  and wildly *unstable*: anywhere from 1.6 s to 46 s. That spread isn't
+  luck, it's memory pressure — whole-file loading needs ~2.5 GB of
+  working set on a 16 GB machine, and once that evicts the file from the
+  cache mid-parse, upstream re-reads it from the 31 MB/s disk and
+  stalls. The fork never allocates above ~800 MB, so nothing evicts and
+  its time never moves. The honest headline isn't a single "N× faster"
+  number — it's that one library stays flat and predictable while the
+  other's runtime swings ~30×.
+- **Cold, both libraries are gated by the disk, not the CPU — so their
+  *times* converge.** Reading 1.3 GB at ~31 MB/s is ~44 s of unavoidable
+  I/O, and both land there: the fork at ~45 s, upstream at ~47 s. The
+  streamed walk adds almost nothing over raw I/O (it reads every byte
+  once and skips *decoding* the video); upstream's whole-file parse is
+  hidden behind the same disk wait. That time is a property of the disk,
+  not the parser — on an NVMe drive at several GB/s the same read is back
+  under a second, so use the disk-speed line to predict it for your own
+  hardware: **cold time ≈ file size ÷ disk speed**. What does *not*
+  converge is memory: the fork holds **741 MB** to upstream's **3.2 GB**.
+  So the fork's *time* advantage is a warm-cache effect, but its
+  *memory* advantage (here ~4×) holds cold too — and is what lets it
+  open files upstream cannot.
 - **Above 2 GiB the comparison simply ends.** Whole-file loading hits a
-  hard JavaScript platform limit and cannot open the file at all. The
-  streamed parser's memory ceiling depends only on the largest single
-  piece of pixel data inside the file — about 2 GB here because this
-  test file deliberately uses enormous 1 GiB internal chunks, and
-  around 750 MB for typically-sized files. File size itself stops
-  mattering.
+  hard JavaScript platform limit (no single buffer past 2 GiB) and
+  cannot open the 20 GB file at all, warm or cold. The streamed parser
+  reads it in one cold pass — ~700 s, essentially all disk time — at a
+  flat ~1.8 GB, bounded only by the largest single pixel-data chunk
+  inside the file (about 1 GiB here, by design), never by the file's
+  total size.
 
 The complete end-to-end story at this scale — packing 21.8 GB of MP4
 video *into* a DICOM file at 658 MB of memory, then getting the

@@ -35,7 +35,19 @@ const require = createRequire(import.meta.url);
 const repoRoot = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 
 const spec = JSON.parse(process.argv[2]);
-const { contender, workload, file, iterations = 20, warmup = 3 } = spec;
+const {
+    contender,
+    workload,
+    file,
+    iterations = 20,
+    warmup = 3,
+    cache = null
+} = spec;
+// cache is a label only ("warm" | "cold" | null). Warm/cold is actually
+// produced by the caller: it purges the OS page cache before a cold cell and
+// passes warmup >= 1 for a warm cell (the warmup read pulls the file into
+// cache before the timed read). The worker just echoes the label back so the
+// parent can tabulate it.
 
 function loadContender() {
     if (contender === "fork") {
@@ -140,7 +152,8 @@ try {
             p10Ms: durations[Math.floor(durations.length * 0.1)],
             p90Ms: durations[Math.floor(durations.length * 0.9)],
             maxRssMb: Math.round(maxRssMb),
-            iterations
+            iterations,
+            cache
         }) + "\n"
     );
 } catch (err) {
