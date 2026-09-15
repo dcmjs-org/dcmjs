@@ -3,9 +3,11 @@ import {
     PADDING_NULL,
     PADDING_SPACE,
     PN_COMPONENT_DELIMITER,
-    VM_DELIMITER
+    VM_DELIMITER,
+    RLE_LOSSLESS
 } from "./constants/dicom.js";
 import { log, validationLog } from "./log.js";
+import { PN_DELIMITER_BYTES } from "./charset/iso2022.js";
 import dicomJson from "./utilities/dicomJson.js";
 
 // We replace the tag with a Proxy which intercepts assignments to obj[valueProp]
@@ -52,8 +54,19 @@ const tagProxyHandler = {
     }
 };
 
+// Read-side trailing-padding removal. The standard pad for text VRs is a
+// SPACE, but files in the wild routinely pad with 0x00 instead (#130);
+// DCMTK/pydicom strip both, so the read-side trims do too. Write-side
+// padding is untouched (still a space, per the standard).
 function rtrim(str) {
-    return str.replace(/\s*$/g, "");
+    // eslint-disable-next-line no-control-regex -- NUL-strip is deliberate (issue #130)
+    return str.replace(/[\s\x00]*$/g, "");
+}
+
+/** Strips only trailing NUL pad bytes (used before whitespace-aware trims). */
+function rtrimNull(str) {
+    // eslint-disable-next-line no-control-regex -- NUL-strip is deliberate (issue #130)
+    return typeof str === "string" ? str.replace(/\x00+$/, "") : str;
 }
 
 function toWindows(inputArray, size) {
@@ -68,6 +81,10 @@ let DicomMessage, Tag, DicomMetaDictionary;
 var binaryVRs = ["FL", "FD", "SL", "SS", "UL", "US", "AT", "UV"],
     length32VRs = ["OB", "OW", "OF", "SQ", "UC", "UR", "UT", "UN", "OD", "UV"],
     singleVRs = ["SQ", "OF", "OW", "OB", "UN"];
+
+// Unknown VR types already warned about by createByTypeString — the UN
+// fallback warns at most once per type (issue #457).
+const unknownVrTypesWarned = new Set();
 
 class ValueRepresentation {
     constructor(type) {
@@ -236,9 +253,9 @@ class ValueRepresentation {
         }
     }
 
-    readPaddedEncodedString(stream, length) {
+    readPaddedEncodedString(stream, length, delimiters) {
         if (!length) return "";
-        const val = stream.readEncodedString(length);
+        const val = stream.readEncodedString(length, delimiters);
         if (
             val.length &&
             val[val.length - 1] !== String.fromCharCode(this.padByte)
@@ -350,13 +367,19 @@ class ValueRepresentation {
             if (type == "ox") {
                 // TODO: determine VR based on context (could be 1 byte pixel data)
                 // https://github.com/dgobbi/vtk-dicom/issues/38
-                validationLog.error("Invalid vr type", type, "- using OW");
+                validationLog.debug("Invalid vr type", type, "- using OW");
                 vr = VRinstances["OW"];
             } else if (type == "xs") {
-                validationLog.error("Invalid vr type", type, "- using US");
+                validationLog.debug("Invalid vr type", type, "- using US");
                 vr = VRinstances["US"];
             } else {
-                validationLog.error("Invalid vr type", type, "- using UN");
+                // Warn at most once per unknown type (issue #457): files can
+                // carry many elements of the same unregistered VR (OL/OV/SV),
+                // and a per-element warning is pure log spam.
+                if (!unknownVrTypesWarned.has(type)) {
+                    unknownVrTypesWarned.add(type);
+                    validationLog.warn("Invalid vr type", type, "- using UN");
+                }
                 vr = VRinstances["UN"];
             }
         }
@@ -406,10 +429,17 @@ class BinaryRepresentation extends ValueRepresentation {
         this._storeRaw = false;
     }
 
-    writeBytes(stream, value, _syntax, isEncapsulated, writeOptions = {}) {
+    writeBytes(stream, value, syntax, isEncapsulated, writeOptions = {}) {
         var i;
         var binaryStream;
         var { fragmentMultiframe = true } = writeOptions;
+        // Fixed in this arc: PS3.5 Annex G requires RLE Lossless frames to be
+        // written as exactly one fragment per frame, so frame re-fragmentation
+        // is forced off for the RLE transfer syntax regardless of the
+        // fragmentMultiframe write option (issue #340).
+        if (syntax === RLE_LOSSLESS) {
+            fragmentMultiframe = false;
+        }
         value = value === null || value === undefined ? [] : value;
         if (isEncapsulated) {
             var fragmentSize = 1024 * 20,
@@ -667,7 +697,7 @@ class CodeString extends AsciiStringRepresentation {
     }
 
     applyFormatting(value) {
-        const trim = str => str.trim();
+        const trim = str => rtrimNull(str).trim();
 
         if (Array.isArray(value)) {
             return value.map(str => trim(str));
@@ -759,11 +789,22 @@ class DecimalString extends NumericStringRepresentation {
             if (numberStr === null || numberStr === undefined) {
                 return null;
             }
-            const returnVal = String(numberStr)
-                .trim()
-                .replace(/[^0-9.\\\-+e]/gi, "");
-            if (returnVal === "") return null;
-            return finiteParsedNumberOrNull(returnVal);
+
+            const trimmed = String(numberStr).replace(/\0+$/, "").trim();
+            if (trimmed === "") return null;
+            // PS3.5 6.2: DS is a fixed- or floating-point number using only
+            // "0"-"9", "+", "-", "." and "E"/"e". Anything else — e.g. the
+            // comma-decimal "0,347" from issue #287 — must not be silently
+            // coerced into a wrong finite number (stripping the comma turned
+            // 0.347 into 347); parse to null with a warning instead, leaving
+            // the original text in _rawValue.
+            if (!/^[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?$/.test(trimmed)) {
+                validationLog.warn(
+                    `Invalid DS value "${trimmed}" - not a valid decimal string, using null`
+                );
+                return null;
+            }
+            return finiteParsedNumberOrNull(trimmed);
         };
 
         if (Array.isArray(value)) {
@@ -945,7 +986,7 @@ class LongString extends EncodedStringRepresentation {
     }
 
     applyFormatting(value) {
-        return value.trim();
+        return rtrimNull(value).trim();
     }
 }
 
@@ -1034,12 +1075,15 @@ class PersonName extends EncodedStringRepresentation {
     }
 
     readBytes(stream, length) {
-        return this.readPaddedEncodedString(stream, length);
+        // PN's ^ and = component delimiters additionally reset ISO 2022
+        // designations to the default (PS3.5 6.1.2.5.3); plain decoders
+        // ignore the extra argument.
+        return this.readPaddedEncodedString(stream, length, PN_DELIMITER_BYTES);
     }
 
     applyFormatting(value) {
         const parsePersonName = valueStr =>
-            dicomJson.pnConvertToJsonObject(valueStr);
+            dicomJson.pnConvertToJsonObject(rtrimNull(valueStr));
 
         if (Array.isArray(value)) {
             return value.map(valueStr => parsePersonName(valueStr));
@@ -1069,7 +1113,7 @@ class ShortString extends EncodedStringRepresentation {
     }
 
     applyFormatting(value) {
-        return value.trim();
+        return rtrimNull(value).trim();
     }
 }
 
@@ -1393,10 +1437,16 @@ class Unsigned64BitVeryLong extends ValueRepresentation {
     }
 
     writeBytes(stream, value, writeOptions) {
+        // DataView.setBigUint64 requires a BigInt; naturalized datasets may
+        // legitimately carry Numbers (values ≤ 2^53), so coerce here.
+        const coerce = v => (typeof v === "bigint" ? v : BigInt(v));
+        const coerced = Array.isArray(value)
+            ? value.map(coerce)
+            : coerce(value);
         return super.writeBytes(
             stream,
-            value,
-            super.write(stream, "BigUint64", value),
+            coerced,
+            super.write(stream, "BigUint64", coerced),
             writeOptions
         );
     }

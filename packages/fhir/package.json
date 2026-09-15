@@ -1,0 +1,12 @@
+{
+    "name": "@dcmjs/fhir",
+    "version": "0.0.0",
+    "private": true,
+    "description": "DICOM → FHIR R4B mapper (Patient + ImagingStudy from naturalized Part 10 datasets). The FHIR sink for the dcmjs pipeline.",
+    "main": "src/index.js",
+    "module": "src/index.js",
+    "scripts": {
+        "test": "jest --rootDir ../.. packages/fhir"
+    },
+    "license": "MIT"
+}

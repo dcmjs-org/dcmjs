@@ -1,5 +1,6 @@
 import fs from "fs";
 import crypto from "crypto";
+import pako from "pako";
 import dcmjs from "../src/index.js";
 import { deepEqual } from "../src/utilities/deepEqual";
 import {
@@ -1340,8 +1341,19 @@ describe("lossless-read-write", () => {
                       outputBuffer.byteOffset,
                       outputBuffer.byteOffset + outputBuffer.byteLength
                   );
+        // Since W4 the body really is deflated (raw deflate after the
+        // uncompressed meta group); reconstruct the uncompressed stream
+        // (header + meta + inflated body) so the raw scan below can find
+        // the explicit-length PixelData element.
+        const outBytes = new Uint8Array(arrayBuf);
+        const view = new DataView(arrayBuf);
+        const bodyStart = 144 + view.getUint32(140, true);
+        const inflatedBody = pako.inflateRaw(outBytes.subarray(bodyStart));
+        const uncompressed = new Uint8Array(bodyStart + inflatedBody.length);
+        uncompressed.set(outBytes.subarray(0, bodyStart), 0);
+        uncompressed.set(inflatedBody, bodyStart);
         const pixelInfo = readPixelDataFromRawBuffer(
-            arrayBuf,
+            uncompressed,
             transferSyntaxUid
         );
         expect(pixelInfo).not.toBeNull();

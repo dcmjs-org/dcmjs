@@ -1,4 +1,4 @@
-import { ReadBufferStream } from "../src/BufferStream";
+import { ReadBufferStream, WriteBufferStream } from "../src/BufferStream";
 
 const size = 128;
 const buffer = new ArrayBuffer(size);
@@ -92,6 +92,91 @@ describe("ReadBufferStream Tests", () => {
             );
             expect(subStream.available).toBe(16);
             expect(subStream.readUint8()).toBe(32);
+        });
+    });
+
+    describe("readUint16Array", () => {
+        const values = [0x0102, 0xfffe, 0x0000, 0xabcd, 0x1234, 0xffff];
+
+        const encode = littleEndian => {
+            const encoded = new ArrayBuffer(values.length * 2);
+            const dv = new DataView(encoded);
+            values.forEach((v, i) => dv.setUint16(i * 2, v, littleEndian));
+            return encoded;
+        };
+
+        it.each([
+            ["little endian", true],
+            ["big endian", false]
+        ])(
+            "reads a known uint16 array in %s without shifting elements",
+            (_name, littleEndian) => {
+                const stream = new ReadBufferStream(
+                    encode(littleEndian),
+                    littleEndian
+                );
+                const arr = stream.readUint16Array(values.length * 2);
+                expect(arr).toBeInstanceOf(Uint16Array);
+                expect(arr.length).toBe(values.length);
+                // Pins the off-by-one: first element must be the first
+                // encoded value (not 0) and the last element must not be
+                // dropped.
+                expect(Array.from(arr)).toEqual(values);
+                expect(stream.offset).toBe(values.length * 2);
+            }
+        );
+
+        it.each([
+            ["little endian", true],
+            ["big endian", false]
+        ])("reads across chunk boundaries in %s", (_name, littleEndian) => {
+            const encoded = encode(littleEndian);
+            const stream = new ReadBufferStream(null, littleEndian, {});
+            // Split mid-value so one uint16 straddles two chunks.
+            stream.addBuffer(encoded.slice(0, 5));
+            stream.addBuffer(encoded.slice(5));
+            stream.setComplete();
+            const arr = stream.readUint16Array(values.length * 2);
+            expect(Array.from(arr)).toEqual(values);
+        });
+    });
+
+    describe("shared default encoder/decoder", () => {
+        it("shares the default latin1 decoder between read streams", () => {
+            const a = new ReadBufferStream(buffer, true);
+            const b = new ReadBufferStream(buffer, true);
+            expect(a.decoder).toBe(b.decoder);
+            // "latin1" is a WHATWG label of windows-1252; compare against a
+            // fresh latin1 decoder rather than hard-coding the canonical name.
+            expect(a.decoder.encoding).toBe(new TextDecoder("latin1").encoding);
+        });
+
+        it("setDecoder installs a per-stream decoder without mutating the shared default", () => {
+            const a = new ReadBufferStream(buffer, true);
+            const b = new ReadBufferStream(buffer, true);
+            const custom = new TextDecoder("utf-8");
+            a.setDecoder(custom);
+            expect(a.decoder).toBe(custom);
+            expect(b.decoder).not.toBe(custom);
+            expect(b.decoder.encoding).toBe(new TextDecoder("latin1").encoding);
+            // Streams created after the override still get the default.
+            const c = new ReadBufferStream(buffer, true);
+            expect(c.decoder).toBe(b.decoder);
+        });
+
+        it("decodes latin1 by default", () => {
+            const bytes = new Uint8Array([0x48, 0x69, 0xe9]).buffer;
+            const stream = new ReadBufferStream(bytes, true);
+            expect(stream.readEncodedString(3)).toBe("Hié");
+        });
+
+        it("shares the encoder between write streams and still encodes UTF-8", () => {
+            const w1 = new WriteBufferStream(32, true);
+            const w2 = new WriteBufferStream(32, true);
+            expect(w1.encoder).toBe(w2.encoder);
+            w1.writeUTF8String("café");
+            const out = new Uint8Array(w1.getBuffer(0, w1.size));
+            expect(Array.from(out)).toEqual([0x63, 0x61, 0x66, 0xc3, 0xa9]);
         });
     });
 

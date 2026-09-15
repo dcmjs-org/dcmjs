@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>dicom-parser × dcmjs — Merge &amp; Optimization Dossier</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b0e13;
+    --bg2: #0e1219;
+    --panel: #121723;
+    --panel2: #0f141d;
+    --ink: #dde4ee;
+    --muted: #8e99a9;
+    --faint: #5d6878;
+    --line: #1f2937;
+    --line2: #2a3649;
+    --dp: #4fd8c2;        /* dicom-parser : diagnostic cyan */
+    --dp-dim: rgba(79,216,194,.12);
+    --dj: #efa83d;        /* dcmjs : film amber */
+    --dj-dim: rgba(239,168,61,.12);
+    --good: #6cd98e;
+    --warn: #e3c25f;
+    --bad: #e87f70;
+    --new: #9d8cff;
+    --serif: "Instrument Serif", Georgia, serif;
+    --sans: "IBM Plex Sans", -apple-system, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background:
+      radial-gradient(1200px 600px at 75% -10%, rgba(79,216,194,.05), transparent 60%),
+      radial-gradient(900px 500px at 10% 0%, rgba(239,168,61,.04), transparent 55%),
+      var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+  body::before {
+    content: "";
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background-image:
+      repeating-linear-gradient(0deg, rgba(255,255,255,.014) 0 1px, transparent 1px 48px),
+      repeating-linear-gradient(90deg, rgba(255,255,255,.014) 0 1px, transparent 1px 48px);
+  }
+  a { color: var(--dp); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .frame { display: grid; grid-template-columns: 232px minmax(0,1fr); max-width: 1280px; margin: 0 auto; position: relative; z-index: 1; }
+  @media (max-width: 980px) { .frame { grid-template-columns: 1fr; } .sidenav { display: none; } }
+
+  /* ---------- side nav ---------- */
+  .sidenav { position: sticky; top: 0; align-self: start; height: 100vh; padding: 34px 18px 24px 22px; border-right: 1px solid var(--line); }
+  .sidenav .brand { font-family: var(--mono); font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--faint); margin-bottom: 26px; }
+  .sidenav .brand b { color: var(--dp); font-weight: 500; display: block; }
+  .sidenav .brand b.dj { color: var(--dj); }
+  .sidenav a { display: block; font-family: var(--mono); font-size: 12px; color: var(--muted); padding: 6px 10px; border-left: 2px solid transparent; margin-bottom: 1px; }
+  .sidenav a:hover { color: var(--ink); text-decoration: none; }
+  .sidenav a.active { color: var(--ink); border-left-color: var(--dp); background: linear-gradient(90deg, rgba(79,216,194,.07), transparent); }
+  .sidenav .navnum { color: var(--faint); margin-right: 7px; }
+
+  main { padding: 0 40px 120px; min-width: 0; }
+  @media (max-width: 980px) { main { padding: 0 18px 80px; } }
+
+  section { padding-top: 72px; }
+  .kicker { font-family: var(--mono); font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--faint); margin-bottom: 10px; }
+  .kicker::before { content: "— "; color: var(--dp); }
+  h2 { font-family: var(--serif); font-weight: 400; font-size: 38px; line-height: 1.1; margin-bottom: 18px; letter-spacing: .01em; }
+  h2 em { font-style: italic; color: var(--dp); }
+  h3 { font-family: var(--sans); font-weight: 600; font-size: 16px; margin: 30px 0 10px; }
+  p.lede { font-size: 16.5px; color: #b9c2cf; max-width: 76ch; }
+  p { max-width: 80ch; }
+  p + p { margin-top: 10px; }
+
+  /* ---------- hero ---------- */
+  .hero { padding: 84px 0 10px; }
+  .hero .tagline { font-family: var(--mono); font-size: 12px; color: var(--faint); letter-spacing: .14em; text-transform: uppercase; margin-bottom: 22px; }
+  .hero h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(44px, 6vw, 72px); line-height: 1.02; letter-spacing: .005em; max-width: 18ch; }
+  .hero h1 .dp { color: var(--dp); font-style: italic; }
+  .hero h1 .dj { color: var(--dj); font-style: italic; }
+  .hero .sub { margin-top: 22px; font-size: 16.5px; color: #aeb8c6; max-width: 72ch; }
+  .herostats { display: flex; flex-wrap: wrap; gap: 0; margin-top: 38px; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .herostats div { flex: 1 1 140px; padding: 16px 20px; border-right: 1px solid var(--line); background: var(--panel2); }
+  .herostats div:last-child { border-right: none; }
+  .herostats b { display: block; font-family: var(--serif); font-size: 30px; font-weight: 400; color: var(--ink); }
+  .herostats span { font-family: var(--mono); font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--faint); }
+
+  /* ---------- verdict ---------- */
+  .verdict-band { margin-top: 30px; border: 1px solid var(--line2); border-radius: 10px; background: linear-gradient(135deg, rgba(239,168,61,.07), rgba(79,216,194,.05) 60%, transparent), var(--panel); padding: 28px 30px; }
+  .verdict-band .vk { font-family: var(--mono); font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--dj); margin-bottom: 8px; }
+  .verdict-band .vh { font-family: var(--serif); font-size: 27px; line-height: 1.25; max-width: 56ch; }
+  .verdict-band .vh .dp { color: var(--dp); } .verdict-band .vh .dj { color: var(--dj); }
+  .verdict-band .vs { margin-top: 12px; color: var(--muted); font-size: 14.5px; max-width: 90ch; }
+
+  .judges { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin-top: 22px; }
+  .judge { border: 1px solid var(--line); border-radius: 8px; background: var(--panel2); padding: 16px 18px; }
+  .judge .lens { font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--faint); }
+  .judge .vote { font-family: var(--serif); font-size: 19px; margin: 6px 0 8px; }
+  .judge .vote.into-dcmjs { color: var(--dj); }
+  .judge .vote.hybrid { color: var(--new); }
+  .judge p { font-size: 13px; color: var(--muted); line-height: 1.55; }
+
+  /* ---------- scorecard ---------- */
+  .scorecard { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 14px; margin-top: 8px; }
+  .score { border: 1px solid var(--line); border-radius: 8px; background: var(--panel2); padding: 18px 20px; position: relative; overflow: hidden; }
+  .score::after { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; }
+  .score.w-dp::after { background: var(--dp); }
+  .score.w-dj::after { background: var(--dj); }
+  .score .dim { font-family: var(--mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--faint); margin-bottom: 6px; }
+  .score .who { font-family: var(--serif); font-size: 21px; margin-bottom: 8px; }
+  .score.w-dp .who { color: var(--dp); }
+  .score.w-dj .who { color: var(--dj); }
+  .score p { font-size: 13px; color: var(--muted); line-height: 1.55; }
+
+  /* ---------- chips, badges, refs ---------- */
+  .ref { font-family: var(--mono); font-size: 11.5px; background: rgba(255,255,255,.045); border: 1px solid var(--line); border-radius: 4px; padding: 1px 6px; color: #b7c4d4; white-space: nowrap; }
+  .badge { display: inline-block; font-family: var(--mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; border-radius: 4px; padding: 2px 8px; border: 1px solid; white-space: nowrap; }
+  .b-high { color: var(--bad); border-color: rgba(232,127,112,.5); background: rgba(232,127,112,.08); }
+  .b-med { color: var(--warn); border-color: rgba(227,194,95,.45); background: rgba(227,194,95,.07); }
+  .b-low { color: var(--muted); border-color: var(--line2); }
+  .b-verified { color: var(--good); border-color: rgba(108,217,142,.45); background: rgba(108,217,142,.07); }
+  .b-refuted { color: var(--bad); border-color: rgba(232,127,112,.5); background: rgba(232,127,112,.08); }
+  .b-unverified { color: var(--faint); border-color: var(--line2); }
+  .b-dp { color: var(--dp); border-color: rgba(79,216,194,.45); background: var(--dp-dim); }
+  .b-dj { color: var(--dj); border-color: rgba(239,168,61,.45); background: var(--dj-dim); }
+  .b-new { color: var(--new); border-color: rgba(157,140,255,.45); background: rgba(157,140,255,.08); }
+  .b-drop { color: var(--faint); border-color: var(--line2); text-decoration: line-through; }
+
+  /* ---------- two-column profile ---------- */
+  .profile { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 8px; }
+  @media (max-width: 880px) { .profile { grid-template-columns: 1fr; } }
+  .pcol { border: 1px solid var(--line); border-radius: 8px; background: var(--panel2); padding: 20px 22px; }
+  .pcol h4 { font-family: var(--mono); font-size: 11px; letter-spacing: .15em; text-transform: uppercase; font-weight: 500; margin-bottom: 14px; }
+  .pcol.shine h4 { color: var(--good); }
+  .pcol.weak h4 { color: var(--bad); }
+  .pcol ul { list-style: none; }
+  .pcol li { font-size: 13.5px; color: #b6c0cd; padding: 7px 0 7px 18px; border-bottom: 1px dashed var(--line); position: relative; line-height: 1.55; }
+  .pcol li:last-child { border-bottom: none; }
+  .pcol li::before { content: ""; position: absolute; left: 0; top: 14px; width: 7px; height: 7px; border-radius: 2px; }
+  .pcol.shine li::before { background: rgba(108,217,142,.55); }
+  .pcol.weak li::before { background: rgba(232,127,112,.55); }
+  .pcol li b { color: var(--ink); font-weight: 600; }
+
+  .libhead { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 6px; }
+  .libhead .libname { font-family: var(--mono); font-size: 13px; padding: 3px 10px; border-radius: 5px; }
+  .libhead .libname.dp { color: var(--dp); background: var(--dp-dim); border: 1px solid rgba(79,216,194,.35); }
+  .libhead .libname.dj { color: var(--dj); background: var(--dj-dim); border: 1px solid rgba(239,168,61,.35); }
+  .libhead .libdesc { font-size: 13px; color: var(--faint); font-family: var(--mono); }
+
+  .callout { border: 1px solid var(--line2); border-left: 3px solid var(--dj); border-radius: 6px; background: var(--panel); padding: 16px 20px; margin: 22px 0; font-size: 14px; color: #b9c2cf; max-width: none; }
+  .callout.cyan { border-left-color: var(--dp); }
+  .callout.violet { border-left-color: var(--new); }
+  .callout b { color: var(--ink); }
+
+  /* ---------- architecture layers ---------- */
+  .stack { margin-top: 14px; display: flex; flex-direction: column; gap: 10px; }
+  .layer { border: 1px solid var(--line2); border-radius: 8px; padding: 16px 20px; background: var(--panel2); display: grid; grid-template-columns: 110px 1fr; gap: 18px; align-items: start; }
+  @media (max-width: 700px) { .layer { grid-template-columns: 1fr; gap: 6px; } }
+  .layer .lnum { font-family: var(--mono); font-size: 11px; color: var(--faint); letter-spacing: .12em; text-transform: uppercase; padding-top: 3px; }
+  .layer .lnum b { display: block; font-family: var(--serif); font-size: 24px; font-weight: 400; color: var(--ink); letter-spacing: 0; text-transform: none; }
+  .layer .lbody .ltitle { font-weight: 600; font-size: 15px; margin-bottom: 4px; }
+  .layer .lbody p { font-size: 13.5px; color: var(--muted); margin-bottom: 8px; }
+  .layer .lbody .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .layer.l0 { border-left: 3px solid var(--dp); }
+  .layer.l1 { border-left: 3px solid var(--dj); }
+  .layer.l2 { border-left: 3px solid var(--dj); }
+  .layer.l3 { border-left: 3px solid var(--faint); opacity: .85; }
+
+  /* ---------- tables ---------- */
+  .tablewrap { overflow-x: auto; margin-top: 14px; border: 1px solid var(--line); border-radius: 8px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; background: var(--panel2); }
+  th { font-family: var(--mono); font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; font-weight: 500; color: var(--faint); text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--line2); background: var(--panel); position: sticky; top: 0; }
+  td { padding: 12px 14px; border-bottom: 1px solid var(--line); vertical-align: top; color: #b6c0cd; line-height: 1.55; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,.012); }
+  td .tname { display: block; font-weight: 600; color: var(--ink); margin-bottom: 3px; }
+  td .corr { display: block; margin-top: 6px; font-size: 12px; color: var(--faint); border-left: 2px solid var(--line2); padding-left: 8px; }
+  td .corr b { color: var(--warn); font-weight: 500; }
+
+  /* ---------- roadmap ---------- */
+  .roadmap { margin-top: 10px; counter-reset: step; }
+  .step { display: grid; grid-template-columns: 56px 1fr; gap: 18px; padding: 18px 0; border-bottom: 1px dashed var(--line); }
+  .step:last-child { border-bottom: none; }
+  .step::before { counter-increment: step; content: counter(step, decimal-leading-zero); font-family: var(--serif); font-size: 28px; color: var(--faint); line-height: 1; padding-top: 2px; }
+  .step .stitle { font-weight: 600; font-size: 15px; color: var(--ink); margin-bottom: 4px; }
+  .step .stitle .badge { margin-left: 8px; vertical-align: 1px; }
+  .step p { font-size: 13.5px; color: var(--muted); max-width: 92ch; }
+
+  /* ---------- risks ---------- */
+  .risks { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 10px; }
+  @media (max-width: 880px) { .risks { grid-template-columns: 1fr; } }
+  .risk { border: 1px solid var(--line); border-radius: 8px; background: var(--panel2); padding: 16px 18px; }
+  .risk .rt { font-weight: 600; font-size: 14px; color: var(--ink); margin-bottom: 5px; }
+  .risk p { font-size: 13px; color: var(--muted); }
+  .risk .rg { margin-top: 8px; font-size: 12.5px; color: var(--good); }
+  .risk .rg::before { content: "gate → "; font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--faint); }
+
+  footer { margin-top: 90px; padding-top: 24px; border-top: 1px solid var(--line); font-family: var(--mono); font-size: 11.5px; color: var(--faint); line-height: 1.8; }
+  .divider { height: 1px; background: linear-gradient(90deg, var(--line2), transparent); margin-top: 60px; }
+  ::selection { background: rgba(79,216,194,.25); }
+</style>
+</head>
+<body>
+<div class="frame">
+
+<nav class="sidenav" id="sidenav">
+  <div class="brand"><b>dicom-parser</b><b class="dj">dcmjs</b>merge dossier</div>
+  <a href="#verdict"><span class="navnum">00</span>Verdict</a>
+  <a href="#scorecard"><span class="navnum">01</span>Scorecard</a>
+  <a href="#dicom-parser"><span class="navnum">02</span>dicom-parser profile</a>
+  <a href="#dcmjs"><span class="navnum">03</span>dcmjs profile</a>
+  <a href="#architecture"><span class="navnum">04</span>Target architecture</a>
+  <a href="#mergemap"><span class="navnum">05</span>What moves where</a>
+  <a href="#roadmap"><span class="navnum">06</span>Migration roadmap</a>
+  <a href="#perf"><span class="navnum">07</span>Performance targets</a>
+  <a href="#devx"><span class="navnum">08</span>DevX targets</a>
+  <a href="#risks"><span class="navnum">09</span>Risks &amp; CI gates</a>
+</nav>
+
+<main>
+
+<!-- ============================ HERO ============================ -->
+<div class="hero">
+  <div class="tagline">Engineering dossier · 2026-06-09 · 31-agent analysis, adversarially verified</div>
+  <h1>Two parsers. <span class="dp">One lazy core,</span> <span class="dj">one living shell.</span></h1>
+  <p class="sub">
+    A head-to-head audit of <strong>dicom-parser</strong> (the zero-copy, offset-based read core under Cornerstone's
+    image loaders) and <strong>dcmjs</strong> (the full read/write, naturalize, SR/SEG manipulation library under OHIF) —
+    what each does best, which should absorb the other, exactly which modules move, and what to optimize after the merge.
+  </p>
+  <div class="herostats">
+    <div><b>6</b><span>dimensions judged</span></div>
+    <div><b>36</b><span>optimization targets</span></div>
+    <div><b>17 / 18</b><span>high-impact claims verified</span></div>
+    <div><b>2 : 1</b><span>judge vote on direction</span></div>
+    <div><b>9.5×</b><span>dict load win already shipped</span></div>
+  </div>
+</div>
+
+<!-- ============================ VERDICT ============================ -->
+<section id="verdict">
+  <div class="kicker">00 · Verdict</div>
+  <h2>Merge <em>dicom-parser into dcmjs</em> — as its new layer-zero.</h2>
+
+  <div class="verdict-band">
+    <div class="vk">Recommended direction</div>
+    <div class="vh">
+      Vendor <span class="dp">dicom-parser's lazy offset tokenizer verbatim</span> into the dcmjs repo as
+      <span class="dj">layer 0</span>, exposed at a dependency-free <code class="ref">dcmjs/parser</code> subpath.
+      Rebuild dcmjs's read path as a lazy materialization layer over it. Publish a final
+      <code class="ref">dicom-parser</code> shim release that re-exports the subpath — no downstream consumer is ever forced to migrate.
+    </div>
+    <div class="vs">
+      The logic is asymmetric in both directions. dicom-parser's tokenizer is the only foundation from which the other library's behavior can be
+      <em>derived</em>: given <code class="ref">{tag, vr, dataOffset, length}</code> you can lazily materialize dcmjs-style Values, but dcmjs's eager
+      <code class="ref">{vr, Value, _rawValue}</code> model irreversibly discards offsets. Meanwhile dcmjs's assets — the write path, packed dictionary,
+      charset handling, SR/SEG stack, and the only living CI/build/release infrastructure — are huge and non-portable, where the parser is
+      ~160&nbsp;KB of dependency-free ESM in 24 flat files whose 262 byte-level tests and fixture corpus travel with it.
+      The code flows one way; the repo identity flows the other.
+    </div>
+  </div>
+
+  <div class="judges">
+    <div class="judge">
+      <div class="lens">Lens · performance-first</div>
+      <div class="vote into-dcmjs">dicom-parser → dcmjs</div>
+      <p>Parse speed depends on which code runs, not where it lives. Transplant the tokenizer verbatim, enforce non-regression with a CI benchmark
+      gate against published dicom-parser 1.8.12. A fresh package invites "clean" rewrites of the hot loop — the single biggest perf risk.</p>
+    </div>
+    <div class="judge">
+      <div class="lens">Lens · ecosystem-first</div>
+      <div class="vote into-dcmjs">dicom-parser → dcmjs</div>
+      <p>Both ecosystems pin by name. Hosting in dcmjs leaves OHIF untouched; image loaders are protected by a shim release of
+      <code class="ref">dicom-parser</code> with identical API and UMD global. dcmjs's 0.x semver makes the core swap opt-in by default.</p>
+    </div>
+    <div class="judge">
+      <div class="lens">Lens · maintainability-first</div>
+      <div class="vote hybrid">new hybrid monorepo</div>
+      <p>Dissent: neither repo as base avoids inheriting structural debt; prefers a TypeScript-first layered monorepo with both names as shims.
+      Its layered architecture is identical to the majority plan — adoptable incrementally inside dcmjs's existing pnpm workspace.</p>
+    </div>
+  </div>
+
+  <div class="callout violet">
+    <b>How to read the dissent.</b> All three judges agree on the same end-state architecture (dicom-parser tokenizer at layer 0, lazy dcmjs
+    data model above it, features as subpaths, adapters out). The disagreement is purely packaging. The pragmatic resolution: do the merge inside
+    dcmjs (majority), but structure <code class="ref">src/parser/</code> as a workspace package from day one so the hybrid end-state stays reachable
+    without a second migration.
+  </div>
+</section>
+
+<!-- ============================ SCORECARD ============================ -->
+<section id="scorecard">
+  <div class="kicker">01 · Scorecard</div>
+  <h2>Six dimensions, no ties.</h2>
+  <p class="lede">Each dimension was analyzed by a dedicated agent reading both repos in full, with cited file:line evidence.</p>
+
+  <div class="scorecard">
+    <div class="score w-dp">
+      <div class="dim">Parsing core architecture</div>
+      <div class="who">dicom-parser</div>
+      <p>Offset-recording lazy tokenizer; allocation-free integer reads on a flat Uint8Array; single-pass sequence and fragment indexing;
+      per-element warnings with partial-dataset recovery. dcmjs's eager model discards offsets and re-copies sequence items at every nesting level.</p>
+    </div>
+    <div class="score w-dp">
+      <div class="dim">Performance &amp; memory</div>
+      <div class="who">dicom-parser</div>
+      <p>Wins header-only parse (~an order of magnitude less work and garbage per element), full parse with pixel data (seeks past pixels,
+      zero-copy frame views vs per-frame ArrayBuffer copies), and memory (~1× file size vs ~2×+). dcmjs wins only bounded-memory streaming.</p>
+    </div>
+    <div class="score w-dj">
+      <div class="dim">Data model &amp; public API</div>
+      <div class="who">dcmjs</div>
+      <p>Naturalized keyword datasets (<code class="ref">dataset.PatientName</code>) are what application developers want, with real engineering in
+      round-trip fidelity (<code class="ref">_rawValue</code> write-back). dicom-parser's hex-tag accessors are clean and superbly typed but read-only and semantically bare.</p>
+    </div>
+    <div class="score w-dj">
+      <div class="dim">Writing / serialization</div>
+      <div class="who">dcmjs</div>
+      <p>A walkover: dicom-parser has zero write code. dcmjs ships a production-proven Part 10 writer — per-VR padding, encapsulation, lossless
+      round-trip gate, large regression suite. Its flaws (copy-heavy buffers, re-fragmentation) are rework items, not disqualifiers.</p>
+    </div>
+    <div class="score w-dj">
+      <div class="dim">Feature coverage</div>
+      <div class="who">dcmjs</div>
+      <p>Dictionary, anonymizer, SR (TID300/1500), derivations (SEG/RTSS), charset decoding verified against the dclunie suite, streaming reader,
+      adapters. Several would take person-years to recreate. dicom-parser's one superior slice: encapsulated pixel-data utilities.</p>
+    </div>
+    <div class="score w-dj">
+      <div class="dim">Tooling, tests, ecosystem</div>
+      <div class="who">dcmjs</div>
+      <p>Actively maintained (2026 commits vs dormant since 2023); pnpm 11 + rollup 4 + four GitHub Actions workflows + semantic-release with provenance,
+      vs webpack 4 / karma / CircleCI Node 16. dicom-parser's portable wins: the testImages corpus, 262 byte-level tests, complete index.d.ts.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ DICOM-PARSER PROFILE ============================ -->
+<section id="dicom-parser">
+  <div class="kicker">02 · Profile</div>
+  <div class="libhead">
+    <span class="libname dp">dicom-parser</span>
+    <span class="libdesc">~24 src files · read-only · zero dependencies · powers @cornerstonejs/dicom-image-loader</span>
+  </div>
+  <h2>The <em>fast lazy core</em> in an abandoned shell.</h2>
+  <p class="lede">A single-pass tokenizer over one contiguous buffer that stores only <code class="ref">{tag, vr, length, dataOffset}</code>
+  per element and decodes values on accessor calls. Its design is the performance ceiling of this merge; its packaging and upkeep are its floor.</p>
+
+  <div class="profile">
+    <div class="pcol shine">
+      <h4>Where it shines</h4>
+      <ul>
+        <li><b>Fully lazy materialization</b> — elements are offset/length records (<span class="ref">readDicomElementExplicit.js:34-50</span>); values decode on access (<span class="ref">dataSet.js:48-196</span>). Parse cost and heap are independent of value sizes.</li>
+        <li><b>Zero-copy pixel data</b> — encapsulated frames indexed as BOT + fragment offsets (<span class="ref">findEndOfEncapsulatedPixelData.js:23-84</span>); single-fragment frames return shared views, no copy (<span class="ref">sharedCopy.js:15-22</span>).</li>
+        <li><b>Offset fidelity</b> — every element and sequence item records its byte range, including corrected lengths for undefined-length elements — the prerequisite for byte-exact passthrough rewriting.</li>
+        <li><b>Standards-correct edge handling</b> — UN with undefined length parsed as implicit SQ per PS3.5 6.2.2 (<span class="ref">readDicomElementExplicit.js:67-80</span>); dictionary-free SQ peek heuristic; private implicit tags deliberately not recursed.</li>
+        <li><b>Malformed-file recovery</b> — warnings array threaded through parsing; partial dataSet attached to thrown error (<span class="ref">parseDicom.js:146-153</span>); fragment lengths clamped to buffer end; missing DICM tolerated with explicit transfer syntax.</li>
+        <li><b>untilTag early exit</b> at any nesting level — cheap header-only parses for viewers loading thousands of files.</li>
+        <li><b>Pluggable, dependency-free</b> — deflate via injected inflater / node zlib / global pako; swappable big-endian parser; <code class="ref">vrCallback</code> dictionary hook.</li>
+        <li><b>Portable safety net</b> — 262 byte-level unit tests, committed testImages corpus, complete hand-written <span class="ref">index.d.ts</span>.</li>
+      </ul>
+    </div>
+    <div class="pcol weak">
+      <h4>Where it falls short</h4>
+      <ul>
+        <li><b>Read-only.</b> No write or serialization path of any kind.</li>
+        <li><b>No character sets</b> — strings decode byte-by-byte via <code class="ref">String.fromCharCode</code> (<span class="ref">byteArrayParser.js:29-37</span>); non-Latin SpecificCharacterSet is silently garbled.</li>
+        <li><b>No data dictionary</b> — implicit-VR files yield <code class="ref">vr: undefined</code> unless the caller supplies a lookup; every consumer rebuilds value semantics.</li>
+        <li><b>Whole-buffer, sync only</b> — no streaming, no async, deflate inflates the entire remainder eagerly on the main thread.</li>
+        <li><b>Latent crash bug</b> — <code class="ref">byteStream.warnings</code> (an array) is invoked as a function on exactly the malformed files it should tolerate (<span class="ref">findItemDelimitationItem.js:31</span>, <span class="ref">findAndSetUNElementLength.js:32</span>).</li>
+        <li><b>Aged primitives</b> — char-by-char string building, two typed-array allocations per float read, byte-by-byte multi-fragment frame assembly.</li>
+        <li><b>API footguns</b> — <code class="ref">string()</code>'s element.Value escape hatch ignores the index argument (<span class="ref">dataSet.js:180</span>); out-of-range index throws TypeError; dead duplicated module still publicly exported.</li>
+        <li><b>Dead infrastructure</b> — dormant since 2023; webpack 4 / karma / CircleCI Node 16; <code class="ref">main</code> and <code class="ref">module</code> both point at one minified UMD bundle; no exports map, no types field.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ DCMJS PROFILE ============================ -->
+<section id="dcmjs">
+  <div class="kicker">03 · Profile</div>
+  <div class="libhead">
+    <span class="libname dj">dcmjs</span>
+    <span class="libdesc">read + write + naturalize + SR/SEG/anonymize · powers OHIF &amp; @cornerstonejs/adapters · active 2026</span>
+  </div>
+  <h2>The <em>feature stack and living infrastructure</em> — on an eager core.</h2>
+  <p class="lede">Everything layered above the tokenizer is here and battle-tested. The core itself eagerly materializes
+  <code class="ref">Value</code> + <code class="ref">_rawValue</code> for every element, copies pixel frames, and discards file offsets — the
+  exact properties the merge replaces.</p>
+
+  <div class="profile">
+    <div class="pcol shine">
+      <h4>Where it shines</h4>
+      <ul>
+        <li><b>Complete Part 10 writer</b> — per-VR <code class="ref">writeBytes</code> with padding rules, implicit/explicit + both endians, encapsulated/fragmented pixel data with BOT, and a deliberate lossless mechanism: unchanged values written back from <code class="ref">_rawValue</code> (<span class="ref">DicomMessage.js:244-267</span>), gated by a 1400-line round-trip suite.</li>
+        <li><b>Naturalized data model</b> — <code class="ref">DicomMetaDictionary.naturalizeDataset</code> gives keyword access, PN accessors, DICOM-JSON alignment; what OHIF and the adapters actually program against.</li>
+        <li><b>Packed dictionary system</b> — base64-packed typed-array tables + binary search + lazy memoizing Proxy (<span class="ref">dicom.packed.js</span>, <span class="ref">dicom.lookup.js</span>, <span class="ref">dictionary.fast.js</span>): import cost measured 181&nbsp;ms → 19&nbsp;ms (9.5×). The best-engineered piece in either repo.</li>
+        <li><b>Streaming reader (new)</b> — <code class="ref">AsyncDicomReader</code> + <code class="ref">SplitDataView</code>: chunked input, backpressure/drain, buffer freeing via <code class="ref">consume()</code>, Part10-without-preamble and raw LEI/LEE sniffing, untilTag, maxFragmentSize frame emission. Beta but well-tested (916 lines of async tests).</li>
+        <li><b>Charset correctness</b> — TextDecoder-based SpecificCharacterSet handling verified against the dclunie test corpus.</li>
+        <li><b>Feature families with no dicom-parser equivalent</b> — anonymizer, SR classes + TID300/TID1500 builders, derivations (Segmentation, ParametricMap, RTSS), normalizers, orientation/RLE/colors utilities, four viewer adapter families.</li>
+        <li><b>Living engineering system</b> — pnpm 11 with supply-chain policies, rollup 4 ESM+UMD with exports map, four GitHub Actions workflows, semantic-release with npm provenance, dictionary generation pipeline with its own benchmark.</li>
+      </ul>
+    </div>
+    <div class="pcol weak">
+      <h4>Where it falls short</h4>
+      <ul>
+        <li><b>Eager double materialization</b> — every element stores both formatted <code class="ref">Value</code> and raw <code class="ref">_rawValue</code> (<span class="ref">DicomMessage.js:110-111</span>); offsets are discarded, pixel frames copied (<span class="ref">ValueRepresentation.js:626-635</span>), peak memory ~2×+ file size.</li>
+        <li><b>Hot-loop overhead everywhere</b> — per-read <code class="ref">findView</code> linear scan + object allocation (<span class="ref">SplitDataView.js:190-224</span>); per-byte string building; per-element Tag objects and double <code class="ref">toCleanString</code>; scan-rewind-recopy sequence reader; <code class="ref">noCopy</code> option that still copies.</li>
+        <li><b>Round-trip footguns</b> — private/unknown tags silently dropped on denaturalize (<span class="ref">DicomMetaDictionary.js:294-304</span>); scalar-vs-array instability from single-value collapse; magic <code class="ref">_meta</code>/<code class="ref">_vrMap</code> keys with inconsistent shape contracts.</li>
+        <li><b>Zero TypeScript</b> — no types field, not a single .d.ts in the repo; downstream projects maintain their own partial typings.</li>
+        <li><b>Tree-shaking-proof monolith</b> — namespace-object exports pull 4 adapter families, gl-matrix, ndarray, and ~370&nbsp;KB of dictionary source into every bundle; private dictionary registered at import time.</li>
+        <li><b>Inconsistent error policy</b> — silent fallbacks (unknown VR → OW, DS coerced to null), data-integrity violations logged below the default level, root-logger <code class="ref">setLevel</code> side effect at import.</li>
+        <li><b>API sprawl</b> — deprecated shims warning since 0.24 still shipping at 0.49; legacy DICOMWEB class with a hardcoded third-party server; three coexisting data models, none documented in the README.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout">
+    <b>Already in motion.</b> This dcmjs tree (current master) ships recent optimization work: the packed dictionary (PR #470, 9.5× faster load),
+    AsyncDicomReader streaming, untilTag early-exit on read (PR #490), and deflate support in the async path. The merge plan below builds on that
+    trajectory rather than fighting it — the remaining gap is precisely that the streaming reader still <em>eagerly materializes every value</em>,
+    which dicom-parser's offset model solves.
+  </div>
+</section>
+
+<!-- ============================ ARCHITECTURE ============================ -->
+<section id="architecture">
+  <div class="kicker">04 · Target architecture</div>
+  <h2>Four layers, <em>one read path.</em></h2>
+  <p class="lede">All three judges converged on this layering. Each layer is a real subpath export; lower layers never import upper ones;
+  the dictionary is opt-in so the raw tier stays dependency-free and tree-shakable.</p>
+
+  <div class="stack">
+    <div class="layer l3">
+      <div class="lnum">Layer <b>3</b></div>
+      <div class="lbody">
+        <div class="ltitle">Adapters — out of core entirely</div>
+        <p>Cornerstone / Cornerstone3D / VTKjs / DICOMMicroscopyViewer adapters (gl-matrix, ndarray dependents) move to or stay in
+        <code class="ref">@cornerstonejs/adapters</code>, repointed at the new layers. Upstream already extracted them for exactly this reason.</p>
+        <div class="chips"><span class="badge b-dj">from dcmjs</span><span class="badge b-drop">leaves the package</span></div>
+      </div>
+    </div>
+    <div class="layer l2">
+      <div class="lnum">Layer <b>2</b></div>
+      <div class="lbody">
+        <div class="ltitle">Features — separately importable subpaths</div>
+        <p>anonymizer · SR (<code class="ref">src/sr</code> + TID300/TID1500) · derivations (SEG, ParametricMap, RTSS) · normalizers ·
+        orientation · RLE/bitArray · colors · dicomJson. Characterization tests written before each port — derivations.test.js is currently empty.
+        <code class="ref">dicomweb.js</code> is dropped (superseded by dicomweb-client).</p>
+        <div class="chips"><span class="badge b-dj">from dcmjs</span></div>
+      </div>
+    </div>
+    <div class="layer l1">
+      <div class="lnum">Layer <b>1</b></div>
+      <div class="lbody">
+        <div class="ltitle">Data model — lazy materialization, write with passthrough, dictionary, streaming</div>
+        <p><b>Read:</b> ValueRepresentation VR classes reworked to decode from <code class="ref">{dataOffset, length}</code> on demand, with cached
+        decodes and TextDecoder charset handling wired into string accessors. Naturalize/denaturalize rebuilt over lazy elements with footguns fixed
+        (no scalar collapse by default, private tags preserved). <b>Write:</b> dcmjs's per-VR writers on a single output stream with length
+        backpatching, plus the new co-designed capability neither repo has: dirty-set tracking + byte-exact memcpy passthrough of untouched
+        elements, SQ subtrees, and entire encapsulated pixel-data runs straight from the source buffer. <b>Dictionary:</b> the packed stack as an
+        opt-in subpath, lazy-initialized, integer-keyed. <b>Streaming:</b> AsyncDicomReader's chunk/consume/listener model re-platformed onto the
+        layer-0 tokenizer; SplitDataView confined here with a cached-chunk fast path.</p>
+        <div class="chips"><span class="badge b-dj">from dcmjs (reworked)</span><span class="badge b-new">new: offset passthrough writer</span></div>
+      </div>
+    </div>
+    <div class="layer l0">
+      <div class="lnum">Layer <b>0</b></div>
+      <div class="lbody">
+        <div class="ltitle">Parser — the dicom-parser tokenizer, verbatim + bug fixes</div>
+        <p>byteStream, endian parsers, explicit/implicit element readers (incl. UN-as-implicit-SQ rule and SQ peek heuristic), sequence readers,
+        readPart10Header with headerless TransferSyntaxUID fallback, untilTag, injectable-inflater deflate, the encapsulated pixel-data indexer
+        and zero-copy frame extraction, and the raw DataSet accessor tier. Dictionary-free, dependency-free, side-effect-free. Exposed at
+        <code class="ref">dcmjs/parser</code> + a UMD bundle keeping the <code class="ref">dicomParser</code> global.</p>
+        <div class="chips"><span class="badge b-dp">from dicom-parser</span><span class="badge b-verified">non-regression benchmark gate</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ MERGE MAP ============================ -->
+<section id="mergemap">
+  <div class="kicker">05 · What moves where</div>
+  <h2>The module-level <em>merge map.</em></h2>
+
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th style="width:34%">Modules</th><th style="width:14%">Source</th><th>Destination &amp; treatment</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><span class="tname">Tokenizer primitives</span><span class="ref">byteStream.js</span> <span class="ref">littleEndian/bigEndianByteArrayParser.js</span> <span class="ref">byteArrayParser.js</span> <span class="ref">readTag.js</span> <span class="ref">sharedCopy.js</span> <span class="ref">alloc.js</span></td>
+        <td><span class="badge b-dp">dicom-parser</span></td>
+        <td>→ <code class="ref">dcmjs src/parser/</code> verbatim. Flat-Uint8Array hot path stays untouched; never rewired onto SplitDataView.</td>
+      </tr>
+      <tr>
+        <td><span class="tname">Parse pipeline</span><span class="ref">parseDicom.js</span> <span class="ref">readPart10Header.js</span> <span class="ref">readDicomElement{Explicit,Implicit}.js</span> <span class="ref">readSequenceElement*.js</span> <span class="ref">readSequenceItem.js</span> <span class="ref">parseDicomDataSet.js</span> <span class="ref">dataSet.js</span></td>
+        <td><span class="badge b-dp">dicom-parser</span></td>
+        <td>→ sole sync tokenizer. Port-time fixes: two <code class="ref">warnings()</code>-as-function crashes, <code class="ref">string()</code> index footguns; <span class="ref">findAndSetUNElementLength.js</span> deleted internally, export name aliased for compat. dcmjs's SequenceOfItems scan-rewind reader (<span class="ref">ValueRepresentation.js:1133-1194</span>) deleted in its favor.</td>
+      </tr>
+      <tr>
+        <td><span class="tname">Encapsulated pixel-data toolkit</span><span class="ref">findEndOfEncapsulatedPixelData.js</span> <span class="ref">readEncapsulatedImageFrame.js</span> <span class="ref">readEncapsulatedPixelDataFromFragments.js</span> <span class="ref">util/createJPEGBasicOffsetTable.js</span></td>
+        <td><span class="badge b-dp">dicom-parser</span></td>
+        <td>→ the read-side engine, replacing dcmjs's path and fixing its wrong 1-fragment=1-frame no-BOT assumption (<span class="ref">ValueRepresentation.js:609-618</span>). Deprecated <span class="ref">readEncapsulatedPixelData.js</span> dropped.</td>
+      </tr>
+      <tr>
+        <td><span class="tname">Tests, fixtures, types</span><span class="ref">testImages/</span> · 13 suites (~262 cases) · <span class="ref">index.d.ts</span></td>
+        <td><span class="badge b-dp">dicom-parser</span></td>
+        <td>→ corpus committed for offline runs; suites ported to jest <em>before</em> any rewiring; d.ts becomes the seed of a package-wide <code class="ref">types</code> entry.</td>
+      </tr>
+      <tr>
+        <td><span class="tname">Eager read loop</span><span class="ref">DicomMessage._read</span> + <span class="ref">Value/_rawValue</span> model</td>
+        <td><span class="badge b-dj">dcmjs</span></td>
+        <td>Replaced by lazy materialization over layer-0 offset elements, behind a flag for two releases. VR classes survive as lazy value codecs + writers; tagProxy/addAccessors move to opt-in naturalization time.</td>
+      </tr>
+      <tr>
+        <td><span class="tname">Tag + dictionary stack</span><span class="ref">Tag.js</span> <span class="ref">dicom.packed.js</span> <span class="ref">dicom.lookup.js</span> <span class="ref">dictionary.fast.js</span> + private/ranges data + <span class="ref">generate/</span> pipeline</td>
+        <td><span class="badge b-dj">dcmjs</span></td>
+        <td>Numeric tag (<code class="ref">group&lt;&lt;16|element</code>) becomes the shared internal primitive with interned string keys for parser-API compat. Dictionary stays, becomes lazy-init and integer-keyed at <code class="ref">./dictionary</code>; nothing registered at import time.</td>
+      </tr>
+      <tr>
+        <td><span class="tname">Write stack</span><span class="ref">DicomDict.write</span> <span class="ref">Tag.write</span> VR <span class="ref">writeBytes</span> <span class="ref">datasetToBlob</span> <span class="ref">anonymizer.js</span></td>
+        <td><span class="badge b-dj">dcmjs</span></td>
+        <td>Stays; augmented with offset-based memcpy passthrough for untouched elements, single-stream length backpatching, deflate-on-write, and preserve-original-fragmentation/BOT as the rewrite default.</td>
+      </tr>
+      <tr>
+        <td><span class="tname">Charset handling</span><span class="ref">DicomMessage.js:77-105</span> + <span class="ref">encodingMapping</span></td>
+        <td><span class="badge b-dj">dcmjs</span></td>
+        <td>Moves into the lazy string accessors of the merged read path. The raw <code class="ref">dcmjs/parser</code> tier keeps byte-identity semantics for compat.</td>
+      </tr>
+      <tr>
+        <td><span class="tname">Streaming</span><span class="ref">AsyncDicomReader.js</span> <span class="ref">SplitDataView.js</span> <span class="ref">BufferStream.js</span> <span class="ref">DicomMetadataListener.js</span></td>
+        <td><span class="badge b-dj">dcmjs</span></td>
+        <td>Re-platformed on the layer-0 tokenizer (removing duplicated header logic); chunk/consume/backpressure semantics kept; SplitDataView confined to streaming with a cached-chunk fast path; readUint16Array off-by-one and noCopy bugs fixed.</td>
+      </tr>
+      <tr>
+        <td><span class="tname">Features</span><span class="ref">sr/</span> <span class="ref">TID300/TID1500</span> <span class="ref">derivations/</span> <span class="ref">normalizers.js</span> orientation · RLE · colors</td>
+        <td><span class="badge b-dj">dcmjs</span></td>
+        <td>Stay as subpath exports; candidates for later workspace-package extraction. Missing test suites written first.</td>
+      </tr>
+      <tr>
+        <td><span class="tname">Dropped outright</span><span class="ref">dicomweb.js</span> · <span class="ref">readEncapsulatedPixelData.js</span> · deprecated <span class="ref">read/readTag</span> shims · webpack 4 / karma / CircleCI / travis / meteor / version.js hack</td>
+        <td><span class="badge b-drop">both</span></td>
+        <td>Legacy XHR client superseded by dicomweb-client; deprecated since 1.6; warned since 0.24; dead toolchain retired wholesale.</td>
+      </tr>
+      <tr>
+        <td><span class="tname">npm identities</span><code class="ref">dicom-parser</code> package name</td>
+        <td><span class="badge b-new">shim</span></td>
+        <td>Final 1.9.0 release re-exports <code class="ref">dcmjs/parser</code> — same API surface, same <code class="ref">dicomParser</code> UMD global, relaxed engines (no Node 22 floor). Published from the dcmjs pnpm workspace; old repo archived with a pointer. No consumer is ever forced to move.</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- ============================ ROADMAP ============================ -->
+<section id="roadmap">
+  <div class="kicker">06 · Migration roadmap</div>
+  <h2>Twelve steps, <em>safety net first.</em></h2>
+  <p class="lede">Sequenced for minimum blast radius: every step before the core swap (step 8) is purely additive, and the swap itself ships
+  behind dcmjs's 0.x semver so downstream opts in deliberately.</p>
+
+  <div class="roadmap">
+    <div class="step"><div>
+      <div class="stitle">Vendor the raw tier, untouched by redesign</div>
+      <p>Copy dicom-parser's src/ into <code class="ref">dcmjs src/parser/</code> as ESM. Only changes: fix the two warnings()-as-function crashes
+      and the dataSet.string() index footguns; alias findAndSetUNElementLength for API compat. Behavior otherwise byte-identical.</p>
+    </div></div>
+    <div class="step"><div>
+      <div class="stitle">Port the safety net before anything else</div>
+      <p>Commit the testImages corpus (~5.5&nbsp;MB, offline-runnable), rewrite the 13 mocha/chai suites (~262 cases) as jest tests against
+      src/parser/, bring index.d.ts in as the seed of a package <code class="ref">types</code> entry.</p>
+    </div></div>
+    <div class="step"><div>
+      <div class="stitle">Stand up the non-regression gates <span class="badge b-verified">CI</span></div>
+      <p>Benchmark gate parsing the committed corpus + a large multiframe: published dicom-parser@1.8.12 vs the vendored subpath — fail PRs on
+      parse-time or peak-heap regression. Bundle-size assertion: importing <code class="ref">dcmjs/parser</code> pulls zero dictionary bytes.</p>
+    </div></div>
+    <div class="step"><div>
+      <div class="stitle">Publish the subpath — purely additive release</div>
+      <p>Add <code class="ref">"./parser"</code> to the exports map as a side-effect-free, dictionary-free, pako-free entry; add a rollup UMD output
+      emitting the <code class="ref">dicomParser</code> global. Ship as dcmjs 0.50.0; no existing consumer affected.</p>
+    </div></div>
+    <div class="step"><div>
+      <div class="stitle">Convert dicom-parser to a shim</div>
+      <p>Replace its src with re-exports of dcmjs/parser matching the current export surface exactly (including deprecated names). Release 1.9.0,
+      gated on integration smoke tests: the cornerstone image loaders parsing the full corpus and extracting encapsulated frames against the shim.
+      Then move shim publishing into the dcmjs workspace and retire the old repo's pipelines.</p>
+    </div></div>
+    <div class="step"><div>
+      <div class="stitle">Wire the dictionary as layer-0's optional vrCallback</div>
+      <p>Integer-tag-keyed lookups via the packed binary search; make _generateNameMap and private-dictionary registration lazy, off import time —
+      so implicit-VR files get real VRs while the parser subpath stays dictionary-free.</p>
+    </div></div>
+    <div class="step"><div>
+      <div class="stitle">Build the lazy bridge behind a flag</div>
+      <p>Rewire DicomMessage._read to consume tokenizer output and materialize Value/_rawValue lazily through the existing VR classes; route string
+      decoding through the TextDecoder/SpecificCharacterSet path; cache decoded values on elements; adopt the numeric Tag internally.</p>
+    </div></div>
+    <div class="step"><div>
+      <div class="stitle">Prove equivalence, then flip the default <span class="badge b-verified">gate</span></div>
+      <p>Golden tests: old core vs new core (naturalized JSON + _rawValue) across both repos' corpora, the dclunie charset suite, malformed-file
+      fixtures, and the 1400-line lossless-read-write suite. Then make the tokenizer-backed path the default (dcmjs 0.51.0), deleting the
+      scan-rewind SQ reader and SplitDataView from the sync path.</p>
+    </div></div>
+    <div class="step"><div>
+      <div class="stitle">Exploit offsets in the writer</div>
+      <p>Passthrough-rewrite mode: untouched elements memcpy'd from source byte ranges; VR writeBytes only for dirty elements; configurable
+      fragmentSize with preserve-original-fragmentation/BOT default; deflate-on-write. Makes anonymize / tag-edit rewrites near-memcpy fast and
+      byte-identical for untouched data — eliminating today's fidelity deltas by construction.</p>
+    </div></div>
+    <div class="step"><div>
+      <div class="stitle">Re-platform streaming</div>
+      <p>Rebuild AsyncDicomReader on the shared tokenizer, keeping addBuffer/consume/listener semantics; fix the readUint16Array off-by-one and the
+      noCopy copies; add the cached-chunk fast path to SplitDataView.</p>
+    </div></div>
+    <div class="step"><div>
+      <div class="stitle">API hardening</div>
+      <p>Scalar-collapse and accessor Proxies opt-in; private tags preserved through naturalize/denaturalize; typed error hierarchy with
+      strict/lenient modes and a machine-readable diagnostics array; extend .d.ts coverage across DicomDict/naturalized APIs; subpath exports
+      with <code class="ref">sideEffects: false</code>.</p>
+    </div></div>
+    <div class="step"><div>
+      <div class="stitle">Downstream coordination — optional, unforced</div>
+      <p>PRs to @cornerstonejs/dicom-image-loader offering a direct dcmjs/parser import; OHIF bump to the 0.51+ line; archive the dicom-parser repo.
+      The shim remains published indefinitely; after two stable releases, remove the legacy eager-reader flag and dead code.</p>
+    </div></div>
+  </div>
+</section>
+
+<!-- ============================ PERF TARGETS ============================ -->
+<section id="perf">
+  <div class="kicker">07 · Performance targets</div>
+  <h2>What to optimize — <em>verified, ranked, corrected.</em></h2>
+  <p class="lede">Twenty performance targets from dedicated hunters; every high-impact claim was independently re-read by a skeptic agent
+  instructed to refute it against the actual code. Corrections that survived are noted inline — including one full refutation.</p>
+
+  <h3><span class="badge b-dp">dicom-parser</span> &nbsp;hot-path targets (survive into layer 0)</h3>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th style="width:24%">Target</th><th style="width:38%">Issue</th><th>Fix</th><th style="width:90px">Impact</th><th style="width:96px">Status</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><span class="tname">readFixedString</span><span class="ref">byteArrayParser.js:26-39</span></td>
+        <td>Builds strings char-by-char with <code class="ref">+= String.fromCharCode</code> rope concat — the path under every
+        <code class="ref">dataSet.string()/text()</code> access on long values (UIDs, LO, private strings).
+        <span class="corr"><b>Verifier correction:</b> during parsing it's only called with length 2 (VR read), so gains are in accessor calls, not the parse loop. TextDecoder('windows-1252') is <em>not</em> byte-identical for 0x80–0x9F — it would change public output.</span></td>
+        <td>Scan for the null terminator with <code class="ref">indexOf(0)</code>, then bulk-decode via chunked
+        <code class="ref">String.fromCharCode.apply(null, subarray)</code> (behavior-preserving); keep a direct fast path for length ≤ 4.</td>
+        <td><span class="badge b-high">high</span></td>
+        <td><span class="badge b-verified">verified</span></td>
+      </tr>
+      <tr>
+        <td><span class="tname">readTag</span><span class="ref">readTag.js:11-21</span></td>
+        <td>Builds an <code class="ref">'xGGGGEEEE'</code> string per element via toString(16) + pad + substr (≥3 transient strings), and is also
+        called purely for throwaway peeks (implicit SQ detection, item-delimiter checks, fragment scans).</td>
+        <td>Precompute a 65536-entry 4-char hex table: <code class="ref">'x' + HEX4[group] + HEX4[element]</code>. For peek sites, compare the two
+        uint16s numerically against 0xFFFE/0xE000/0xE0DD — no string at all (build lazily in the rare warning branch).</td>
+        <td><span class="badge b-high">high</span></td>
+        <td><span class="badge b-verified">verified</span></td>
+      </tr>
+      <tr>
+        <td><span class="tname">DataSet string accessors</span><span class="ref">dataSet.js:177-268</span></td>
+        <td>Re-decode + split + trim on every call; floatString/intString do a redundant double element lookup and decode the entire multi-valued
+        string for one component. The <code class="ref">element.Value</code> cache exists but nothing populates it and it ignores the index argument.</td>
+        <td>Memoize the decoded string and split array on the element (index-aware — route indexed reads through the cached array);
+        drop duplicate lookups. Cornerstone metadata providers hit the same tags repeatedly; this is the biggest accessor win.</td>
+        <td><span class="badge b-high">high</span></td>
+        <td><span class="badge b-verified">verified</span></td>
+      </tr>
+      <tr>
+        <td><span class="tname">readEncapsulatedPixelDataFromFragments</span><span class="ref">:107-113</span></td>
+        <td>Multi-fragment frames concatenated <em>one byte per loop iteration</em> — megabytes of compressed multiframe data copied ~10–50× slower
+        than memcpy, re-reading <code class="ref">fragments[i].length</code> from the heap each iteration.</td>
+        <td><code class="ref">pixelData.set(byteArray.subarray(off, off + len), idx)</code> per fragment (Buffer.copy on Node via the existing
+        alloc/sharedCopy dispatch).</td>
+        <td><span class="badge b-high">high</span></td>
+        <td><span class="badge b-verified">verified</span></td>
+      </tr>
+      <tr>
+        <td><span class="tname">VR read + length-size lookup</span><span class="ref">readDicomElementExplicit.js:12-50</span></td>
+        <td>Fresh 2-char string allocation per element plus up to 10 sequential string comparisons in getDataLengthSizeInBytesForVR — for a closed
+        set of ~31 VRs.</td>
+        <td>Key on <code class="ref">(b0 &lt;&lt; 8) | b1</code> into a prebuilt table yielding an interned VR string + length size; makes downstream
+        <code class="ref">vr === 'SQ'</code> compares pointer-fast.</td>
+        <td><span class="badge b-med">med</span></td>
+        <td><span class="badge b-unverified">unverified</span></td>
+      </tr>
+      <tr>
+        <td><span class="tname">Element shape stability</span><span class="ref">readDicomElementExplicit.js:34-54</span></td>
+        <td>Elements built as {tag, vr} then mutated with length/dataOffset/hadUndefinedLength/items/fragments in branch-dependent orders — hidden-class
+        transitions make every downstream access site polymorphic, defeating inline caches library-wide.</td>
+        <td>One object literal with all possible fields up-front (or a small Element class) so every element shares a single hidden class.</td>
+        <td><span class="badge b-med">med</span></td>
+        <td><span class="badge b-unverified">unverified</span></td>
+      </tr>
+      <tr>
+        <td><span class="tname">readFloat / readDouble</span><span class="ref">littleEndianByteArrayParser.js:115-170</span></td>
+        <td>Two typed-array allocations + byte-by-byte copy per scalar read; the code itself says "I am sure there is a better way".</td>
+        <td>One module-level 8-byte scratch buffer with persistent views — or a per-DataSet DataView using getFloat32/64(pos, littleEndian), which
+        also handles both endians with zero allocation.</td>
+        <td><span class="badge b-med">med</span></td>
+        <td><span class="badge b-unverified">unverified</span></td>
+      </tr>
+      <tr>
+        <td><span class="tname">Delimiter scans</span><span class="ref">findItemDelimitationItem.js:19-43</span></td>
+        <td>Scans for the delimiter 2 bytes at a time through layered method calls — millions of call frames over megabyte UN/pixel blobs. Plus the
+        latent <code class="ref">warnings()</code>-as-function TypeError on the warning path.</td>
+        <td>Raw indexed loop over the cached byteArray (or vectorized <code class="ref">indexOf</code> skip-ahead), verify the 4-byte tag only on
+        candidate hits, set position once. Fix <code class="ref">warnings.push</code>.</td>
+        <td><span class="badge b-med">med</span></td>
+        <td><span class="badge b-unverified">unverified</span></td>
+      </tr>
+      <tr>
+        <td><span class="tname">isSequence peek (implicit VR)</span><span class="ref">readDicomElementImplicit.js:10-30</span></td>
+        <td>Implicit files (the default for raw archives) pay the full readTag string build <em>twice per element</em> — once for the element, once
+        for a peek that's compared against two constants and discarded.</td>
+        <td>Direct numeric reads: <code class="ref">g === 0xFFFE &amp;&amp; (e === 0xE000 || e === 0xE0DD)</code> — no position mutation, no allocation.
+        Same for the sequence-item delimiter loops.</td>
+        <td><span class="badge b-med">med</span></td>
+        <td><span class="badge b-unverified">unverified</span></td>
+      </tr>
+      <tr>
+        <td><span class="tname">ByteStream layered reads</span><span class="ref">byteStream.js:91-112</span></td>
+        <td>Every primitive read = two dispatch layers + redundant bounds checks + a heap position write; ~6 layered calls per element header.</td>
+        <td>Inline the hot paths over a cached local byteArray with one up-front bounds check per 8-byte header; keep the checked ByteStream API for
+        public/edge use.</td>
+        <td><span class="badge b-med">med</span></td>
+        <td><span class="badge b-unverified">unverified</span></td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3><span class="badge b-dj">dcmjs</span> &nbsp;targets (matter until the core swap; writer + dictionary targets persist after)</h3>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th style="width:24%">Target</th><th style="width:38%">Issue</th><th>Fix</th><th style="width:90px">Impact</th><th style="width:96px">Status</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><span class="tname">SplitDataView.findView / findStart</span><span class="ref">SplitDataView.js:190-224</span></td>
+        <td>Every primitive read does a linear scan over the buffer arrays and allocates a fresh <code class="ref">{view, viewOffset, index}</code>
+        object — ~50–70k transient objects per 10k-element file.
+        <span class="corr"><b>Verifier correction:</b> in the single-buffer readFile case the scan is one iteration (the cost is the allocation +
+        call chain); the O(numBuffers)-per-read blowup is real specifically in streaming, where consume() nulls buffers but never shortens the scan arrays.</span></td>
+        <td>Single-buffer fast path dispatching straight to a cached DataView; cached last-hit index for the sequential multi-buffer case; return via
+        scratch instance fields instead of a per-call object.</td>
+        <td><span class="badge b-high">high</span></td>
+        <td><span class="badge b-verified">verified</span></td>
+      </tr>
+      <tr>
+        <td><span class="tname">readAsciiString / readEncodedString</span><span class="ref">BufferStream.js:286-318</span></td>
+        <td>ASCII path: one findView + one 1-char string + rope concat <em>per byte</em> (a 64-char UID = 64 searches + 64 temp strings). Encoded
+        path: always memcpy-copies via slice, plus a per-element TextDecoder.decode whose fixed overhead dominates for 8–32 byte strings.</td>
+        <td>Locate the contiguous range once, take a zero-copy subarray, decode in one shot — chunked fromCharCode.apply for ASCII; for encoded
+        strings keep the <em>instance</em> decoder (it's swapped on SpecificCharacterSet) and just eliminate the slice copy.</td>
+        <td><span class="badge b-high">high</span></td>
+        <td><span class="badge b-verified">verified</span></td>
+      </tr>
+      <tr>
+        <td><span class="tname">Eager binary copies</span><span class="ref">ValueRepresentation.js:626-635</span> <span class="ref">BufferStream.js:84-90, 419-437</span></td>
+        <td>Pixel data and every sequence item memcpy'd on read; <code class="ref">noCopy</code> still copies (its branch calls slice and wraps the
+        copy); <code class="ref">more()</code> copies every SQ item's bytes — nested sequences re-copied at each nesting level, O(depth × size).
+        <span class="corr"><b>Verifier correction:</b> defaulting readFile to zero-copy views would be a breaking aliasing change — honor noCopy as a
+        real view and window more(), keeping copy as the default.</span></td>
+        <td>Real zero-copy views for noCopy; windowed child streams sharing the parent SplitDataView (the commented-out code at
+        <span class="ref">BufferStream.js:426-429</span> is exactly this design). Superseded entirely by the layer-0 swap for the sync path.</td>
+        <td><span class="badge b-high">high</span></td>
+        <td><span class="badge b-verified">verified</span></td>
+      </tr>
+      <tr>
+        <td><span class="tname">Tag.write / BufferStream.concat</span><span class="ref">Tag.js:135-209</span> <span class="ref">BufferStream.js:336-346</span></td>
+        <td>Every element written allocates a temp WriteBufferStream(256) (+ TextEncoder + ArrayBuffer + DataView) just to learn the value length,
+        then the body is copied <em>twice</em> by concat; SQ nesting compounds to O(depth) copies of all payload bytes. Values &gt; 256 B fragment
+        the temp stream into many tiny buffers.</td>
+        <td>Write directly into the destination with a reserved length field backpatched via setUint16/32 (pre-measure for the rare isBig16Length
+        case). This is the core writer rework the merged passthrough writer needs anyway.</td>
+        <td><span class="badge b-high">high</span></td>
+        <td><span class="badge b-verified">verified</span></td>
+      </tr>
+      <tr>
+        <td><span class="tname">naturalizeDataset Proxies</span><span class="ref">DicomMetaDictionary.js:113-187</span> <span class="ref">addAccessors.js:46-62</span></td>
+        <td>Claim: every naturalized object is Proxy-wrapped and every downstream read pays trap dispatch forever.
+        <span class="corr"><b>Refuted as stated:</b> the set-trap overhead during naturalization is real but modest; _vrMap writes bypass it;
+        dataset reads go through an <em>untrapped</em> proxy; and the behavior is documented, test-pinned public API (live PN assignment, dual
+        array/object sequence access) — removing it would break consumers.</span></td>
+        <td>Narrow, sound version: write to the proxy's target directly inside the naturalize loop (skip trap dispatch during construction), hoist
+        the <code class="ref">["values","Value"]</code> literal out of the trap. Keep the proxy contract for user-facing assignment.</td>
+        <td><span class="badge b-high">high</span></td>
+        <td><span class="badge b-refuted">refuted</span></td>
+      </tr>
+      <tr>
+        <td><span class="tname">Tag-string churn</span><span class="ref">DicomMessage.js:72, 289</span> <span class="ref">Tag.js:11-47</span></td>
+        <td><code class="ref">toCleanString()</code> computed for every element even when untilTag is null (the compare runs before the null check),
+        then computed <em>again</em> instead of using the memoized getter; paddingLeft allocates ~8–10 short strings per element; dictionary lookups
+        go through formatted strings + the Proxy get trap; punctuateTag runs a regex per tag in naturalize.</td>
+        <td>Reorder to <code class="ref">untilTag !== null &amp;&amp;…</code>; use the memoized getter; padStart or a hex table; key dictionary
+        lookups by numeric tag value via a Map filled from the packed tables.</td>
+        <td><span class="badge b-med">med</span></td>
+        <td><span class="badge b-unverified">unverified</span></td>
+      </tr>
+      <tr>
+        <td><span class="tname">TextDecoder/Encoder per stream</span><span class="ref">BufferStream.js:21, 477</span></td>
+        <td>Every ReadBufferStream constructs a TextDecoder and every stream a TextEncoder — and streams are created per sequence item, per
+        encapsulated fragment, per element written. Thousands of needless codec constructions for an SR or multiframe.</td>
+        <td>Module-level shared singletons; per-stream decoder only when SpecificCharacterSet actually changes it; encoder on the prototype.</td>
+        <td><span class="badge b-med">med</span></td>
+        <td><span class="badge b-unverified">unverified</span></td>
+      </tr>
+      <tr>
+        <td><span class="tname">ValueRepresentation.write</span><span class="ref">ValueRepresentation.js:252-279</span></td>
+        <td><code class="ref">Array.from(arguments)</code> + slice + dynamic <code class="ref">stream["write" + type]</code> method lookup
+        (megamorphic) + per-value array alloc and apply trampoline — paid for every numeric value in large FD/US arrays.</td>
+        <td>Direct monomorphic loops per VR: <code class="ref">for (…) stream.writeUint16(values[i])</code>; eliminate arguments/apply entirely.</td>
+        <td><span class="badge b-med">med</span></td>
+        <td><span class="badge b-unverified">unverified</span></td>
+      </tr>
+      <tr>
+        <td><span class="tname">_getTagWriteValues + deepEqual</span><span class="ref">DicomMessage.js:244-267</span> <span class="ref">deepEqual.js:37-67</span></td>
+        <td>On every write, every element is re-formatted (applyFormatting over all raw values — regex per DS value, full PN parse) and
+        deep-compared with an O(k²) keys2.includes loop — the whole dataset re-parsed even when nothing changed.</td>
+        <td>Dirty tracking on assignment (the tagProxy already intercepts sets), returning _rawValue directly when clean; failing that, fix deepEqual
+        to hasOwnProperty and fast-path primitive arrays. Superseded by the merged dirty-set passthrough writer.</td>
+        <td><span class="badge b-med">med</span></td>
+        <td><span class="badge b-unverified">unverified</span></td>
+      </tr>
+      <tr>
+        <td><span class="tname">Import-time dictionary cost</span><span class="ref">DicomMetaDictionary.js:444</span> <span class="ref">index.js:10-13</span></td>
+        <td><code class="ref">_generateNameMap()</code> runs at module evaluation — base64-decodes the packed tables and eagerly builds ~5000 entry
+        objects — and index.js imports the 177&nbsp;KB private dictionary at startup. This undoes the lazy packed-dictionary design the repo's own
+        benchmark exists to protect.</td>
+        <td>Lazy nameMap via a one-shot static getter; cache the standard entries; load the private dictionary via dynamic import / explicit
+        registration so it's opt-in for bundles.</td>
+        <td><span class="badge b-med">med</span></td>
+        <td><span class="badge b-unverified">unverified</span></td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- ============================ DEVX TARGETS ============================ -->
+<section id="devx">
+  <div class="kicker">08 · DevX targets</div>
+  <h2>What the merged API must <em>fix, not inherit.</em></h2>
+
+  <h3><span class="badge b-dp">dicom-parser</span> &nbsp;developer-experience debts</h3>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th style="width:26%">Target</th><th style="width:40%">Issue</th><th>Merged-library resolution</th><th style="width:96px">Status</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><span class="tname">Hex-tag-only access</span><span class="ref">dataSet.js:48-287</span></td>
+        <td>Accessors take only <code class="ref">'x00100010'</code>-style strings — no keywords, no autocomplete; a typo silently returns undefined;
+        consumers bundle their own 506&nbsp;KB dictionary just to display names.</td>
+        <td>Layer the dictionary on top of the lazy DataSet: accept keywords and standard hex forms; offer the naturalized view; keep the dictionary
+        an optional, tree-shakable subpath so the no-dictionary bundle story survives.</td>
+        <td><span class="badge b-verified">verified</span></td>
+      </tr>
+      <tr>
+        <td><span class="tname">Error handling</span><span class="ref">byteStream.js:27</span> <span class="ref">parseDicom.js:146-153</span></td>
+        <td>100+ sites throw raw string literals (no stack, instanceof fails, monitoring tools choke); a third style throws a bare
+        <code class="ref">{exception, dataSet}</code> object. Callers can't distinguish "not DICOM" from "truncated" from programmer error.</td>
+        <td>Typed error hierarchy (DicomParseError with code/position/partial dataset — keeping the documented <code class="ref">ex.dataSet</code>
+        contract aliased). Breaking for string-matchers: belongs in the merge's major. dcmjs needs the same module.</td>
+        <td><span class="badge b-verified">verified</span></td>
+      </tr>
+      <tr>
+        <td><span class="tname">index.d.ts drift</span><span class="ref">index.d.ts:121-174</span></td>
+        <td>Types actively lie: vrCallback and inflater typed as returning void while their return values are consumed; no default export declared;
+        LEI/LEE constants and Element.Value missing; DataSet declared as a non-constructible interface.</td>
+        <td>TypeScript-first source, or d.ts generated from JSDoc with a type-test (tsd) in CI so drift is impossible.</td>
+        <td><span class="badge b-verified">verified</span></td>
+      </tr>
+      <tr>
+        <td><span class="tname">Package entry points</span><span class="ref">package.json:5-8</span></td>
+        <td><code class="ref">main</code> and <code class="ref">module</code> both point at the same minified webpack UMD — zero tree-shaking,
+        minified debugging by default, no exports map, no types field, a browser-field zlib hack.</td>
+        <td>Dual builds with a proper exports map (types / import / require), unminified default with sourcemaps,
+        <code class="ref">sideEffects: false</code>, Node-only zlib behind a conditional export or injected inflater.</td>
+        <td><span class="badge b-verified">verified</span></td>
+      </tr>
+      <tr>
+        <td><span class="tname">Options bag</span><span class="ref">parseDicom.js:33-114</span></td>
+        <td>Inconsistent casing (PascalCase TransferSyntaxUID vs camelCase untilTag), silent ignoring of misspelled keys, and an invisible global
+        <code class="ref">pako</code> sniff for deflate that fails only at runtime.</td>
+        <td>One documented camelCase ParseOptions; dev-mode unknown-key warnings; deflate requires an explicit inflater or imported optional module.</td>
+        <td><span class="badge b-unverified">unverified</span></td>
+      </tr>
+      <tr>
+        <td><span class="tname">Flat 33-export surface</span><span class="ref">src/index.js:37-109</span></td>
+        <td>User-facing API intermixed with internal plumbing; a deprecated function still a first-class export logging runtime warnings;
+        inconsistent naming.</td>
+        <td>Small curated root + explicit internals subpath for advanced consumers (the image loader); drop deprecated exports at the major.</td>
+        <td><span class="badge b-unverified">unverified</span></td>
+      </tr>
+      <tr>
+        <td><span class="tname">Sync whole-buffer only</span><span class="ref">parseDicom.js:74-99</span></td>
+        <td>No async/streaming entry; blocking inflate of potentially hundreds of MB; untilTag still requires the full file in memory first.</td>
+        <td>Resolved by the merge itself: dcmjs's streaming model re-platformed on the tokenizer becomes the chunked entry point.</td>
+        <td><span class="badge b-unverified">unverified</span></td>
+      </tr>
+      <tr>
+        <td><span class="tname">Shipped typos &amp; stale docs</span><span class="ref">dataSetToJS.js:15</span></td>
+        <td><code class="ref">omitPrivateAttibutes</code> (sic) in source and types — correctly spelled options are silently ignored; README still
+        advertises AMD/CJS only; jQuery script-tag examples.</td>
+        <td>Rename with a deprecation alias; regenerate docs from typed source; ESM + TS examples.</td>
+        <td><span class="badge b-low" style="border-color:var(--line2);color:var(--muted)">low</span></td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3><span class="badge b-dj">dcmjs</span> &nbsp;developer-experience debts</h3>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th style="width:26%">Target</th><th style="width:40%">Issue</th><th>Merged-library resolution</th><th style="width:96px">Status</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><span class="tname">Value-shape instability</span><span class="ref">DicomMetaDictionary.js:168-182</span> <span class="ref">addAccessors.js</span></td>
+        <td>Any single-value attribute collapses to a scalar (WindowCenter: number <em>or</em> array depending on the instance); PN naturalizes to
+        objects or boxed Strings; single-item sequences become dual array/object Proxies.
+        <span class="corr"><b>Verifier correction:</b> Array.isArray and JSON.stringify are actually transparent through the Proxy — the genuine
+        breakages are structuredClone (DataCloneError) and TypeScript typing.</span></td>
+        <td>Value shape driven by dictionary VM, not instance cardinality: VM 1 → scalar, VM 1-n → always array. Plain arrays for sequences; one
+        canonical PN with documented toString(). New facade only — retrofitting breaks consumers.</td>
+        <td><span class="badge b-verified">verified</span></td>
+      </tr>
+      <tr>
+        <td><span class="tname">_meta / _vrMap magic keys</span><span class="ref">datasetToBlob.js:8-30</span> <span class="ref">DicomMetaDictionary.js:295-304</span></td>
+        <td>Round-trip depends on underscore-prefixed properties smuggled in the dataset; _meta has an inconsistent shape contract (read denaturalized,
+        overwritten naturalized); unknown helper keys trigger warnings via a hardcoded allowlist.
+        <span class="corr"><b>Verifier correction:</b> _vrMap is auto-populated for parsed files — the hand-maintenance burden applies to datasets
+        built from scratch.</span></td>
+        <td>Model a parsed instance as a class (meta, elements, vrOverrides) with one canonical documented meta shape, derived automatically with
+        explicit overrides.</td>
+        <td><span class="badge b-verified">verified</span></td>
+      </tr>
+      <tr>
+        <td><span class="tname">Private-tag silent loss</span><span class="ref">DicomMetaDictionary.js:113-122, 294-304</span></td>
+        <td>naturalize keeps unknown tags under hex names, but denaturalize resolves only dictionary names — every private tag (vendor calibration,
+        GSPS groups) is dropped on read → naturalize → edit → write, with only a log.warn.
+        <span class="corr"><b>Verifier note:</b> the fix also requires naturalize to record the VR for hex-named entries — _vrMap is currently empty
+        for them, and a UN fallback would mis-encode charset-bearing strings. Long-standing upstream behavior, not introduced by this branch.</span></td>
+        <td>Guaranteed lossless round-trip: denaturalize detects hex names and re-emits under the original tag + recorded VR; registerable private
+        dictionaries wired into round-trip; strict mode that throws instead of warn-and-drop.</td>
+        <td><span class="badge b-verified">verified</span></td>
+      </tr>
+      <tr>
+        <td><span class="tname">Zero TypeScript surface</span><span class="ref">package.json</span></td>
+        <td>No types field, no .d.ts anywhere; every consumer sees <code class="ref">any</code>; an honest typing of today's naturalized model would
+        be <code class="ref">string | String | PersonName | PersonName[]</code>.</td>
+        <td>Author the merged library in TS (or generate d.ts + types entry — backward compatible immediately); design the dataset API to be
+        typeable first: stable shapes, generic <code class="ref">ds.get&lt;T&gt;()</code>, generated keyword interfaces from the dictionary build.</td>
+        <td><span class="badge b-verified">verified</span></td>
+      </tr>
+      <tr>
+        <td><span class="tname">Silent-fallback error policy</span><span class="ref">ValueRepresentation.js:310-319, 349-363, 757-774</span></td>
+        <td>Over-long strings logged at info (below the default level — invisible) and written anyway; unknown VRs silently mapped to OW; corrupt DS
+        stripped/coerced to null with no programmatic signal.
+        <span class="corr"><b>Verifier note:</b> DS retains rawValue, so coercion is detectable by diffing — but only by re-parsing every value;
+        strict mode must keep the GHSA-px68-xx5g-48q5 DS hardening as the lenient default.</span></td>
+        <td>One declared policy: <code class="ref">{mode: 'strict' | 'lenient'}</code> — strict throws typed errors; lenient applies documented
+        fallbacks <em>and</em> records them in a machine-readable diagnostics array (mirroring dicom-parser's warnings).</td>
+        <td><span class="badge b-verified">verified</span></td>
+      </tr>
+      <tr>
+        <td><span class="tname">Tree-shaking-proof monolith</span><span class="ref">src/index.js:47-133</span> <span class="ref">rollup.config.mjs</span></td>
+        <td>Everything aggregated into default-exported namespace objects: parse-only apps still bundle four adapter families, gl-matrix, ndarray,
+        lodash.clonedeep, pako, and ~370&nbsp;KB of dictionary source. Only "." and "./dictionary" subpaths exist.</td>
+        <td>Pure named ESM with <code class="ref">sideEffects: false</code>; adapters/SR/derivations/anonymizer as subpaths or workspace packages;
+        namespace object kept only as a deprecated UMD compat entry; dictionaries lazy.</td>
+        <td><span class="badge b-unverified">unverified</span></td>
+      </tr>
+      <tr>
+        <td><span class="tname">Logging side effect</span><span class="ref">log.js:3</span></td>
+        <td>Importing dcmjs calls setLevel on the <em>shared global root logger</em>, clobbering host-app logging config — with the build machine's
+        LOG_LEVEL baked into the published bundle; ignoreErrors failures are observable only by scraping console output.</td>
+        <td>Named child logger only; readFile returns <code class="ref">{dataset, meta, warnings, complete}</code> so lenient parsing is observable
+        programmatically.</td>
+        <td><span class="badge b-unverified">unverified</span></td>
+      </tr>
+      <tr>
+        <td><span class="tname">API sprawl</span><span class="ref">DicomMessage.js:23-49</span> <span class="ref">dicomweb.js:104-114</span></td>
+        <td>Deprecation warnings shipping for 25 minor versions; a legacy XHR DICOMWEB class with a hardcoded third-party test server; a
+        self-declared preliminary AsyncDicomReader in the public API; three coexisting data models, none of them in the README.</td>
+        <td>One documented read pipeline (sync + streaming sharing a result type); delete DICOMWEB; experimental subpath for the streaming reader
+        until graduated; a real API reference plus parse→edit→write and create-SEG/SR quickstarts.</td>
+        <td><span class="badge b-unverified">unverified</span></td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- ============================ RISKS ============================ -->
+<section id="risks">
+  <div class="kicker">09 · Risks &amp; CI gates</div>
+  <h2>What can <em>go wrong,</em> and the gate that catches it.</h2>
+
+  <div class="risks">
+    <div class="risk">
+      <div class="rt">Integration temptation</div>
+      <p>Rewiring the transplanted tokenizer onto dcmjs's BufferStream/SplitDataView would silently surrender the entire performance win. The
+      contiguous-buffer sync path must keep dicom-parser's flat index arithmetic; SplitDataView is streaming-only.</p>
+      <div class="rg">CI benchmark vs published dicom-parser@1.8.12 on the committed corpus — parse time and peak heap fail the PR.</div>
+    </div>
+    <div class="risk">
+      <div class="rt">Lossless round-trip fidelity</div>
+      <p>The eager Value/_rawValue model is load-bearing for byte-faithful rewrites. Replacing it with lazy formatting risks subtle deltas
+      (padding, DS "-0.000", dropPadByte semantics).</p>
+      <div class="rg">The existing 1400-line lossless-read-write suite must pass unmodified against the lazy layer before the old reader is removed.</div>
+    </div>
+    <div class="risk">
+      <div class="rt">Shim fidelity = the widest blast radius</div>
+      <p>Image loaders depend on exact semantics: the {exception, dataSet} throw shape, element field names, zero-copy frame views, the UMD global,
+      even the bugs. Fixing the warnings() TypeError changes malformed-file behavior — ship it as a documented bugfix, not silently.</p>
+      <div class="rg">Integration smoke tests: both cornerstone image loaders parsing the full corpus against the shim before 1.9.0 publishes.</div>
+    </div>
+    <div class="risk">
+      <div class="rt">Semantic divergence between the two parsers</div>
+      <p>UN-as-implicit-SQ, fragment-to-frame mapping, charset normalization to ISO_IR 192, per-element warnings vs drop-the-rest recovery —
+      swapping the core can change results for real malformed files.</p>
+      <div class="rg">Old-core vs new-core golden equivalence suite over both repos' fixture corpora, including the dclunie charset suite.</div>
+    </div>
+    <div class="risk">
+      <div class="rt">Default-path overhead eats the win</div>
+      <p>Import-time nameMap construction, private-dictionary registration, and per-element Proxies would make the merged high-level API slower
+      than today's dicom-parser even with a fast layer 0.</p>
+      <div class="rg">Bundle-size CI assertion: importing dcmjs/parser pulls zero dictionary bytes; lazy-init enforced by the load benchmark.</div>
+    </div>
+    <div class="risk">
+      <div class="rt">Engines floor &amp; environment split</div>
+      <p>dcmjs pins Node ≥ 22.13 and pnpm 11; image-loader consumers build on Node 18/20 LTS. The shim and parser subpath must not inherit the floor.</p>
+      <div class="rg">Shim package carries its own relaxed engines field and prebuilt UMD; verified in the publish workflow.</div>
+    </div>
+    <div class="risk">
+      <div class="rt">Known bugs riding along</div>
+      <p>dicom-parser: warnings()-as-function, string() index footguns, byte-by-byte fragment assembly. dcmjs: readUint16Array off-by-one
+      (<span class="ref">BufferStream.js:245-254</span>), noCopy that copies, no deflate-on-write.</p>
+      <div class="rg">Each fix lands with its own regression test during the port — not after.</div>
+    </div>
+    <div class="risk">
+      <div class="rt">Two divergent read paths linger</div>
+      <p>The legacy eager reader behind a flag plus the new core means a long window of double maintenance, and the preliminary AsyncDicomReader
+      adds a third path until re-platformed.</p>
+      <div class="rg">Hard flag-removal deadline (two releases) with the equivalence suite as the exit criterion.</div>
+    </div>
+  </div>
+
+  <div class="callout cyan" style="margin-top:26px">
+    <b>One measured number to anchor expectations.</b> The only benchmark that exists today is the dictionary load: 181&nbsp;ms → 19&nbsp;ms (9.5×),
+    from dcmjs's own <code class="ref">generate/bench-dictionary-load.mjs</code>. Every other claim in this dossier is code-derived and
+    code-verified, but unmeasured — which is why the roadmap puts the benchmark harness at step 3, before any hot-path code moves. Build the parse
+    benchmarks first; let them arbitrate every optimization in section 07.
+  </div>
+
+  <footer>
+    Method: 31 agents — 6 dimension analysts reading both repos head-to-head, 4 optimization hunters (performance + DevX per repo),
+    18 adversarial verifications of high-impact claims (17 confirmed, 1 refuted), 3-judge merge-direction panel, plus a dedicated analysis of
+    dcmjs's new streaming/dictionary layer.<br>
+    Sources: /Users/alireza/open-source/clean/dicomparser.worktrees/dicomparseroptimiztaion (dicom-parser, master, dormant since 2023-10) ·
+    /Users/alireza/open-source/clean/dcmjs.worktrees/dcmjsoptimiztaion (dcmjs 0.49.2, current master) · generated 2026-06-09.
+  </footer>
+</section>
+
+</main>
+</div>
+
+<script>
+  const links = document.querySelectorAll('.sidenav a');
+  const sections = [...links].map(a => document.querySelector(a.getAttribute('href')));
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        links.forEach(l => l.classList.toggle('active', l.getAttribute('href') === '#' + e.target.id));
+      }
+    });
+  }, { rootMargin: '-15% 0px -75% 0px' });
+  sections.forEach(s => s && obs.observe(s));
+</script>
+</body>
+</html>

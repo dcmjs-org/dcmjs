@@ -7,7 +7,6 @@ import {
     VM_DELIMITER,
     UNDEFINED_LENGTH,
     TagHex,
-    encodingMapping,
     UNDEFINED_LENGTH_FIX,
     VALID_VRS,
     isVideoTransferSyntax
@@ -16,6 +15,7 @@ import { Tag } from "./Tag";
 import { DicomMessage, singleVRs } from "./DicomMessage";
 import { DicomMetaDictionary } from "./DicomMetaDictionary";
 import { DicomMetadataListener } from "./utilities/DicomMetadataListener.js";
+import { resolveCharsetDecoder } from "./charset/iso2022.js";
 import { log } from "./log.js";
 
 const readLog = log.getLogger("AsyncDicomReader");
@@ -720,43 +720,50 @@ export class AsyncDicomReader {
         await this.stream.ensureAvailable(length);
         const vr = ValueRepresentation.createByTypeString(tagInfo.vr);
         let values = [];
+        let rawValues = [];
         if (vr.isBinary() && length > vr.maxLength && !vr.noMultiple) {
             const times = length / vr.maxLength;
             let i = 0;
             while (i++ < times) {
                 readLog.trace("readSingle multi-value loop", i, times);
-                const { value } = vr.read(stream, vr.maxLength, syntax);
+                const { rawValue, value } = vr.read(
+                    stream,
+                    vr.maxLength,
+                    syntax
+                );
+                rawValues.push(rawValue);
                 values.push(value);
             }
         } else {
-            const value = vr.read(stream, length, syntax)?.value;
+            const { rawValue, value } = vr.read(stream, length, syntax) || {};
             if (!vr.isBinary() && singleVRs.indexOf(vr.type) == -1) {
+                rawValues = rawValue;
                 values = value;
                 if (typeof value === "string") {
                     const delimiterChar = String.fromCharCode(VM_DELIMITER);
+                    rawValues = vr.dropPadByte(rawValue.split(delimiterChar));
                     values = vr.dropPadByte(value.split(delimiterChar));
                 }
             } else if (vr.type == "OW" || vr.type == "OB") {
+                rawValues = rawValue;
                 values = value;
             } else {
                 Array.isArray(value) ? (values = value) : values.push(value);
+                Array.isArray(rawValue)
+                    ? (rawValues = rawValue)
+                    : rawValues.push(rawValue);
             }
         }
 
         if (tagInfo.tag === TagHex.SpecificCharacterSet) {
-            if (values.length > 0) {
-                let [coding] = values;
-                coding = coding.replace(/[_ ]/g, "-").toLowerCase();
-                if (coding in encodingMapping) {
-                    coding = encodingMapping[coding];
-                    this.stream.setDecoder(new TextDecoder(coding));
-                } else if (options?.ignoreErrors) {
-                    log.warn(
-                        `Unsupported character set: ${coding}, using default character set`
-                    );
-                } else {
-                    throw Error(`Unsupported character set: ${coding}`);
-                }
+            // Shared charset resolution (src/charset/iso2022.js) — the same
+            // single- and multi-valued (ISO 2022 code extension) handling the
+            // eager and streaming readers use.
+            const decoder = resolveCharsetDecoder(values, {
+                ignoreErrors: options?.ignoreErrors
+            });
+            if (decoder) {
+                this.stream.setDecoder(decoder);
             }
             // Normalize to UTF-8 in the stored value, matching the synchronous
             // DicomMessage path which always rewrites SpecificCharacterSet to
@@ -769,6 +776,15 @@ export class AsyncDicomReader {
 
         const valuesForListener = Array.isArray(values) ? values : [values];
         valuesForListener.forEach(value => listener.value(value));
+
+        // Retain the raw (unformatted) values on the dict entry with the
+        // same shape as the eager reader (DicomMessage._readTag stores
+        // readInfo.rawValues as _rawValue), so formatting such as DS
+        // "1.5000" survives an async read → write round trip.
+        const dest = listener.current?.dest;
+        if (dest && typeof dest === "object" && !Array.isArray(dest)) {
+            dest._rawValue = rawValues;
+        }
         return values;
     }
 }

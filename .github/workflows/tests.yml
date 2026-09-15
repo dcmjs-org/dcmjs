@@ -33,6 +33,35 @@ jobs:
       - name: Run tests
         run: pnpm test
 
+  # ED-2: network-fixture suites (test_multiframe_1, test_oneslice_seg) are
+  # skipped in the main gate unless cached; this non-blocking job opts in to
+  # downloading them so the coverage still runs on every push.
+  test-network-fixtures:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    env:
+      PNPM_CONFIG_FROZEN_LOCKFILE: "true"
+      DCMJS_NETWORK_TESTS: "1"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install packages
+        run: pnpm install
+
+      - name: Run tests (with network fixtures)
+        run: pnpm test
+
   build:
     runs-on: ubuntu-latest
     env:

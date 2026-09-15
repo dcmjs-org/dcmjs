@@ -1,0 +1,13 @@
+{
+    "name": "@dcmjs/parser",
+    "version": "0.0.0",
+    "private": true,
+    "description": "Lazy, offset-based DICOM Part 10 tokenizer (vendored from dicom-parser). Layer 0 of dcmjs.",
+    "main": "src/index.js",
+    "module": "src/index.js",
+    "types": "index.d.ts",
+    "license": "MIT",
+    "scripts": {
+        "test": "jest --rootDir ../.. packages/parser"
+    }
+}

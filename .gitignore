@@ -11,3 +11,7 @@ pnpm-debug.log
 build
 examples/js/dcmjs*
 *.code-workspace
+package-lock.json
+
+# graphify knowledge-graph output (rebuildable; see graphify-out/ locally)
+graphify-out/

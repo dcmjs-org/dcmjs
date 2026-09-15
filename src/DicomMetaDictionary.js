@@ -124,6 +124,19 @@ export class DicomMetaDictionary {
             if (entry) {
                 naturalName = entry.name;
 
+                if (
+                    entry.version !== "DICOM" &&
+                    entry.version !== "PrivateTag" &&
+                    !DicomMetaDictionary.nameMap[naturalName]
+                ) {
+                    // registerTag() entries naturalize to their custom
+                    // keyword, but the lazily-built nameMap only knows the
+                    // standard dictionary. Teach the nameMap the registered
+                    // entry so denaturalizeDataset can map the keyword back
+                    // to its tag (symmetric registration).
+                    DicomMetaDictionary.nameMap[naturalName] = entry;
+                }
+
                 if (entry.vr == "ox") {
                     // when the vr is data-dependent, keep track of the original type
                     naturalDataset._vrMap[naturalName] = data.vr;
@@ -132,6 +145,12 @@ export class DicomMetaDictionary {
                     // save origin vr if it different that in dictionary
                     naturalDataset._vrMap[naturalName] = data.vr;
                 }
+            } else if (/^[0-9A-F]{8}$/i.test(tag) && data.vr) {
+                // Unregistered (typically private) element: the tag itself
+                // stays as the key, so record its VR in _vrMap so that
+                // denaturalizeDataset can restore the element instead of
+                // dropping it.
+                naturalDataset._vrMap[naturalName] = data.vr;
             }
 
             if (data.Value === undefined) {
@@ -202,7 +221,11 @@ export class DicomMetaDictionary {
         }
 
         value = value.map(entry =>
-            entry.constructor.name == "Number" ? String(entry) : entry
+            // null entries pass through as empty values (issue #42) — the
+            // constructor check would crash on them with a bare TypeError.
+            entry !== null && entry.constructor.name == "Number"
+                ? String(entry)
+                : entry
         );
 
         return value;
@@ -215,6 +238,16 @@ export class DicomMetaDictionary {
             // check if it's a sequence
             var name = naturalName;
             var entry = nameMap[name];
+            if (!entry && /^[0-9A-F]{8}$/i.test(name)) {
+                // Private/unregistered elements naturalize to their 8-digit
+                // hex tag string; map them straight back to that tag,
+                // restoring the VR recorded in _vrMap by naturalizeDataset
+                // (falling back to UN when no VR was recorded).
+                entry = {
+                    tag: DicomMetaDictionary.punctuateTag(name),
+                    vr: (dataset._vrMap && dataset._vrMap[name]) || "UN"
+                };
+            }
             if (entry) {
                 let dataValue = dataset[naturalName];
 
@@ -277,7 +310,7 @@ export class DicomMetaDictionary {
                                 maxLength = vr.rangeMatchingMaxLength;
                             }
 
-                            if (value.length > maxLength) {
+                            if (value != null && value.length > maxLength) {
                                 log.warn(
                                     `Truncating value ${value} of ${naturalName} because it is longer than ${maxLength}`
                                 );
@@ -306,12 +339,33 @@ export class DicomMetaDictionary {
         return unnaturalDataset;
     }
 
+    /**
+     * Generates a UID with the "2.25" root: the decimal encoding of a
+     * freshly generated 128-bit RFC 4122 version 4 UUID, per PS3.5
+     * Annex B.2 / ITU-T X.667. The integer part is at most 39 digits
+     * (2^128 - 1), so the UID is at most 44 characters and never has a
+     * leading zero.
+     */
     static uid() {
-        let uid = "2.25." + Math.floor(1 + Math.random() * 9);
-        for (let index = 0; index < 38; index++) {
-            uid = uid + Math.floor(Math.random() * 10);
+        const bytes = new Uint8Array(16);
+        const cryptoLib =
+            typeof globalThis !== "undefined" ? globalThis.crypto : undefined;
+        if (cryptoLib && typeof cryptoLib.getRandomValues === "function") {
+            cryptoLib.getRandomValues(bytes);
+        } else {
+            // Fallback for environments without Web Crypto (not
+            // cryptographically strong, but preserves the UUID format).
+            for (let index = 0; index < 16; index++) {
+                bytes[index] = Math.floor(Math.random() * 256);
+            }
         }
-        return uid;
+        bytes[6] = (bytes[6] & 0x0f) | 0x40; // version 4
+        bytes[8] = (bytes[8] & 0x3f) | 0x80; // RFC 4122 variant
+        let hex = "";
+        for (let index = 0; index < 16; index++) {
+            hex += bytes[index].toString(16).padStart(2, "0");
+        }
+        return "2.25." + BigInt("0x" + hex).toString();
     }
 
     // date and time in UTC
@@ -331,26 +385,47 @@ export class DicomMetaDictionary {
         return now.toISOString().replace(/[:\-TZ]/g, "");
     }
 
+    /**
+     * Lazily-built name -> entry map (R7): building it materializes ~5000
+     * entry objects, so it is deferred from import time to the first
+     * nameMap access. All existing access patterns
+     * (DicomMetaDictionary.nameMap[name], `name in nameMap`, the
+     * denaturalizeDataset default argument) go through this getter.
+     */
+    static _nameMap = null;
+
+    static get nameMap() {
+        if (DicomMetaDictionary._nameMap === null) {
+            DicomMetaDictionary._nameMap =
+                DicomMetaDictionary._generateNameMap();
+        }
+        return DicomMetaDictionary._nameMap;
+    }
+
+    static set nameMap(value) {
+        DicomMetaDictionary._nameMap = value;
+    }
+
     static _generateNameMap() {
-        DicomMetaDictionary.nameMap = {};
+        const nameMap = {};
         const entries = getAllStandardTagEntries();
         for (let i = 0; i < entries.length; i++) {
             const e = entries[i];
-            const dict = {
+            nameMap[e.name] = {
                 tag: e.tag,
                 vr: e.vr,
                 vm: e.vm,
                 name: e.name,
                 version: "DICOM"
             };
-            DicomMetaDictionary.nameMap[e.name] = dict;
         }
         Object.keys(DicomMetaDictionary.dictionary).forEach(tag => {
             const dict = DicomMetaDictionary.dictionary[tag];
             if (dict && dict.version !== "PrivateTag") {
-                DicomMetaDictionary.nameMap[dict.name] = dict;
+                nameMap[dict.name] = dict;
             }
         });
+        return nameMap;
     }
 
     static _generateCustomNameMap(dictionary) {
@@ -441,5 +516,5 @@ ValueRepresentation.setDicomMetaDictionary(DicomMetaDictionary);
 
 DicomMetaDictionary.dictionary = dictionary;
 
-DicomMetaDictionary._generateNameMap();
+// nameMap is built lazily on first access (see the static getter above).
 DicomMetaDictionary._generateUIDMap();

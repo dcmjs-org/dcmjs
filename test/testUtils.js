@@ -82,4 +82,29 @@ async function getTestDataset(url, filename) {
     return targetPath;
 }
 
-export { getTestDataset, getZippedTestDataset };
+const NETWORK_TESTS_ENV = "DCMJS_NETWORK_TESTS";
+
+/**
+ * Gate a test on multi-megabyte fixtures downloaded from
+ * github.com/dcmjs-org/data (ED-2). Returns `it` when every named fixture
+ * (file or unpack directory under os.tmpdir()/dcmjs-test) is already cached,
+ * or when DCMJS_NETWORK_TESTS=1 explicitly opts in to downloading; otherwise
+ * returns `it.skip` so the main gate stays green on offline/clean machines.
+ */
+function itIfNetworkFixture(...names) {
+    if (process.env[NETWORK_TESTS_ENV] === "1") {
+        return it;
+    }
+    const dir = path.join(os.tmpdir(), "dcmjs-test");
+    if (names.every(name => fs.existsSync(path.join(dir, name)))) {
+        return it;
+    }
+    console.warn(
+        `[testUtils] Skipping network-fixture test (needs ${names.join(
+            ", "
+        )}); set ${NETWORK_TESTS_ENV}=1 to download.`
+    );
+    return it.skip;
+}
+
+export { getTestDataset, getZippedTestDataset, itIfNetworkFixture };

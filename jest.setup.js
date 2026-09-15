@@ -34,6 +34,11 @@ jest.mock("loglevel", () => mockLog);
 // Optional global access for assertions
 global.mockLog = mockLog;
 
+// Polyfill ReadableStream (node:stream/web) for test environments where it
+// is not available. This enables the fromPart10Stream ReadableStream input
+// path tests to run (not skip) in Jest.
+globalThis.ReadableStream ??= require("node:stream/web").ReadableStream;
+
 // Override console.warn to remove stack traces
 console.warn = nodeConsole.warn;
 console.time = nodeConsole.time;

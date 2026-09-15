@@ -1,7 +1,30 @@
 import pako from "pako";
 import SplitDataView from "./SplitDataView";
+import { createLatin1Decoder } from "./charset/latin1.js";
 import { toFloat } from "./utilities/toFloat";
 import { toInt } from "./utilities/toInt";
+
+/**
+ * Raw spans at least this large are appended as zero-copy windows over the
+ * caller's buffer instead of being copied into the stream's own chunks.
+ * Each window adds one chunk to the SplitDataView (chunk lookups are a
+ * linear scan), so only spans worth a saved memcpy get one.
+ */
+const RAW_ZERO_COPY_THRESHOLD = 64 * 1024;
+
+/**
+ * Shared default encoder/decoder singletons. Streams are created per
+ * sequence item / fragment / element, so constructing a TextEncoder or
+ * TextDecoder per stream is measurable overhead. Both are stateless here
+ * (decode/encode are always called without {stream: true}), so sharing is
+ * safe. setDecoder still installs a per-stream decoder on the instance
+ * when SpecificCharacterSet changes - it never mutates these defaults.
+ */
+const DEFAULT_ENCODER = new TextEncoder();
+// Guarded construction (#297): on runtimes without a latin1 TextDecoder this
+// falls back to a pure-JS byte->code-point decoder instead of throwing at
+// module load.
+const DEFAULT_LATIN1_DECODER = createLatin1Decoder();
 
 export class BufferStream {
     offset = 0;
@@ -12,13 +35,21 @@ export class BufferStream {
     /** The available listeners are those waiting for a query response */
     availableListeners = [];
 
+    /**
+     * Waiters for relay-style producers: resolved whenever the consumer
+     * makes progress (consume) or registers new demand (ensureAvailable
+     * going async). Lets a producer throttle itself against the parse
+     * loop instead of running unboundedly ahead (K5 relay-balloon fix).
+     */
+    relayListeners = [];
+
     /** Indicates if this buffer stream is complete/has finished being created */
     isComplete = false;
 
     /** A flag to set to indicate to clear buffers as they get consumed */
     clearBuffers = false;
 
-    encoder = new TextEncoder("utf-8");
+    encoder = DEFAULT_ENCODER;
 
     constructor(options = null) {
         this.isLittleEndian = options?.littleEndian || this.isLittleEndian;
@@ -32,6 +63,7 @@ export class BufferStream {
     setComplete(value = true) {
         this.isComplete = value;
         this.notifyAvailableListeners();
+        this.notifyRelayListeners();
     }
 
     /**
@@ -61,11 +93,30 @@ export class BufferStream {
                         return;
                     }
                     this.availableListeners.push(recheckAvailable);
+                    // Demand appeared — wake any throttled producer so a
+                    // starved consumer can never deadlock against it.
+                    this.notifyRelayListeners();
                 };
                 recheckAvailable();
             });
         }
         return true;
+    }
+
+    /** True when a consumer is blocked waiting for more bytes. */
+    hasPendingDemand() {
+        return this.availableListeners.length > 0;
+    }
+
+    /** Resolves on the next consumer activity (consume or new demand). */
+    awaitConsumerActivity() {
+        return new Promise(resolve => this.relayListeners.push(resolve));
+    }
+
+    notifyRelayListeners() {
+        const existingListeners = [...this.relayListeners];
+        this.relayListeners.splice(0, this.relayListeners.length);
+        existingListeners.forEach(listener => listener());
     }
 
     setEndian(isLittle) {
@@ -150,6 +201,24 @@ export class BufferStream {
         return this.increment(4);
     }
 
+    /**
+     * Writes a Uint16 at an absolute, already-written offset without moving
+     * the stream position. Used to backpatch explicit VR 2-byte length
+     * fields once the value bytes are in place.
+     */
+    writeUint16At(offset, value) {
+        this.view.setUint16(offset, toInt(value), this.isLittleEndian);
+    }
+
+    /**
+     * Writes a Uint32 at an absolute, already-written offset without moving
+     * the stream position. Used to backpatch 4-byte length fields once the
+     * value bytes are in place.
+     */
+    writeUint32At(offset, value) {
+        this.view.setUint32(offset, toInt(value), this.isLittleEndian);
+    }
+
     writeInt32(value) {
         this.checkSize(4);
         this.view.setInt32(this.offset, toInt(value), this.isLittleEndian);
@@ -191,6 +260,30 @@ export class BufferStream {
             this.view.setUint8(startOffset + i, charCode);
         }
         return this.increment(len);
+    }
+
+    /**
+     * Appends raw, already-encoded bytes (a passthrough source span) at the
+     * current write position and returns the number of bytes written.
+     *
+     * Spans of at least RAW_ZERO_COPY_THRESHOLD bytes appended at the end
+     * of the stream become zero-copy read-only windows over the caller's
+     * buffer (the bytes are referenced, not copied - the caller must not
+     * mutate them afterwards); anything else is copied straight into the
+     * stream with a single set.
+     */
+    writeRawBytes(bytes) {
+        const length = bytes.byteLength;
+        if (length === 0) {
+            return 0;
+        }
+        if (length >= RAW_ZERO_COPY_THRESHOLD && this.offset === this.size) {
+            this.view.addZeroCopyWindow(bytes, this.offset);
+            return this.increment(length);
+        }
+        this.checkSize(length);
+        this.view.writeBuffer(bytes, this.offset);
+        return this.increment(length);
     }
 
     readBigUint64() {
@@ -243,10 +336,9 @@ export class BufferStream {
     }
 
     readUint16Array(length) {
-        var sixlen = length / 2,
-            arr = new Uint16Array(sixlen),
-            i = 0;
-        while (i++ < sixlen) {
+        const count = length / 2;
+        const arr = new Uint16Array(count);
+        for (let i = 0; i < count; i++) {
             arr[i] = this.view.getUint16(this.offset, this.isLittleEndian);
             this.offset += 2;
         }
@@ -305,14 +397,22 @@ export class BufferStream {
         return vr;
     }
 
-    readEncodedString(length) {
+    /**
+     * Decodes `length` bytes with the stream's active decoder.
+     * `delimiters` (optional Set of byte values) is forwarded to ISO 2022
+     * aware decoders as extra designation-reset delimiters (e.g. PN's ^/=);
+     * plain TextDecoders ignore it.
+     */
+    readEncodedString(length, delimiters) {
         if (this.offset + length >= this.view.byteLength) {
             length = this.view.byteLength - this.offset;
         }
         const view = new DataView(
             this.slice(this.offset, this.offset + length)
         );
-        const result = this.decoder.decode(view);
+        const result = delimiters
+            ? this.decoder.decode(view, { delimiters })
+            : this.decoder.decode(view);
         this.increment(length);
         return result;
     }
@@ -331,14 +431,36 @@ export class BufferStream {
 
     /**
      * Concatenates the stream, starting from the startOffset (to allow concat
-     * on an existing output from the beginning)
+     * on an existing output from the beginning).
+     *
+     * Copies the source chunks straight into this view, without first
+     * merging the source stream into one intermediate buffer.
      */
     concat(stream) {
-        this.view.checkSize(this.size + stream.size - stream.startOffset);
-        this.view.writeBuffer(
-            new Uint8Array(stream.slice(stream.startOffset, stream.size)),
-            this.offset
-        );
+        const startOffset = stream.startOffset;
+        const length = stream.size - startOffset;
+        this.view.checkSize(this.size + length);
+        let copied = 0;
+        while (copied < length) {
+            const position = startOffset + copied;
+            const index = stream.view.findStart(position);
+            const chunkStart = position - stream.view.offsets[index];
+            const copyLength = Math.min(
+                stream.view.lengths[index] - chunkStart,
+                length - copied
+            );
+            this.view.writeBuffer(
+                new Uint8Array(
+                    stream.view.buffers[index],
+                    // zero-copy window chunks start at their view's
+                    // byteOffset within the shared source buffer
+                    chunkStart + stream.view.views[index].byteOffset,
+                    copyLength
+                ),
+                this.offset + copied
+            );
+            copied += copyLength;
+        }
         this.offset += stream.size;
         this.size = this.offset;
         this.endOffset = this.size;
@@ -407,6 +529,7 @@ export class BufferStream {
             return;
         }
         this.view.consume(offset);
+        this.notifyRelayListeners();
     }
 
     /**
@@ -430,6 +553,12 @@ export class BufferStream {
         const newBuf = new ReadBufferStream(
             this.slice(this.offset, this.offset + length)
         );
+        // Propagate the active charset decoder into the substream so
+        // sequence-item datasets decode with the dataset's
+        // SpecificCharacterSet instead of the default latin1 (#503/#451).
+        if (this.decoder) {
+            newBuf.setDecoder(this.decoder);
+        }
         this.increment(length);
         newBuf.setComplete();
 
@@ -474,7 +603,7 @@ export class ReadBufferStream extends BufferStream {
     ) {
         super({ ...options, littleEndian });
         this.noCopy = options.noCopy;
-        this.decoder = new TextDecoder("latin1");
+        this.decoder = DEFAULT_LATIN1_DECODER;
 
         if (buffer instanceof BufferStream) {
             this.view.from(buffer.view, options);
@@ -537,6 +666,14 @@ export class ReadBufferStream extends BufferStream {
         throw new Error(value, "writeUint32 not implemented");
     }
 
+    writeUint16At(offset, value) {
+        throw new Error(value, "writeUint16At not implemented");
+    }
+
+    writeUint32At(offset, value) {
+        throw new Error(value, "writeUint32At not implemented");
+    }
+
     writeInt32(value) {
         throw new Error(value, "writeInt32 not implemented");
     }
@@ -555,6 +692,10 @@ export class ReadBufferStream extends BufferStream {
 
     writeUTF8String(value) {
         throw new Error(value, "writeUTF8String not implemented");
+    }
+
+    writeRawBytes(bytes) {
+        throw new Error(bytes, "writeRawBytes not implemented");
     }
 
     checkSize(step) {

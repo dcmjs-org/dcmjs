@@ -5,8 +5,26 @@ const knownUnits = [
     {
         CodingSchemeDesignator: "UCUM",
         CodingSchemeVersion: "1.4",
+        CodeValue: "um",
+        CodeMeaning: "um"
+    },
+    {
+        CodingSchemeDesignator: "UCUM",
+        CodingSchemeVersion: "1.4",
         CodeValue: "mm",
         CodeMeaning: "mm"
+    },
+    {
+        CodingSchemeDesignator: "UCUM",
+        CodingSchemeVersion: "1.4",
+        CodeValue: "cm",
+        CodeMeaning: "cm"
+    },
+    {
+        CodingSchemeDesignator: "UCUM",
+        CodingSchemeVersion: "1.4",
+        CodeValue: "m",
+        CodeMeaning: "m"
     },
     {
         CodingSchemeDesignator: "UCUM",

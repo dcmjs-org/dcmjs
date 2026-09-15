@@ -1,8 +1,11 @@
+import pako from "pako";
 import { WriteBufferStream } from "./BufferStream";
 import { ValueRepresentation } from "./ValueRepresentation";
-import { TagHex } from "./constants/dicom";
-
-const EXPLICIT_LITTLE_ENDIAN = "1.2.840.10008.1.2.1";
+import {
+    DEFLATED_EXPLICIT_LITTLE_ENDIAN,
+    EXPLICIT_LITTLE_ENDIAN,
+    TagHex
+} from "./constants/dicom";
 
 let DicomMessage;
 
@@ -47,7 +50,40 @@ class DicomDict {
         fileStream.concat(metaStream);
 
         var useSyntax = this.meta[TagHex.TransferSyntaxUID].Value[0];
-        DicomMessage.write(this.dict, fileStream, useSyntax, writeOptions);
+        // _lazyWriteContext only exists on dicts produced by the lazy read
+        // core; it enables the R4 passthrough fast path for clean entries.
+        // The meta group above is always re-encoded (group length recompute).
+        if (useSyntax === DEFLATED_EXPLICIT_LITTLE_ENDIAN) {
+            // Deflate-on-write (R4/W4). Per PS3.10 A.5 only the dataset
+            // after the meta group is deflated - the preamble, "DICM" and
+            // the meta group (written uncompressed above) never are. The
+            // deflated syntax implies an explicit little endian body, so
+            // the body is produced as ELE into a scratch stream, then
+            // raw-deflated (RFC 1951, no zlib header - the mirror of the
+            // read side's inflateRaw). Passthrough composes: a deflated
+            // source's spans index the INFLATED body buffer, so clean
+            // entries are emitted verbatim into the pre-deflate stream and
+            // only the deflate wrapper is recomputed.
+            const bodyStream = new WriteBufferStream(4096, true);
+            DicomMessage.write(
+                this.dict,
+                bodyStream,
+                EXPLICIT_LITTLE_ENDIAN,
+                writeOptions,
+                this._lazyWriteContext || null
+            );
+            fileStream.writeRawBytes(
+                pako.deflateRaw(new Uint8Array(bodyStream.getBuffer()))
+            );
+            return fileStream.getBuffer();
+        }
+        DicomMessage.write(
+            this.dict,
+            fileStream,
+            useSyntax,
+            writeOptions,
+            this._lazyWriteContext || null
+        );
         return fileStream.getBuffer();
     }
 

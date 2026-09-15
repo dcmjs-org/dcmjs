@@ -3,6 +3,7 @@ export const IMPLICIT_LITTLE_ENDIAN = "1.2.840.10008.1.2";
 export const EXPLICIT_LITTLE_ENDIAN = "1.2.840.10008.1.2.1";
 export const DEFLATED_EXPLICIT_LITTLE_ENDIAN = "1.2.840.10008.1.2.1.99";
 export const EXPLICIT_BIG_ENDIAN = "1.2.840.10008.1.2.2";
+export const RLE_LOSSLESS = "1.2.840.10008.1.2.5";
 
 /**
  * The raw hex value is the maximum 32 bit unsigned integer,
@@ -47,19 +48,19 @@ export const unencapsulatedTransferSyntaxes = {
  */
 export const videoTransferSyntaxUIDs = new Set([
     "1.2.840.10008.1.2.4.100", // MPEG2 Main Profile @ Main Level
-    "1.2.840.10008.1.2.4.100.1", // MPEG2 Main Profile @ Main Level (retired)
+    "1.2.840.10008.1.2.4.100.1", // MPEG2 Main Profile @ Main Level (Fragmentable, Sup 225)
     "1.2.840.10008.1.2.4.101", // MPEG2 Main Profile @ High Level
-    "1.2.840.10008.1.2.4.101.1", // MPEG2 Main Profile @ High Level (retired)
+    "1.2.840.10008.1.2.4.101.1", // MPEG2 Main Profile @ High Level (Fragmentable, Sup 225)
     "1.2.840.10008.1.2.4.102", // MPEG-4 AVC/H.264 High Profile / Level 4.1
-    "1.2.840.10008.1.2.4.102.1", // MPEG-4 AVC/H.264 High Profile / Level 4.1 (retired)
+    "1.2.840.10008.1.2.4.102.1", // MPEG-4 AVC/H.264 High Profile / Level 4.1 (Fragmentable, Sup 225)
     "1.2.840.10008.1.2.4.103", // MPEG-4 AVC/H.264 BD-compatible High Profile / Level 4.1
-    "1.2.840.10008.1.2.4.103.1", // MPEG-4 AVC/H.264 BD-compatible High Profile / Level 4.1 (retired)
+    "1.2.840.10008.1.2.4.103.1", // MPEG-4 AVC/H.264 BD-compatible High Profile / Level 4.1 (Fragmentable, Sup 225)
     "1.2.840.10008.1.2.4.104", // MPEG-4 AVC/H.264 High Profile / Level 4.2 For 2D Video
-    "1.2.840.10008.1.2.4.104.1", // MPEG-4 AVC/H.264 High Profile / Level 4.2 For 2D Video (retired)
+    "1.2.840.10008.1.2.4.104.1", // MPEG-4 AVC/H.264 High Profile / Level 4.2 For 2D Video (Fragmentable, Sup 225)
     "1.2.840.10008.1.2.4.105", // MPEG-4 AVC/H.264 High Profile / Level 4.2 For 3D Video
-    "1.2.840.10008.1.2.4.105.1", // MPEG-4 AVC/H.264 High Profile / Level 4.2 For 3D Video (retired)
+    "1.2.840.10008.1.2.4.105.1", // MPEG-4 AVC/H.264 High Profile / Level 4.2 For 3D Video (Fragmentable, Sup 225)
     "1.2.840.10008.1.2.4.106", // MPEG-4 AVC/H.264 Stereo High Profile / Level 4.2
-    "1.2.840.10008.1.2.4.106.1", // MPEG-4 AVC/H.264 Stereo High Profile / Level 4.2 (retired)
+    "1.2.840.10008.1.2.4.106.1", // MPEG-4 AVC/H.264 Stereo High Profile / Level 4.2 (Fragmentable, Sup 225)
     "1.2.840.10008.1.2.4.107", // HEVC/H.265 Main Profile / Level 5.1
     "1.2.840.10008.1.2.4.108" // HEVC/H.265 Main 10 Profile / Level 5.1
 ]);
