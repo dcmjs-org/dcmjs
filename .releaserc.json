@@ -1,0 +1,20 @@
+{
+    "branches": [
+        { "name": "release/0.5x", "range": "0.x" },
+        "master",
+        { "name": "1.0-beta", "prerelease": "beta", "channel": "beta" }
+    ],
+    "plugins": [
+        "@semantic-release/commit-analyzer",
+        "@semantic-release/release-notes-generator",
+        ["@semantic-release/npm", { "npmPublish": false }],
+        [
+            "@semantic-release/exec",
+            {
+                "prepareCmd": "node scripts/stamp-workspace-versions.mjs ${nextRelease.version}",
+                "publishCmd": "pnpm -r publish --tag beta --access public --no-git-checks"
+            }
+        ],
+        "@semantic-release/github"
+    ]
+}
