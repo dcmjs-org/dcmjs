@@ -1,7 +1,5 @@
 import dcmjs from "../src/index.js";
-import fs from "fs";
 import path from "path";
-import { promisify } from "util";
 import fsPromises from "fs/promises";
 import {
     getZippedTestDataset,
@@ -16,20 +14,20 @@ const areEqual = (first, second) =>
     first.every((value, index) => value === second[index]);
 
 it("test_untilTag", () => {
-    const buffer = fs.readFileSync("test/sample-dicom.dcm");
+    const buffer = readFileAsArrayBuffer("test/sample-dicom.dcm");
     console.time("readFile");
-    const fullData = DicomMessage.readFile(buffer.buffer);
+    const fullData = DicomMessage.readFile(buffer);
     console.timeEnd("readFile");
 
     console.time("readFile without untilTag");
-    const dicomData = DicomMessage.readFile(buffer.buffer, {
+    const dicomData = DicomMessage.readFile(buffer, {
         untilTag: "7FE00010",
         includeUntilTagValue: false
     });
     console.timeEnd("readFile without untilTag");
 
     console.time("readFile with untilTag");
-    const dicomData2 = DicomMessage.readFile(buffer.buffer, {
+    const dicomData2 = DicomMessage.readFile(buffer, {
         untilTag: "7FE00010",
         includeUntilTagValue: true
     });
@@ -107,13 +105,13 @@ it("noCopy binary data into an ArrayBuffer", async () => {
     const url =
         "https://github.com/dcmjs-org/data/releases/download/binary-tag/binary-tag.dcm";
     const dcmPath = await getTestDataset(url, "binary-tag.dcm");
-    const fileData = await promisify(fs.readFile)(dcmPath);
+    const fileData = readFileAsArrayBuffer(dcmPath);
 
-    const dicomDictNoCopy = DicomMessage.readFile(fileData.buffer, {
+    const dicomDictNoCopy = DicomMessage.readFile(fileData, {
         noCopy: true
     });
 
-    const dicomDict = DicomMessage.readFile(fileData.buffer, {
+    const dicomDict = DicomMessage.readFile(fileData, {
         noCopy: false
     });
 
@@ -172,13 +170,13 @@ it("noCopy test_fragment_multiframe", async () => {
         url,
         "encapsulation-fragment-multiframe-b.dcm"
     );
-    const file = fs.readFileSync(dcmPath);
+    const file = readFileAsArrayBuffer(dcmPath);
 
-    const dicomDict = dcmjs.data.DicomMessage.readFile(file.buffer, {
+    const dicomDict = dcmjs.data.DicomMessage.readFile(file, {
         // ignoreErrors: true,
     });
 
-    const dicomDictNoCopy = DicomMessage.readFile(file.buffer, {
+    const dicomDictNoCopy = DicomMessage.readFile(file, {
         noCopy: true
     });
 
