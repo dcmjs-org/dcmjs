@@ -8,7 +8,7 @@ import {
     TagHex
 } from "../src/constants/dicom.js";
 
-import { getTestDataset } from "./testUtils";
+import { getTestDataset, readFileAsArrayBuffer } from "./testUtils";
 import { DicomMetaDictionary } from "../src/DicomMetaDictionary";
 
 const { DicomDict, DicomMessage } = dcmjs.data;
@@ -1403,5 +1403,5 @@ const getDcmjsDataFile = async (release, fileName) => {
         fileName;
     const dcmPath = await getTestDataset(url, fileName);
 
-    return fs.readFileSync(dcmPath).buffer;
+    return readFileAsArrayBuffer(dcmPath);
 };

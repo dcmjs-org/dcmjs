@@ -3,7 +3,11 @@ import fs from "fs";
 import path from "path";
 import { promisify } from "util";
 import fsPromises from "fs/promises";
-import { getZippedTestDataset, getTestDataset } from "./testUtils.js";
+import {
+    getZippedTestDataset,
+    getTestDataset,
+    readFileAsArrayBuffer
+} from "./testUtils.js";
 
 const { DicomMetaDictionary, DicomMessage } = dcmjs.data;
 
@@ -49,13 +53,13 @@ it("noCopy multiframe DICOM which has trailing padding", async () => {
         "https://github.com/dcmjs-org/data/releases/download/binary-parsing-stressors/multiframe-ultrasound.dcm";
     const dcmPath = await getTestDataset(url, "multiframe-ultrasound.dcm");
     const dicomDictNoCopy = DicomMessage.readFile(
-        fs.readFileSync(dcmPath).buffer,
+        readFileAsArrayBuffer(dcmPath),
         {
             noCopy: true
         }
     );
 
-    const dicomDict = DicomMessage.readFile(fs.readFileSync(dcmPath).buffer, {
+    const dicomDict = DicomMessage.readFile(readFileAsArrayBuffer(dcmPath), {
         noCopy: false
     });
 
@@ -77,13 +81,13 @@ it("noCopy multiframe DICOM with large private tags before and after the image d
     const dcmPath = await getTestDataset(url, "large-private-tags.dcm");
 
     const dicomDictNoCopy = DicomMessage.readFile(
-        fs.readFileSync(dcmPath).buffer,
+        readFileAsArrayBuffer(dcmPath),
         {
             noCopy: true
         }
     );
 
-    const dicomDict = DicomMessage.readFile(fs.readFileSync(dcmPath).buffer, {
+    const dicomDict = DicomMessage.readFile(readFileAsArrayBuffer(dcmPath), {
         noCopy: false
     });
 
@@ -138,9 +142,9 @@ it("noCopy test_multiframe_1", async () => {
     const fileNames = await fsPromises.readdir(mrHeadPath);
 
     fileNames.forEach(fileName => {
-        const arrayBuffer = fs.readFileSync(
+        const arrayBuffer = readFileAsArrayBuffer(
             path.join(mrHeadPath, fileName)
-        ).buffer;
+        );
         const dicomDictNoCopy = DicomMessage.readFile(arrayBuffer, {
             noCopy: true
         });

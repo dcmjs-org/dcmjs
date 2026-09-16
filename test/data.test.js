@@ -5,7 +5,11 @@ import path from "path";
 import { WriteBufferStream } from "../src/BufferStream";
 import dcmjs from "../src/index.js";
 import { log } from "./../src/log.js";
-import { getTestDataset, getZippedTestDataset } from "./testUtils.js";
+import {
+    getTestDataset,
+    getZippedTestDataset,
+    readFileAsArrayBuffer
+} from "./testUtils.js";
 
 import { promisify } from "util";
 import arrayItem from "./arrayItem.json";
@@ -216,9 +220,9 @@ it("test_multiframe_1", async () => {
 
     const datasets = [];
     fileNames.forEach(fileName => {
-        const arrayBuffer = fs.readFileSync(
+        const arrayBuffer = readFileAsArrayBuffer(
             path.join(mrHeadPath, fileName)
-        ).buffer;
+        );
         const dicomDict = DicomMessage.readFile(arrayBuffer);
         const dataset = DicomMetaDictionary.naturalizeDataset(dicomDict.dict);
 
@@ -240,7 +244,7 @@ it("test_labelmapseg", async () => {
     const segURL =
         "https://github.com/dcmjs-org/data/releases/download/labelmap-seg/totalSegmentator.dcm";
     var segFilePath = await getTestDataset(segURL, "LabelmapSeg.dcm");
-    const arrayBuffer = fs.readFileSync(segFilePath).buffer;
+    const arrayBuffer = readFileAsArrayBuffer(segFilePath);
 
     const datasets = [];
     const dicomDict = DicomMessage.readFile(arrayBuffer);
@@ -280,9 +284,9 @@ it("test_oneslice_seg", async () => {
 
     const datasets = [];
     fileNames.forEach(fileName => {
-        const arrayBuffer = fs.readFileSync(
+        const arrayBuffer = readFileAsArrayBuffer(
             path.join(ctPelvisPath, fileName)
-        ).buffer;
+        );
         const dicomDict = DicomMessage.readFile(arrayBuffer);
         const dataset = DicomMetaDictionary.naturalizeDataset(dicomDict.dict);
         datasets.push(dataset);
@@ -298,7 +302,7 @@ it("test_oneslice_seg", async () => {
     expect(roundedSpacing).toEqual(5);
 
     var segFilePath = await getTestDataset(segURL, segFileName);
-    const arrayBuffer = fs.readFileSync(segFilePath).buffer;
+    const arrayBuffer = readFileAsArrayBuffer(segFilePath);
     const dicomDict = DicomMessage.readFile(arrayBuffer);
     const dataset = DicomMetaDictionary.naturalizeDataset(dicomDict.dict);
 
@@ -485,7 +489,7 @@ it("test_encapsulation", async () => {
     const dcmPath = await getTestDataset(url, "encapsulation.dcm");
 
     // given
-    const arrayBuffer = fs.readFileSync(dcmPath).buffer;
+    const arrayBuffer = readFileAsArrayBuffer(dcmPath);
     const dicomDict = DicomMessage.readFile(arrayBuffer);
 
     dicomDict.upsertTag("60000010", "US", 30); // Overlay Rows
@@ -695,7 +699,7 @@ it("Reads a multiframe DICOM which has trailing padding", async () => {
     const url =
         "https://github.com/dcmjs-org/data/releases/download/binary-parsing-stressors/multiframe-ultrasound.dcm";
     const dcmPath = await getTestDataset(url, "multiframe-ultrasound.dcm");
-    const dicomDict = DicomMessage.readFile(fs.readFileSync(dcmPath).buffer);
+    const dicomDict = DicomMessage.readFile(readFileAsArrayBuffer(dcmPath));
     const dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(
         dicomDict.dict
     );
@@ -712,7 +716,7 @@ it("Reads a multiframe DICOM with large private tags before and after the image 
     const url =
         "https://github.com/dcmjs-org/data/releases/download/binary-parsing-stressors/large-private-tags.dcm";
     const dcmPath = await getTestDataset(url, "large-private-tags.dcm");
-    const dicomDict = DicomMessage.readFile(fs.readFileSync(dcmPath).buffer);
+    const dicomDict = DicomMessage.readFile(readFileAsArrayBuffer(dcmPath));
     const dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(
         dicomDict.dict
     );
