@@ -47,9 +47,9 @@ function unzip(zipFilePath, targetPath) {
 
 function ensureTestDataDir() {
     var targetPath = path.join(os.tmpdir(), "dcmjs-test");
-    if (!fs.existsSync(targetPath)) {
-        fs.mkdirSync(targetPath);
-    }
+    // recursive:true is idempotent, so parallel jest workers cannot race
+    // each other into an EEXIST between an exists check and the mkdir.
+    fs.mkdirSync(targetPath, { recursive: true });
     return targetPath;
 }
 
