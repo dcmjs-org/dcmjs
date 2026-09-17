@@ -5,9 +5,12 @@ import path from "path";
 import { WriteBufferStream } from "../src/BufferStream";
 import dcmjs from "../src/index.js";
 import { log } from "./../src/log.js";
-import { getTestDataset, getZippedTestDataset } from "./testUtils.js";
+import {
+    getTestDataset,
+    getZippedTestDataset,
+    readFileAsArrayBuffer
+} from "./testUtils.js";
 
-import { promisify } from "util";
 import arrayItem from "./arrayItem.json";
 import minimalDataset from "./mocks/minimal_fields_dataset.json";
 import datasetWithNullNumberVRs from "./mocks/null_number_vrs_dataset.json";
@@ -216,9 +219,9 @@ it("test_multiframe_1", async () => {
 
     const datasets = [];
     fileNames.forEach(fileName => {
-        const arrayBuffer = fs.readFileSync(
+        const arrayBuffer = readFileAsArrayBuffer(
             path.join(mrHeadPath, fileName)
-        ).buffer;
+        );
         const dicomDict = DicomMessage.readFile(arrayBuffer);
         const dataset = DicomMetaDictionary.naturalizeDataset(dicomDict.dict);
 
@@ -240,7 +243,7 @@ it("test_labelmapseg", async () => {
     const segURL =
         "https://github.com/dcmjs-org/data/releases/download/labelmap-seg/totalSegmentator.dcm";
     var segFilePath = await getTestDataset(segURL, "LabelmapSeg.dcm");
-    const arrayBuffer = fs.readFileSync(segFilePath).buffer;
+    const arrayBuffer = readFileAsArrayBuffer(segFilePath);
 
     const datasets = [];
     const dicomDict = DicomMessage.readFile(arrayBuffer);
@@ -280,9 +283,9 @@ it("test_oneslice_seg", async () => {
 
     const datasets = [];
     fileNames.forEach(fileName => {
-        const arrayBuffer = fs.readFileSync(
+        const arrayBuffer = readFileAsArrayBuffer(
             path.join(ctPelvisPath, fileName)
-        ).buffer;
+        );
         const dicomDict = DicomMessage.readFile(arrayBuffer);
         const dataset = DicomMetaDictionary.naturalizeDataset(dicomDict.dict);
         datasets.push(dataset);
@@ -298,7 +301,7 @@ it("test_oneslice_seg", async () => {
     expect(roundedSpacing).toEqual(5);
 
     var segFilePath = await getTestDataset(segURL, segFileName);
-    const arrayBuffer = fs.readFileSync(segFilePath).buffer;
+    const arrayBuffer = readFileAsArrayBuffer(segFilePath);
     const dicomDict = DicomMessage.readFile(arrayBuffer);
     const dataset = DicomMetaDictionary.naturalizeDataset(dicomDict.dict);
 
@@ -317,8 +320,8 @@ it("test_normalizer_smaller", () => {
 });
 
 it("test_multiframe_us", () => {
-    const file = fs.readFileSync("test/cine-test.dcm");
-    const dicomData = dcmjs.data.DicomMessage.readFile(file.buffer, {
+    const file = readFileAsArrayBuffer("test/cine-test.dcm");
+    const dicomData = dcmjs.data.DicomMessage.readFile(file, {
         // ignoreErrors: true,
     });
     const dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(
@@ -338,8 +341,8 @@ it("test_fragment_multiframe", async () => {
         url,
         "encapsulation-fragment-multiframe.dcm"
     );
-    const file = fs.readFileSync(dcmPath);
-    const dicomData = dcmjs.data.DicomMessage.readFile(file.buffer, {
+    const file = readFileAsArrayBuffer(dcmPath);
+    const dicomData = dcmjs.data.DicomMessage.readFile(file, {
         // ignoreErrors: true,
     });
     const dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(
@@ -370,8 +373,8 @@ it("test_null_number_vrs", () => {
 });
 
 it("test_exponential_notation", () => {
-    const file = fs.readFileSync("test/sample-dicom.dcm");
-    const data = dcmjs.data.DicomMessage.readFile(file.buffer, {
+    const file = readFileAsArrayBuffer("test/sample-dicom.dcm");
+    const data = dcmjs.data.DicomMessage.readFile(file, {
         // ignoreErrors: true,
     });
     const dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(data.dict);
@@ -388,8 +391,8 @@ it("test_exponential_notation", () => {
 });
 
 it("test_output_equality", () => {
-    const file = fs.readFileSync("test/cine-test.dcm");
-    const dicomData1 = dcmjs.data.DicomMessage.readFile(file.buffer, {
+    const file = readFileAsArrayBuffer("test/cine-test.dcm");
+    const dicomData1 = dcmjs.data.DicomMessage.readFile(file, {
         // ignoreErrors: true,
     });
 
@@ -412,8 +415,8 @@ it("test_output_equality", () => {
 });
 
 it("test_performance", async () => {
-    const file = fs.readFileSync("test/cine-test.dcm");
-    let buffer = file.buffer;
+    const file = readFileAsArrayBuffer("test/cine-test.dcm");
+    let buffer = file;
     let json;
     const start = Date.now();
 
@@ -441,8 +444,8 @@ it("test_performance", async () => {
 });
 
 it("test_invalid_vr_length", () => {
-    const file = fs.readFileSync("test/invalid-vr-length-test.dcm");
-    const dicomDict = dcmjs.data.DicomMessage.readFile(file.buffer);
+    const file = readFileAsArrayBuffer("test/invalid-vr-length-test.dcm");
+    const dicomDict = dcmjs.data.DicomMessage.readFile(file);
 
     expect(() =>
         writeToBuffer(dicomDict, { allowInvalidVRLength: false })
@@ -485,7 +488,7 @@ it("test_encapsulation", async () => {
     const dcmPath = await getTestDataset(url, "encapsulation.dcm");
 
     // given
-    const arrayBuffer = fs.readFileSync(dcmPath).buffer;
+    const arrayBuffer = readFileAsArrayBuffer(dcmPath);
     const dicomDict = DicomMessage.readFile(arrayBuffer);
 
     dicomDict.upsertTag("60000010", "US", 30); // Overlay Rows
@@ -655,8 +658,8 @@ it("Reads DICOM with multiplicity", async () => {
     const url =
         "https://github.com/dcmjs-org/data/releases/download/multiplicity/multiplicity.dcm";
     const dcmPath = await getTestDataset(url, "multiplicity.dcm");
-    const file = await promisify(fs.readFile)(dcmPath);
-    const dicomDict = DicomMessage.readFile(file.buffer);
+    const file = readFileAsArrayBuffer(dcmPath);
+    const dicomDict = DicomMessage.readFile(file);
 
     expect(dicomDict.dict["00101020"].Value).toEqual([1, 2]);
     expect(dicomDict.dict["0018100B"].Value).toEqual(["1.2", "3.4"]);
@@ -666,8 +669,8 @@ it("Reads DICOM with PersonName multiplicity", async () => {
     const url =
         "https://github.com/dcmjs-org/data/releases/download/multiplicity2/multiplicity.2.dcm";
     const dcmPath = await getTestDataset(url, "multiplicity.2.dcm");
-    const file = await promisify(fs.readFile)(dcmPath);
-    const dicomDict = DicomMessage.readFile(file.buffer);
+    const file = readFileAsArrayBuffer(dcmPath);
+    const dicomDict = DicomMessage.readFile(file);
 
     expect(dicomDict.dict["00081070"].Value).toEqual([
         { Alphabetic: "Doe^John" },
@@ -680,8 +683,8 @@ it("Reads binary data into an ArrayBuffer", async () => {
         "https://github.com/dcmjs-org/data/releases/download/binary-tag/binary-tag.dcm";
     const dcmPath = await getTestDataset(url, "binary-tag.dcm");
 
-    const file = await promisify(fs.readFile)(dcmPath);
-    const dicomDict = DicomMessage.readFile(file.buffer);
+    const file = readFileAsArrayBuffer(dcmPath);
+    const dicomDict = DicomMessage.readFile(file);
     const dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(
         dicomDict.dict
     );
@@ -695,7 +698,7 @@ it("Reads a multiframe DICOM which has trailing padding", async () => {
     const url =
         "https://github.com/dcmjs-org/data/releases/download/binary-parsing-stressors/multiframe-ultrasound.dcm";
     const dcmPath = await getTestDataset(url, "multiframe-ultrasound.dcm");
-    const dicomDict = DicomMessage.readFile(fs.readFileSync(dcmPath).buffer);
+    const dicomDict = DicomMessage.readFile(readFileAsArrayBuffer(dcmPath));
     const dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(
         dicomDict.dict
     );
@@ -712,7 +715,7 @@ it("Reads a multiframe DICOM with large private tags before and after the image 
     const url =
         "https://github.com/dcmjs-org/data/releases/download/binary-parsing-stressors/large-private-tags.dcm";
     const dcmPath = await getTestDataset(url, "large-private-tags.dcm");
-    const dicomDict = DicomMessage.readFile(fs.readFileSync(dcmPath).buffer);
+    const dicomDict = DicomMessage.readFile(readFileAsArrayBuffer(dcmPath));
     const dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(
         dicomDict.dict
     );
@@ -985,8 +988,8 @@ describe("The same DICOM file loaded from both DCM and JSON", () => {
     let jsonData;
 
     beforeEach(() => {
-        const file = fs.readFileSync("test/sample-sr.dcm");
-        dicomData = dcmjs.data.DicomMessage.readFile(file.buffer, {
+        const file = readFileAsArrayBuffer("test/sample-sr.dcm");
+        dicomData = dcmjs.data.DicomMessage.readFile(file, {
             // ignoreErrors: true,
         });
         jsonData = JSON.parse(JSON.stringify(sampleDicomSR));
@@ -1259,8 +1262,8 @@ describe("test_un_vr", () => {
             "sample-dicom-with-un-vr.dcm"
         );
 
-        const file = await promisify(fs.readFile)(dcmPath);
-        const dicomData = dcmjs.data.DicomMessage.readFile(file.buffer, {
+        const file = readFileAsArrayBuffer(dcmPath);
+        const dicomData = dcmjs.data.DicomMessage.readFile(file, {
             ignoreErrors: false,
             untilTag: null,
             includeUntilTagValue: false,
@@ -1811,7 +1814,7 @@ describe("test OtherDouble ValueRepresentation", () => {
         const url =
             "https://github.com/dcmjs-org/data/releases/download/od-encoding-data/OD-single-word-example.dcm";
         const dcmPath = await getTestDataset(url, "OD-single-word-example");
-        const file = fs.readFileSync(dcmPath);
+        const file = readFileAsArrayBuffer(dcmPath);
         const data = dcmjs.data.DicomMessage.readFile(
             new Uint8Array(file).buffer
         );
