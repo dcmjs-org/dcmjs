@@ -4,7 +4,7 @@ import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
 
-const { DicomMetaDictionary, DicomMessage } = dcmjs.data;
+const { DicomDict, DicomMetaDictionary, DicomMessage } = dcmjs.data;
 
 const expectedPatientNames = {
     SCSARAB: "قباني^لنزار",
@@ -55,5 +55,67 @@ it("test_encodings", async () => {
             );
             expect(newDataset.SpecificCharacterSet).toEqual("ISO_IR 192");
         }
+    });
+});
+
+describe("SpecificCharacterSet in data read from sub-streams", () => {
+    const text = "lesione – café 肝";
+
+    function writeAndRead(dict) {
+        const dicomDict = new DicomDict({
+            "00020010": { vr: "UI", Value: ["1.2.840.10008.1.2.1"] }
+        });
+        dicomDict.dict = dict;
+        return DicomMetaDictionary.naturalizeDataset(
+            DicomMessage.readFile(dicomDict.write()).dict
+        );
+    }
+
+    it("decodes text in sequence items at every depth", () => {
+        const dataset = writeAndRead(
+            DicomMetaDictionary.denaturalizeDataset({
+                SpecificCharacterSet: "ISO_IR 192",
+                SOPClassUID: "1.2.840.10008.5.1.4.1.1.88.33",
+                SOPInstanceUID: "1.2.3",
+                StudyDescription: text,
+                ValueType: "CONTAINER",
+                ContentSequence: [
+                    {
+                        RelationshipType: "CONTAINS",
+                        ValueType: "TEXT",
+                        TextValue: text,
+                        ContentSequence: [
+                            {
+                                RelationshipType: "CONTAINS",
+                                ValueType: "TEXT",
+                                TextValue: text
+                            }
+                        ]
+                    }
+                ]
+            })
+        );
+
+        expect(dataset.StudyDescription).toEqual(text);
+        expect(dataset.ContentSequence[0].TextValue).toEqual(text);
+        expect(dataset.ContentSequence[0].ContentSequence[0].TextValue).toEqual(
+            text
+        );
+    });
+
+    it("decodes text in UN elements read with their dictionary VR", () => {
+        const dict = DicomMetaDictionary.denaturalizeDataset({
+            SpecificCharacterSet: "ISO_IR 192",
+            SOPClassUID: "1.2.840.10008.5.1.4.1.1.7",
+            SOPInstanceUID: "1.2.3"
+        });
+        // StudyDescription is LO in the dictionary, stored here with explicit VR UN.
+        // The bytes are the LO value, padded to even length with a space.
+        dict["00081030"] = {
+            vr: "UN",
+            Value: [new TextEncoder().encode(`${text} `).buffer]
+        };
+
+        expect(writeAndRead(dict).StudyDescription).toEqual(text);
     });
 });
