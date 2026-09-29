@@ -8,7 +8,8 @@ import {
     TagHex,
     encodingMapping,
     unencapsulatedTransferSyntaxes,
-    UNDEFINED_LENGTH
+    UNDEFINED_LENGTH,
+    VALID_VRS
 } from "./constants/dicom.js";
 import { DicomDict } from "./DicomDict.js";
 import { DicomMetaDictionary } from "./DicomMetaDictionary.js";
@@ -140,6 +141,23 @@ export class DicomMessage {
         return !unencapsulatedTransferSyntaxes[syntax];
     }
 
+    /**
+     * Sniffs the transfer syntax of a bare (meta-less) dataset: if bytes
+     * 4-5 of the first element header form a valid explicit VR code the
+     * dataset is Explicit Little Endian, otherwise Implicit Little Endian.
+     */
+    static _detectBareSyntax(stream) {
+        if (stream.size < stream.offset + 8) {
+            return EXPLICIT_LITTLE_ENDIAN;
+        }
+        const vrStr =
+            String.fromCharCode(stream.view.getUint8(stream.offset + 4)) +
+            String.fromCharCode(stream.view.getUint8(stream.offset + 5));
+        return VALID_VRS.has(vrStr)
+            ? EXPLICIT_LITTLE_ENDIAN
+            : IMPLICIT_LITTLE_ENDIAN;
+    }
+
     static readFile(
         buffer,
         options = {
@@ -147,7 +165,9 @@ export class DicomMessage {
             untilTag: null,
             includeUntilTagValue: false,
             noCopy: false,
-            forceStoreRaw: false
+            forceStoreRaw: false,
+            // issue #93 opt-in: accept preamble-less / meta-less inputs
+            allowMissingHeader: false
         }
     ) {
         var stream = new ReadBufferStream(buffer, null, {
@@ -155,9 +175,46 @@ export class DicomMessage {
             }),
             useSyntax = EXPLICIT_LITTLE_ENDIAN;
         stream.reset();
-        stream.increment(128);
-        if (stream.readAsciiString(4) !== "DICM") {
-            throw new Error("Invalid DICOM file, expected header is missing");
+        if (!options.allowMissingHeader) {
+            stream.increment(128);
+            if (stream.readAsciiString(4) !== "DICM") {
+                throw new Error(
+                    "Invalid DICOM file, expected header is missing"
+                );
+            }
+        } else {
+            // allowMissingHeader: true (issue #93) is an explicit opt-in
+            // that also accepts headerless inputs:
+            //   - full Part 10 (preamble + DICM): read as usual;
+            //   - preamble-less with FMI (group 0002 first): FMI parsing
+            //     starts at byte 0;
+            //   - bare dataset (DIMSE-style, no FMI): parsed as a raw
+            //     dataset, assumed Explicit Little Endian unless implicit
+            //     VR is detected from the first element header.
+            let hasPart10Header = false;
+            if (stream.size >= 132) {
+                stream.increment(128);
+                hasPart10Header = stream.readAsciiString(4) === "DICM";
+                if (!hasPart10Header) {
+                    stream.reset();
+                }
+            }
+            if (!hasPart10Header) {
+                const firstGroup =
+                    stream.size >= 8 ? stream.view.getUint16(0, true) : -1;
+                if (firstGroup !== 0x0002) {
+                    // Bare dataset: no meta group to read at all.
+                    const bareSyntax = DicomMessage._detectBareSyntax(stream);
+                    const bareDict = new DicomDict({});
+                    bareDict.dict = DicomMessage._read(
+                        stream,
+                        bareSyntax,
+                        options
+                    );
+                    return bareDict;
+                }
+                // Preamble-less with FMI: fall through, meta parse at 0.
+            }
         }
 
         // save position before reading first tag
@@ -168,8 +225,11 @@ export class DicomMessage {
 
         var metaHeader = {};
         if (el.tag.cleanString !== TagHex.FileMetaInformationGroupLength) {
-            // meta length tag is missing
-            if (!options.ignoreErrors) {
+            // meta length tag is missing. allowMissingHeader (issue #93) is
+            // an explicit opt-in to headerless leniency, which includes FMI
+            // groups that start directly at (0002,0010) without a
+            // (0002,0000) group length.
+            if (!options.ignoreErrors && !options.allowMissingHeader) {
                 throw new Error(
                     "Invalid DICOM file, meta length tag is malformed or not present."
                 );
