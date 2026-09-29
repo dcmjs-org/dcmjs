@@ -6,6 +6,7 @@ import { WriteBufferStream } from "../src/BufferStream";
 import dcmjs from "../src/index.js";
 import { log } from "./../src/log.js";
 import {
+    fixturePath,
     getTestDataset,
     getZippedTestDataset,
     readFileAsArrayBuffer
@@ -320,7 +321,7 @@ it("test_normalizer_smaller", () => {
 });
 
 it("test_multiframe_us", () => {
-    const file = readFileAsArrayBuffer("test/cine-test.dcm");
+    const file = readFileAsArrayBuffer(fixturePath("cine-test.dcm"));
     const dicomData = dcmjs.data.DicomMessage.readFile(file, {
         // ignoreErrors: true,
     });
@@ -373,7 +374,7 @@ it("test_null_number_vrs", () => {
 });
 
 it("test_exponential_notation", () => {
-    const file = readFileAsArrayBuffer("test/sample-dicom.dcm");
+    const file = readFileAsArrayBuffer(fixturePath("sample-dicom.dcm"));
     const data = dcmjs.data.DicomMessage.readFile(file, {
         // ignoreErrors: true,
     });
@@ -391,7 +392,7 @@ it("test_exponential_notation", () => {
 });
 
 it("test_output_equality", () => {
-    const file = readFileAsArrayBuffer("test/cine-test.dcm");
+    const file = readFileAsArrayBuffer(fixturePath("cine-test.dcm"));
     const dicomData1 = dcmjs.data.DicomMessage.readFile(file, {
         // ignoreErrors: true,
     });
@@ -415,7 +416,7 @@ it("test_output_equality", () => {
 });
 
 it("test_performance", async () => {
-    const file = readFileAsArrayBuffer("test/cine-test.dcm");
+    const file = readFileAsArrayBuffer(fixturePath("cine-test.dcm"));
     let buffer = file;
     let json;
     const start = Date.now();
@@ -444,7 +445,9 @@ it("test_performance", async () => {
 });
 
 it("test_invalid_vr_length", () => {
-    const file = readFileAsArrayBuffer("test/invalid-vr-length-test.dcm");
+    const file = readFileAsArrayBuffer(
+        fixturePath("invalid-vr-length-test.dcm")
+    );
     const dicomDict = dcmjs.data.DicomMessage.readFile(file);
 
     expect(() =>
@@ -930,7 +933,7 @@ it("Reads and writes numbers with NaN and Infinity values of tags with type FD (
 });
 
 it("Tests that reading fails on a DICOM without a meta length tag when ignoreErrors is false", () => {
-    const rawFile = fs.readFileSync("test/no-meta-length-test.dcm");
+    const rawFile = fs.readFileSync(fixturePath("no-meta-length-test.dcm"));
 
     let arrayBuffer = rawFile.buffer;
     if (
@@ -956,7 +959,7 @@ it("Tests that reading fails on a DICOM without a meta length tag when ignoreErr
 });
 
 it("Tests that reading succeeds on a DICOM without a meta length tag when ignoreErrors is true", () => {
-    const rawFile = fs.readFileSync("test/no-meta-length-test.dcm");
+    const rawFile = fs.readFileSync(fixturePath("no-meta-length-test.dcm"));
 
     let arrayBuffer = rawFile.buffer;
     if (
@@ -988,7 +991,7 @@ describe("The same DICOM file loaded from both DCM and JSON", () => {
     let jsonData;
 
     beforeEach(() => {
-        const file = readFileAsArrayBuffer("test/sample-sr.dcm");
+        const file = readFileAsArrayBuffer(fixturePath("sample-sr.dcm"));
         dicomData = dcmjs.data.DicomMessage.readFile(file, {
             // ignoreErrors: true,
         });

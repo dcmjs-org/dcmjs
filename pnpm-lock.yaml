@@ -103,6 +103,8 @@ importers:
         specifier: 0.6.2
         version: 0.6.2
 
+  packages/fixtures: {}
+
 packages:
 
   '@aashutoshrathi/word-wrap@1.2.6':

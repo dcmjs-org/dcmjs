@@ -1,6 +1,7 @@
 # pnpm 11+ requires an explicit decision for dependencies with install scripts (see allowBuilds).
 packages:
   - "."
+  - "packages/*"
 
 # https://pnpm.io/supply-chain-security — transitive deps may not use git/tarball sources.
 blockExoticSubdeps: true
