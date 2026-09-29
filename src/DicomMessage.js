@@ -61,6 +61,11 @@ export class DicomMessage {
     ) {
         const { ignoreErrors, untilTag, stopOnGreaterTag } = options;
         var dict = {};
+        // Options threaded per element so context read earlier in the dataset
+        // (PixelRepresentation, needed for "xs" US-vs-SS resolution) is
+        // available to later elements. (0028,0103) precedes every "xs" tag in
+        // tag order, so it is resolved before it is needed.
+        let readOptions = options;
         try {
             let previousTagOffset;
             while (!bufferStream.end()) {
@@ -68,7 +73,7 @@ export class DicomMessage {
                 const readInfo = DicomMessage._readTag(
                     bufferStream,
                     syntax,
-                    options
+                    readOptions
                 );
                 const cleanTagString = readInfo.tag.toCleanString();
                 if (untilTag && stopOnGreaterTag && cleanTagString > untilTag) {
@@ -110,6 +115,17 @@ export class DicomMessage {
                 });
                 dict[cleanTagString].Value = readInfo.values;
                 dict[cleanTagString]._rawValue = readInfo.rawValues;
+
+                if (
+                    cleanTagString === TagHex.PixelRepresentation &&
+                    readInfo.values &&
+                    readInfo.values.length > 0
+                ) {
+                    readOptions = {
+                        ...readOptions,
+                        pixelRepresentation: readInfo.values[0]
+                    };
+                }
 
                 if (untilTag && untilTag === cleanTagString) {
                     break;
@@ -361,14 +377,21 @@ export class DicomMessage {
             var elementData = DicomMessage.lookupTag(tag);
             if (elementData) {
                 vrType = elementData.vr;
+                if (vrType === "xs") {
+                    // The dictionary meta-VR "xs" ("US or SS") resolves via
+                    // PixelRepresentation (PS3.5): SS when (0028,0103) is 1,
+                    // US otherwise (including when it is absent). _read
+                    // threads the parsed value through
+                    // options.pixelRepresentation; (0028,0103) precedes
+                    // every xs tag in tag order.
+                    vrType = options.pixelRepresentation === 1 ? "SS" : "US";
+                }
             } else {
                 //unknown tag
                 if (length == UNDEFINED_LENGTH) {
                     vrType = "SQ";
                 } else if (tag.isPixelDataTag()) {
                     vrType = "OW";
-                } else if (vrType == "xs") {
-                    vrType = "US";
                 } else if (tag.isPrivateCreator()) {
                     vrType = "LO";
                 } else {
@@ -385,6 +408,11 @@ export class DicomMessage {
                 DicomMessage.lookupTag(tag).vr
             ) {
                 vrType = DicomMessage.lookupTag(tag).vr;
+                if (vrType === "xs") {
+                    // Same PixelRepresentation-driven US/SS resolution for
+                    // explicit-VR UN elements whose dictionary VR is "xs".
+                    vrType = options.pixelRepresentation === 1 ? "SS" : "US";
+                }
 
                 vr = ValueRepresentation.parseUnknownVr(vrType);
             } else {

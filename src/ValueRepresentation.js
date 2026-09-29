@@ -69,6 +69,10 @@ var binaryVRs = ["FL", "FD", "SL", "SS", "UL", "US", "AT", "UV"],
     length32VRs = ["OB", "OW", "OF", "SQ", "UC", "UR", "UT", "UN", "OD", "UV"],
     singleVRs = ["SQ", "OF", "OW", "OB", "UN"];
 
+// Unknown VR types already warned about by createByTypeString — the UN
+// fallback warns at most once per type (issue #457).
+const unknownVrTypesWarned = new Set();
+
 class ValueRepresentation {
     constructor(type) {
         this.type = type;
@@ -350,13 +354,19 @@ class ValueRepresentation {
             if (type == "ox") {
                 // TODO: determine VR based on context (could be 1 byte pixel data)
                 // https://github.com/dgobbi/vtk-dicom/issues/38
-                validationLog.error("Invalid vr type", type, "- using OW");
+                validationLog.debug("Invalid vr type", type, "- using OW");
                 vr = VRinstances["OW"];
             } else if (type == "xs") {
-                validationLog.error("Invalid vr type", type, "- using US");
+                validationLog.debug("Invalid vr type", type, "- using US");
                 vr = VRinstances["US"];
             } else {
-                validationLog.error("Invalid vr type", type, "- using UN");
+                // Warn at most once per unknown type (issue #457): files can
+                // carry many elements of the same unregistered VR (OL/OV/SV),
+                // and a per-element warning is pure log spam.
+                if (!unknownVrTypesWarned.has(type)) {
+                    unknownVrTypesWarned.add(type);
+                    validationLog.warn("Invalid vr type", type, "- using UN");
+                }
                 vr = VRinstances["UN"];
             }
         }
