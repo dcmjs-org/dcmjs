@@ -93,6 +93,14 @@
     "jest": {
         "setupFilesAfterEnv": [
             "<rootDir>/jest.setup.js"
+        ],
+        "transform": {
+            "\\.m?js$": "babel-jest"
+        },
+        "moduleFileExtensions": [
+            "js",
+            "mjs",
+            "json"
         ]
     }
 }

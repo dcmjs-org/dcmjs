@@ -1,0 +1,6 @@
+{
+    "name": "@dcmjs/schemas",
+    "version": "0.0.0",
+    "private": true,
+    "description": "Machine-readable catalog of DICOM attributes: names, types, and rules, generated from the data dictionary"
+}
