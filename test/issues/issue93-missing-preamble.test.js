@@ -111,7 +111,7 @@ describe("issue #93 — preamble/DICM missing", () => {
             ]);
         });
 
-        it.skip("LANDS WITH fromPart10Stream: streaming path force-reads it (PART10_NO_PREAMBLE)", async () => {
+        it("streaming path force-reads it: PART10_NO_PREAMBLE is supported", async () => {
             const result = await streamParse(buffer);
             expect(result.meta[TagHex.TransferSyntaxUID].Value).toEqual([
                 EXPLICIT_LITTLE_ENDIAN
@@ -141,7 +141,7 @@ describe("issue #93 — preamble/DICM missing", () => {
         // VR is detected), and the streaming raw-dataset fallback
         // force-reads a meta-less dataset under allowMissingHeader or
         // ignoreErrors by replaying the eager parse through fromDataSet.
-        it.skip("LANDS WITH fromPart10Stream: the streaming opt-in force-reads a meta-less dataset", async () => {
+        it("#93: the streaming opt-in force-reads a meta-less dataset", async () => {
             // The contract: an explicit opt-in on the streaming
             // path (the go-forward surface) accepts a raw dataset.
             const result = await streamParse(buffer, {
