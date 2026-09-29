@@ -12,6 +12,9 @@ export class BufferStream {
     /** The available listeners are those waiting for a query response */
     availableListeners = [];
 
+    /** Producers throttled until the consumer consumes or shows new demand */
+    relayListeners = [];
+
     /** Indicates if this buffer stream is complete/has finished being created */
     isComplete = false;
 
@@ -32,6 +35,7 @@ export class BufferStream {
     setComplete(value = true) {
         this.isComplete = value;
         this.notifyAvailableListeners();
+        this.notifyRelayListeners();
     }
 
     /**
@@ -61,11 +65,30 @@ export class BufferStream {
                         return;
                     }
                     this.availableListeners.push(recheckAvailable);
+                    // Demand appeared — wake any throttled producer so a
+                    // starved consumer can never deadlock against it.
+                    this.notifyRelayListeners();
                 };
                 recheckAvailable();
             });
         }
         return true;
+    }
+
+    /** True when a consumer is blocked waiting for more bytes. */
+    hasPendingDemand() {
+        return this.availableListeners.length > 0;
+    }
+
+    /** Resolves on the next consumer activity (consume or new demand). */
+    awaitConsumerActivity() {
+        return new Promise(resolve => this.relayListeners.push(resolve));
+    }
+
+    notifyRelayListeners() {
+        const existingListeners = [...this.relayListeners];
+        this.relayListeners.splice(0, this.relayListeners.length);
+        existingListeners.forEach(listener => listener());
     }
 
     setEndian(isLittle) {
@@ -407,6 +430,7 @@ export class BufferStream {
             return;
         }
         this.view.consume(offset);
+        this.notifyRelayListeners();
     }
 
     /**

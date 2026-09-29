@@ -16,6 +16,8 @@ export { CollectorListener } from "./CollectorListener.js";
 export { fromDataSet } from "./fromDataSet.js";
 export { fromDicomWebJson } from "./fromDicomWebJson.js";
 export { createEventAsyncIterable } from "./asyncIterator.js";
+export { fromPart10 } from "./fromPart10.js";
+export { fromPart10Stream } from "./fromPart10Stream.js";
 
 import {
     EventStreamListener,
@@ -26,6 +28,8 @@ import { CollectorListener } from "./CollectorListener.js";
 import { fromDataSet } from "./fromDataSet.js";
 import { fromDicomWebJson } from "./fromDicomWebJson.js";
 import { createEventAsyncIterable } from "./asyncIterator.js";
+import { fromPart10 } from "./fromPart10.js";
+import { fromPart10Stream } from "./fromPart10Stream.js";
 
 export default {
     EventStreamListener,
@@ -34,5 +38,7 @@ export default {
     CollectorListener,
     fromDataSet,
     fromDicomWebJson,
-    createEventAsyncIterable
+    createEventAsyncIterable,
+    fromPart10,
+    fromPart10Stream
 };
