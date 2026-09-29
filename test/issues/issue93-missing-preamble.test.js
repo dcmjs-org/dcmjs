@@ -58,11 +58,7 @@ async function streamParse(buffer, options = {}) {
         "../../src/eventStream/fromPart10Stream.js"
     );
     const collector = new CollectorListener();
-    await fromPart10Stream(
-        new Uint8Array(buffer.slice(0)),
-        collector,
-        options
-    );
+    await fromPart10Stream(new Uint8Array(buffer.slice(0)), collector, options);
     return collector.result;
 }
 
