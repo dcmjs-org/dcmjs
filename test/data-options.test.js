@@ -2,6 +2,7 @@ import dcmjs from "../src/index.js";
 import path from "path";
 import fsPromises from "fs/promises";
 import {
+    fixturePath,
     getZippedTestDataset,
     getTestDataset,
     readFileAsArrayBuffer
@@ -14,7 +15,7 @@ const areEqual = (first, second) =>
     first.every((value, index) => value === second[index]);
 
 it("test_untilTag", () => {
-    const buffer = readFileAsArrayBuffer("test/sample-dicom.dcm");
+    const buffer = readFileAsArrayBuffer(fixturePath("sample-dicom.dcm"));
     console.time("readFile");
     const fullData = DicomMessage.readFile(buffer);
     console.timeEnd("readFile");

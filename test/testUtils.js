@@ -82,6 +82,11 @@ async function getTestDataset(url, filename) {
     return targetPath;
 }
 
+// Absolute path to a committed DICOM fixture in packages/fixtures/dicom.
+function fixturePath(name) {
+    return path.join(__dirname, "..", "packages", "fixtures", "dicom", name);
+}
+
 // Reads a file into a standalone ArrayBuffer. Node may return small files
 // inside a larger shared memory pool, so taking `.buffer` directly can hand
 // back the pool (with the file at a nonzero offset) instead of the file.
@@ -93,4 +98,9 @@ function readFileAsArrayBuffer(filePath) {
     );
 }
 
-export { getTestDataset, getZippedTestDataset, readFileAsArrayBuffer };
+export {
+    getTestDataset,
+    getZippedTestDataset,
+    readFileAsArrayBuffer,
+    fixturePath
+};

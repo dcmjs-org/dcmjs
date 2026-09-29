@@ -7,7 +7,11 @@ import {
     TagHex
 } from "../src/constants/dicom.js";
 
-import { getTestDataset, readFileAsArrayBuffer } from "./testUtils";
+import {
+    fixturePath,
+    getTestDataset,
+    readFileAsArrayBuffer
+} from "./testUtils";
 import { DicomMetaDictionary } from "../src/DicomMetaDictionary";
 
 const { DicomDict, DicomMessage } = dcmjs.data;
@@ -1250,7 +1254,7 @@ describe("lossless-read-write", () => {
     });
 
     test("uncompressed data should be read correctly as arraybuffer", () => {
-        const buffer = readFileAsArrayBuffer("test/sample-dicom.dcm");
+        const buffer = readFileAsArrayBuffer(fixturePath("sample-dicom.dcm"));
         const dicomDict = DicomMessage.readFile(buffer);
         // console.warn("fullData=", fullData);
         const { dict } = dicomDict;
@@ -1276,8 +1280,8 @@ describe("lossless-read-write", () => {
     });
 
     test("uncompressed PixelData written with explicit length (524288) for streaming read", () => {
-        // test/sample-dicom.dcm is uncompressed data
-        const buffer = readFileAsArrayBuffer("test/sample-dicom.dcm");
+        // sample-dicom.dcm is uncompressed data
+        const buffer = readFileAsArrayBuffer(fixturePath("sample-dicom.dcm"));
         const dicomDict = DicomMessage.readFile(buffer);
         const { dict } = dicomDict;
 
@@ -1350,7 +1354,7 @@ describe("lossless-read-write", () => {
     });
 
     test("compressed data should be read correctly as arraybuffer", () => {
-        const buffer = readFileAsArrayBuffer("test/sample-op.dcm");
+        const buffer = readFileAsArrayBuffer(fixturePath("sample-op.dcm"));
         const dicomDict = DicomMessage.readFile(buffer);
         // console.warn("fullData=", fullData);
         const { dict } = dicomDict;
