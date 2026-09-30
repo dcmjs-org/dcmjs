@@ -336,12 +336,33 @@ export class DicomMetaDictionary {
         return unnaturalDataset;
     }
 
+    /**
+     * Generates a UID with the "2.25" root: the decimal encoding of a
+     * freshly generated 128-bit RFC 4122 version 4 UUID, per PS3.5
+     * Annex B.2 / ITU-T X.667. The integer part is at most 39 digits
+     * (2^128 - 1), so the UID is at most 44 characters and never has a
+     * leading zero.
+     */
     static uid() {
-        let uid = "2.25." + Math.floor(1 + Math.random() * 9);
-        for (let index = 0; index < 38; index++) {
-            uid = uid + Math.floor(Math.random() * 10);
+        const bytes = new Uint8Array(16);
+        const cryptoLib =
+            typeof globalThis !== "undefined" ? globalThis.crypto : undefined;
+        if (cryptoLib && typeof cryptoLib.getRandomValues === "function") {
+            cryptoLib.getRandomValues(bytes);
+        } else {
+            // Fallback for environments without Web Crypto (not
+            // cryptographically strong, but preserves the UUID format).
+            for (let index = 0; index < 16; index++) {
+                bytes[index] = Math.floor(Math.random() * 256);
+            }
         }
-        return uid;
+        bytes[6] = (bytes[6] & 0x0f) | 0x40; // version 4
+        bytes[8] = (bytes[8] & 0x3f) | 0x80; // RFC 4122 variant
+        let hex = "";
+        for (let index = 0; index < 16; index++) {
+            hex += bytes[index].toString(16).padStart(2, "0");
+        }
+        return "2.25." + BigInt("0x" + hex).toString();
     }
 
     // date and time in UTC
