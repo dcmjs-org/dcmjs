@@ -342,6 +342,16 @@ export class DicomMessage {
         }
     }
 
+    /**
+     * Resolves the dictionary meta-VR "xs" ("US or SS") via
+     * PixelRepresentation (0028,0103), per PS3.5: SS when the value is 1,
+     * US otherwise (including when it is absent). Every read path — sync
+     * and async — must use this one resolution.
+     */
+    static resolveXsVrType(pixelRepresentation) {
+        return pixelRepresentation === 1 ? "SS" : "US";
+    }
+
     static _readTag(
         stream,
         syntax,
@@ -379,12 +389,12 @@ export class DicomMessage {
                 vrType = elementData.vr;
                 if (vrType === "xs") {
                     // The dictionary meta-VR "xs" ("US or SS") resolves via
-                    // PixelRepresentation (PS3.5): SS when (0028,0103) is 1,
-                    // US otherwise (including when it is absent). _read
-                    // threads the parsed value through
-                    // options.pixelRepresentation; (0028,0103) precedes
-                    // every xs tag in tag order.
-                    vrType = options.pixelRepresentation === 1 ? "SS" : "US";
+                    // PixelRepresentation (PS3.5). _read threads the parsed
+                    // value through options.pixelRepresentation;
+                    // (0028,0103) precedes every xs tag in tag order.
+                    vrType = DicomMessage.resolveXsVrType(
+                        options.pixelRepresentation
+                    );
                 }
             } else {
                 //unknown tag
@@ -411,7 +421,9 @@ export class DicomMessage {
                 if (vrType === "xs") {
                     // Same PixelRepresentation-driven US/SS resolution for
                     // explicit-VR UN elements whose dictionary VR is "xs".
-                    vrType = options.pixelRepresentation === 1 ? "SS" : "US";
+                    vrType = DicomMessage.resolveXsVrType(
+                        options.pixelRepresentation
+                    );
                 }
 
                 vr = ValueRepresentation.parseUnknownVr(vrType);
