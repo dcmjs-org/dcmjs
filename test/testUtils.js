@@ -5,23 +5,50 @@ import followRedirects from "follow-redirects";
 import AdmZip from "adm-zip";
 import { validationLog } from "./../src/log.js";
 
-const { https } = followRedirects;
+const { http, https } = followRedirects;
 
 // Don't show validation errors, as those are normally tested
 validationLog.setLevel(5);
 
-function downloadToFile(url, filePath) {
+function downloadAttempt(url, filePath) {
     return new Promise((resolve, reject) => {
-        const fileStream = fs.createWriteStream(filePath);
-        https
+        // follow-redirects handles 3xx hops; http is only hit by local tests.
+        const transport = url.startsWith("http:") ? http : https;
+        transport
             .get(url, response => {
+                if (response.statusCode < 200 || response.statusCode >= 300) {
+                    response.resume();
+                    reject(
+                        new Error(
+                            `Download of ${url} failed with HTTP status ${response.statusCode}`
+                        )
+                    );
+                    return;
+                }
+                const fileStream = fs.createWriteStream(filePath);
                 response.pipe(fileStream);
-                fileStream.on("finish", () => {
-                    resolve(filePath);
-                });
+                fileStream.on("finish", () => resolve(filePath));
+                fileStream.on("error", reject);
+                response.on("error", reject);
             })
             .on("error", reject);
     });
+}
+
+async function downloadToFile(url, filePath, retries = 1) {
+    for (let attempt = 0; ; attempt++) {
+        try {
+            return await downloadAttempt(url, filePath);
+        } catch (error) {
+            // Never leave a partial download or an error body on disk: a
+            // poisoned file would be picked up as a cached fixture and make
+            // later runs fail far away from the real cause.
+            fs.rmSync(filePath, { force: true });
+            if (attempt >= retries) {
+                throw error;
+            }
+        }
+    }
 }
 
 function unzip(zipFilePath, targetPath) {
@@ -99,6 +126,7 @@ function readFileAsArrayBuffer(filePath) {
 }
 
 export {
+    downloadToFile,
     getTestDataset,
     getZippedTestDataset,
     readFileAsArrayBuffer,
