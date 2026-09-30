@@ -1,4 +1,4 @@
-import { dictionary } from "./dictionary.fast.js";
+import { dictionary, lookupRegisteredTagByName } from "./dictionary.fast.js";
 import { getAllStandardTagEntries } from "./dicom.lookup.js";
 import log from "./log.js";
 import addAccessors from "./utilities/addAccessors";
@@ -220,6 +220,13 @@ export class DicomMetaDictionary {
             // check if it's a sequence
             var name = naturalName;
             var entry = nameMap[name];
+            if (!entry) {
+                // registerTag() names are kept in a registry-local index
+                // instead of being written into the shared nameMap, so a
+                // registered keyword denaturalizes symmetrically without
+                // naturalizeDataset ever mutating global state
+                entry = lookupRegisteredTagByName(name);
+            }
             if (
                 !entry &&
                 /^[0-9A-Fa-f]{8}$/.test(name) &&

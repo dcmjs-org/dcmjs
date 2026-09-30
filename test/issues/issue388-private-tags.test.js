@@ -24,12 +24,12 @@
  *     keeps elements whose naturalized key matches a custom entry's
  *     `name` (pinned green below).
  *   - The static path keeps unregistered private tags via the VR that
- *     naturalizeDataset records in _vrMap (pinned green below), but
- *     registerTag()-registered tags naturalize to their custom name
- *     and are dropped again on static denaturalize because the lazy
- *     nameMap is built only from the standard dictionary
- *     (src/DicomMetaDictionary.js _generateNameMap /
- *     src/dictionary.fast.js registerTag) — still pinned as KNOWN GAP.
+ *     naturalizeDataset records in _vrMap (pinned green below), and
+ *     registerTag()-registered names denaturalize symmetrically via the
+ *     registry's own name index (src/dictionary.fast.js
+ *     lookupRegisteredTagByName), which never mutates the shared
+ *     DicomMetaDictionary.nameMap — pinned green below (review finding
+ *     32 in the PR #512 map).
  *
  * How private VRs resolve on read: src/index.js registers
  * dictionary.private.data.js via registerPrivatesModule(); explicit-VR
@@ -190,13 +190,14 @@ describe("issue #215 — private/custom tags through naturalize → denaturalize
         expect(denaturalized["00100020"].Value).toEqual(["123456"]);
     });
 
-    // KNOWN GAP: observed — registerTag("00091001", { name:
-    // "AcmePrivateValue", ... }) makes naturalizeDataset emit the custom
-    // keyword, but DicomMetaDictionary.nameMap never learns it (the lazy
-    // map is generated from getAllStandardTagEntries + the standard
-    // dictionary only), so static denaturalizeDataset drops the renamed
-    // element again; expected registerTag to round-trip symmetrically.
-    it.skip("KNOWN GAP #215: registerTag() names naturalize but do not denaturalize (asymmetric registration)", () => {
+    // Formerly a KNOWN GAP: registerTag("00091001", { name:
+    // "AcmePrivateValue", ... }) made naturalizeDataset emit the custom
+    // keyword, but DicomMetaDictionary.nameMap never learned it, so
+    // static denaturalizeDataset dropped the renamed element again.
+    // registerTag() now also indexes the entry by name in its own
+    // registry, which denaturalizeDataset consults on a nameMap miss —
+    // symmetric registration (review finding 32 in the PR #512 map).
+    it("#215: registerTag() names round-trip symmetrically through denaturalize", () => {
         const { registerTag } = require("../../src/dictionary.fast.js");
         registerTag("00091001", {
             name: "AcmePrivateValue",
@@ -209,6 +210,30 @@ describe("issue #215 — private/custom tags through naturalize → denaturalize
         expect(dataset.AcmePrivateValue).toBe("private-top");
         const denaturalized = DicomMetaDictionary.denaturalizeDataset(dataset);
         expect(denaturalized["00091001"]).toBeDefined();
+        expect(denaturalized["00091001"].vr).toBe("LO");
         expect(denaturalized["00091001"].Value).toEqual(["private-top"]);
+    });
+
+    // Guard against the PR #512 approach to the same symmetry: there the
+    // naturalizer wrote registered entries into the shared
+    // DicomMetaDictionary.nameMap as a side effect of READING a dataset,
+    // so one dataset's custom entries leaked into every later
+    // naturalize/denaturalize in the process (review finding 32). The
+    // symmetry must come from the registerTag registry, never from
+    // mutating the global name map.
+    it("#215: naturalize/denaturalize never write registered names into the shared nameMap", () => {
+        const { registerTag } = require("../../src/dictionary.fast.js");
+        registerTag("00091001", {
+            name: "AcmePrivateValue",
+            vr: "LO",
+            vm: "1"
+        });
+        const before = Object.keys(DicomMetaDictionary.nameMap).length;
+        const dataset = DicomMetaDictionary.naturalizeDataset(
+            DicomMessage.readFile(makeBuffer()).dict
+        );
+        DicomMetaDictionary.denaturalizeDataset(dataset);
+        expect(DicomMetaDictionary.nameMap.AcmePrivateValue).toBeUndefined();
+        expect(Object.keys(DicomMetaDictionary.nameMap).length).toBe(before);
     });
 });
