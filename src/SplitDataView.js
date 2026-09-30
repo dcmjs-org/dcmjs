@@ -371,10 +371,12 @@ export default class SplitDataView {
      * @param {number} consumeOffset - The current consume offset (typically from BufferStream.offset)
      * @returns {Object} An object containing:
      *   - bufferCount: Number of buffers still held (not null)
-     *   - totalSize: Total size of all buffers in bytes
+     *   - totalSize: Total logical span of all buffers in bytes (each
+     *     buffer counts its own view span, not its backing ArrayBuffer)
      *   - consumeOffset: The current consume offset
      *   - buffersBeforeOffset: Number of buffers before the consume offset
-     *   - bytesBeforeOffset: Total bytes before the consume offset
+     *   - bytesBeforeOffset: Total bytes before the consume offset (never
+     *     more than the consume offset itself)
      */
     getBufferMemoryInfo(consumeOffset) {
         let bufferCount = 0;
@@ -387,7 +389,9 @@ export default class SplitDataView {
             const buffer = this.buffers[i];
             if (buffer !== null && buffer !== undefined) {
                 bufferCount++;
-                totalSize += buffer.byteLength;
+                // Count the view's own span, not the backing ArrayBuffer,
+                // which may be shared by several zero-copy windows.
+                totalSize += this.lengths[i];
 
                 // Count buffers and bytes that are before the consume offset
                 const bufferStart = this.offsets[i];
@@ -395,13 +399,19 @@ export default class SplitDataView {
                 if (bufferEnd <= currentConsumeOffset) {
                     // Buffer is completely before the offset
                     buffersBeforeOffset++;
-                    bytesBeforeOffset += buffer.byteLength;
+                    bytesBeforeOffset += this.lengths[i];
                 } else if (bufferStart < currentConsumeOffset) {
                     // Buffer spans the offset, count the portion before it
                     bytesBeforeOffset += currentConsumeOffset - bufferStart;
                 }
             }
         }
+        // More bytes before the consume offset than the offset itself is
+        // impossible; clamp (the offset is -1 when nothing was consumed).
+        bytesBeforeOffset = Math.min(
+            bytesBeforeOffset,
+            Math.max(currentConsumeOffset, 0)
+        );
 
         return {
             bufferCount,
