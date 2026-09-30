@@ -1403,10 +1403,28 @@ class Unsigned64BitVeryLong extends ValueRepresentation {
     }
 
     writeBytes(stream, value, writeOptions) {
+        // DataView.setBigUint64 only accepts BigInt values, so coerce
+        // Numbers and numeric strings the way the other numeric VRs do
+        // via toInt/toFloat. A null or undefined entry becomes 0, matching
+        // how US/UL write null entries. A null, undefined or empty scalar
+        // is left alone so the base write() short-circuit produces a
+        // zero-length element (PS3.5 7.4, Type 2).
+        const coerce = v =>
+            typeof v === "bigint"
+                ? v
+                : v === null || v === undefined
+                ? BigInt(0)
+                : BigInt(v);
+        let coercedValue = value;
+        if (Array.isArray(value)) {
+            coercedValue = value.map(coerce);
+        } else if (value !== null && value !== undefined && value !== "") {
+            coercedValue = coerce(value);
+        }
         return super.writeBytes(
             stream,
-            value,
-            super.write(stream, "BigUint64", value),
+            coercedValue,
+            super.write(stream, "BigUint64", coercedValue),
             writeOptions
         );
     }

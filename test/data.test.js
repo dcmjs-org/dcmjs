@@ -373,6 +373,41 @@ it("test_null_number_vrs", () => {
     expect(dataset.InstanceNumber).toEqual(null);
 });
 
+// Regression test for review finding 3 from the PR #512 review map:
+// a UV (Unsigned 64-bit Very Long) element with a null value threw
+// "Cannot convert null to a BigInt" on write. PS3.5 7.4 requires a Type 2
+// attribute to be written with zero length when the value is unknown, and
+// the other numeric VRs (US, UL, ...) already accept null entries and
+// plain Number values on write.
+it("test_uv_null_and_number_values_write", () => {
+    // (0066,0040) LongPrimitivePointIndexList has VR UV
+    const uvCases = [
+        { Value: null },
+        { Value: [null] },
+        { Value: undefined },
+        { Value: [] },
+        { Value: [5] }, // plain Number, like the other numeric VRs accept
+        { Value: ["5"] },
+        { Value: [BigInt(5)] }
+    ];
+
+    for (const uvCase of uvCases) {
+        const dicomDict = new DicomDict({
+            "00020010": { vr: "UI", Value: [EXPLICIT_LITTLE_ENDIAN] }
+        });
+        dicomDict.dict = {
+            "00660040": { vr: "UV", ...uvCase }
+        };
+
+        // must not throw
+        const part10Buffer = dicomDict.write();
+
+        // and the output must be a readable part10 file
+        const dicomData = DicomMessage.readFile(part10Buffer);
+        expect(dicomData.dict["00660040"].vr).toEqual("UV");
+    }
+});
+
 it("test_exponential_notation", () => {
     const file = readFileAsArrayBuffer(fixturePath("sample-dicom.dcm"));
     const data = dcmjs.data.DicomMessage.readFile(file, {
