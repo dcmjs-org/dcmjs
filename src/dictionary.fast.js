@@ -12,6 +12,7 @@ export function registerPrivatesModule(module) {
 }
 
 const cache = new Map();
+const nameCache = new Map();
 
 function isPrivateTagKey(prop) {
     return (
@@ -69,6 +70,22 @@ export function registerTag(tagOrHex, entry) {
     };
     cache.set(parenKey, cached);
     cache.set(hex8, cached);
+    nameCache.set(cached.name, cached);
+}
+
+/**
+ * Look up a registerTag() entry by its keyword name, so registration is
+ * symmetric: the same call that teaches naturalizeDataset a custom name
+ * also lets denaturalizeDataset map the name back to its tag. Kept as a
+ * registry-local index rather than a write into
+ * DicomMetaDictionary.nameMap, so reading a dataset never mutates the
+ * shared name map.
+ *
+ * @param {string} name - Keyword passed to registerTag() as entry.name
+ * @returns {{ tag: string, name: string, vr: string } | undefined}
+ */
+export function lookupRegisteredTagByName(name) {
+    return nameCache.get(name);
 }
 
 export const dictionary = new Proxy(Object.create(null), {
