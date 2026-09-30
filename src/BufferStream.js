@@ -503,11 +503,29 @@ export class ReadBufferStream extends BufferStream {
         if (buffer instanceof BufferStream) {
             this.view.from(buffer.view, options);
             this.isComplete = true;
+        } else if (ArrayBuffer.isView(buffer)) {
+            // A typed array or Node Buffer is a view into a backing
+            // ArrayBuffer that Node routinely pools and shares, so adopt
+            // exactly the viewed byte range, normalized to logical
+            // offset 0. Adopting buffer.buffer whole would alias
+            // whatever else lives in the pool, and the Node-only
+            // Buffer.offset property must not seed the read offset.
+            this.view.addBuffer(buffer.buffer, {
+                start: buffer.byteOffset,
+                end: buffer.byteOffset + buffer.byteLength
+            });
+            this.isComplete = true;
         } else if (buffer) {
             this.view.addBuffer(buffer);
             this.isComplete = true;
         }
-        this.offset = options.start ?? buffer?.offset ?? 0;
+        // A source BufferStream contributes its current offset as the
+        // sub-stream start. A Node Buffer also has an `offset` property
+        // (its byteOffset), but the view is adopted at logical offset 0
+        // above, so it must not seed the read offset.
+        this.offset =
+            options.start ??
+            (buffer instanceof BufferStream ? buffer.offset : 0);
         this.size = options.stop || buffer?.size || buffer?.byteLength || 0;
 
         this.startOffset = this.offset;

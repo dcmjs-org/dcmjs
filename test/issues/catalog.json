@@ -2081,7 +2081,7 @@
       "area": "reader",
       "disposition": "Node Buffer (pooled view) passed to readFile: works or corrective error \u2014 the .buffer footgun (with #370)",
       "testFile": "test/issues/issue311-node-buffer-footgun.test.js",
-      "status": "gap",
+      "status": "green",
       "notes": ""
     }
   },
