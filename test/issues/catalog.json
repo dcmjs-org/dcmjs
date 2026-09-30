@@ -2285,7 +2285,7 @@
       "area": "values",
       "disposition": "Tag.isPrivateCreator range per PS3.5 7.8: creator element 0x10-0xFF; 0x01-0x0F excluded",
       "testFile": "test/issues/issue356-private-creator-range.test.js",
-      "status": "gap",
+      "status": "green",
       "notes": ""
     }
   },
