@@ -1319,12 +1319,6 @@ async function withHangTimeout(parsePromise, ms = 5000) {
     }
 }
 
-/** Build a minimal valid ELE file, truncated at `truncateByte`. */
-function buildAndTruncate(tsStr, bodyBuilder, truncateByte) {
-    const full = new Uint8Array(buildFileWithFmiAndBody(tsStr, bodyBuilder));
-    return full.slice(0, truncateByte).buffer;
-}
-
 describe("K6 Gate 7: truncation matrix — reject not hang", () => {
     const ELE_TS = "1.2.840.10008.1.2.1\0";
 
@@ -1376,10 +1370,7 @@ describe("K6 Gate 7: truncation matrix — reject not hang", () => {
         body.elemStd(0x0008, 0x0060, "CS", new Uint8Array([0x43, 0x54]));
         const full = new Uint8Array(buildFileWithFmiAndBody(ELE_TS, body));
         // FMI_END ≈ 188; truncate at FMI_END + 4 (tag only, no VR/length).
-        // Scan for actual FMI end by finding the body element tag (0008,0060).
-        let fmiEnd = 132; // start of FMI elements
-        // Walk through FMI elements to find body start.
-        // Simpler: use a known FMI layout: 132 + 12 + 14 + 30 = 188.
+        // Known FMI layout for buildFmi + a 20-byte TS: 132 + 12 + 14 + 30 = 188.
         const FMI_END = 188;
         const truncated = full.slice(0, FMI_END + 4).buffer;
 
