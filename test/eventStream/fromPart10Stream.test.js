@@ -275,9 +275,7 @@ describe("fromPart10Stream — ReadableStream input (1024-byte chunks)", () => {
 // Test 4: Re-runnability via DicomEventStream.fromPart10Stream factory
 // ---------------------------------------------------------------------------
 
-// LANDS WITH the DicomEventStream facade (api.js): re-runnability is a
-// property of the factory object, which arrives with the public API slice.
-describe.skip("fromPart10Stream — re-runnability (DicomEventStream.fromPart10Stream)", () => {
+describe("fromPart10Stream — re-runnability (DicomEventStream.fromPart10Stream)", () => {
     let DicomEventStream;
     beforeAll(async () => {
         ({ DicomEventStream } = await import("../../src/eventStream/api.js"));
