@@ -33,31 +33,40 @@ also get a 0.52.x hotfix PR.
 | 30 | HIGH | Migration guide promises a byte-identity guarantee that is gone |
 | 31 | MED | Guide claims naturalization is unchanged from 0.x (three changes exist) |
 
-## Open code fixes — engine files (fix on release/1.0-beta-core, pre-move)
+## Engine-file fixes — all landed on release/1.0-beta-core 2026-09-30
 
-| # | Sev | File | Finding | Master hotfix? |
-|---|-----|------|---------|----------------|
-| 1 | HIGH | BufferStream.js | Node Buffer with non-zero byteOffset no longer parses | **Yes** |
-| 3 | HIGH | ValueRepresentation.js | UV element with null value throws on write | Partial — verify |
-| 4 | HIGH | DicomMetaDictionary.js | Private-tag fallback builds unwritable element | No (new code) |
-| 24 | MED | DicomMessage.js | Meta group length check misses overstated length | Verify |
-| 25 | MED | AsyncDicomReader.js | Async reader outside the xs contract | **Yes** |
-| 27 | LOW | SplitDataView.js | getBufferMemoryInfo counts backing ArrayBuffer | No |
-| 28 | LOW | BufferStream.js | concat advances write position past copy | **Yes** (latent) |
-| 32 | MED | DicomMetaDictionary.js | naturalizeDataset mutates global nameMap | No |
+Master verdicts below were verified against `origin/master` during the fixes
+(not just triaged). Hotfix PRs for the master-applicable ones are still to do.
 
-## Open code fixes — event stream (fix before/with wave-4 slices)
+| # | Sev | File | Finding | Fixed in | Master hotfix? |
+|---|-----|------|---------|----------|----------------|
+| 1 | HIGH | BufferStream.js | Node Buffer with non-zero byteOffset no longer parses | **#547** | **Yes, verified** — on master the Buffer `.offset` seed cancels out, but plain `Uint8Array` views at non-zero byteOffset are live-broken |
+| 3 | HIGH | ValueRepresentation.js | UV element with null value throws on write | **#551** | **Yes, partial** — master's UV throws on `[null]` and Number values (scalar null already wrote zero-length) |
+| 4 | HIGH | DicomMetaDictionary.js | Private-tag fallback builds unwritable element | **#546** | No, verified — master has no fallback (drops silently); the unwritable shape was dev-branch-only |
+| 24 | MED | DicomMessage.js | Meta group length check misses overstated length | **#549** | **Yes, verified** — identical unguarded window on master; quiet mis-frame reproduced |
+| 25 | MED | AsyncDicomReader.js | Async reader outside the xs contract | **#544** | **Yes, verified** — identical code verbatim on master (incl. the dead inverted branch) |
+| 27 | LOW | SplitDataView.js | getBufferMemoryInfo counts backing ArrayBuffer | **#545** | No in effect — lines exist verbatim on master but are unreachable (no narrow-view producer); fixed ahead of the zero-copy wave |
+| 28 | LOW | BufferStream.js | concat advances write position past copy | **#550** | **Yes, latent, verified** — identical line on master, unreachable by current callers |
+| 32 | MED | DicomMetaDictionary.js | naturalizeDataset mutates global nameMap | **#548** | No, verified — master's registerTag has the same asymmetry but naturalizeDataset never writes the nameMap |
 
-| # | Sev | File | Finding |
-|---|-----|------|---------|
-| 5 | HIGH | StreamingPart10Writer.js | Self-built headers always little-endian |
-| 6 | HIGH | fromPart10Stream.js | Listener error deadlocks deflate relay (partial fix on v2) |
-| 7 | HIGH | fromPart10Stream.js | Source error dropped; truncated stream reads as clean end (partial) |
-| 11 | MED | StreamingPart10Writer.js | Whole backing buffer stored for defined-length fragment |
-| 13 | MED | asyncIterator.js | ~~break out of async iterable leaks the producer~~ **Fixed in #533** — `return()` cancels the producer with `EventIterationCancelled` |
-| 14 | MED | api.js | Video factory unhandled rejection (may be trimmed out of 1.0 core api) |
-| 22 | MED | test: StreamingPart10Writer.test.js | Helper reads whole Node buffer pool (use readFileAsArrayBuffer) |
-| 23 | MED | test: streamEquivalence.test.js | 1-byte chunk gate never runs; Windows path separators |
+## Event-stream fixes — all landed with the writers wave 2026-09-30
+
+The writers wave ported the writer sinks from v2 with these findings fixed
+in the port: #552 (test-infra: downloadToFile fails fast on bad fixture
+downloads), #553 (Part10Writer + DicomWebJsonWriter), #554 (findings 6+7),
+#555 (StreamingPart10Writer, findings 5+11+22), #556 (equivalence bank,
+finding 23), #557 (DicomEventStream facade, finding 14 by omission).
+
+| # | Sev | File | Finding | Fixed in |
+|---|-----|------|---------|----------|
+| 5 | HIGH | StreamingPart10Writer.js | Self-built headers always little-endian | **#555** — endianness derived from the body syntax; FMI stays little-endian |
+| 6 | HIGH | fromPart10Stream.js | Listener error deadlocks deflate relay | **#554** — `bodyFailed` deferred raced in the relay throttle |
+| 7 | HIGH | fromPart10Stream.js | Source error dropped; truncated stream reads as clean end | **#554** — feedError checked before endDataSet; source error wins in the body catch |
+| 11 | MED | StreamingPart10Writer.js | Whole backing buffer stored for defined-length fragment | **#555** — fragment views sliced to their own span |
+| 13 | MED | asyncIterator.js | break out of async iterable leaks the producer | **#533** — `return()` cancels the producer with `EventIterationCancelled` |
+| 14 | MED | api.js | Video factory unhandled rejection | **#557, by omission** — video factories trimmed from the core facade; media-wave fix shape recorded in the PR body (lazy sourcePromise in `_run` or no-op catch) |
+| 22 | MED | test: StreamingPart10Writer.test.js | Helper reads whole Node buffer pool | **#555** — helper slices the view's own byte range |
+| 23 | MED | test: streamEquivalence.test.js | 1-byte chunk gate never runs; Windows path separators | **#556** — posix-normalized paths plus a non-empty gate assertion |
 
 ## Open code fixes — image/FHIR (fix with their package waves)
 
