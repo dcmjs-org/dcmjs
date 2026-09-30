@@ -5,7 +5,8 @@
  * streams, listeners and writers consume them. This module grows as the
  * engine slices land; it currently exports the contract, the reference
  * collector, the byte / dataset / DICOMweb JSON sources, the async pull
- * adapter, and the naturalized-model listener.
+ * adapter, the naturalized-model listener, and the collector-backed writer
+ * sinks (Part 10 and DICOMweb JSON).
  */
 export {
     EventStreamListener,
@@ -19,6 +20,8 @@ export { fromDicomWebJson } from "./fromDicomWebJson.js";
 export { createEventAsyncIterable } from "./asyncIterator.js";
 export { fromPart10 } from "./fromPart10.js";
 export { fromPart10Stream } from "./fromPart10Stream.js";
+export { Part10Writer } from "./Part10Writer.js";
+export { DicomWebJsonWriter } from "./DicomWebJsonWriter.js";
 
 import {
     EventStreamListener,
@@ -32,6 +35,8 @@ import { fromDicomWebJson } from "./fromDicomWebJson.js";
 import { createEventAsyncIterable } from "./asyncIterator.js";
 import { fromPart10 } from "./fromPart10.js";
 import { fromPart10Stream } from "./fromPart10Stream.js";
+import { Part10Writer } from "./Part10Writer.js";
+import { DicomWebJsonWriter } from "./DicomWebJsonWriter.js";
 
 export default {
     EventStreamListener,
@@ -43,5 +48,7 @@ export default {
     fromDicomWebJson,
     createEventAsyncIterable,
     fromPart10,
-    fromPart10Stream
+    fromPart10Stream,
+    Part10Writer,
+    DicomWebJsonWriter
 };
