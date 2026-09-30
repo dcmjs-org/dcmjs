@@ -22,6 +22,7 @@ export { fromPart10 } from "./fromPart10.js";
 export { fromPart10Stream } from "./fromPart10Stream.js";
 export { Part10Writer } from "./Part10Writer.js";
 export { DicomWebJsonWriter } from "./DicomWebJsonWriter.js";
+export { StreamingPart10Writer } from "./StreamingPart10Writer.js";
 
 import {
     EventStreamListener,
@@ -37,6 +38,7 @@ import { fromPart10 } from "./fromPart10.js";
 import { fromPart10Stream } from "./fromPart10Stream.js";
 import { Part10Writer } from "./Part10Writer.js";
 import { DicomWebJsonWriter } from "./DicomWebJsonWriter.js";
+import { StreamingPart10Writer } from "./StreamingPart10Writer.js";
 
 export default {
     EventStreamListener,
@@ -50,5 +52,6 @@ export default {
     fromPart10,
     fromPart10Stream,
     Part10Writer,
-    DicomWebJsonWriter
+    DicomWebJsonWriter,
+    StreamingPart10Writer
 };
