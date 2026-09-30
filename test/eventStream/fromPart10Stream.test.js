@@ -2534,3 +2534,89 @@ describe("fromPart10Stream — K5b: feed throttles against a stalled listener dr
         expect(yieldedDuringStall).toBeLessThanOrEqual(HIGH_WATER + 4 * CHUNK);
     });
 });
+
+// ---------------------------------------------------------------------------
+// F6 — a listener error during the deflate body must settle the promise.
+//
+// The relay throttle used to park solely on bodyStream.awaitConsumerActivity()
+// while the body-loop catch awaited relayPromise: a listener that threw
+// mid-parse left each side waiting for the other, and the returned promise
+// never settled (review finding 6). The test races the parse against a timer:
+// pre-fix it times out, post-fix it rejects promptly with the listener error.
+// ---------------------------------------------------------------------------
+
+describe("fromPart10Stream — F6: listener error during deflate settles the promise", () => {
+    test("a listener that throws mid-parse rejects instead of deadlocking the relay", async () => {
+        const buffer = readBuffer(FIXTURE_DFL_IMAGE);
+
+        class ThrowingListener extends EventStreamListener {
+            count = 0;
+            _baseStartElement() {
+                this.count += 1;
+                if (this.count === 25) {
+                    throw new Error("LISTENER BOOM");
+                }
+            }
+        }
+
+        const parsePromise = fromPart10Stream(
+            chunked(buffer, 512),
+            new ThrowingListener()
+        );
+
+        let timer;
+        const timeout = new Promise((_, reject) => {
+            timer = setTimeout(
+                () =>
+                    reject(
+                        new Error(
+                            "fromPart10Stream never settled — deflate relay deadlock (finding 6)"
+                        )
+                    ),
+                5000
+            );
+            if (timer?.unref) timer.unref();
+        });
+
+        await expect(Promise.race([parsePromise, timeout])).rejects.toThrow(
+            "LISTENER BOOM"
+        );
+        clearTimeout(timer);
+    });
+});
+
+// ---------------------------------------------------------------------------
+// F7 — an error thrown by the source iterable must surface, whole and named.
+//
+// The feed loop stores a source error in feedError, but the normal (non-
+// deflate) completion path never re-checked it: a source that died at a
+// top-level element boundary read as a clean end of file, and one that died
+// mid-element surfaced the downstream "truncated" symptom instead of the
+// root cause (review finding 7). Cut points below were probed against the
+// pre-fix reader: 1044 is an element boundary (parse resolved cleanly with
+// only part of the file), 1000 is mid-element (parse threw "truncated:
+// element at 998 declares 8 bytes but stream ended").
+// ---------------------------------------------------------------------------
+
+describe("fromPart10Stream — F7: source errors surface on the native path", () => {
+    const CUTS = [
+        ["element boundary (silent clean end pre-fix)", 1044],
+        ["mid-element (masked as a truncation error pre-fix)", 1000]
+    ];
+
+    test.each(CUTS)(
+        "async-generator source that throws after %s bytes rejects with the source error",
+        async (_label, cut) => {
+            const bytes = new Uint8Array(readBuffer(FIXTURE_ELE));
+
+            async function* failingSource() {
+                yield bytes.slice(0, cut);
+                throw new Error("NETWORK BOOM");
+            }
+
+            await expect(
+                fromPart10Stream(failingSource(), new EventStreamListener())
+            ).rejects.toThrow("NETWORK BOOM");
+        }
+    );
+});
