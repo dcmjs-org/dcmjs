@@ -32,11 +32,12 @@
  *    and values parse intact; ox→OW yields byte-intact bulk data (in
  *    little-endian files OB-vs-OW has no observable byte effect, so the
  *    missing BitsAllocated-based OB/OW choice is documented, not a gap).
- *  - KNOWN GAP: with PixelRepresentation 1, xs still resolves to US —
- *    negative SS values come back as their unsigned reinterpretation
- *    (-2 → 65534). The PS3.5 PixelRepresentation-driven US-vs-SS
- *    resolution is not implemented (DicomMessage._readTag has only a
- *    dead `vrType == "xs"` branch on the unknown-tag path).
+ *  - green: with PixelRepresentation 1, xs resolves to SS and negative
+ *    values come back intact — DicomMessage._readTag resolves the
+ *    meta-VR via the threaded PixelRepresentation value.
+ *  - green (review finding 25): AsyncDicomReader.readTagHeader resolves
+ *    xs through the same DicomMessage.resolveXsVrType contract, so the
+ *    async read agrees with the sync read on signed pixel-value tags.
  */
 
 // The default-export import wires Tag/ValueRepresentation to
@@ -44,6 +45,7 @@
 // required for the implicit write path used by the helper.
 import "../../src/index.js";
 import { DicomMessage } from "../../src/DicomMessage.js";
+import { AsyncDicomReader } from "../../src/AsyncDicomReader.js";
 import { Tag } from "../../src/Tag.js";
 import { validationLog } from "../../src/log.js";
 import { createSampleDicom } from "../helper/sampleDicomPart10.js";
@@ -67,6 +69,15 @@ function implicitSample(dictUpdates) {
         },
         dict: dictUpdates
     });
+}
+
+/** Async read of a complete buffer (the issue #477 suite's feed pattern). */
+async function asyncRead(buffer) {
+    const reader = new AsyncDicomReader();
+    reader.stream.addBuffer(buffer);
+    reader.stream.setComplete();
+    const { dict } = await reader.readFile();
+    return dict;
 }
 
 function invalidVrCalls(mockFn) {
@@ -139,6 +150,53 @@ describe("issues #368/#437 — dictionary meta-VRs xs/ox resolve silently", () =
         expect(parsed).toEqual(pixels);
         expect(invalidVrCalls(validationLog.warn)).toHaveLength(0);
         expect(invalidVrCalls(validationLog.error)).toHaveLength(0);
+    });
+
+    it("finding 25: async xs with PixelRepresentation 0 resolves to US like the sync read", async () => {
+        const buffer = implicitSample({
+            [TagHex.PixelRepresentation]: { vr: "US", Value: [0] },
+            [SMALLEST_PIXEL_VALUE]: { vr: "US", Value: [2] },
+            [LARGEST_PIXEL_VALUE]: { vr: "US", Value: [513] }
+        });
+        const sync = DicomMessage.readFile(buffer).dict;
+        const dict = await asyncRead(buffer);
+        expect(dict[SMALLEST_PIXEL_VALUE].vr).toBe("US");
+        expect(dict[SMALLEST_PIXEL_VALUE].Value).toEqual([2]);
+        expect(dict[LARGEST_PIXEL_VALUE].Value).toEqual([513]);
+        expect(dict[SMALLEST_PIXEL_VALUE].vr).toBe(
+            sync[SMALLEST_PIXEL_VALUE].vr
+        );
+        expect(dict[SMALLEST_PIXEL_VALUE].Value).toEqual(
+            sync[SMALLEST_PIXEL_VALUE].Value
+        );
+    });
+
+    // Review finding 25: AsyncDicomReader.readTagHeader took the raw
+    // dictionary VR "xs" without resolving it, so createByTypeString fell
+    // back to US on every xs element — the signed read below came back as
+    // its unsigned reinterpretation (-2 → 65534) while the sync read (fixed
+    // for #368) returned -2. Both paths now resolve xs through
+    // DicomMessage.resolveXsVrType (SS when PixelRepresentation is 1).
+    it("finding 25: async xs with PixelRepresentation 1 resolves to SS, agreeing with the sync read", async () => {
+        const buffer = implicitSample({
+            [TagHex.PixelRepresentation]: { vr: "US", Value: [1] },
+            [SMALLEST_PIXEL_VALUE]: { vr: "SS", Value: [-2] },
+            [LARGEST_PIXEL_VALUE]: { vr: "SS", Value: [-3] }
+        });
+        const sync = DicomMessage.readFile(buffer).dict;
+        const dict = await asyncRead(buffer);
+        expect(dict[SMALLEST_PIXEL_VALUE].vr).toBe("SS");
+        expect(dict[SMALLEST_PIXEL_VALUE].Value).toEqual([-2]);
+        expect(dict[LARGEST_PIXEL_VALUE].Value).toEqual([-3]);
+        expect(dict[SMALLEST_PIXEL_VALUE].vr).toBe(
+            sync[SMALLEST_PIXEL_VALUE].vr
+        );
+        expect(dict[SMALLEST_PIXEL_VALUE].Value).toEqual(
+            sync[SMALLEST_PIXEL_VALUE].Value
+        );
+        expect(dict[LARGEST_PIXEL_VALUE].Value).toEqual(
+            sync[LARGEST_PIXEL_VALUE].Value
+        );
     });
 
     it("ox on WaveformData: resolves to OW/OB with byte-intact data, silently", () => {
