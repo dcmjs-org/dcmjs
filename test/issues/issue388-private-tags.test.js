@@ -9,9 +9,11 @@
  *   crashed with a TypeError.
  *   1.0 status: addAccessors uses a Proxy — the numeric-string keys stay
  *   on the ITEM, the sequence keeps length 1, and no TypeError occurs.
- *   However, denaturalizeDataset silently DROPS the private elements
- *   (numeric-string keys are not in nameMap), so the write → re-read
- *   round trip loses them — pinned below as a KNOWN GAP.
+ *   denaturalizeDataset used to silently DROP the private elements
+ *   (numeric-string keys are not in nameMap); naturalizeDataset now
+ *   records their VR in _vrMap and denaturalizeDataset rebuilds a
+ *   writable element from it, so the write → re-read round trip keeps
+ *   them — pinned green below (review finding 4 in the PR #512 map).
  *
  * #215 (A — synthetic): https://github.com/dcmjs-org/dcmjs/issues/215
  *   Upstream ask: custom/private tags should survive
@@ -21,12 +23,13 @@
  *     new DicomMetaDictionary(customDictionary).denaturalizeDataset(ds)
  *     keeps elements whose naturalized key matches a custom entry's
  *     `name` (pinned green below).
- *   - The static path drops unregistered private tags (KNOWN GAP), and
- *     even registerTag()-registered tags naturalize to their custom name
- *     but are dropped again on static denaturalize because the lazy
+ *   - The static path keeps unregistered private tags via the VR that
+ *     naturalizeDataset records in _vrMap (pinned green below), but
+ *     registerTag()-registered tags naturalize to their custom name
+ *     and are dropped again on static denaturalize because the lazy
  *     nameMap is built only from the standard dictionary
  *     (src/DicomMetaDictionary.js _generateNameMap /
- *     src/dictionary.fast.js registerTag) — also pinned as KNOWN GAP.
+ *     src/dictionary.fast.js registerTag) — still pinned as KNOWN GAP.
  *
  * How private VRs resolve on read: src/index.js registers
  * dictionary.private.data.js via registerPrivatesModule(); explicit-VR
@@ -100,13 +103,13 @@ describe("issue #388 — SQ items with private tags naturalize without accessor 
         ]);
     });
 
-    // KNOWN GAP: observed — denaturalizeDataset drops elements whose
-    // naturalized key is a numeric tag string (logs "Unknown name in
-    // dataset 00090010/00091001" and omits them), so after
-    // naturalize → denaturalize → write → re-read the SQ item contains
-    // only the standard element; expected the private creator and value
-    // elements to survive the round trip intact.
-    it.skip("KNOWN GAP #388: private elements inside SQ items are dropped on denaturalize → write → re-read", () => {
+    // Formerly a KNOWN GAP: denaturalizeDataset dropped elements whose
+    // naturalized key is a numeric tag string (logged "Unknown name in
+    // dataset 00090010/00091001" and omitted them). naturalizeDataset
+    // now records the original VR of dictionary-less elements in _vrMap,
+    // and denaturalizeDataset rebuilds a writable element from it, so
+    // the private creator and value elements survive the round trip.
+    it("#388: private elements inside SQ items survive denaturalize → write → re-read", () => {
         const dicomDict = DicomMessage.readFile(makeBuffer());
         const dataset = DicomMetaDictionary.naturalizeDataset(dicomDict.dict);
         dicomDict.dict = DicomMetaDictionary.denaturalizeDataset(dataset);
@@ -156,18 +159,35 @@ describe("issue #215 — private/custom tags through naturalize → denaturalize
         expect(denaturalized["00091001"].Value).toEqual(["private-top"]);
     });
 
-    // KNOWN GAP: observed — static denaturalizeDataset warns "Unknown
-    // name in dataset" and omits UNREGISTERED private elements entirely
-    // (they are not kept as UN, they are dropped); expected private
-    // elements to survive the static naturalize → denaturalize round
-    // trip (or at minimum be retained as UN).
-    it.skip("KNOWN GAP #215: unregistered top-level private tags are dropped by static denaturalize", () => {
-        const dataset = DicomMetaDictionary.naturalizeDataset(
-            DicomMessage.readFile(makeBuffer()).dict
-        );
+    // Formerly a KNOWN GAP: static denaturalizeDataset warned "Unknown
+    // name in dataset" and omitted UNREGISTERED private elements
+    // entirely. They now keep the VR recorded by naturalizeDataset in
+    // _vrMap, and the rebuilt elements are writable.
+    it("#215: unregistered top-level private tags survive static denaturalize and write", () => {
+        const dicomDict = DicomMessage.readFile(makeBuffer());
+        const dataset = DicomMetaDictionary.naturalizeDataset(dicomDict.dict);
         const denaturalized = DicomMetaDictionary.denaturalizeDataset(dataset);
-        expect(denaturalized["00090010"]).toBeDefined();
-        expect(denaturalized["00091001"]).toBeDefined();
+        expect(denaturalized["00090010"].vr).toBe("LO");
+        expect(denaturalized["00090010"].Value).toEqual([CREATOR]);
+        expect(denaturalized["00091001"].vr).toBe("LO");
+        expect(denaturalized["00091001"].Value).toEqual(["private-top"]);
+
+        // the rebuilt elements must be writable, not UN-with-strings
+        dicomDict.dict = denaturalized;
+        const reread = DicomMessage.readFile(dicomDict.write());
+        expect(reread.dict["00091001"].Value).toEqual(["private-top"]);
+    });
+
+    // A hand-built dataset with no _vrMap carries no VR information at
+    // all, so the element is still skipped (with the existing warning)
+    // rather than emitted in a shape the writer cannot serialize.
+    it("#215: a hex key with no recorded VR is still skipped, not emitted unwritable", () => {
+        const denaturalized = DicomMetaDictionary.denaturalizeDataset({
+            "00291010": ["ACME"],
+            PatientID: "123456"
+        });
+        expect(denaturalized["00291010"]).toBeUndefined();
+        expect(denaturalized["00100020"].Value).toEqual(["123456"]);
     });
 
     // KNOWN GAP: observed — registerTag("00091001", { name:
