@@ -30,6 +30,10 @@ describe("downloadToFile", () => {
                     res.writeHead(200);
                     res.end("DICM-PAYLOAD");
                 }
+            } else if (req.url === "/slow.dcm") {
+                res.writeHead(200);
+                res.write("DICM-");
+                setTimeout(() => res.end("PAYLOAD"), 150);
             } else if (req.url === "/redirect.dcm") {
                 res.writeHead(302, { Location: `${baseUrl}/ok.dcm` });
                 res.end();
@@ -70,6 +74,19 @@ describe("downloadToFile", () => {
         // The poisoned-cache failure mode: an error page saved as a .dcm
         // makes every later run fail far away from the real cause.
         expect(fs.existsSync(target)).toBe(false);
+    });
+
+    it("never exposes a partial file at the target path mid-download", async () => {
+        // Parallel jest workers share the fixture cache and gate on
+        // fs.existsSync(targetPath), so the target name must only ever
+        // appear once the download is complete.
+        const target = path.join(tmpDir, "slow.dcm");
+        const download = downloadToFile(`${baseUrl}/slow.dcm`, target);
+        // Wait until the first body chunk is surely on disk, mid-response.
+        await new Promise(resolve => setTimeout(resolve, 75));
+        expect(fs.existsSync(target)).toBe(false);
+        await download;
+        expect(fs.readFileSync(target, "utf8")).toBe("DICM-PAYLOAD");
     });
 
     it("retries once and succeeds after a transient failure", async () => {
