@@ -11,8 +11,9 @@
  *   cannot correspond to any UUID at all, and none carry the RFC 4122
  *   version/variant bits.
  *
- * Green tests pin the syntactic properties the current generator does
- * satisfy; the UUID-derivation requirement itself is a KNOWN GAP.
+ * The generator now derives the integer part from a freshly generated
+ * RFC 4122 version 4 UUID, so both the syntactic properties and the
+ * UUID-derivation requirement are pinned here.
  */
 import dcmjs from "../../src/index.js";
 
@@ -33,14 +34,7 @@ describe("issue #61 — 2.25 UIDs must be UUID-derived (PS3.5 B.2)", () => {
         }
     });
 
-    // KNOWN GAP: observed uid() = "2.25." + one random digit 1-9 + 38
-    // random digits (pure random-digit concatenation, see
-    // src/DicomMetaDictionary.js static uid()). The 39-digit integer part
-    // routinely exceeds 2^128 - 1, so it cannot be the decimal encoding
-    // of any 128-bit UUID; expected the integer part to be the unsigned
-    // 128-bit value of a (version 4, RFC 4122 variant) UUID per PS3.5
-    // B.2 / ITU-T X.667.
-    it.skip("KNOWN GAP #61: uid() integer part is not the decimal encoding of a 128-bit UUID", () => {
+    it("uid() integer part is the decimal encoding of a version 4, RFC 4122-variant 128-bit UUID", () => {
         const MAX_UUID = 1n << 128n;
         for (let i = 0; i < SAMPLES; i++) {
             const uid = DicomMetaDictionary.uid();

@@ -469,7 +469,7 @@
       "area": "uid",
       "disposition": "DicomMetaDictionary.uid(): 2.25 UIDs must be UUID-derived per PS3.5 B.2 (not random digit strings)",
       "testFile": "test/issues/issue61-uuid-uids.test.js",
-      "status": "gap",
+      "status": "green",
       "notes": ""
     }
   },
