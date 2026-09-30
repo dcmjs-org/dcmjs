@@ -37,7 +37,8 @@
         "lint": "eslint --fix \"src/**/*.js\" \"test/**/*.js\"",
         "generate-dictionary": "node generate/generate-dictionary.js",
         "pack-dictionary": "node generate/pack_dicom.mjs",
-        "bench:dictionary": "bun run generate/bench-dictionary-load.mjs"
+        "bench:dictionary": "bun run generate/bench-dictionary-load.mjs",
+        "bench": "node bench/run.mjs"
     },
     "repository": {
         "type": "git",
