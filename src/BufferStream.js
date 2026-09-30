@@ -357,12 +357,13 @@ export class BufferStream {
      * on an existing output from the beginning)
      */
     concat(stream) {
-        this.view.checkSize(this.size + stream.size - stream.startOffset);
+        const length = stream.size - stream.startOffset;
+        this.view.checkSize(this.size + length);
         this.view.writeBuffer(
             new Uint8Array(stream.slice(stream.startOffset, stream.size)),
             this.offset
         );
-        this.offset += stream.size;
+        this.offset += length;
         this.size = this.offset;
         this.endOffset = this.size;
         return this.view.availableSize;
