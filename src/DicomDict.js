@@ -1,8 +1,11 @@
+import pako from "pako";
 import { WriteBufferStream } from "./BufferStream";
 import { ValueRepresentation } from "./ValueRepresentation";
-import { TagHex } from "./constants/dicom";
-
-const EXPLICIT_LITTLE_ENDIAN = "1.2.840.10008.1.2.1";
+import {
+    DEFLATED_EXPLICIT_LITTLE_ENDIAN,
+    EXPLICIT_LITTLE_ENDIAN,
+    TagHex
+} from "./constants/dicom";
 
 let DicomMessage;
 
@@ -47,6 +50,26 @@ class DicomDict {
         fileStream.concat(metaStream);
 
         var useSyntax = this.meta[TagHex.TransferSyntaxUID].Value[0];
+        if (useSyntax === DEFLATED_EXPLICIT_LITTLE_ENDIAN) {
+            // Deflate-on-write (W4). Per PS3.10 A.5 only the dataset
+            // after the meta group is deflated - the preamble, "DICM" and
+            // the meta group (written uncompressed above) never are. The
+            // deflated syntax implies an explicit little endian body, so
+            // the body is produced as ELE into a scratch stream, then
+            // raw-deflated (RFC 1951, no zlib header - the mirror of the
+            // read side's inflateRaw).
+            const bodyStream = new WriteBufferStream(4096, true);
+            DicomMessage.write(
+                this.dict,
+                bodyStream,
+                EXPLICIT_LITTLE_ENDIAN,
+                writeOptions
+            );
+            fileStream.writeRawBytes(
+                pako.deflateRaw(new Uint8Array(bodyStream.getBuffer()))
+            );
+            return fileStream.getBuffer();
+        }
         DicomMessage.write(this.dict, fileStream, useSyntax, writeOptions);
         return fileStream.getBuffer();
     }

@@ -84,24 +84,10 @@ describe("Part10Writer — corpus semantic round-trip", () => {
         return out;
     }
 
-    // Fixtures excluded from the write round-trip (NOT from reading — the
-    // event-stream readers handle them fine). DicomDict.write on this branch
-    // does not yet implement deflate-on-write (PS3.10 A.5, the W4 slice of the
-    // writers wave): it would emit an uncompressed body under the deflated
-    // transfer syntax, which is unreadable. Remove these entries when
-    // deflate-on-write lands.
-    const WRITE_SKIP = new Set([
-        "packages/fixtures/testImages/deflate/image_dfl",
-        "packages/fixtures/testImages/deflate/report_dfl",
-        "packages/fixtures/testImages/deflate/wave_dfl"
-    ]);
-
     const FIXTURES = [
         ...discover(PARSER_IMAGES_DIR, n => !n.toLowerCase().endsWith(".md")),
         ...discover(DICOM_FIXTURES_DIR, n => /\.(dcm|dicom|lei)$/i.test(n))
-    ]
-        .map(full => [path.relative(REPO_ROOT, full), full])
-        .filter(([rel]) => !WRITE_SKIP.has(rel));
+    ].map(full => [path.relative(REPO_ROOT, full), full]);
 
     function readBuffer(full) {
         const data = fs.readFileSync(full);

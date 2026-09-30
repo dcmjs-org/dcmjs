@@ -216,6 +216,20 @@ export class BufferStream {
         return this.increment(len);
     }
 
+    /**
+     * Appends raw, already-encoded bytes (e.g. a deflated body) at the
+     * current write position and returns the number of bytes written.
+     */
+    writeRawBytes(bytes) {
+        const length = bytes.byteLength;
+        if (length === 0) {
+            return 0;
+        }
+        this.checkSize(length);
+        this.view.writeBuffer(bytes, this.offset);
+        return this.increment(length);
+    }
+
     readBigUint64() {
         var val = this.view.getBigUint64(this.offset, this.isLittleEndian);
         this.increment(8);
@@ -599,6 +613,10 @@ export class ReadBufferStream extends BufferStream {
 
     writeUTF8String(value) {
         throw new Error(value, "writeUTF8String not implemented");
+    }
+
+    writeRawBytes(bytes) {
+        throw new Error(bytes, "writeRawBytes not implemented");
     }
 
     checkSize(step) {
