@@ -15,6 +15,7 @@ import {
 import arrayItem from "./arrayItem.json";
 import minimalDataset from "./mocks/minimal_fields_dataset.json";
 import datasetWithNullNumberVRs from "./mocks/null_number_vrs_dataset.json";
+import { createSampleDicom } from "./helper/sampleDicomPart10.js";
 import { rawTags } from "./rawTags";
 import sampleDicomSR from "./sample-sr.json";
 
@@ -1019,6 +1020,47 @@ it("Tests that reading succeeds on a DICOM without a meta length tag when ignore
         expect(dataset.meta["00020010"]).toBeDefined(); // Transfer Syntax should be present
         expect(dataset.dict["0020000E"]).toBeDefined(); // Series Instance UID should be present
     }).not.toThrow();
+});
+
+it("Tests that an overstated meta group length does not pull dataset elements into the meta header (review finding 24)", () => {
+    const buffer = createSampleDicom();
+
+    // Overstate (0002,0000) by exactly the size of the first dataset
+    // element, (0028,0002) SamplesPerPixel US: tag(4) + VR(2) +
+    // length(2) + value(2) = 10 bytes. The declared meta window then
+    // swallows that element whole, so before the fix the file still
+    // parses -- quietly mis-framed -- with a dataset element inside
+    // dicomDict.meta and missing from dicomDict.dict.
+    const view = new DataView(buffer);
+    const metaLengthValueOffset = 132 + 4 + 2 + 2; // preamble + "DICM" + tag + VR + length field
+    const declaredLength = view.getUint32(metaLengthValueOffset, true);
+    view.setUint32(metaLengthValueOffset, declaredLength + 10, true);
+
+    const warnSpy = jest.spyOn(log, "warn").mockImplementation(() => {});
+    try {
+        const dicomDict = dcmjs.data.DicomMessage.readFile(buffer);
+
+        // every meta element belongs to group 0002
+        expect(
+            Object.keys(dicomDict.meta).every(tag => tag.startsWith("0002"))
+        ).toBe(true);
+        expect(dicomDict.meta["00020010"].Value[0]).toBe(
+            EXPLICIT_LITTLE_ENDIAN
+        );
+
+        // the swallowed element is framed back into the dataset,
+        // alongside the rest of the body
+        expect(dicomDict.dict["00280002"]).toBeDefined(); // SamplesPerPixel
+        expect(dicomDict.dict["00280010"]).toBeDefined(); // Rows
+        expect(dicomDict.dict["7FE00010"]).toBeDefined(); // PixelData
+
+        // the recovery is the warned case, not the quiet case
+        expect(warnSpy).toHaveBeenCalledWith(
+            expect.stringContaining("meta group length")
+        );
+    } finally {
+        warnSpy.mockRestore();
+    }
 });
 
 describe("The same DICOM file loaded from both DCM and JSON", () => {
