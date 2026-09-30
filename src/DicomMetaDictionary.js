@@ -132,6 +132,11 @@ export class DicomMetaDictionary {
                     // save origin vr if it different that in dictionary
                     naturalDataset._vrMap[naturalName] = data.vr;
                 }
+            } else if (data.vr) {
+                // no dictionary entry: the tag stays the key, and the VR
+                // goes into _vrMap so denaturalizeDataset can rebuild a
+                // writable element instead of dropping it
+                naturalDataset._vrMap[naturalName] = data.vr;
             }
 
             if (data.Value === undefined) {
@@ -215,6 +220,24 @@ export class DicomMetaDictionary {
             // check if it's a sequence
             var name = naturalName;
             var entry = nameMap[name];
+            if (
+                !entry &&
+                /^[0-9A-Fa-f]{8}$/.test(name) &&
+                dataset._vrMap &&
+                dataset._vrMap[name]
+            ) {
+                // private/unknown element kept under its hex tag by
+                // naturalizeDataset: rebuild it with the VR recorded in
+                // _vrMap so the element round-trips instead of being
+                // dropped; without a recorded VR it still falls through
+                // to the warning below
+                entry = {
+                    tag: DicomMetaDictionary.punctuateTag(name),
+                    vr: dataset._vrMap[name],
+                    name: name,
+                    version: "PrivateTag"
+                };
+            }
             if (entry) {
                 let dataValue = dataset[naturalName];
 
