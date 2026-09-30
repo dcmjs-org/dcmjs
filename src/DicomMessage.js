@@ -261,12 +261,36 @@ export class DicomMessage {
                 ignoreErrors: true
             });
         } else {
-            // meta length tag is present
+            // meta length tag is present; save the position right after it
+            var metaBodyPos = stream.offset;
             var metaLength = el.values[0];
 
             // read header buffer using the specified meta length
             var metaStream = stream.more(metaLength);
             metaHeader = DicomMessage._read(metaStream, useSyntax, options);
+
+            // An overstated (0002,0000) pulls dataset elements into the
+            // meta header and mis-frames where the body starts. If the
+            // declared window contains anything outside group 0002,
+            // discard it, warn, and re-walk the meta group structurally
+            // so the body is framed at the first non-meta element.
+            // An understated (0002,0000) is left alone here: the declared
+            // window then holds group-0002 elements only, and is used as-is.
+            if (Object.keys(metaHeader).some(tag => !tag.startsWith("0002"))) {
+                log.warn(
+                    "Invalid DICOM file, meta group length (0002,0000) extends past the end of the File Meta group. Re-reading the meta header structurally."
+                );
+
+                // reset stream to the position after the meta length tag
+                stream.offset = metaBodyPos;
+
+                // read meta header elements sequentially
+                metaHeader = DicomMessage._read(stream, useSyntax, {
+                    untilTag: "00030000",
+                    stopOnGreaterTag: true,
+                    ignoreErrors: true
+                });
+            }
         }
 
         //get the syntax
