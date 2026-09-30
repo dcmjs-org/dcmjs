@@ -477,7 +477,8 @@ export class BufferStream {
      * Reports on the amount of memory held by the buffers in the view.
      * @returns {Object} An object containing:
      *   - bufferCount: Number of buffers still held (not null)
-     *   - totalSize: Total size of all buffers in bytes
+     *   - totalSize: Total logical span of all buffers in bytes (each
+     *     buffer counts its own view span, not its backing ArrayBuffer)
      *   - consumeOffset: The current consume offset
      *   - buffersBeforeOffset: Number of buffers before the consume offset
      */
