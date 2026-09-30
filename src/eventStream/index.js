@@ -6,7 +6,8 @@
  * engine slices land; it currently exports the contract, the reference
  * collector, the byte / dataset / DICOMweb JSON sources, the async pull
  * adapter, the naturalized-model listener, and the collector-backed writer
- * sinks (Part 10 and DICOMweb JSON).
+ * sinks (Part 10 and DICOMweb JSON), plus the DicomEventStream facade over
+ * all of them.
  */
 export {
     EventStreamListener,
@@ -23,6 +24,7 @@ export { fromPart10Stream } from "./fromPart10Stream.js";
 export { Part10Writer } from "./Part10Writer.js";
 export { DicomWebJsonWriter } from "./DicomWebJsonWriter.js";
 export { StreamingPart10Writer } from "./StreamingPart10Writer.js";
+export { DicomEventStream, Naturalized, DicomWebJson } from "./api.js";
 
 import {
     EventStreamListener,
@@ -39,6 +41,7 @@ import { fromPart10Stream } from "./fromPart10Stream.js";
 import { Part10Writer } from "./Part10Writer.js";
 import { DicomWebJsonWriter } from "./DicomWebJsonWriter.js";
 import { StreamingPart10Writer } from "./StreamingPart10Writer.js";
+import { DicomEventStream, Naturalized, DicomWebJson } from "./api.js";
 
 export default {
     EventStreamListener,
@@ -53,5 +56,8 @@ export default {
     fromPart10Stream,
     Part10Writer,
     DicomWebJsonWriter,
-    StreamingPart10Writer
+    StreamingPart10Writer,
+    DicomEventStream,
+    Naturalized,
+    DicomWebJson
 };
