@@ -461,6 +461,16 @@ async function fromPart10StreamImpl(input, listener, options, parseState) {
     let inflateError = null;
     let relayPromise = Promise.resolve();
 
+    // F6: the body-loop catch below awaits relayPromise, so the relay must
+    // never park on consumer activity that a failed body loop will never
+    // produce. The catch resolves this deferred BEFORE awaiting the relay,
+    // and the relay races it inside its throttle gate and winds down.
+    let bodyFailed = false;
+    let signalBodyFailed = null;
+    const bodyFailedPromise = new Promise(
+        resolve => (signalBodyFailed = resolve)
+    );
+
     if (rawTransferSyntaxUID === DEFLATED_EXPLICIT_LITTLE_ENDIAN) {
         bodyStream = new ReadBufferStream(null, true, { clearBuffers: true });
 
@@ -540,14 +550,24 @@ async function fromPart10StreamImpl(input, listener, options, parseState) {
                         // Throttle: wait for the body loop to consume below
                         // the watermark before inflating more.  A consumer
                         // blocked on ensureAvailable (pending demand) always
-                        // wins — the relay resumes immediately, so this can
-                        // never deadlock.
+                        // wins — the relay resumes immediately.  A body loop
+                        // that FAILED (listener threw) produces no consumer
+                        // activity ever again, so the gate also races the
+                        // bodyFailed deferred and winds down (F6).
                         while (
+                            !bodyFailed &&
                             bodyStream.getBufferMemoryInfo().totalSize >
                                 RELAY_HIGH_WATER &&
                             !bodyStream.hasPendingDemand()
                         ) {
-                            await bodyStream.awaitConsumerActivity();
+                            await Promise.race([
+                                bodyStream.awaitConsumerActivity(),
+                                bodyFailedPromise
+                            ]);
+                        }
+                        if (bodyFailed) {
+                            bodyStream.setComplete();
+                            return;
                         }
                     }
                     if (isLast) break;
@@ -1309,16 +1329,27 @@ async function fromPart10StreamImpl(input, listener, options, parseState) {
             }
         }
     } catch (bodyErr) {
+        // F6: wake a relay parked on consumer activity BEFORE awaiting it,
+        // or the two awaits deadlock each other and the promise never settles.
+        bodyFailed = true;
+        signalBodyFailed();
         // Wait for the relay to settle so inflateError is populated (if any).
         await relayPromise;
-        // Prioritize inflate error: it is the root cause; the body error
-        // is a symptom (truncated read on corrupt/incomplete inflate output).
-        throw inflateError ?? bodyErr;
+        // Prioritize the root cause over the symptom: an inflate or source
+        // (feed) error explains the truncated read the body loop tripped on.
+        throw inflateError ?? feedError ?? bodyErr;
     }
 
     // Relay must finish before we inspect inflateError.
     await relayPromise;
     if (inflateError) throw inflateError;
+
+    // F7: the body loop treats stream-complete as a clean EOF, but the feed
+    // catch also calls setComplete() when the SOURCE throws mid-transfer. A
+    // clean end is only clean if the feed finished without error — otherwise
+    // a truncated transfer would resolve as a well-formed shorter dataset.
+    await feedPromise;
+    if (feedError) throw feedError;
 
     // Observable hook: fires for ALL paths (deflate and non-deflate) now that
     // the early deflate return is gone.
