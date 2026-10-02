@@ -1,10 +1,33 @@
-import { ReadBufferStream } from "../BufferStream.js";
-import { UNDEFINED_LENGTH, VM_DELIMITER } from "../constants/dicom.js";
-import { resolveCharsetDecoder } from "../charset/iso2022.js";
-import { log } from "../log.js";
-import { DicomMessage, singleVRs } from "../DicomMessage.js";
-import { Tag } from "../Tag.js";
-import { ValueRepresentation } from "../ValueRepresentation.js";
+import {
+    ReadBufferStream,
+    UNDEFINED_LENGTH,
+    VM_DELIMITER,
+    resolveCharsetDecoder,
+    log,
+    singleVRs,
+    DicomMetaDictionary,
+    Tag,
+    ValueRepresentation
+} from "@dcmjs/core";
+
+/**
+ * The narrow eager-delegation seam: the eager reader class, resolved at call
+ * time through core's late-binding slot instead of a static import, so this
+ * package carries no edge to @dcmjs/legacy. Loading legacy's DicomMessage
+ * module (directly, via any old src/ path, or via the dcmjs wrapper) wires
+ * the slot; without it the one caller below fails with a clear error.
+ */
+export function requireEagerReader(caller) {
+    const DicomMessage = ValueRepresentation.getDicomMessageClass();
+    if (!DicomMessage) {
+        throw new Error(
+            `${caller}: this input shape delegates to the eager reader, ` +
+                "which is not loaded; import @dcmjs/legacy (or the dcmjs " +
+                "wrapper) before parsing it"
+        );
+    }
+    return DicomMessage;
+}
 
 /**
  * Shared element-decode core extracted from src/lazy/LazyDicomReader.js.
@@ -53,7 +76,7 @@ import { ValueRepresentation } from "../ValueRepresentation.js";
  * The lazy source computed `ctx.implicit && !isMeta`; here the caller
  * selects the window instead.
  *
- * Uses DicomMessage.lookupTag, ValueRepresentation.parseUnknownVr /
+ * Uses DicomMetaDictionary.lookupTag, ValueRepresentation.parseUnknownVr /
  * createByTypeString, Tag — all accessed inside the function body.
  */
 export function resolveVrInstance(el, window) {
@@ -63,7 +86,7 @@ export function resolveVrInstance(el, window) {
         const vrType = el.vr;
         if (vrType === "UN") {
             const tag = new Tag(el.tagValue);
-            const elementData = DicomMessage.lookupTag(tag);
+            const elementData = DicomMetaDictionary.lookupTag(tag);
             if (elementData && elementData.vr) {
                 // UN with a known dictionary VR: eager re-parses the value
                 // as the dictionary VR via ParsedUnknownValue.
@@ -79,7 +102,7 @@ export function resolveVrInstance(el, window) {
 
     // Implicit VR: dictionary lookup with _readTag's fallback rules.
     const tag = new Tag(el.tagValue);
-    const elementData = DicomMessage.lookupTag(tag);
+    const elementData = DicomMetaDictionary.lookupTag(tag);
     let vrType;
     if (elementData) {
         vrType = elementData.vr;
@@ -130,7 +153,7 @@ export function isParsedUnknownVr(vrInstance) {
  * `_rawValue: [undefined]` for non-raw-storing VRs like UN/OF/OD - a quirk
  * the lazy core must reproduce).
  *
- * Uses the canonical singleVRs exported from DicomMessage (includes LT).
+ * Uses the canonical singleVRs exported from @dcmjs/core (includes LT).
  * Arg order is (vr, rawValue, value) — same as the source.
  */
 export function shapeReadValues(vr, rawValue, value) {
@@ -304,6 +327,7 @@ export function decodeWithEagerReadTag(window, el, policy) {
     if (window.decoder) {
         stream.setDecoder(window.decoder);
     }
+    const DicomMessage = requireEagerReader("decodeWithEagerReadTag");
     const readInfo = DicomMessage._readTag(stream, window.syntax, {
         untilTag: null,
         includeUntilTagValue: false,

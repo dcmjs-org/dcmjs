@@ -27,6 +27,9 @@ export {
     lookupTagRangeHex,
     getAllStandardTagEntries
 } from "./dicom.lookup.js";
+// The one function the packed private dictionary exposes by name; the data
+// blobs around it stay module-path imports per the note above.
+export { lookupPrivateTag } from "./dictionary.private.data.js";
 export {
     resolveCharsetDecoder,
     Iso2022Decoder,

@@ -25,24 +25,24 @@
  */
 
 import pako from "pako";
-import { ReadBufferStream } from "../BufferStream.js";
-import { DicomMessage } from "../DicomMessage.js";
-import { emitValues, emitDecodedLeaf } from "./emit.js";
-import { fromDataSet } from "./fromDataSet.js";
 import {
+    ReadBufferStream,
     EXPLICIT_LITTLE_ENDIAN,
     EXPLICIT_BIG_ENDIAN,
     IMPLICIT_LITTLE_ENDIAN,
-    DEFLATED_EXPLICIT_LITTLE_ENDIAN
-} from "../constants/dicom.js";
-import { normalizeSyntax } from "../core/normalizeSyntax.js";
-import { ValueRepresentation } from "../ValueRepresentation.js";
+    DEFLATED_EXPLICIT_LITTLE_ENDIAN,
+    normalizeSyntax,
+    ValueRepresentation
+} from "@dcmjs/core";
+import { emitValues, emitDecodedLeaf } from "./emit.js";
+import { fromDataSet } from "./fromDataSet.js";
 import {
     resolveVrInstance,
     decodeElementValues,
     decodeWithEagerReadTag,
     isParsedUnknownVr,
-    resolveCharacterSet
+    resolveCharacterSet,
+    requireEagerReader
 } from "../core/decodeCore.js";
 
 // ---------------------------------------------------------------------------
@@ -220,8 +220,15 @@ async function fromPart10StreamImpl(input, listener, options, parseState) {
         // (meta-less, DIMSE-style) dataset is force-read: the eager reader
         // parses it via readFile({ allowMissingHeader: true }) — Explicit
         // Little Endian assumed unless implicit VR is detected — and the
-        // resulting dict is replayed as events through fromDataSet.
+        // resulting dict is replayed as events through fromDataSet. The
+        // eager reader is resolved through core's late-binding seam at call
+        // time (see decodeCore.requireEagerReader) so this package carries
+        // no static edge to @dcmjs/legacy; every old src/ import path and
+        // the dcmjs wrapper wire the seam automatically.
         if (options.allowMissingHeader || options.ignoreErrors) {
+            const DicomMessage = requireEagerReader(
+                "fromPart10Stream (bare-dataset fallback)"
+            );
             const bareDict = DicomMessage.readFile(byteArray.buffer, {
                 ...options,
                 allowMissingHeader: true

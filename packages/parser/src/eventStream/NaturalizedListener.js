@@ -2,11 +2,13 @@ import {
     EventStreamListener,
     mergeFragmentsPerBotWindow
 } from "./EventStreamListener.js";
-import { lookupTagHex } from "../dicom.lookup.js";
-import { lookupPrivateTag } from "../dictionary.private.data.js";
-import addAccessors from "../utilities/addAccessors.js";
-import dicomJson from "../utilities/dicomJson.js";
-import log from "../log.js";
+import {
+    lookupTagHex,
+    lookupPrivateTag,
+    addAccessors,
+    dicomJson,
+    log
+} from "@dcmjs/core";
 
 /**
  * NaturalizedListener — slice D1: the core naturalized value model.
