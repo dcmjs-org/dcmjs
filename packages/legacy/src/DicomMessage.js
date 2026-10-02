@@ -15,11 +15,14 @@ import {
     Tag,
     log,
     deepEqual,
-    ValueRepresentation
+    ValueRepresentation,
+    singleVRs
 } from "@dcmjs/core";
 import { DicomDict } from "./DicomDict.js";
 
-export const singleVRs = ["SQ", "OF", "OW", "OB", "UN", "LT"];
+// Relocated to @dcmjs/core (constants/dicom.js); re-exported here because it
+// has always lived on this module's surface.
+export { singleVRs };
 
 export class DicomMessage {
     static read(
@@ -514,7 +517,20 @@ export class DicomMessage {
         return retObj;
     }
 
+    // Relocated to DicomMetaDictionary.lookupTag in @dcmjs/core; kept as a
+    // delegating static because it has always lived on this class's surface.
     static lookupTag(tag) {
-        return DicomMetaDictionary.dictionary[tag.toString()];
+        return DicomMetaDictionary.lookupTag(tag);
     }
 }
+
+// Wire the late-binding seams whenever this module loads, not only when the
+// dcmjs wrapper's index does it: the sequence read/write paths inside
+// ValueRepresentation and Tag, DicomDict's upserts, and the streaming
+// reader's narrow eager-delegation fallbacks (which resolve the class
+// through ValueRepresentation.getDicomMessageClass) all reach the eager
+// engine through these slots. The wrapper's identical calls stay and are
+// idempotent.
+ValueRepresentation.setDicomMessageClass(DicomMessage);
+Tag.setDicomMessageClass(DicomMessage);
+DicomDict.setDicomMessageClass(DicomMessage);

@@ -12,6 +12,15 @@ export class DicomMetaDictionary {
             DicomMetaDictionary._generateCustomNameMap(customDictionary);
     }
 
+    /**
+     * The dictionary entry for a Tag instance (punctuated-string keyed).
+     * Relocated from DicomMessage.lookupTag, which now delegates here, so
+     * the streaming decode core can resolve VRs without the legacy reader.
+     */
+    static lookupTag(tag) {
+        return DicomMetaDictionary.dictionary[tag.toString()];
+    }
+
     static punctuateTag(rawTag) {
         if (rawTag.indexOf(",") !== -1) {
             return rawTag;
