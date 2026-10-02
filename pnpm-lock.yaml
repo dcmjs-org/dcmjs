@@ -164,6 +164,13 @@ importers:
       '@dcmjs-org/core':
         specifier: workspace:*
         version: link:../core
+      '@dcmjs-org/parser':
+        specifier: workspace:*
+        version: link:../parser
+    devDependencies:
+      '@dcmjs-org/generator':
+        specifier: workspace:*
+        version: link:../generator
 
 packages:
 
