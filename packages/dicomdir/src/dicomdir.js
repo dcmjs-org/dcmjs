@@ -1,4 +1,4 @@
-// src/media/dicomdir.js
+// packages/dicomdir/src/dicomdir.js
 //
 // DICOMDIR (Media Storage Directory, PS3.10 / PS3.3 F) builder. Turns a flat
 // file-set description into the PATIENT -> STUDY -> SERIES -> leaf record
@@ -11,12 +11,17 @@
 // placeholder zeros produces the exact final layout, and the file is written
 // once. No patch-and-rewrite, no buffer scanning.
 
-import { DicomMetaDictionary } from "../DicomMetaDictionary.js";
-import { DicomDict } from "../DicomDict.js";
+import {
+    DicomMetaDictionary,
+    WriteBufferStream,
+    writeDataSet,
+    writeTagObject,
+    EXPLICIT_LITTLE_ENDIAN,
+    TagHex
+} from "@dcmjs-org/core";
 import { computeDirectoryOffsets } from "./directoryOffsets.js";
 
 const MEDIA_STORAGE_DIRECTORY_SOP_CLASS_UID = "1.2.840.10008.1.3.10";
-const EXPLICIT_LITTLE_ENDIAN = "1.2.840.10008.1.2.1";
 
 // PS3.10 8.5: each File ID component is 1-8 characters from the ISO 9660
 // level 1 repertoire (A-Z, 0-9, underscore), at most 8 components deep.
@@ -304,20 +309,59 @@ function pinOffsetVRs(dict) {
     }
 }
 
+/**
+ * Serialize { meta, dict } as a Part 10 file. This is the body of
+ * DicomDict.write (packages/legacy) minus the deflate branch — a DICOMDIR
+ * is always Explicit VR Little Endian, never deflated — rebuilt on core's
+ * writeDataSet/writeTagObject so this package does not depend on
+ * @dcmjs-org/legacy. DicomMessage.write and DicomMessage.writeTagObject
+ * are one-line delegates to those same core functions, so the bytes this
+ * produces are identical to DicomDict.write's, which is what keeps the
+ * measured directory offsets valid.
+ */
+function writePart10(meta, dict, writeOptions) {
+    const metaSyntax = EXPLICIT_LITTLE_ENDIAN;
+    const fileStream = new WriteBufferStream(4096, true);
+    fileStream.writeUint8Repeat(0, 128);
+    fileStream.writeAsciiString("DICM");
+
+    const metaStream = new WriteBufferStream(1024);
+    if (!meta[TagHex.TransferSyntaxUID]) {
+        meta[TagHex.TransferSyntaxUID] = {
+            vr: "UI",
+            Value: [EXPLICIT_LITTLE_ENDIAN]
+        };
+    }
+    writeDataSet(meta, metaStream, metaSyntax, writeOptions);
+    writeTagObject(
+        fileStream,
+        TagHex.FileMetaInformationGroupLength,
+        "UL",
+        metaStream.size,
+        metaSyntax,
+        writeOptions
+    );
+    fileStream.concat(metaStream);
+
+    const useSyntax = meta[TagHex.TransferSyntaxUID].Value[0];
+    writeDataSet(dict, fileStream, useSyntax, writeOptions);
+    return fileStream.getBuffer();
+}
+
 function writeDicomDir(entries = [], options = {}) {
     const { dataset, links, rootIndices } = buildDicomDirDataset(
         entries,
         options
     );
 
-    const dicomDict = new DicomDict(buildDicomDirMeta(options));
-    dicomDict.dict = DicomMetaDictionary.denaturalizeDataset(dataset);
-    pinOffsetVRs(dicomDict.dict);
+    const meta = buildDicomDirMeta(options);
+    const dict = DicomMetaDictionary.denaturalizeDataset(dataset);
+    pinOffsetVRs(dict);
 
     const writeOptions = { allowInvalidVRLength: false };
-    const recordOffsets = computeDirectoryOffsets(dicomDict, writeOptions);
+    const recordOffsets = computeDirectoryOffsets({ meta, dict }, writeOptions);
 
-    const sequence = dicomDict.dict["00041220"];
+    const sequence = dict["00041220"];
     const items = (sequence && sequence.Value) || [];
     items.forEach((item, index) => {
         const { next, child } = links[index];
@@ -329,10 +373,10 @@ function writeDicomDir(entries = [], options = {}) {
     const last = rootIndices.length
         ? recordOffsets[rootIndices[rootIndices.length - 1]]
         : 0;
-    dicomDict.dict["00041200"].Value = [first];
-    dicomDict.dict["00041202"].Value = [last];
+    dict["00041200"].Value = [first];
+    dict["00041202"].Value = [last];
 
-    return dicomDict.write(writeOptions);
+    return writePart10(meta, dict, writeOptions);
 }
 
 export {

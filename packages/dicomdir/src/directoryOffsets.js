@@ -1,4 +1,4 @@
-// src/media/directoryOffsets.js
+// packages/dicomdir/src/directoryOffsets.js
 //
 // Byte-offset computation for DICOMDIR directory records.
 //
@@ -9,7 +9,7 @@
 // therefore yields the exact offsets of the final file, and the file is
 // written once with the real values filled in.
 //
-// Layout being measured (mirrors DicomDict.write):
+// Layout being measured (mirrors the Part 10 envelope in dicomdir.js):
 //   128-byte preamble + "DICM"
 //   FileMetaInformationGroupLength element
 //   meta group (Explicit VR Little Endian)
@@ -22,34 +22,33 @@
 // A directory-record offset points at the FFFE,E000 item tag of that record,
 // counted from byte 0 of the file (PS3.10 8.6).
 
-import { WriteBufferStream } from "../BufferStream.js";
-import { DicomMessage } from "../DicomMessage.js";
-import { EXPLICIT_LITTLE_ENDIAN, TagHex } from "../constants/dicom.js";
+import {
+    WriteBufferStream,
+    writeDataSet,
+    writeTagObject,
+    EXPLICIT_LITTLE_ENDIAN,
+    TagHex
+} from "@dcmjs-org/core";
 
 const DIRECTORY_RECORD_SEQUENCE = "00041220";
 
 const ITEM_HEADER_BYTES = 8; // FFFE,E000 + 4-byte undefined length
 const ITEM_DELIMITER_BYTES = 8; // FFFE,E00D + 4-byte zero length
 
-/** Bytes DicomMessage.write produces for one tag-keyed object. */
+/** Bytes writeDataSet produces for one tag-keyed object. */
 function measure(jsonObject, writeOptions) {
     const stream = new WriteBufferStream(1024);
-    DicomMessage.write(
-        jsonObject,
-        stream,
-        EXPLICIT_LITTLE_ENDIAN,
-        writeOptions
-    );
+    writeDataSet(jsonObject, stream, EXPLICIT_LITTLE_ENDIAN, writeOptions);
     return stream.size;
 }
 
 /**
  * Compute the absolute byte offset of every directory record item in the
- * file `dicomDict.write(writeOptions)` will produce. Call with the offsets
+ * file the Part 10 envelope write will produce. Call with the offsets
  * still zero; patch the returned values in, then write — the layout is
  * guaranteed identical because offsets are fixed-width.
  *
- * @param {import("../DicomDict.js").DicomDict} dicomDict - denaturalized
+ * @param {{ meta: Object, dict: Object }} dicomDict - denaturalized
  *   DICOMDIR ({ meta, dict }) whose dict contains (0004,1220)
  * @param {Object} writeOptions - the SAME object later passed to write()
  * @returns {number[]} byte offset of each record's item tag, in item order
@@ -63,7 +62,7 @@ export function computeDirectoryOffsets(dicomDict, writeOptions) {
     // element size is value-independent, but measuring keeps zero assumptions.
     const metaSize = measure(dicomDict.meta, writeOptions);
     const groupLengthStream = new WriteBufferStream(64);
-    DicomMessage.writeTagObject(
+    writeTagObject(
         groupLengthStream,
         TagHex.FileMetaInformationGroupLength,
         "UL",

@@ -1,21 +1,20 @@
-// test/dicomdir.test.js
+// packages/dicomdir/test/dicomdir.test.js
 //
 // DICOMDIR builder: record hierarchy, and — the critical property — real
 // byte offsets. Ground truth is the written buffer itself: every nonzero
 // offset value must land exactly on an FFFE,E000 item tag, and walking the
 // next/lower chains must visit every record once in hierarchy order.
 
-import dcmjs from "../src/index.js";
-import { validationLog } from "../src/log.js";
-
-validationLog.setLevel(5);
-
-const { DicomMessage, DicomMetaDictionary } = dcmjs.data;
-const {
-    buildDicomDirDataset,
+import { DicomMetaDictionary, validationLog } from "@dcmjs-org/core";
+// The legacy eager reader is the readback oracle only — a devDependency of
+// this package's tests, never a runtime import of its src/.
+import { DicomMessage } from "@dcmjs-org/legacy";
+import {
     writeDicomDir,
     MEDIA_STORAGE_DIRECTORY_SOP_CLASS_UID
-} = dcmjs.media;
+} from "../src/index.js";
+
+validationLog.setLevel(5);
 
 const MR_SOP_CLASS = "1.2.840.10008.5.1.4.1.1.4";
 const ELE = "1.2.840.10008.1.2.1";
@@ -58,9 +57,12 @@ function expectItemTagAt(bytes, offset) {
 describe("record hierarchy", () => {
     test("one entry yields PATIENT/STUDY/SERIES/IMAGE", () => {
         const { dataset } = readDicomDir(writeDicomDir([entry()]));
-        expect(
-            recordsOf(dataset).map(r => r.DirectoryRecordType)
-        ).toEqual(["PATIENT", "STUDY", "SERIES", "IMAGE"]);
+        expect(recordsOf(dataset).map(r => r.DirectoryRecordType)).toEqual([
+            "PATIENT",
+            "STUDY",
+            "SERIES",
+            "IMAGE"
+        ]);
     });
 
     test("two entries in one series share the branch", () => {
@@ -74,9 +76,13 @@ describe("record hierarchy", () => {
                 })
             ])
         );
-        expect(
-            recordsOf(dataset).map(r => r.DirectoryRecordType)
-        ).toEqual(["PATIENT", "STUDY", "SERIES", "IMAGE", "IMAGE"]);
+        expect(recordsOf(dataset).map(r => r.DirectoryRecordType)).toEqual([
+            "PATIENT",
+            "STUDY",
+            "SERIES",
+            "IMAGE",
+            "IMAGE"
+        ]);
     });
 
     test("two patients chain as siblings", () => {
@@ -200,9 +206,7 @@ describe("offsets are real byte positions", () => {
         expect(records[0].OffsetOfTheNextDirectoryRecord).toBe(last);
         // Last sibling terminates its chain.
         const lastPatient = records.find(
-            (r, i) =>
-                r.DirectoryRecordType === "PATIENT" &&
-                i > 0
+            (r, i) => r.DirectoryRecordType === "PATIENT" && i > 0
         );
         expect(lastPatient.OffsetOfTheNextDirectoryRecord).toBe(0);
     });
