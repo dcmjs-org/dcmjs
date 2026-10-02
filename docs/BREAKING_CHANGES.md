@@ -1,9 +1,9 @@
-# Intentional behavior changes in 1.0
+# Breaking changes in 1.0
 
 dcmjs 1.0 changes a small number of behaviors on purpose. Each change in
 this file moves the library closer to the DICOM standard, and each was
-evaluated during the review of the 1.0 rewrite (the PR #512 review map)
-with the same verdict: keep the new behavior, document it, and give
+evaluated during the review of the 1.0 rewrite with the same verdict:
+keep the new behavior, document it, and give
 anyone who depended on the old behavior a way forward. These are not
 regressions to be fixed — reverting any of them would reintroduce
 non-conformant output.
@@ -11,7 +11,7 @@ non-conformant output.
 Each entry states what changed, which part of the standard governs it,
 and what to do if your code relied on the old behavior.
 
-## `uid()` generates UUID-derived UIDs (review finding 33)
+## `uid()` generates UUID-derived UIDs
 
 **What changed.** A UID is the permanent globally-unique identifier that
 DICOM assigns to studies, series, and images — once an archive stores
@@ -39,7 +39,7 @@ the fact. There is deliberately no opt-out: an option to generate
 invalid identifiers helps nobody. The UUID-derivation contract is pinned
 by `test/issues/issue61-uuid-uids.test.js` (issue #61).
 
-## Private creators live only in elements 0x0010–0x00FF (review finding 26)
+## Private creators live only in elements 0x0010–0x00FF
 
 **What changed.** Vendors store private data in odd-numbered DICOM
 groups, and claim a block of such a group by writing a *private creator*
@@ -64,7 +64,7 @@ re-decode those bytes downstream, for example in an event-stream
 listener. Pinned by `test/issues/issue356-private-creator-range.test.js`
 (issue #356).
 
-## `cleanTags` empties the attributes it always claimed to (review finding 2)
+## Fix anonymizer keywords so `cleanTags()` empties previously skipped attributes
 
 **What changed.** The anonymizer's default `tagNamesToEmpty` list
 carried 103 entries that did not match any dictionary keyword, so
