@@ -5,7 +5,9 @@
 // compressed stream can travel into encapsulated PixelData verbatim.
 // buildImageDataset turns already-decoded pixels into a conformant image
 // instance, and the encapsulated module wraps an MP4's H.264 stream into a
-// Video Photographic Image instance (and recovers it byte-identically). The
-// video event source lands in the last slice of this package.
+// Video Photographic Image instance (and recovers it byte-identically).
+// createVideoEventSource is the streaming path: MP4 → contract events, one
+// fragment in memory at a time, for any event-stream sink.
 export * from "./image/index.js";
 export * from "./encapsulated/index.js";
+export { createVideoEventSource } from "./eventStream/fromVideo.js";
