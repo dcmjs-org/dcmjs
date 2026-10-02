@@ -84,9 +84,9 @@ describe("geometry always wins", () => {
     });
 
     test("geometry keyword override throws", () => {
-        expect(() =>
-            buildImageDataset(grayPixels(), { Rows: 8 })
-        ).toThrow(/comes from the decoded image/);
+        expect(() => buildImageDataset(grayPixels(), { Rows: 8 })).toThrow(
+            /comes from the decoded image/
+        );
     });
 });
 
@@ -287,5 +287,72 @@ describe("derived-instance conformance", () => {
             SOPInstanceUID: "2.25.42"
         });
         expect(dataset.SOPInstanceUID).toBe("2.25.42");
+    });
+});
+
+describe("encapsulated multi-frame (finding 10)", () => {
+    const JPEG_BASELINE_TS = "1.2.840.10008.1.2.4.50";
+    const frame = new Uint8Array([1, 2, 3, 4]);
+
+    // Review finding 10: numberOfFrames came only from
+    // decodedImage.numberOfFrames || 1 and the attribute was written only
+    // when above 1 — three encapsulated fragments produced an instance
+    // with no NumberOfFrames, so a conformant reader showed frame 1 and
+    // frames 2 and 3 were unreachable.
+    test("NumberOfFrames defaults to frames.length (finding 10)", () => {
+        const dataset = buildImageDataset(
+            { rows: 4, columns: 4 },
+            {
+                encapsulated: {
+                    transferSyntaxUID: JPEG_BASELINE_TS,
+                    frames: [frame, frame, frame]
+                }
+            }
+        );
+        expect(dataset.NumberOfFrames).toBe(3);
+        expect(dataset.PixelData).toHaveLength(3);
+    });
+
+    // The reverse shape also passed unchecked: an explicit frame count
+    // over a different number of fragments emitted the bogus claim.
+    test("explicit numberOfFrames over a different fragment count throws (finding 10)", () => {
+        expect(() =>
+            buildImageDataset(
+                { rows: 4, columns: 4, numberOfFrames: 7 },
+                {
+                    encapsulated: {
+                        transferSyntaxUID: JPEG_BASELINE_TS,
+                        frames: [frame, frame]
+                    }
+                }
+            )
+        ).toThrow(/does not match/);
+    });
+
+    test("a matching explicit count is accepted", () => {
+        const dataset = buildImageDataset(
+            { rows: 4, columns: 4, numberOfFrames: 2 },
+            {
+                encapsulated: {
+                    transferSyntaxUID: JPEG_BASELINE_TS,
+                    frames: [frame, frame]
+                }
+            }
+        );
+        expect(dataset.NumberOfFrames).toBe(2);
+    });
+
+    test("a single encapsulated frame still omits NumberOfFrames", () => {
+        const dataset = buildImageDataset(
+            { rows: 4, columns: 4 },
+            {
+                encapsulated: {
+                    transferSyntaxUID: JPEG_BASELINE_TS,
+                    frames: [frame]
+                }
+            }
+        );
+        expect(dataset.NumberOfFrames).toBeUndefined();
+        expect(dataset.PixelData).toHaveLength(1);
     });
 });

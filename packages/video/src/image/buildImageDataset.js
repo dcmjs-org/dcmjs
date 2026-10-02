@@ -185,7 +185,25 @@ function resolveGeometry(decodedImage, encapsulated) {
         decodedImage.highBit === undefined
             ? bitsStored - 1
             : decodedImage.highBit;
-    const numberOfFrames = decodedImage.numberOfFrames || 1;
+    // In encapsulated mode the fragment list is the ground truth for the
+    // frame count: default to frames.length, and reject an explicit claim
+    // that disagrees — an instance whose NumberOfFrames does not match its
+    // fragments hides frames from conformant readers (review finding 10).
+    let numberOfFrames = decodedImage.numberOfFrames;
+    if (encapsulated && Array.isArray(encapsulated.frames)) {
+        const frameCount = encapsulated.frames.length;
+        if (numberOfFrames === undefined) {
+            numberOfFrames = frameCount || 1;
+        } else if (numberOfFrames !== frameCount) {
+            throw new Error(
+                `buildImageDataset: decodedImage.numberOfFrames ` +
+                    `(${numberOfFrames}) does not match ` +
+                    `options.encapsulated.frames.length (${frameCount})`
+            );
+        }
+    } else {
+        numberOfFrames = numberOfFrames || 1;
+    }
 
     if (!encapsulated) {
         const expected =
