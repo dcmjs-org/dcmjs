@@ -127,7 +127,11 @@ importers:
         specifier: 2.1.0
         version: 2.1.0
 
-  packages/fhir: {}
+  packages/fhir:
+    devDependencies:
+      '@dcmjs-org/parser':
+        specifier: workspace:*
+        version: link:../parser
 
   packages/fixtures: {}
 

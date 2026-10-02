@@ -8,5 +8,8 @@
         "type": "git",
         "url": "git+https://github.com/dcmjs-org/dcmjs.git",
         "directory": "packages/fhir"
+    },
+    "devDependencies": {
+        "@dcmjs-org/parser": "workspace:*"
     }
 }
