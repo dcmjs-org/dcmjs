@@ -271,6 +271,16 @@ export async function parseMp4Info(input) {
     const stts = findBox(moov, stbl.offset + 8, stblEnd, "stts");
     if (!numberOfFrames && stts) {
         const entryCount = u32(moov, stts.offset + 12);
+        // Each stts entry is 8 bytes after the 16-byte fixed part. A raw
+        // entry_count beyond the box's own size is malformed: walking it
+        // would read zero-coerced garbage past the box and block the thread
+        // for seconds at large counts (review finding 15).
+        if (16 + entryCount * 8 > stts.size) {
+            throw new Error(
+                `parseMp4Info: malformed stts box — entry_count ${entryCount} ` +
+                    `does not fit in a ${stts.size}-byte box`
+            );
+        }
         for (let i = 0; i < entryCount; i++) {
             numberOfFrames += u32(moov, stts.offset + 16 + i * 8);
         }

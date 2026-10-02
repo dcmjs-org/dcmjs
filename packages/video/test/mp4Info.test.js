@@ -75,6 +75,44 @@ describe("parseMp4Info", () => {
         expect(hevc.transferSyntaxUID).toBeNull();
         expect(hevc.profileIdc).toBeNull();
     });
+
+    // Review finding 15: the stts fallback loop trusted the raw uint32
+    // entry_count. With stsz sample_count 0 and stts entry_count 0x00FFFFFF
+    // the unfixed parser spun 16.7 million iterations and fabricated
+    // numberOfFrames/frameRate from whatever moov bytes followed the box
+    // (at 0xFFFFFFFF, ~40 seconds of blocked thread). The entry count must
+    // be bounded by the stts box's own size, and the mismatch must throw.
+    it("throws fast on an stts entry_count beyond the box size (finding 15)", async () => {
+        const mp4 = makeTinyMp4();
+        const find4cc = cc => {
+            const target = Array.from(cc, c => c.charCodeAt(0));
+            for (let i = 0; i + 4 <= mp4.length; i++) {
+                if (
+                    mp4[i] === target[0] &&
+                    mp4[i + 1] === target[1] &&
+                    mp4[i + 2] === target[2] &&
+                    mp4[i + 3] === target[3]
+                ) {
+                    return i - 4; // box offset (fourCC sits at offset + 4)
+                }
+            }
+            throw new Error(`no ${cc} box in the synthesized MP4`);
+        };
+        const writeU32 = (offset, value) => {
+            mp4[offset] = (value >>> 24) & 0xff;
+            mp4[offset + 1] = (value >>> 16) & 0xff;
+            mp4[offset + 2] = (value >>> 8) & 0xff;
+            mp4[offset + 3] = value & 0xff;
+        };
+        // stsz: header(8) + version/flags(4) + sample_size(4) → sample_count
+        writeU32(find4cc("stsz") + 16, 0);
+        // stts: header(8) + version/flags(4) → entry_count
+        writeU32(find4cc("stts") + 12, 0x00ffffff);
+
+        const started = Date.now();
+        await expect(parseMp4Info(mp4)).rejects.toThrow(/stts/);
+        expect(Date.now() - started).toBeLessThan(2000);
+    });
 });
 
 describe("h264TransferSyntaxUID", () => {
