@@ -47,6 +47,13 @@ export const unencapsulatedTransferSyntaxes = {
     [EXPLICIT_LITTLE_ENDIAN]: true
 };
 
+// Relocated from DicomMessage.isEncapsulated (which now delegates here) so
+// Tag.write resolves it over the table above instead of through the
+// late-binding DicomMessage slot.
+export function isEncapsulatedSyntax(syntax) {
+    return !unencapsulatedTransferSyntaxes[syntax];
+}
+
 /**
  * Video transfer syntax UIDs (MPEG2, H.264, H.265)
  * These transfer syntaxes treat the entire pixel data stream as a single frame

@@ -37,6 +37,11 @@ export {
 } from "./charset/iso2022.js";
 export { createDecoder, createLatin1Decoder } from "./charset/latin1.js";
 export { normalizeSyntax } from "./core/normalizeSyntax.js";
+export {
+    writeDataSet,
+    writeTagObject,
+    getTagWriteValues
+} from "./core/writeCore.js";
 export { toFloat } from "./utilities/toFloat.js";
 export { toInt } from "./utilities/toInt.js";
 export { deepEqual } from "./utilities/deepEqual.js";

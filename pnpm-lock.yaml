@@ -129,6 +129,18 @@ importers:
 
   packages/fixtures: {}
 
+  packages/generator:
+    dependencies:
+      '@dcmjs/core':
+        specifier: workspace:*
+        version: link:../core
+      '@dcmjs/legacy':
+        specifier: workspace:*
+        version: link:../legacy
+      '@dcmjs/parser':
+        specifier: workspace:*
+        version: link:../parser
+
   packages/legacy:
     dependencies:
       '@dcmjs/core':
