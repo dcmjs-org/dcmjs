@@ -138,6 +138,15 @@ importers:
         specifier: 2.1.0
         version: 2.1.0
 
+  packages/parser:
+    dependencies:
+      '@dcmjs/core':
+        specifier: workspace:*
+        version: link:../core
+      pako:
+        specifier: 2.1.0
+        version: 2.1.0
+
 packages:
 
   '@aashutoshrathi/word-wrap@1.2.6':
