@@ -1,11 +1,23 @@
-// src/image/index.js — the header-inspection half of the image module.
-// buildImageDataset joins these exports in the next slice of this package.
+// src/image/index.js — the image module: header inspection plus the
+// dataset builder for already-decoded pixels.
+import {
+    buildImageDataset,
+    SECONDARY_CAPTURE_SOP_CLASS_UID
+} from "./buildImageDataset.js";
 import { parseJpegInfo } from "./jpegInfo.js";
 import { parseMp4Info, h264TransferSyntaxUID } from "./mp4Info.js";
 
-export { parseJpegInfo, parseMp4Info, h264TransferSyntaxUID };
+export {
+    buildImageDataset,
+    SECONDARY_CAPTURE_SOP_CLASS_UID,
+    parseJpegInfo,
+    parseMp4Info,
+    h264TransferSyntaxUID
+};
 
 export default {
+    buildImageDataset,
+    SECONDARY_CAPTURE_SOP_CLASS_UID,
     parseJpegInfo,
     parseMp4Info,
     h264TransferSyntaxUID
