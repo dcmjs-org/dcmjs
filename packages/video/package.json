@@ -10,6 +10,10 @@
         "directory": "packages/video"
     },
     "dependencies": {
-        "@dcmjs-org/core": "workspace:*"
+        "@dcmjs-org/core": "workspace:*",
+        "@dcmjs-org/parser": "workspace:*"
+    },
+    "devDependencies": {
+        "@dcmjs-org/generator": "workspace:*"
     }
 }
