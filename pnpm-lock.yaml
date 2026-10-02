@@ -160,6 +160,18 @@ importers:
         specifier: 2.1.0
         version: 2.1.0
 
+  packages/media:
+    dependencies:
+      '@dcmjs-org/dicomdir':
+        specifier: workspace:*
+        version: link:../dicomdir
+      '@dcmjs-org/pdfs':
+        specifier: workspace:*
+        version: link:../pdfs
+      '@dcmjs-org/video':
+        specifier: workspace:*
+        version: link:../video
+
   packages/parser:
     dependencies:
       '@dcmjs-org/core':
