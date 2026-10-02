@@ -13,10 +13,10 @@ also get a 0.52.x hotfix PR.
 
 | # | Sev | Finding | Status | Applies to master |
 |---|-----|---------|--------|-------------------|
-| 2 | HIGH | cleanTags empties whole diagnostic sequences | **Improvement, keep** — documentation pre-landed in docs/INTENTIONAL_CHANGES.md (#562) incl. the opt-in filter recipe; the corrected 103-name list itself still ports with the anonymizer wave | Yes (behavior differs; documented) |
+| 2 | HIGH | cleanTags empties whole diagnostic sequences | **Improvement, keep** — documentation pre-landed in docs/BREAKING_CHANGES.md (#562) incl. the opt-in filter recipe; the corrected 103-name list itself still ports with the anonymizer wave | Yes (behavior differs; documented) |
 | 12 | MED | Feed loop keeps buffering after parse failure | **Fixed on v2** (backpressure throttle + K5b test) | No |
-| 26 | MED | Private creator in reserved range reads as UN | **Done in #559** — range ported per PS3.5 7.8.1, issue356 suite unskipped, catalog green, documented in docs/INTENTIONAL_CHANGES.md | No (master accepts 0x0001+; documented as intentional difference) |
-| 33 | MED | uid() format change | **Done in #562** — the branch still had the old uid(), so the v2 RFC 4122 generator was ported (not doc-only), issue61 suite unskipped, documented in docs/INTENTIONAL_CHANGES.md | No (master's 44-char format was non-compliant) |
+| 26 | MED | Private creator in reserved range reads as UN | **Done in #559** — range ported per PS3.5 7.8.1, issue356 suite unskipped, catalog green, documented in docs/BREAKING_CHANGES.md | No (master accepts 0x0001+; documented as intentional difference) |
+| 33 | MED | uid() format change | **Done in #562** — the branch still had the old uid(), so the v2 RFC 4122 generator was ported (not doc-only), issue61 suite unskipped, documented in docs/BREAKING_CHANGES.md | No (master's 44-char format was non-compliant) |
 
 ## Retired by the lazy-core removal
 
