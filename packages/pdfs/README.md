@@ -10,7 +10,11 @@ both directions of the PACS workflow where PDFs travel inside DICOM:
   document into an existing study.
 - `extractEncapsulatedPdf(dataset)` — recover the PDF bytes, MIME type, and
   document title from a parsed (naturalized) Encapsulated PDF instance,
-  byte-identical to the originally encapsulated document.
+  byte-identical to the originally encapsulated document. The builder
+  records `EncapsulatedDocumentLength (0042,0015)`, so extraction slices to
+  the exact declared length; for files written without it, a single trailing
+  NUL on an even-length payload is trimmed heuristically as the writer's
+  odd-length pad byte.
 
 This is a de novo builder, deliberately not a derivation — derivations copy
 patient/study context from a referenced source instance; an encapsulated PDF

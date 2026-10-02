@@ -237,3 +237,63 @@ it("extractEncapsulatedPdf rejects a non-encapsulated instance", async () => {
         /[Ee]ncapsulated/
     );
 });
+
+// Review finding 16: the pad-trim heuristic strips a real zero byte. The
+// Part 10 writer pads only an odd-length OB value, so an even stored length
+// means no pad byte exists — but extraction cannot tell the two cases apart
+// from the length alone. EncapsulatedDocumentLength (0042,0015) carries the
+// exact original length; the writer records it, and extraction slices to it,
+// keeping the heuristic only for files written without the element.
+describe("review finding 16 — even-length payload ending in a zero byte", () => {
+    // 10 bytes, even length, genuinely ending 0x00: "%PDF-1.4" + 0x07 0x00.
+    const EVEN_ZERO_TAIL = new Uint8Array([
+        0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x34, 0x07, 0x00
+    ]);
+
+    it("encapsulatePdf records EncapsulatedDocumentLength", () => {
+        expect(
+            encapsulatePdf(EVEN_ZERO_TAIL).EncapsulatedDocumentLength
+        ).toEqual(10);
+        expect(encapsulatePdf(PDF_BYTES).EncapsulatedDocumentLength).toEqual(
+            PDF_BYTES.byteLength
+        );
+    });
+
+    it("a 10-byte payload ending 0x00 round-trips byte-exact", async () => {
+        expect(EVEN_ZERO_TAIL.byteLength % 2).toEqual(0);
+        const dataset = encapsulatePdf(EVEN_ZERO_TAIL);
+        const listener = await readNaturalized(await writePart10(dataset));
+
+        const extracted = extractEncapsulatedPdf(listener.result);
+        expect(extracted.bytes.byteLength).toEqual(10);
+        expect(Array.from(extracted.bytes)).toEqual(Array.from(EVEN_ZERO_TAIL));
+    });
+
+    it("an odd-length payload still recovers exactly via the declared length", async () => {
+        const dataset = encapsulatePdf(PDF_BYTES);
+        const listener = await readNaturalized(await writePart10(dataset));
+
+        // The stored OB value carries the writer's NUL pad...
+        expect(rawPayloadBytes(listener.result).byteLength).toEqual(
+            PDF_BYTES.byteLength + 1
+        );
+        // ...and the declared length slices it back off exactly.
+        expect(listener.result.EncapsulatedDocumentLength).toEqual(
+            PDF_BYTES.byteLength
+        );
+        const extracted = extractEncapsulatedPdf(listener.result);
+        expect(extracted.bytes.byteLength).toEqual(PDF_BYTES.byteLength);
+        expect(bytesToString(extracted.bytes)).toEqual(PDF_STRING);
+    });
+
+    it("falls back to the odd-pad heuristic when the length element is absent", async () => {
+        const dataset = encapsulatePdf(PDF_BYTES);
+        delete dataset.EncapsulatedDocumentLength; // a file written before 0042,0015
+        const listener = await readNaturalized(await writePart10(dataset));
+
+        expect(listener.result.EncapsulatedDocumentLength).toBeUndefined();
+        const extracted = extractEncapsulatedPdf(listener.result);
+        expect(extracted.bytes.byteLength).toEqual(PDF_BYTES.byteLength);
+        expect(bytesToString(extracted.bytes)).toEqual(PDF_STRING);
+    });
+});
