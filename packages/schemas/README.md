@@ -1,4 +1,4 @@
-# @dcmjs/schemas
+# @dcmjs-org/schemas
 
 The machine-readable catalog of DICOM attributes: for each standard
 attribute, its keyword, value representation, and value multiplicity,

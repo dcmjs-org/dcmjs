@@ -1,4 +1,4 @@
-# @dcmjs/fixtures
+# @dcmjs-org/fixtures
 
 The DICOM files the dcmjs test suites read. This package is private and never
 published. Every file in it must have a row in the repository's
