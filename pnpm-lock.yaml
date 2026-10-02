@@ -127,6 +127,16 @@ importers:
         specifier: 2.1.0
         version: 2.1.0
 
+  packages/dicomdir:
+    dependencies:
+      '@dcmjs-org/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@dcmjs-org/legacy':
+        specifier: workspace:*
+        version: link:../legacy
+
   packages/fixtures: {}
 
   packages/generator:
