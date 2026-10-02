@@ -19,10 +19,10 @@ import {
     writeDataSet,
     writeTagObject,
     getTagWriteValues
-} from "@dcmjs/core";
+} from "@dcmjs-org/core";
 import { DicomDict } from "./DicomDict.js";
 
-// Relocated to @dcmjs/core (constants/dicom.js); re-exported here because it
+// Relocated to @dcmjs-org/core (constants/dicom.js); re-exported here because it
 // has always lived on this module's surface.
 export { singleVRs };
 
@@ -147,13 +147,13 @@ export class DicomMessage {
         }
     }
 
-    // Relocated to @dcmjs/core (core/normalizeSyntax.js, which already held
+    // Relocated to @dcmjs-org/core (core/normalizeSyntax.js, which already held
     // the extracted copy); kept as a delegating static surface.
     static _normalizeSyntax(syntax) {
         return normalizeSyntax(syntax);
     }
 
-    // Relocated to @dcmjs/core (constants/dicom.js, next to the syntax
+    // Relocated to @dcmjs-org/core (constants/dicom.js, next to the syntax
     // table it reads); kept as a delegating static surface.
     static isEncapsulated(syntax) {
         return isEncapsulatedSyntax(syntax);
@@ -314,19 +314,19 @@ export class DicomMessage {
         return dicomDict;
     }
 
-    // Relocated to @dcmjs/core (core/writeCore.js); kept as a delegating
+    // Relocated to @dcmjs-org/core (core/writeCore.js); kept as a delegating
     // static surface.
     static writeTagObject(stream, tagString, vr, values, syntax, writeOptions) {
         writeTagObject(stream, tagString, vr, values, syntax, writeOptions);
     }
 
-    // Relocated to @dcmjs/core as writeDataSet (core/writeCore.js); kept
+    // Relocated to @dcmjs-org/core as writeDataSet (core/writeCore.js); kept
     // as a delegating static surface.
     static write(jsonObjects, useStream, syntax, writeOptions) {
         return writeDataSet(jsonObjects, useStream, syntax, writeOptions);
     }
 
-    // Relocated to @dcmjs/core as getTagWriteValues (core/writeCore.js);
+    // Relocated to @dcmjs-org/core as getTagWriteValues (core/writeCore.js);
     // kept as a delegating static surface.
     static _getTagWriteValues(vrType, tagObject) {
         return getTagWriteValues(vrType, tagObject);
@@ -479,7 +479,7 @@ export class DicomMessage {
         return retObj;
     }
 
-    // Relocated to DicomMetaDictionary.lookupTag in @dcmjs/core; kept as a
+    // Relocated to DicomMetaDictionary.lookupTag in @dcmjs-org/core; kept as a
     // delegating static because it has always lived on this class's surface.
     static lookupTag(tag) {
         return DicomMetaDictionary.lookupTag(tag);

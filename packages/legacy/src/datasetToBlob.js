@@ -1,4 +1,4 @@
-import { DicomMetaDictionary } from "@dcmjs/core";
+import { DicomMetaDictionary } from "@dcmjs-org/core";
 import { DicomDict } from "./DicomDict.js";
 
 function datasetToDict(dataset) {

@@ -1,5 +1,5 @@
 {
-    "name": "@dcmjs/core",
+    "name": "@dcmjs-org/core",
     "version": "0.0.0",
     "private": true,
     "description": "The shared building blocks every other dcmjs package uses: the DICOM value types, tags, buffer views, character-set handling, constants, and the runtime dictionary. No readers or writers live here",

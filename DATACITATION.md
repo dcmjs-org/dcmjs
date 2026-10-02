@@ -43,6 +43,6 @@ synthetic replacement instead.
 The committed files in `packages/fixtures/dicom/` predate this document;
 their exact origins are still being traced. Tracing them (or replacing any that cannot
 be traced with synthetic equivalents) is part of the planned
-`@dcmjs/fixtures` work — see RELEASE_PLAN.md, section 6, step 2. Until a
+`@dcmjs-org/fixtures` work — see RELEASE_PLAN.md, section 6, step 2. Until a
 file's row is complete, treat it as usable in tests here but not safe to
 redistribute elsewhere.

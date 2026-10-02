@@ -87,7 +87,7 @@ describe("fromPart10 — explicit little endian scalars", () => {
  * (el.hadUndefinedLength, not SQ, not encapsulated pixel data) that
  * previously caused fromPart10 to throw HARD and delegate the whole file.
  *
- * The items deliberately have zero-length data so that @dcmjs/parser's
+ * The items deliberately have zero-length data so that @dcmjs-org/parser's
  * parseDicom call SUCCEEDS (parseDicomDataSetImplicit with maxPosition ==
  * currentPosition never iterates, avoiding the buffer-overrun that a 4-byte
  * implicit truncation would cause).  That lets the control flow reach

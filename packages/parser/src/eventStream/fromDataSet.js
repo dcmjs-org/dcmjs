@@ -3,7 +3,7 @@
  *
  * Walks a parsed dcmjs dataset (a `{ meta, dict }` shape — e.g. the DicomDict
  * returned by `DicomMessage.readFile`, produced by the lazy core over
- * `@dcmjs/parser`) and pushes the event-stream contract to a listener. It
+ * `@dcmjs-org/parser`) and pushes the event-stream contract to a listener. It
  * reuses the lazy core's already-decoded values rather than re-decoding raw
  * offsets, which keeps slice A decoupled from the Part 10 byte parser (that
  * production "bytes -> events" generator is slice B). This generator exercises

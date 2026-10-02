@@ -1,5 +1,5 @@
 {
-    "name": "@dcmjs/parser",
+    "name": "@dcmjs-org/parser",
     "version": "0.0.0",
     "private": true,
     "description": "The event-stream reading side of dcmjs: the listener contract and the generators that turn Part 10 bytes or streams, DICOMweb JSON, and parsed datasets into contract events",
@@ -11,7 +11,7 @@
         "directory": "packages/parser"
     },
     "dependencies": {
-        "@dcmjs/core": "workspace:*",
+        "@dcmjs-org/core": "workspace:*",
         "pako": "2.1.0"
     }
 }

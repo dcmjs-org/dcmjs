@@ -6,7 +6,7 @@ import { deepEqual } from "../utilities/deepEqual.js";
  * The dataset/element write primitives, relocated verbatim from
  * DicomMessage.write / writeTagObject / _getTagWriteValues (whose statics now
  * delegate here) so the streaming writer and the eager writer share one
- * implementation without the generator package importing @dcmjs/legacy.
+ * implementation without the generator package importing @dcmjs-org/legacy.
  *
  * Everything these functions touch is core's: Tag.write drives the element
  * encoding through ValueRepresentation, and deepEqual backs the

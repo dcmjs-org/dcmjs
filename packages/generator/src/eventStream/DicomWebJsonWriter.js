@@ -1,4 +1,4 @@
-import { EventStreamListener } from "@dcmjs/parser";
+import { EventStreamListener } from "@dcmjs-org/parser";
 
 /**
  * DicomWebJsonWriter — slice E1: an event-stream consumer that writes the
