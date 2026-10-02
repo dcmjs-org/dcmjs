@@ -118,6 +118,15 @@ importers:
         specifier: 0.6.2
         version: 0.6.2
 
+  packages/core:
+    dependencies:
+      loglevel:
+        specifier: 1.9.2
+        version: 1.9.2
+      pako:
+        specifier: 2.1.0
+        version: 2.1.0
+
   packages/fixtures: {}
 
 packages:
