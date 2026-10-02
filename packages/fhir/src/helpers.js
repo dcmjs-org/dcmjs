@@ -299,6 +299,13 @@ export function genderToSex(gender) {
  * Inverse of parsePersonName/personNameToHumanName: given[0] is the given
  * name, given[1] the middle; only the first prefix/suffix survive (PN has
  * one slot each). Trailing empty components are trimmed per PN convention.
+ *
+ * When the name carries no structured parts at all, `HumanName.text`
+ * (when present) survives as a single-component PN rather than returning
+ * null — a text-only name must not erase an existing PatientName under
+ * patientToDataset's deterministic overwrite (review finding 19). The
+ * text is used whole; guessing a "Family, Given" split from free text
+ * would fabricate structure the resource never asserted.
  * @returns {string|null} null when the name carries no usable parts
  */
 export function humanNameToPersonName(humanName) {
@@ -321,7 +328,11 @@ export function humanNameToPersonName(humanName) {
         components.pop();
     }
     const pn = components.join("^");
-    return pn.length > 0 ? pn : null;
+    if (pn.length > 0) {
+        return pn;
+    }
+    // No structured parts: fall back to the free-text form, if any.
+    return asString(humanName.text);
 }
 
 /**

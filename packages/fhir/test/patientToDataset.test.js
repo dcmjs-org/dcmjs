@@ -197,6 +197,32 @@ describe("inverse helpers", () => {
         expect(humanNameToPersonName(null)).toBe(null);
     });
 
+    // Regression for review finding 19: a HumanName carrying only `text`
+    // used to map to null, and patientToDataset's deterministic overwrite
+    // then erased the existing PatientName. Text-only names are common in
+    // real FHIR feeds, so `text` must survive as a single-component PN.
+    test("text-only HumanName falls back to text (finding 19)", () => {
+        expect(humanNameToPersonName({ text: "Jane Doe" })).toBe("Jane Doe");
+
+        const result = patientToDataset({
+            resourceType: "Patient",
+            name: [{ text: "Jane Doe" }],
+            gender: "female"
+        });
+        expect(result.PatientName).toBe("Jane Doe");
+        expect(result.PatientName).not.toBe("");
+    });
+
+    test("structured parts still win over text (finding 19)", () => {
+        expect(
+            humanNameToPersonName({
+                family: "FOX",
+                given: ["JANE"],
+                text: "Jane Fox"
+            })
+        ).toBe("FOX^JANE");
+    });
+
     test("isoDateToDicom accepts full dates and passthrough DA", () => {
         expect(isoDateToDicom("1980-04-15")).toBe("19800415");
         expect(isoDateToDicom("19800415")).toBe("19800415");
