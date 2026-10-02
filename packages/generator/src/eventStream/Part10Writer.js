@@ -1,5 +1,8 @@
-import { CollectorListener } from "./CollectorListener.js";
-import { DicomDict } from "../DicomDict.js";
+import { CollectorListener } from "@dcmjs/parser";
+// The one TEMPORARY @dcmjs/legacy edge in this package (see README): this
+// writer is by design a thin layer over the canonical DicomDict.write
+// encoder, and goes away with it.
+import { DicomDict } from "@dcmjs/legacy";
 
 /**
  * Part10Writer — slice E2: an event-stream sink that produces DICOM Part 10

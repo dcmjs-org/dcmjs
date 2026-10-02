@@ -1,12 +1,13 @@
-import { EventStreamListener } from "./EventStreamListener.js";
-import { DicomMessage } from "../DicomMessage.js";
-import { WriteBufferStream } from "../BufferStream.js";
+import { EventStreamListener } from "@dcmjs/parser";
 import {
+    WriteBufferStream,
     EXPLICIT_BIG_ENDIAN,
     EXPLICIT_LITTLE_ENDIAN,
     IMPLICIT_LITTLE_ENDIAN,
-    DEFLATED_EXPLICIT_LITTLE_ENDIAN
-} from "../constants/dicom.js";
+    DEFLATED_EXPLICIT_LITTLE_ENDIAN,
+    writeDataSet,
+    writeTagObject
+} from "@dcmjs/core";
 
 const FMI_GROUP_LENGTH = "00020000";
 const TRANSFER_SYNTAX_UID = "00020010";
@@ -113,7 +114,7 @@ export class StreamingPart10Writer extends EventStreamListener {
      * Writes an element header in the long (reserved + 32-bit length) form —
      * the only form needed for the headers this writer emits itself (SQ and
      * encapsulated OB/OW/UN); everything else goes through
-     * DicomMessage.writeTagObject.
+     * core's writeTagObject.
      * @private
      */
     _writeLongHeader(stream, tag, vr, length) {
@@ -159,14 +160,14 @@ export class StreamingPart10Writer extends EventStreamListener {
         // the one part of the file that cannot stream element-by-element.
         delete this._meta[FMI_GROUP_LENGTH];
         const metaStream = new WriteBufferStream(1024, true);
-        DicomMessage.write(
+        writeDataSet(
             this._meta,
             metaStream,
             EXPLICIT_LITTLE_ENDIAN,
             this._writeOptions
         );
         const out = new WriteBufferStream(1024 + 16, true);
-        DicomMessage.writeTagObject(
+        writeTagObject(
             out,
             FMI_GROUP_LENGTH,
             "UL",
@@ -200,7 +201,7 @@ export class StreamingPart10Writer extends EventStreamListener {
             return;
         }
         const stream = new WriteBufferStream(256, this._bodyLittleEndian);
-        DicomMessage.writeTagObject(
+        writeTagObject(
             stream,
             el.tag,
             el.vr,
