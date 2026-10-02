@@ -17,16 +17,14 @@ self-executing; each step arrives as its own pull request.
 
 ## 1. The idea, in plain terms
 
-Think of the 1.0 rewrite as a household move. PR #512 showed up with the
-entire house packed into one moving truck: 303 files, 144,000 added lines.
-The reviewers reasonably said they could not check the contents of a whole
-truck at once.
+PR #512 delivered the entire 1.0 rewrite at once: 303 files, 144,000 added
+lines. The reviewers reasonably said they could not review a change that
+large in one sitting.
 
-This plan unpacks the truck into labeled boxes (one per subsystem, published
-as separate packages), carries the boxes in one at a time through a staging
-area (one branch per box, made of small reviewable steps), and only moves a
-box into the house (the `1.0-beta` release branch) after someone has looked
-inside it and the automated checks have passed.
+This plan breaks that change into subsystems, each published as its own
+package. Each subsystem is rebuilt from small reviewable pull requests on
+its own staging branch, and merges into the `1.0-beta` release branch only
+after a maintainer has reviewed it and the automated checks have passed.
 
 The result is the same 1.0 release, but delivered in pieces a human can
 review, with each piece individually tested and documented.
@@ -165,10 +163,10 @@ tooling needs to see the individual conventional commits.
 themselves. They are never rebased: rebasing rewrites history that open PRs
 point at, which strands reviewers.
 
-## 6. The order of the boxes
+## 6. The landing order
 
-The packages land in dependency order — a box is not carried in before the
-boxes it stands on:
+The packages land in dependency order — a package does not merge before
+the packages it depends on:
 
 | Step | What lands                                                                                                                                                                                    | Why this position                                                                                                                                                                                       |
 | ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -249,6 +247,16 @@ The mechanics, for those who want them:
     The `prerelease: "beta"` entry is required, not decorative: the branch
     name itself is not a valid prerelease identifier, and without the entry
     the tool refuses to start.
+-   **The first release needs a breaking-change commit.** The last tag on
+    this lineage is `v0.52.0`, and semantic-release computes the next
+    version from the commit types since that tag: a `feat:` commit alone
+    yields `0.53.0-beta.1`, a `fix:` alone yields `0.52.1-beta.1`. For the
+    first beta to be `1.0.0-beta.1`, the release that triggers it must
+    include at least one commit with a `BREAKING CHANGE:` footer (or a
+    `feat!:` title). The first package merge into `1.0-beta` carries that
+    footer — which is also simply true: 1.0 is the major release. Before
+    flipping the publish switch, confirm the computed version with
+    `npx semantic-release --dry-run` on `1.0-beta`.
 
 Two points from review discussion, adopted here:
 
@@ -263,7 +271,12 @@ Two points from review discussion, adopted here:
     that wants to try 1.0 changes only its import label; every project
     that does nothing keeps getting 0.52 from npm exactly as before. The
     unscoped `dcmjs` name starts publishing 1.0 builds only when the team
-    decides it is ready.
+    decides it is ready. Until the wrapper package exists (step 7 of the
+    landing order), the repository's root `package.json` — which carries
+    the unscoped `dcmjs` name — is marked `"private": true` on this
+    lineage, so a recursive publish cannot ship the unscoped name by
+    accident. The wrapper PR removes that flag when it renames the root
+    surface to `@dcmjs/dcmjs`.
 
 ## 10. Finishing: general availability
 
@@ -277,6 +290,15 @@ a `release/0.5x` branch for critical fixes, a deprecation notice in the
 0.x README, an in-code warning shipped as 0.52.1, and `npm deprecate` on
 the pre-1.0 range. The stale npm dist-tags (`vNext`, `dev`) get cleaned up
 at the same time.
+
+One deliberate manual step: dist-tag management beyond the publish itself
+is not automated. The publish command tags each release with its channel
+(`beta` from `1.0-beta`, `latest` from `master`), but promoting an
+existing version to a different channel — and deleting the stale `vNext`
+and `dev` tags — is done by hand with `npm dist-tag`. The config's
+`npmPublish: false` means semantic-release's own `addChannel` step is a
+no-op; wiring an `addChannelCmd` is deferred until there is a real
+promotion to perform.
 
 ## 11. Deliberately deferred
 
@@ -321,7 +343,7 @@ Named here so their absence is a decision, not an oversight:
             "@semantic-release/exec",
             {
                 "prepareCmd": "node scripts/stamp-workspace-versions.mjs ${nextRelease.version}",
-                "publishCmd": "pnpm -r publish --tag beta --access public --no-git-checks"
+                "publishCmd": "pnpm -r publish --tag ${nextRelease.channel || 'latest'} --access public --no-git-checks"
             }
         ],
         "@semantic-release/github"
