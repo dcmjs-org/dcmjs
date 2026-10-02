@@ -128,6 +128,10 @@ importers:
         version: 2.1.0
 
   packages/fhir:
+    dependencies:
+      '@dcmjs-org/core':
+        specifier: workspace:*
+        version: link:../core
     devDependencies:
       '@dcmjs-org/parser':
         specifier: workspace:*

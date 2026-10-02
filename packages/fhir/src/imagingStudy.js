@@ -6,6 +6,8 @@
 // restatement of the Part 10 elements as FHIR-flavored JSON.
 // Based on the IHE Radiology Technical Framework (MADO) mapping.
 
+import { validationLog } from "@dcmjs-org/core";
+
 import {
     DICOM_UID_SYSTEM,
     asString,
@@ -22,13 +24,24 @@ function instanceFromDataset(dataset) {
         return null;
     }
 
+    // ImagingStudy.series.instance.sopClass is 1..1 in FHIR R4B. A dataset
+    // with no (0008,0016) used to fabricate the CT Image Storage UID here
+    // (review finding 17); skipping the instance keeps the resource valid
+    // without asserting an identity the bytes never carried.
+    const sopClassUrn = uidToUrn(dataset.SOPClassUID);
+    if (!sopClassUrn) {
+        validationLog.warn(
+            `@dcmjs-org/fhir: skipping instance ${sopInstanceUid} — ` +
+                "no SOPClassUID (instance.sopClass is required 1..1)"
+        );
+        return null;
+    }
+
     const instance = {
         uid: sopInstanceUid,
         sopClass: {
             system: "urn:ietf:rfc:3986",
-            code:
-                uidToUrn(dataset.SOPClassUID) ||
-                "urn:oid:1.2.840.10008.5.1.4.1.1.2"
+            code: sopClassUrn
         }
     };
 
@@ -52,7 +65,7 @@ function instanceFromDataset(dataset) {
 
 function seriesShellFromDataset(dataset) {
     const series = {
-        uid: asString(dataset.SeriesInstanceUID) || null,
+        uid: asString(dataset.SeriesInstanceUID),
         instance: []
     };
 
@@ -120,10 +133,25 @@ export function imagingStudyFromDatasets(datasets, options = {}) {
         return null;
     }
 
-    // Group instances by series
+    // Group instances by series. ImagingStudy.series.uid is 1..1 in FHIR
+    // R4B: a dataset with no (0020,000E) used to produce uid: null, and
+    // every such dataset merged under one "unknown" key (review finding
+    // 18). Those datasets are now skipped with a warning, consistent with
+    // the missing-SOPClassUID handling above.
     const seriesMap = new Map();
     list.forEach(dataset => {
-        const seriesUid = asString(dataset.SeriesInstanceUID) || "unknown";
+        const seriesUid = asString(dataset.SeriesInstanceUID);
+        if (!seriesUid) {
+            validationLog.warn(
+                "@dcmjs-org/fhir: skipping dataset " +
+                    `${
+                        asString(dataset.SOPInstanceUID) ||
+                        "<no SOPInstanceUID>"
+                    } — ` +
+                    "no SeriesInstanceUID (series.uid is required 1..1)"
+            );
+            return;
+        }
         if (!seriesMap.has(seriesUid)) {
             seriesMap.set(seriesUid, seriesShellFromDataset(dataset));
         }

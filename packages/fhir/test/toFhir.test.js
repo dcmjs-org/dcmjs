@@ -172,6 +172,57 @@ describe("@dcmjs-org/fhir sink", () => {
         expect(patient).toBeNull();
         expect(imagingStudy).toBeNull();
     });
+
+    // Regression for review finding 17: a dataset with no SOPClassUID used
+    // to fabricate the CT Image Storage UID (1.2.840.10008.5.1.4.1.1.2),
+    // asserting an unknown instance is a CT image. FHIR R4B makes
+    // instance.sopClass 1..1, so the instance is skipped with a warning
+    // instead of emitted with invented identity.
+    test("missing SOPClassUID skips the instance, never fabricates CT (finding 17)", () => {
+        const study = imagingStudyFromDatasets([
+            {
+                StudyInstanceUID: "1.2.3",
+                SeriesInstanceUID: "1.2.3.1",
+                SOPInstanceUID: "1.2.3.4"
+            }
+        ]);
+        const json = JSON.stringify(study);
+        expect(json).not.toContain("1.2.840.10008.5.1.4.1.1.2");
+        expect(study.numberOfInstances).toBe(0);
+        expect(study.series[0].instance).toBeUndefined();
+    });
+
+    // Regression for review finding 18: a dataset with no SeriesInstanceUID
+    // used to produce series.uid: null (invalid — ImagingStudy.series.uid is
+    // 1..1 in R4B), and every such dataset merged under one "unknown" key.
+    // Those datasets are now skipped with a warning, consistent with 17.
+    test("missing SeriesInstanceUID skips the dataset, no null-uid merge (finding 18)", () => {
+        const study = imagingStudyFromDatasets([
+            {
+                StudyInstanceUID: "1.2.3",
+                SeriesInstanceUID: "1.2.3.1",
+                SOPClassUID: "1.2.840.10008.5.1.4.1.1.4",
+                SOPInstanceUID: "1.2.3.4"
+            },
+            // Two datasets from genuinely different series, both without
+            // SeriesInstanceUID — these must not merge into one series.
+            {
+                StudyInstanceUID: "1.2.3",
+                SOPClassUID: "1.2.840.10008.5.1.4.1.1.4",
+                SOPInstanceUID: "1.2.3.5"
+            },
+            {
+                StudyInstanceUID: "1.2.3",
+                SOPClassUID: "1.2.840.10008.5.1.4.1.1.4",
+                SOPInstanceUID: "1.2.3.6"
+            }
+        ]);
+        expect(study.numberOfSeries).toBe(1);
+        expect(study.series).toHaveLength(1);
+        expect(study.series[0].uid).toBe("1.2.3.1");
+        expect(study.series.every(entry => entry.uid !== null)).toBe(true);
+        expect(study.numberOfInstances).toBe(1);
+    });
 });
 
 // The v2 suite ends with a "dcmjs.fhir umbrella namespace" block

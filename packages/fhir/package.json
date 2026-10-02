@@ -9,6 +9,9 @@
         "url": "git+https://github.com/dcmjs-org/dcmjs.git",
         "directory": "packages/fhir"
     },
+    "dependencies": {
+        "@dcmjs-org/core": "workspace:*"
+    },
     "devDependencies": {
         "@dcmjs-org/parser": "workspace:*"
     }
