@@ -1,5 +1,6 @@
-import { DeflatedReadBufferStream, ReadBufferStream } from "./BufferStream.js";
 import {
+    DeflatedReadBufferStream,
+    ReadBufferStream,
     DEFLATED_EXPLICIT_LITTLE_ENDIAN,
     EXPLICIT_BIG_ENDIAN,
     EXPLICIT_LITTLE_ENDIAN,
@@ -9,14 +10,14 @@ import {
     encodingMapping,
     unencapsulatedTransferSyntaxes,
     UNDEFINED_LENGTH,
-    VALID_VRS
-} from "./constants/dicom.js";
+    VALID_VRS,
+    DicomMetaDictionary,
+    Tag,
+    log,
+    deepEqual,
+    ValueRepresentation
+} from "@dcmjs/core";
 import { DicomDict } from "./DicomDict.js";
-import { DicomMetaDictionary } from "./DicomMetaDictionary.js";
-import { Tag } from "./Tag.js";
-import { log } from "./log.js";
-import { deepEqual } from "./utilities/deepEqual";
-import { ValueRepresentation } from "./ValueRepresentation.js";
 
 export const singleVRs = ["SQ", "OF", "OW", "OB", "UN", "LT"];
 

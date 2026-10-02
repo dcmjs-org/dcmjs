@@ -1,6 +1,6 @@
-import { ReadBufferStream } from "./BufferStream";
-import { ValueRepresentation } from "./ValueRepresentation";
 import {
+    ReadBufferStream,
+    ValueRepresentation,
     EXPLICIT_BIG_ENDIAN,
     EXPLICIT_LITTLE_ENDIAN,
     IMPLICIT_LITTLE_ENDIAN,
@@ -10,13 +10,13 @@ import {
     encodingMapping,
     UNDEFINED_LENGTH_FIX,
     VALID_VRS,
-    isVideoTransferSyntax
-} from "./constants/dicom";
-import { Tag } from "./Tag";
+    isVideoTransferSyntax,
+    Tag,
+    DicomMetaDictionary,
+    DicomMetadataListener,
+    log
+} from "@dcmjs/core";
 import { DicomMessage, singleVRs } from "./DicomMessage";
-import { DicomMetaDictionary } from "./DicomMetaDictionary";
-import { DicomMetadataListener } from "./utilities/DicomMetadataListener.js";
-import { log } from "./log.js";
 
 const readLog = log.getLogger("AsyncDicomReader");
 

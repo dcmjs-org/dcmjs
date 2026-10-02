@@ -1,11 +1,11 @@
 import pako from "pako";
-import { WriteBufferStream } from "./BufferStream";
-import { ValueRepresentation } from "./ValueRepresentation";
 import {
+    WriteBufferStream,
+    ValueRepresentation,
     DEFLATED_EXPLICIT_LITTLE_ENDIAN,
     EXPLICIT_LITTLE_ENDIAN,
     TagHex
-} from "./constants/dicom";
+} from "@dcmjs/core";
 
 let DicomMessage;
 
