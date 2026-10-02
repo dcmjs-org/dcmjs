@@ -63,7 +63,7 @@ function toWindows(inputArray, size) {
     );
 }
 
-let DicomMessage, Tag, DicomMetaDictionary;
+let DicomMessage, Tag, DicomMetaDictionary, writeDataSet;
 
 var binaryVRs = ["FL", "FD", "SL", "SS", "UL", "US", "AT", "UV"],
     length32VRs = ["OB", "OW", "OF", "SQ", "UC", "UR", "UT", "UN", "OD", "UV"],
@@ -103,6 +103,19 @@ class ValueRepresentation {
 
     static setDicomMetaDictionary(metaDictionary) {
         DicomMetaDictionary = metaDictionary;
+    }
+
+    /**
+     * The write-side counterpart of the DicomMessage seam, but wired by core
+     * itself: core/writeCore.js registers its writeDataSet here at module
+     * load (a module-level cycle between the two files trips CJS evaluation
+     * order, hence registration instead of an import). The sequence writer
+     * calls it for its items, so writing works with no eager engine loaded —
+     * which is what lets @dcmjs-org/dicomdir serialize a
+     * DirectoryRecordSequence without @dcmjs-org/legacy anywhere in sight.
+     */
+    static setWriteDataSet(writeDataSetFunction) {
+        writeDataSet = writeDataSetFunction;
     }
 
     static setTagClass(tagClass) {
@@ -1233,12 +1246,10 @@ class SequenceOfItems extends ValueRepresentation {
                 super.write(stream, "Uint16", 0xe000);
                 super.write(stream, "Uint32", 0xffffffff);
 
-                written += DicomMessage.write(
-                    item,
-                    stream,
-                    syntax,
-                    writeOptions
-                );
+                // Registered by core/writeCore.js at load; the eager engine's
+                // DicomMessage.write is a delegate to the same function, so
+                // this is the one item-serialization path either way.
+                written += writeDataSet(item, stream, syntax, writeOptions);
 
                 super.write(stream, "Uint16", 0xfffe);
                 super.write(stream, "Uint16", 0xe00d);
