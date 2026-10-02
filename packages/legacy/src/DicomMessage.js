@@ -2,21 +2,23 @@ import {
     DeflatedReadBufferStream,
     ReadBufferStream,
     DEFLATED_EXPLICIT_LITTLE_ENDIAN,
-    EXPLICIT_BIG_ENDIAN,
     EXPLICIT_LITTLE_ENDIAN,
     IMPLICIT_LITTLE_ENDIAN,
     VM_DELIMITER,
     TagHex,
     encodingMapping,
-    unencapsulatedTransferSyntaxes,
     UNDEFINED_LENGTH,
     VALID_VRS,
     DicomMetaDictionary,
     Tag,
     log,
-    deepEqual,
     ValueRepresentation,
-    singleVRs
+    singleVRs,
+    isEncapsulatedSyntax,
+    normalizeSyntax,
+    writeDataSet,
+    writeTagObject,
+    getTagWriteValues
 } from "@dcmjs/core";
 import { DicomDict } from "./DicomDict.js";
 
@@ -145,20 +147,16 @@ export class DicomMessage {
         }
     }
 
+    // Relocated to @dcmjs/core (core/normalizeSyntax.js, which already held
+    // the extracted copy); kept as a delegating static surface.
     static _normalizeSyntax(syntax) {
-        if (
-            syntax == IMPLICIT_LITTLE_ENDIAN ||
-            syntax == EXPLICIT_LITTLE_ENDIAN ||
-            syntax == EXPLICIT_BIG_ENDIAN
-        ) {
-            return syntax;
-        } else {
-            return EXPLICIT_LITTLE_ENDIAN;
-        }
+        return normalizeSyntax(syntax);
     }
 
+    // Relocated to @dcmjs/core (constants/dicom.js, next to the syntax
+    // table it reads); kept as a delegating static surface.
     static isEncapsulated(syntax) {
-        return !unencapsulatedTransferSyntaxes[syntax];
+        return isEncapsulatedSyntax(syntax);
     }
 
     /**
@@ -316,58 +314,22 @@ export class DicomMessage {
         return dicomDict;
     }
 
+    // Relocated to @dcmjs/core (core/writeCore.js); kept as a delegating
+    // static surface.
     static writeTagObject(stream, tagString, vr, values, syntax, writeOptions) {
-        var tag = Tag.fromString(tagString);
-
-        tag.write(stream, vr, values, syntax, writeOptions);
+        writeTagObject(stream, tagString, vr, values, syntax, writeOptions);
     }
 
+    // Relocated to @dcmjs/core as writeDataSet (core/writeCore.js); kept
+    // as a delegating static surface.
     static write(jsonObjects, useStream, syntax, writeOptions) {
-        var written = 0;
-
-        var sortedTags = Object.keys(jsonObjects).sort();
-        sortedTags.forEach(function (tagString) {
-            var tag = Tag.fromString(tagString),
-                tagObject = jsonObjects[tagString],
-                vrType = tagObject.vr;
-
-            var values = DicomMessage._getTagWriteValues(vrType, tagObject);
-
-            written += tag.write(
-                useStream,
-                vrType,
-                values,
-                syntax,
-                writeOptions
-            );
-        });
-
-        return written;
+        return writeDataSet(jsonObjects, useStream, syntax, writeOptions);
     }
 
+    // Relocated to @dcmjs/core as getTagWriteValues (core/writeCore.js);
+    // kept as a delegating static surface.
     static _getTagWriteValues(vrType, tagObject) {
-        if (!tagObject._rawValue) {
-            return tagObject.Value;
-        }
-
-        // apply VR specific formatting to the original _rawValue and compare to the Value
-        const vr = ValueRepresentation.createByTypeString(vrType);
-
-        let originalValue;
-        if (Array.isArray(tagObject._rawValue)) {
-            originalValue = tagObject._rawValue.map(val =>
-                vr.applyFormatting(val)
-            );
-        } else {
-            originalValue = vr.applyFormatting(tagObject._rawValue);
-        }
-
-        // if Value has not changed, write _rawValue unformatted back into the file
-        if (deepEqual(tagObject.Value, originalValue)) {
-            return tagObject._rawValue;
-        } else {
-            return tagObject.Value;
-        }
+        return getTagWriteValues(vrType, tagObject);
     }
 
     /**

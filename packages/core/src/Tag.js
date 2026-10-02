@@ -4,14 +4,20 @@ import {
     IMPLICIT_LITTLE_ENDIAN,
     SEQUENCE_DELIMITER_TAG,
     SEQUENCE_ITEM_TAG,
-    UNDEFINED_LENGTH
+    UNDEFINED_LENGTH,
+    isEncapsulatedSyntax
 } from "./constants/dicom";
+import { normalizeSyntax } from "./core/normalizeSyntax.js";
 import { ValueRepresentation } from "./ValueRepresentation.js";
 
 function paddingLeft(paddingValue, string) {
     return String(paddingValue + string).slice(-paddingValue.length);
 }
 
+// Kept for API compatibility: the wrapper index and legacy's DicomMessage
+// module still call setDicomMessageClass, but Tag's two former uses of the
+// slot (_normalizeSyntax, isEncapsulated) now resolve through core helpers.
+// eslint-disable-next-line no-unused-vars
 let DicomMessage;
 
 class Tag {
@@ -137,14 +143,14 @@ class Tag {
 
     write(stream, vrType, values, syntax, writeOptions) {
         const vr = ValueRepresentation.createByTypeString(vrType);
-        const useSyntax = DicomMessage._normalizeSyntax(syntax);
+        const useSyntax = normalizeSyntax(syntax);
 
         const implicit = useSyntax === IMPLICIT_LITTLE_ENDIAN;
         const isLittleEndian =
             useSyntax === IMPLICIT_LITTLE_ENDIAN ||
             useSyntax === EXPLICIT_LITTLE_ENDIAN;
         const isEncapsulated =
-            this.isPixelDataTag() && DicomMessage.isEncapsulated(syntax);
+            this.isPixelDataTag() && isEncapsulatedSyntax(syntax);
 
         const oldEndian = stream.isLittleEndian;
         stream.setEndian(isLittleEndian);
