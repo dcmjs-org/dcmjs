@@ -12,7 +12,7 @@
             "@semantic-release/exec",
             {
                 "prepareCmd": "node scripts/stamp-workspace-versions.mjs ${nextRelease.version}",
-                "publishCmd": "pnpm -r publish --tag beta --access public --no-git-checks"
+                "publishCmd": "pnpm -r publish --tag ${nextRelease.channel || 'latest'} --access public --no-git-checks"
             }
         ],
         "@semantic-release/github"
