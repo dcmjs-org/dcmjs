@@ -177,6 +177,82 @@ describe("documentReferenceFromDataset", () => {
             PDF_STRING
         );
     });
+
+    // Regression for review finding 8: the event-stream naturalizer wraps
+    // binary elements with no decoded Value as { InlineBinary } (base64
+    // string, ArrayBuffer, or view). payloadBytes never unwrapped that
+    // shape — new Uint8Array(<plain object>) is empty — so every
+    // naturalized encapsulated document silently mapped to
+    // { size: 0, data: "" }.
+    test("unwraps { InlineBinary } base64 byte-exactly (finding 8)", () => {
+        const base64 = Buffer.from(PDF_BYTES).toString("base64");
+        const dataset = buildPdfDataset({
+            EncapsulatedDocument: { InlineBinary: base64 }
+        });
+        const documentReference = documentReferenceFromDataset(dataset);
+        const attachment = documentReference.content[0].attachment;
+        expect(attachment.size).toBe(PDF_BYTES.byteLength);
+        expect(new Uint8Array(Buffer.from(attachment.data, "base64"))).toEqual(
+            PDF_BYTES
+        );
+    });
+
+    test("unwraps { InlineBinary } ArrayBuffer and view shapes (finding 8)", () => {
+        for (const inline of [
+            toArrayBuffer(PDF_BYTES),
+            new Uint8Array(toArrayBuffer(PDF_BYTES))
+        ]) {
+            const dataset = buildPdfDataset({
+                EncapsulatedDocument: { InlineBinary: inline }
+            });
+            const attachment =
+                documentReferenceFromDataset(dataset).content[0].attachment;
+            expect(attachment.size).toBe(PDF_BYTES.byteLength);
+            expect(
+                new Uint8Array(Buffer.from(attachment.data, "base64"))
+            ).toEqual(PDF_BYTES);
+        }
+    });
+
+    // Regression for review finding 16: the Part 10 writer pads only
+    // odd-length OB values, so an even stored length has no pad byte —
+    // but the heuristic trimmed a trailing 0x00 anyway, corrupting any
+    // even-length payload that genuinely ends in a zero byte (ordinary
+    // for STL/OBJ/CDA/octet-stream). EncapsulatedDocumentLength
+    // (0042,0015) carries the exact length and must win when present.
+    test("EncapsulatedDocumentLength preserves a real trailing zero (finding 16)", () => {
+        const payload = new Uint8Array([
+            0x53, 0x54, 0x4c, 0x20, 0x62, 0x69, 0x6e, 0x61, 0x72, 0x00
+        ]); // 10 bytes, even, ends in a real 0x00
+        const dataset = buildPdfDataset({
+            MIMETypeOfEncapsulatedDocument: "model/stl",
+            EncapsulatedDocument: toArrayBuffer(payload),
+            EncapsulatedDocumentLength: 10
+        });
+        const attachment =
+            documentReferenceFromDataset(dataset).content[0].attachment;
+        expect(attachment.size).toBe(10);
+        expect(new Uint8Array(Buffer.from(attachment.data, "base64"))).toEqual(
+            payload
+        );
+    });
+
+    test("EncapsulatedDocumentLength trims the pad the writer added (finding 16)", () => {
+        // 9 content bytes padded to 10 on write; (0042,0015) says 9.
+        const padded = new Uint8Array([
+            0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x34, 0x00, 0x00
+        ]);
+        const dataset = buildPdfDataset({
+            EncapsulatedDocument: toArrayBuffer(padded),
+            EncapsulatedDocumentLength: 9
+        });
+        const attachment =
+            documentReferenceFromDataset(dataset).content[0].attachment;
+        expect(attachment.size).toBe(9);
+        expect(new Uint8Array(Buffer.from(attachment.data, "base64"))).toEqual(
+            padded.subarray(0, 9)
+        );
+    });
 });
 
 describe("toFhir / toBundle integration", () => {
