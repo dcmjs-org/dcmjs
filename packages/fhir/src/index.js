@@ -19,15 +19,8 @@ import {
     imagingStudyFromDataset,
     imagingStudyFromDatasets
 } from "./imagingStudy.js";
+import { documentReferenceFromDataset } from "./documentReference.js";
 import { assertSupportedFhirVersion } from "./helpers.js";
-
-// The DocumentReference mapper lands in the next slice; until then every
-// dataset maps through the ImagingStudy path. This placeholder keeps
-// toFhir/toBundle verbatim from v2, so the slice-three diff is only the
-// import swap plus the re-export. The fromFhir event-stream source and
-// the dcmjs facade methods are a later slice still — they depend on the
-// pdfs and video waves.
-const documentReferenceFromDataset = () => null;
 
 export * from "./helpers.js";
 export { patientFromDataset } from "./patient.js";
@@ -36,6 +29,7 @@ export {
     imagingStudyFromDataset,
     imagingStudyFromDatasets
 } from "./imagingStudy.js";
+export { documentReferenceFromDataset } from "./documentReference.js";
 
 /**
  * Map one naturalized dataset to its FHIR resources.

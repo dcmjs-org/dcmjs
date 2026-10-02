@@ -13,6 +13,7 @@
         "@dcmjs-org/core": "workspace:*"
     },
     "devDependencies": {
+        "@dcmjs-org/legacy": "workspace:*",
         "@dcmjs-org/parser": "workspace:*"
     }
 }

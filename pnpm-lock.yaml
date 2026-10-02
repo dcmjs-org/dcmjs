@@ -133,6 +133,9 @@ importers:
         specifier: workspace:*
         version: link:../core
     devDependencies:
+      '@dcmjs-org/legacy':
+        specifier: workspace:*
+        version: link:../legacy
       '@dcmjs-org/parser':
         specifier: workspace:*
         version: link:../parser
