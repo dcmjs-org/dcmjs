@@ -31,6 +31,13 @@ export const PN_COMPONENT_DELIMITER = 0x3d;
 export const SEQUENCE_ITEM_TAG = 0xfffee000;
 export const SEQUENCE_DELIMITER_TAG = 0xfffee0dd;
 
+// VR types whose read value is kept single (never VM-split on backslashes).
+// The canonical list every element-shaping path shares — relocated from
+// DicomMessage so the streaming decode core does not need the legacy reader
+// for it. (ValueRepresentation keeps a private, narrower list of the same
+// name for its multiplicity flag; this one additionally carries LT.)
+export const singleVRs = ["SQ", "OF", "OW", "OB", "UN", "LT"];
+
 // Nearly all transfer syntaxes are encapsulated, so record those which are
 // unencapsulated as the exceptions.
 export const unencapsulatedTransferSyntaxes = {

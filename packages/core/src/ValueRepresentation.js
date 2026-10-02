@@ -88,6 +88,19 @@ class ValueRepresentation {
         DicomMessage = dicomMessageClass;
     }
 
+    /**
+     * The other side of the late-binding seam: the eager-reader class, when
+     * one has been wired (loading @dcmjs/legacy's DicomMessage module, or
+     * the dcmjs wrapper, does so). The streaming reader's narrow
+     * eager-delegation fallbacks resolve it here at call time instead of
+     * importing @dcmjs/legacy, so the parser package carries no static edge
+     * to the deprecable sync engines. Undefined when no eager reader is
+     * loaded; callers own the error message for that case.
+     */
+    static getDicomMessageClass() {
+        return DicomMessage;
+    }
+
     static setDicomMetaDictionary(metaDictionary) {
         DicomMetaDictionary = metaDictionary;
     }
