@@ -15,7 +15,7 @@ import {
     DicomMetaDictionary,
     DicomMetadataListener,
     log
-} from "@dcmjs/core";
+} from "@dcmjs-org/core";
 import { DicomMessage, singleVRs } from "./DicomMessage";
 
 const readLog = log.getLogger("AsyncDicomReader");

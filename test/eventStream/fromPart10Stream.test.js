@@ -544,7 +544,7 @@ describe("fromPart10Stream — K2: no-group-length FMI fixture", () => {
 //
 // A byte array that is neither a valid Part 10 file (no DICM marker, no 0002
 // group) nor a parseable raw DICOM dataset must fail with an error of the
-// same class as buffered fromPart10.  Exact message parity with @dcmjs/parser
+// same class as buffered fromPart10.  Exact message parity with @dcmjs-org/parser
 // is not required (documented delta: early detection in fromPart10Stream may
 // produce a different message; see task-K2-report.md).
 // ---------------------------------------------------------------------------

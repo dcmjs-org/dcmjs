@@ -131,19 +131,19 @@ importers:
 
   packages/generator:
     dependencies:
-      '@dcmjs/core':
+      '@dcmjs-org/core':
         specifier: workspace:*
         version: link:../core
-      '@dcmjs/legacy':
+      '@dcmjs-org/legacy':
         specifier: workspace:*
         version: link:../legacy
-      '@dcmjs/parser':
+      '@dcmjs-org/parser':
         specifier: workspace:*
         version: link:../parser
 
   packages/legacy:
     dependencies:
-      '@dcmjs/core':
+      '@dcmjs-org/core':
         specifier: workspace:*
         version: link:../core
       pako:
@@ -152,7 +152,7 @@ importers:
 
   packages/parser:
     dependencies:
-      '@dcmjs/core':
+      '@dcmjs-org/core':
         specifier: workspace:*
         version: link:../core
       pako:

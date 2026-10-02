@@ -1,4 +1,4 @@
-import { EventStreamListener } from "@dcmjs/parser";
+import { EventStreamListener } from "@dcmjs-org/parser";
 import {
     WriteBufferStream,
     EXPLICIT_BIG_ENDIAN,
@@ -7,7 +7,7 @@ import {
     DEFLATED_EXPLICIT_LITTLE_ENDIAN,
     writeDataSet,
     writeTagObject
-} from "@dcmjs/core";
+} from "@dcmjs-org/core";
 
 const FMI_GROUP_LENGTH = "00020000";
 const TRANSFER_SYNTAX_UID = "00020010";

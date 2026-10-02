@@ -22,7 +22,7 @@ const { DicomMessage, DicomDict } = dcmjs.data;
  *   - the v2 "both cores" re-read (eager + lazy) becomes this branch's two
  *     read paths: eager `DicomMessage.readFile` and the streaming
  *     `fromPart10Stream` (which inflates incrementally via pako);
- *   - the v2 `@dcmjs/parser` / published dicom-parser cross-checks are
+ *   - the v2 `@dcmjs-org/parser` / published dicom-parser cross-checks are
  *     replaced by the independent test/issues/part10Walker.js, which parses
  *     the uncompressed meta group without any dcmjs read code.
  *

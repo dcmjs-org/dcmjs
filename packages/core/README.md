@@ -1,4 +1,4 @@
-# @dcmjs/core
+# @dcmjs-org/core
 
 The shared building blocks every other dcmjs package uses: the DICOM value
 types (`ValueRepresentation`), tags (`Tag`), buffer machinery (`BufferStream`,

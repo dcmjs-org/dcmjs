@@ -8,7 +8,7 @@ import {
     addAccessors,
     dicomJson,
     log
-} from "@dcmjs/core";
+} from "@dcmjs-org/core";
 
 /**
  * NaturalizedListener — slice D1: the core naturalized value model.

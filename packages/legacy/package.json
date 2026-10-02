@@ -1,5 +1,5 @@
 {
-    "name": "@dcmjs/legacy",
+    "name": "@dcmjs-org/legacy",
     "version": "0.0.0",
     "private": true,
     "description": "The engines dcmjs users run today: the eager whole-file reader and writer, and the async reader. They keep working unchanged, so current projects keep their behavior",
@@ -11,7 +11,7 @@
         "directory": "packages/legacy"
     },
     "dependencies": {
-        "@dcmjs/core": "workspace:*",
+        "@dcmjs-org/core": "workspace:*",
         "pako": "2.1.0"
     }
 }

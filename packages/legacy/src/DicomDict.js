@@ -5,7 +5,7 @@ import {
     DEFLATED_EXPLICIT_LITTLE_ENDIAN,
     EXPLICIT_LITTLE_ENDIAN,
     TagHex
-} from "@dcmjs/core";
+} from "@dcmjs-org/core";
 
 let DicomMessage;
 

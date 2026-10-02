@@ -1,7 +1,7 @@
-// The public surface of @dcmjs/parser: the event-stream contract and the
+// The public surface of @dcmjs-org/parser: the event-stream contract and the
 // reading side of the engine — every generator that turns an input into
 // contract events, and the listeners that collect or naturalize them. The
-// writer sinks live in @dcmjs/generator; the DicomEventStream facade that
+// writer sinks live in @dcmjs-org/generator; the DicomEventStream facade that
 // spans both sides stays with the dcmjs wrapper.
 export {
     EventStreamListener,

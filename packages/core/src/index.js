@@ -1,4 +1,4 @@
-// The public surface of @dcmjs/core.
+// The public surface of @dcmjs-org/core.
 //
 // The packed dictionary data modules (dicom.packed.js,
 // dictionary.private.data.js, dictionary.ranges.data.js) are deliberately

@@ -8,12 +8,12 @@ import {
     DicomMetaDictionary,
     Tag,
     ValueRepresentation
-} from "@dcmjs/core";
+} from "@dcmjs-org/core";
 
 /**
  * The narrow eager-delegation seam: the eager reader class, resolved at call
  * time through core's late-binding slot instead of a static import, so this
- * package carries no edge to @dcmjs/legacy. Loading legacy's DicomMessage
+ * package carries no edge to @dcmjs-org/legacy. Loading legacy's DicomMessage
  * module (directly, via any old src/ path, or via the dcmjs wrapper) wires
  * the slot; without it the one caller below fails with a clear error.
  */
@@ -22,7 +22,7 @@ export function requireEagerReader(caller) {
     if (!DicomMessage) {
         throw new Error(
             `${caller}: this input shape delegates to the eager reader, ` +
-                "which is not loaded; import @dcmjs/legacy (or the dcmjs " +
+                "which is not loaded; import @dcmjs-org/legacy (or the dcmjs " +
                 "wrapper) before parsing it"
         );
     }
@@ -153,7 +153,7 @@ export function isParsedUnknownVr(vrInstance) {
  * `_rawValue: [undefined]` for non-raw-storing VRs like UN/OF/OD - a quirk
  * the lazy core must reproduce).
  *
- * Uses the canonical singleVRs exported from @dcmjs/core (includes LT).
+ * Uses the canonical singleVRs exported from @dcmjs-org/core (includes LT).
  * Arg order is (vr, rawValue, value) — same as the source.
  */
 export function shapeReadValues(vr, rawValue, value) {

@@ -33,7 +33,7 @@ import {
     DEFLATED_EXPLICIT_LITTLE_ENDIAN,
     normalizeSyntax,
     ValueRepresentation
-} from "@dcmjs/core";
+} from "@dcmjs-org/core";
 import { emitValues, emitDecodedLeaf } from "./emit.js";
 import { fromDataSet } from "./fromDataSet.js";
 import {
@@ -223,7 +223,7 @@ async function fromPart10StreamImpl(input, listener, options, parseState) {
         // resulting dict is replayed as events through fromDataSet. The
         // eager reader is resolved through core's late-binding seam at call
         // time (see decodeCore.requireEagerReader) so this package carries
-        // no static edge to @dcmjs/legacy; every old src/ import path and
+        // no static edge to @dcmjs-org/legacy; every old src/ import path and
         // the dcmjs wrapper wire the seam automatically.
         if (options.allowMissingHeader || options.ignoreErrors) {
             const DicomMessage = requireEagerReader(
