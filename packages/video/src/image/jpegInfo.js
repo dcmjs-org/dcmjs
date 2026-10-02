@@ -46,6 +46,15 @@ export function parseJpegInfo(bytes) {
             marker !== 0xc8 &&
             marker !== 0xcc;
         if (isSof) {
+            // The six SOF fields span bytes[offset+4 .. offset+9], and the
+            // declared segment must fit inside the input. Out-of-range reads
+            // coerce to 0 in the bitwise math below, so a truncated JPEG
+            // would silently return wrong geometry (review finding 9).
+            if (length < 8 || offset + 2 + length > bytes.length) {
+                throw new Error(
+                    "parseJpegInfo: truncated SOF segment — the frame header does not fit in the input"
+                );
+            }
             const p = offset + 4;
             const info = {
                 sofMarker: marker,
