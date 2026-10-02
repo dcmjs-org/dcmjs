@@ -75,3 +75,9 @@ export function writeDataSet(jsonObjects, useStream, syntax, writeOptions) {
 
     return written;
 }
+
+// Wire the sequence writer's item callback (ValueRepresentation's
+// SequenceOfItems serializes each item through writeDataSet). Registration
+// rather than an import in ValueRepresentation.js keeps the two files free
+// of a module-level cycle; see setWriteDataSet for the seam's contract.
+ValueRepresentation.setWriteDataSet(writeDataSet);
