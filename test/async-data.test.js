@@ -5,7 +5,11 @@ import {
     IMPLICIT_LITTLE_ENDIAN,
     UNDEFINED_LENGTH
 } from "../src/constants/dicom";
-import { getTestDataset } from "./testUtils.js";
+import {
+    fixturePath,
+    getTestDataset,
+    readFileAsArrayBuffer
+} from "./testUtils.js";
 import { videoTestMeta, videoTestDict } from "./video-test-dict.js";
 import { oddFrameBitData } from "./odd-frame-bit-data.js";
 import {
@@ -25,7 +29,7 @@ DicomDict.setDicomMessageClass(DicomMessage);
 
 describe("AsyncDicomReader", () => {
     test("DICOM part 10 complete listener uncompressed", async () => {
-        const buffer = fs.readFileSync("test/sample-dicom.dcm");
+        const buffer = fs.readFileSync(fixturePath("sample-dicom.dcm"));
         const reader = new AsyncDicomReader();
         const listener = new DicomMetadataListener();
 
@@ -43,7 +47,7 @@ describe("AsyncDicomReader", () => {
         // Don't use such a small chunk size in production, but doing it
         // here stresses the buffer stream read, and so does using an odd
         // prime
-        const stream = fs.createReadStream("test/sample-dicom.dcm", {
+        const stream = fs.createReadStream(fixturePath("sample-dicom.dcm"), {
             highWaterMark: 37
         });
         const reader = new AsyncDicomReader();
@@ -73,7 +77,7 @@ describe("AsyncDicomReader", () => {
     test("async reader listen test compressed", async () => {
         const reader = new AsyncDicomReader();
 
-        const stream = fs.createReadStream("test/sample-op.dcm", {
+        const stream = fs.createReadStream(fixturePath("sample-op.dcm"), {
             highWaterMark: 256
         });
         reader.stream.fromAsyncStream(stream);
@@ -566,7 +570,7 @@ describe("AsyncDicomReader", () => {
 
         // First, read the file with DicomMessage to identify which private tags exist
         // and determine their order relative to PixelData
-        const syncDict = DicomMessage.readFile(fs.readFileSync(dcmPath).buffer);
+        const syncDict = DicomMessage.readFile(readFileAsArrayBuffer(dcmPath));
 
         // Get all tags in order (approximate - dict keys may not preserve exact order)
         const { dict } = syncDict;

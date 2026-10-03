@@ -1,0 +1,19 @@
+{
+    "name": "@dcmjs-org/video",
+    "version": "0.0.0",
+    "description": "Video and image encapsulation for dcmjs: MP4/JPEG header inspection without decoding, image dataset construction from decoded pixels, and MP4-to-DICOM video wrapping",
+    "main": "./src/index.js",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/dcmjs-org/dcmjs.git",
+        "directory": "packages/video"
+    },
+    "dependencies": {
+        "@dcmjs-org/core": "workspace:*",
+        "@dcmjs-org/parser": "workspace:*"
+    },
+    "devDependencies": {
+        "@dcmjs-org/generator": "workspace:*"
+    }
+}

@@ -1,5 +1,5 @@
 {
-    "name": "dcmjs",
+    "name": "@dcmjs-org/dcmjs",
     "version": "0.49.2",
     "description": "Javascript implementation of DICOM manipulation",
     "main": "build/dcmjs.js",
@@ -32,12 +32,13 @@
         "build:examples": "pnpm run build && pnpm exec cpy \"build/**/*.js\" \"build/**/*.map\" examples/js --flat",
         "start": "rollup -c -w",
         "dev": "rollup -c -w",
-        "format": "prettier --write \"src/**/*.js\" \"test/**/*.js\"",
-        "format:check": "prettier --check \"src/**/*.js\" \"test/**/*.js\"",
-        "lint": "eslint --fix \"src/**/*.js\" \"test/**/*.js\"",
+        "format": "prettier --write \"src/**/*.js\" \"test/**/*.js\" \"packages/*/src/**/*.js\"",
+        "format:check": "prettier --check \"src/**/*.js\" \"test/**/*.js\" \"packages/*/src/**/*.js\"",
+        "lint": "eslint --fix \"src/**/*.js\" \"test/**/*.js\" \"packages/*/src/**/*.js\"",
         "generate-dictionary": "node generate/generate-dictionary.js",
         "pack-dictionary": "node generate/pack_dicom.mjs",
-        "bench:dictionary": "bun run generate/bench-dictionary-load.mjs"
+        "bench:dictionary": "bun run generate/bench-dictionary-load.mjs",
+        "bench": "node bench/run.mjs"
     },
     "repository": {
         "type": "git",
@@ -77,23 +78,20 @@
     },
     "dependencies": {
         "@babel/runtime-corejs3": "7.29.2",
+        "@dcmjs-org/core": "workspace:*",
+        "@dcmjs-org/dicomdir": "workspace:*",
+        "@dcmjs-org/fhir": "workspace:*",
+        "@dcmjs-org/generator": "workspace:*",
+        "@dcmjs-org/media": "workspace:*",
+        "@dcmjs-org/parser": "workspace:*",
+        "@dcmjs-org/pdfs": "workspace:*",
+        "@dcmjs-org/video": "workspace:*",
         "adm-zip": "0.5.17",
         "gl-matrix": "3.4.4",
         "lodash.clonedeep": "4.5.0",
         "loglevel": "1.9.2",
         "ndarray": "1.0.19",
         "pako": "2.1.0"
-    },
-    "pnpm": {
-        "overrides": {
-            "@babel/traverse": "7.28.6",
-            "semver": "6.3.1",
-            "lodash": "4.18.1",
-            "serialize-javascript": "7.0.3",
-            "flatted": "3.4.2",
-            "picomatch": "2.3.2",
-            "minimatch": "3.1.5"
-        }
     },
     "lint-staged": {
         "src/**/*.{js,jsx,json,css}": [
