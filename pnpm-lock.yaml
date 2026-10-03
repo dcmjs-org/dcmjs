@@ -26,6 +26,15 @@ importers:
       '@babel/runtime-corejs3':
         specifier: 7.29.2
         version: 7.29.2
+      '@dcmjs-org/core':
+        specifier: workspace:*
+        version: link:packages/core
+      '@dcmjs-org/fhir':
+        specifier: workspace:*
+        version: link:packages/fhir
+      '@dcmjs-org/parser':
+        specifier: workspace:*
+        version: link:packages/parser
       '@dcmjs-org/pdfs':
         specifier: workspace:*
         version: link:packages/pdfs
