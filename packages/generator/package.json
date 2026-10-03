@@ -11,7 +11,6 @@
     },
     "dependencies": {
         "@dcmjs-org/core": "workspace:*",
-        "@dcmjs-org/legacy": "workspace:*",
         "@dcmjs-org/parser": "workspace:*"
     }
 }
