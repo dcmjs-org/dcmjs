@@ -7,6 +7,13 @@ import { fromPart10Stream } from "./fromPart10Stream.js";
 import { fromDicomWebJson } from "./fromDicomWebJson.js";
 import { fromDataSet } from "./fromDataSet.js";
 import { createEventAsyncIterable } from "./asyncIterator.js";
+import { datasetToDict } from "../datasetToBlob.js";
+import { encapsulatePdf, extractEncapsulatedPdf } from "@dcmjs-org/pdfs";
+import {
+    buildImageDataset,
+    createVideoEventSource,
+    extractEncapsulatedVideo
+} from "@dcmjs-org/video";
 
 /**
  * The recommended public source/sink API (spec §32) — thin, ergonomic wrappers
@@ -20,10 +27,10 @@ import { createEventAsyncIterable } from "./asyncIterator.js";
  * source can drive multiple sinks. Explicit listener usage remains available via
  * `events.process(listener)`.
  *
- * Core scope: the byte, dataset, and DICOMweb JSON sources and sinks. The
- * media factories (fromImage, fromPdf, fromVideo, fromVideoStream, toPdf,
- * toVideo) and the FHIR pair (fromFhir, toFhir) land with the media and FHIR
- * waves respectively.
+ * Scope: the byte, dataset, and DICOMweb JSON sources and sinks (the core
+ * wave), plus the media factories (fromImage, fromPdf, fromVideo,
+ * fromVideoStream, toPdf, toVideo — this wave). The FHIR pair (fromFhir,
+ * toFhir) lands with the FHIR wave.
  */
 export class DicomEventStream {
     /**
@@ -102,6 +109,97 @@ export class DicomEventStream {
     }
 
     /**
+     * An already-decoded image source: builds a full instance dataset via
+     * image/buildImageDataset (geometry from the pixels, context from
+     * options.metadata / keyword overrides, derived-instance conformance),
+     * then streams it. The dataset is built eagerly so minted UIDs are
+     * stable across re-runs of the same stream.
+     *
+     * @param {Object} decodedImage - { pixels, rows, columns, ... }
+     * @param {Object} [options] - buildImageDataset options
+     * @returns {DicomEventStream}
+     */
+    static fromImage(decodedImage, options = {}) {
+        const dataset = buildImageDataset(decodedImage, options);
+        const dicomDict = datasetToDict(dataset);
+        if (options.encapsulated && dicomDict.dict["7FE00010"]) {
+            // fromDataSet reads this flag to emit startBinary({encapsulated:true})
+            dicomDict.dict["7FE00010"].encapsulatedPixelData = true;
+        }
+        return new DicomEventStream(listener =>
+            fromDataSet(dicomDict, listener)
+        );
+    }
+
+    /**
+     * A PDF source: wraps the bytes into an Encapsulated PDF instance
+     * (encapsulatePdf) and streams it. Options are the encapsulatePdf
+     * naturalized keyword overrides (PatientName, DocumentTitle,
+     * StudyInstanceUID, ...).
+     *
+     * @param {ArrayBuffer|Uint8Array} pdfBytes
+     * @param {Object} [options]
+     * @returns {DicomEventStream}
+     */
+    static fromPdf(pdfBytes, options = {}) {
+        const dicomDict = datasetToDict(encapsulatePdf(pdfBytes, options));
+        return new DicomEventStream(listener =>
+            fromDataSet(dicomDict, listener)
+        );
+    }
+
+    /**
+     * An MP4 video source, buffered (mirrors fromPdf): the H.264 stream is
+     * carried verbatim as encapsulated PixelData in a Video Photographic
+     * Image instance (Supplement 225) — geometry, frame count, and frame
+     * rate are read from the MP4's moov metadata; no pixels are decoded.
+     * The source is created lazily on the first consumption and cached,
+     * so minted UIDs stay stable across re-runs AND a bad input cannot
+     * raise an unhandled rejection before the caller drives the stream
+     * (review finding 14) — the parse error surfaces from .process() or
+     * whichever sink runs first. Unsupported codecs (anything but H.264
+     * Baseline/Main/High up to Level 4.2) throw a corrective error naming
+     * the transcode.
+     *
+     * @param {ArrayBuffer|Uint8Array} mp4Bytes
+     * @param {Object} [options] - buildVideoDataset overrides (PatientName,
+     *   StudyInstanceUID, ...) + { fragmentBytes }
+     * @returns {DicomEventStream}
+     */
+    static fromVideo(mp4Bytes, options = {}) {
+        let sourcePromise = null;
+        return new DicomEventStream(async listener => {
+            if (!sourcePromise) {
+                sourcePromise = createVideoEventSource(mp4Bytes, options);
+            }
+            return (await sourcePromise).run(listener);
+        });
+    }
+
+    /**
+     * The streaming form of fromVideo, for MP4s too large to buffer: the
+     * caller supplies a random-access reader and fragments are read one at
+     * a time, so peak memory is one fragment regardless of file size. Pair
+     * with StreamingPart10Writer for a bounded-memory MP4 → Part 10 write.
+     * Lazy like fromVideo: the reader is not touched until the first
+     * consumption (finding 14).
+     *
+     * @param {{size: number, read: (offset: number, length: number) =>
+     *   Promise<Uint8Array>}} reader
+     * @param {Object} [options] - as fromVideo
+     * @returns {DicomEventStream}
+     */
+    static fromVideoStream(reader, options = {}) {
+        let sourcePromise = null;
+        return new DicomEventStream(async listener => {
+            if (!sourcePromise) {
+                sourcePromise = createVideoEventSource(reader, options);
+            }
+            return (await sourcePromise).run(listener);
+        });
+    }
+
+    /**
      * Auto-detecting source factory: an ArrayBuffer/typed array is treated as
      * Part 10 bytes; an object with a `dict` (or `meta`) is a parsed dataset;
      * any other object is the DICOM JSON model.
@@ -152,6 +250,28 @@ export class DicomEventStream {
         const collector = new CollectorListener();
         await this._run(collector);
         return collector.result;
+    }
+
+    /**
+     * Extract the embedded PDF from an Encapsulated PDF instance:
+     * { bytes, mimeType, title }. Throws (naming the expected SOP class)
+     * when the stream is not an Encapsulated PDF instance.
+     */
+    async toPdf() {
+        return extractEncapsulatedPdf(await this.toNaturalized());
+    }
+
+    /**
+     * Recover the verbatim video stream from an encapsulated video
+     * instance: { bytes, transferSyntaxUID, declaredLength }. Fragments
+     * are concatenated and truncated to the declared (7FE0,0003) total
+     * length, so the result is byte-identical to the originally
+     * encapsulated MP4. Buffered — for multi-GB instances stream the
+     * fragments instead. Throws a corrective error when the stream is
+     * not a video instance.
+     */
+    async toVideo() {
+        return extractEncapsulatedVideo(await this.toNaturalized());
     }
 
     /** Consume the stream as an async-iterable of `{ type, args }` events. */
