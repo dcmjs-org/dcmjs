@@ -1,0 +1,16 @@
+{
+    "name": "@dcmjs-org/core",
+    "version": "0.0.0",
+    "description": "The shared building blocks every other dcmjs package uses: the DICOM value types, tags, buffer views, character-set handling, constants, and the runtime dictionary. No readers or writers live here",
+    "main": "./src/index.js",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/dcmjs-org/dcmjs.git",
+        "directory": "packages/core"
+    },
+    "dependencies": {
+        "loglevel": "1.9.2",
+        "pako": "2.1.0"
+    }
+}
