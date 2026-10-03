@@ -1,0 +1,19 @@
+{
+    "name": "@dcmjs-org/fhir",
+    "version": "0.0.0",
+    "description": "DICOM ↔ FHIR R4B mapping for Patient, ImagingStudy and DocumentReference resources from naturalized dcmjs datasets",
+    "main": "./src/index.js",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/dcmjs-org/dcmjs.git",
+        "directory": "packages/fhir"
+    },
+    "dependencies": {
+        "@dcmjs-org/core": "workspace:*"
+    },
+    "devDependencies": {
+        "@dcmjs-org/legacy": "workspace:*",
+        "@dcmjs-org/parser": "workspace:*"
+    }
+}
