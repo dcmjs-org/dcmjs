@@ -2249,7 +2249,7 @@
       "area": "anonymizer",
       "disposition": "every name in getTagsNameToEmpty resolves to a real dictionary keyword (list the wrong ones)",
       "testFile": "test/issues/issue345-anonymizer-names.test.js",
-      "status": "gap",
+      "status": "green",
       "notes": ""
     }
   },
