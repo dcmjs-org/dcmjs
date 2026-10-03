@@ -1,7 +1,6 @@
-import fs from "fs";
-import path from "path";
 import dcmjs from "../../src/index.js";
 import { validationLog } from "./../../src/log.js";
+import { fixturePath, readFileAsArrayBuffer } from "../testUtils.js";
 
 // Ignore validation errors
 validationLog.setLevel(5);
@@ -9,12 +8,9 @@ validationLog.setLevel(5);
 const { DicomMessage } = dcmjs.data;
 
 describe("test parsing of sample-dicom.dcm file", () => {
-    const dicomTestFilesDataPath = path.join(
-        __dirname,
-        "./../sample-dicom.dcm"
-    );
+    const dicomTestFilesDataPath = fixturePath("sample-dicom.dcm");
 
-    const arrayBuffer = fs.readFileSync(dicomTestFilesDataPath).buffer;
+    const arrayBuffer = readFileAsArrayBuffer(dicomTestFilesDataPath);
     const dicomDict = DicomMessage.readFile(arrayBuffer);
 
     it("has dict and meta section", () => {
