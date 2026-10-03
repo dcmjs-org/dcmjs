@@ -79,6 +79,9 @@
     },
     "dependencies": {
         "@babel/runtime-corejs3": "7.29.2",
+        "@dcmjs-org/core": "workspace:*",
+        "@dcmjs-org/fhir": "workspace:*",
+        "@dcmjs-org/parser": "workspace:*",
         "@dcmjs-org/pdfs": "workspace:*",
         "@dcmjs-org/video": "workspace:*",
         "adm-zip": "0.5.17",
