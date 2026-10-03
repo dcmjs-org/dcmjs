@@ -40,7 +40,8 @@ export { normalizeSyntax } from "./core/normalizeSyntax.js";
 export {
     writeDataSet,
     writeTagObject,
-    getTagWriteValues
+    getTagWriteValues,
+    writePart10
 } from "./core/writeCore.js";
 export { toFloat } from "./utilities/toFloat.js";
 export { toInt } from "./utilities/toInt.js";
