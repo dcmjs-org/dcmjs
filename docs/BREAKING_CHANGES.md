@@ -9,7 +9,9 @@ regressions to be fixed — reverting any of them would reintroduce
 non-conformant output.
 
 Each entry states what changed, which part of the standard governs it,
-and what to do if your code relied on the old behavior.
+and what to do if your code relied on the old behavior. For everything
+else a 0.x project needs to know about 1.0, see
+[MIGRATION.md](MIGRATION.md).
 
 ## `uid()` generates UUID-derived UIDs
 
@@ -78,9 +80,13 @@ that can carry diagnostic content: `ContentSequence` (0040,A730),
 `RequestAttributesSequence` (0040,0275), and `IconImageSequence`
 (0088,0200).
 
-*Status:* the corrected list has not yet landed on this branch; it
-arrives with the anonymizer port from the rewrite line. This entry
-records the contract in advance so the port can point here.
+*Status:* landed. The corrected list was ported from the rewrite line
+in PR [#590](https://github.com/dcmjs-org/dcmjs/pull/590); every one of
+the 103 non-resolving entries was mapped 1:1 to its real dictionary
+keyword (retired attributes use the dictionary's `RETIRED_` prefix),
+and `test/issues/issue345-anonymizer-names.test.js` pins both the
+structural contract (every name resolves) and the behavior (a
+previously-skipped `ContentSequence` is now emptied).
 
 **Why.** PS3.15 Table E.1-1 (the Basic Application Level Confidentiality
 Profile — the standard's checklist of what de-identification must

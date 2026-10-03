@@ -215,6 +215,17 @@ importers:
         specifier: workspace:*
         version: link:../core
 
+  packages/tests:
+    dependencies:
+      '@dcmjs-org/core':
+        specifier: workspace:*
+        version: link:../core
+      '@dcmjs-org/parser':
+        specifier: workspace:*
+        version: link:../parser
+
+  packages/validator: {}
+
   packages/video:
     dependencies:
       '@dcmjs-org/core':
