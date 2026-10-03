@@ -79,6 +79,8 @@
     },
     "dependencies": {
         "@babel/runtime-corejs3": "7.29.2",
+        "@dcmjs-org/pdfs": "workspace:*",
+        "@dcmjs-org/video": "workspace:*",
         "adm-zip": "0.5.17",
         "gl-matrix": "3.4.4",
         "lodash.clonedeep": "4.5.0",

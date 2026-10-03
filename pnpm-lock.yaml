@@ -26,6 +26,12 @@ importers:
       '@babel/runtime-corejs3':
         specifier: 7.29.2
         version: 7.29.2
+      '@dcmjs-org/pdfs':
+        specifier: workspace:*
+        version: link:packages/pdfs
+      '@dcmjs-org/video':
+        specifier: workspace:*
+        version: link:packages/video
       adm-zip:
         specifier: '>=0.6.1'
         version: 0.6.1
