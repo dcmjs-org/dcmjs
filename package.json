@@ -1,6 +1,7 @@
 {
     "name": "dcmjs",
     "version": "0.49.2",
+    "private": true,
     "description": "Javascript implementation of DICOM manipulation",
     "main": "build/dcmjs.js",
     "module": "build/dcmjs.es.js",
@@ -36,6 +37,8 @@
         "format:check": "prettier --check \"src/**/*.js\" \"test/**/*.js\"",
         "lint": "eslint --fix \"src/**/*.js\" \"test/**/*.js\"",
         "generate-dictionary": "node generate/generate-dictionary.js",
+        "generate-schema": "node packages/schemas/generate/generate-schema.mjs",
+        "check:types": "tsc --noEmit --strict packages/schemas/types/checks/consumer.ts",
         "pack-dictionary": "node generate/pack_dicom.mjs",
         "bench:dictionary": "bun run generate/bench-dictionary-load.mjs"
     },
@@ -72,6 +75,7 @@
         "jest": "27.5.1",
         "lint-staged": "13.3.0",
         "prettier": "2.8.8",
+        "typescript": "^6.0.3",
         "rollup": "4.60.3",
         "xml2js": "0.6.2"
     },
@@ -84,17 +88,6 @@
         "ndarray": "1.0.19",
         "pako": "2.1.0"
     },
-    "pnpm": {
-        "overrides": {
-            "@babel/traverse": "7.28.6",
-            "semver": "6.3.1",
-            "lodash": "4.18.1",
-            "serialize-javascript": "7.0.3",
-            "flatted": "3.4.2",
-            "picomatch": "2.3.2",
-            "minimatch": "3.1.5"
-        }
-    },
     "lint-staged": {
         "src/**/*.{js,jsx,json,css}": [
             "prettier --write",
@@ -104,6 +97,14 @@
     "jest": {
         "setupFilesAfterEnv": [
             "<rootDir>/jest.setup.js"
+        ],
+        "transform": {
+            "\\.m?js$": "babel-jest"
+        },
+        "moduleFileExtensions": [
+            "js",
+            "mjs",
+            "json"
         ]
     }
 }

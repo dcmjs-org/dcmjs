@@ -1,0 +1,44 @@
+name: Schema artifacts are reproducible
+
+on:
+  push:
+    paths:
+      - "packages/schemas/**"
+      - "src/dicom.packed.js"
+      - "src/dictionary.*.data.js"
+  pull_request:
+    paths:
+      - "packages/schemas/**"
+      - "src/dicom.packed.js"
+      - "src/dictionary.*.data.js"
+
+jobs:
+  freshness:
+    runs-on: ubuntu-latest
+    env:
+      PNPM_CONFIG_FROZEN_LOCKFILE: "true"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install packages
+        run: pnpm install
+
+      - name: Regenerate schema artifacts
+        run: pnpm run generate-schema
+
+      - name: Committed artifacts must match the generator output
+        run: git diff --exit-code packages/schemas
+
+      - name: Type-check the generated declarations
+        run: pnpm run check:types
