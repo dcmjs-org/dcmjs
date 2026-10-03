@@ -1,0 +1,18 @@
+{
+    "name": "@dcmjs-org/dicomdir",
+    "version": "0.0.0",
+    "description": "DICOMDIR (Media Storage Directory, PS3.10) building and writing: turns a flat file-set description into the PATIENT/STUDY/SERIES/leaf record hierarchy with real byte offsets, serialized in one pass",
+    "main": "./src/index.js",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/dcmjs-org/dcmjs.git",
+        "directory": "packages/dicomdir"
+    },
+    "dependencies": {
+        "@dcmjs-org/core": "workspace:*"
+    },
+    "devDependencies": {
+        "@dcmjs-org/legacy": "workspace:*"
+    }
+}
