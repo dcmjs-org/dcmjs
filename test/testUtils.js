@@ -5,23 +5,64 @@ import followRedirects from "follow-redirects";
 import AdmZip from "adm-zip";
 import { validationLog } from "./../src/log.js";
 
-const { https } = followRedirects;
+const { http, https } = followRedirects;
 
 // Don't show validation errors, as those are normally tested
 validationLog.setLevel(5);
 
-function downloadToFile(url, filePath) {
+function downloadAttempt(url, filePath) {
     return new Promise((resolve, reject) => {
-        const fileStream = fs.createWriteStream(filePath);
-        https
+        // follow-redirects handles 3xx hops; http is only hit by local tests.
+        const transport = url.startsWith("http:") ? http : https;
+        // Stream into a worker-private name and rename into place once
+        // complete. The rename is atomic, so a parallel jest worker checking
+        // fs.existsSync(filePath) can never observe a half-written fixture.
+        const partialPath = `${filePath}.${process.pid}.partial`;
+        const fail = error => {
+            fs.rmSync(partialPath, { force: true });
+            reject(error);
+        };
+        transport
             .get(url, response => {
+                if (response.statusCode < 200 || response.statusCode >= 300) {
+                    response.resume();
+                    fail(
+                        new Error(
+                            `Download of ${url} failed with HTTP status ${response.statusCode}`
+                        )
+                    );
+                    return;
+                }
+                const fileStream = fs.createWriteStream(partialPath);
                 response.pipe(fileStream);
                 fileStream.on("finish", () => {
-                    resolve(filePath);
+                    try {
+                        fs.renameSync(partialPath, filePath);
+                        resolve(filePath);
+                    } catch (renameError) {
+                        fail(renameError);
+                    }
                 });
+                fileStream.on("error", fail);
+                response.on("error", fail);
             })
-            .on("error", reject);
+            .on("error", fail);
     });
+}
+
+// Downloads url to filePath, failing loudly (instead of saving an error body
+// or a truncated stream that would poison the fixture cache) and retrying
+// once to absorb transient upstream hiccups.
+async function downloadToFile(url, filePath, retries = 1) {
+    for (let attempt = 0; ; attempt++) {
+        try {
+            return await downloadAttempt(url, filePath);
+        } catch (error) {
+            if (attempt >= retries) {
+                throw error;
+            }
+        }
+    }
 }
 
 function unzip(zipFilePath, targetPath) {
@@ -47,9 +88,9 @@ function unzip(zipFilePath, targetPath) {
 
 function ensureTestDataDir() {
     var targetPath = path.join(os.tmpdir(), "dcmjs-test");
-    if (!fs.existsSync(targetPath)) {
-        fs.mkdirSync(targetPath);
-    }
+    // recursive:true is idempotent, so parallel jest workers cannot race
+    // each other into an EEXIST between an exists check and the mkdir.
+    fs.mkdirSync(targetPath, { recursive: true });
     return targetPath;
 }
 
@@ -82,4 +123,26 @@ async function getTestDataset(url, filename) {
     return targetPath;
 }
 
-export { getTestDataset, getZippedTestDataset };
+// Absolute path to a committed DICOM fixture in packages/fixtures/dicom.
+function fixturePath(name) {
+    return path.join(__dirname, "..", "packages", "fixtures", "dicom", name);
+}
+
+// Reads a file into a standalone ArrayBuffer. Node may return small files
+// inside a larger shared memory pool, so taking `.buffer` directly can hand
+// back the pool (with the file at a nonzero offset) instead of the file.
+function readFileAsArrayBuffer(filePath) {
+    const buffer = fs.readFileSync(filePath);
+    return buffer.buffer.slice(
+        buffer.byteOffset,
+        buffer.byteOffset + buffer.byteLength
+    );
+}
+
+export {
+    downloadToFile,
+    getTestDataset,
+    getZippedTestDataset,
+    readFileAsArrayBuffer,
+    fixturePath
+};
