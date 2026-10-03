@@ -1,7 +1,7 @@
 <!--
 Write for a motivated reader who may not know programming, radiology, or
 imaging jargon. Define terms on first use; one good metaphor beats a
-formal definition. See docs/WRITING_STYLE.md before writing.
+formal definition.
 
 Small PRs into a staging branch need the first section and the checklist.
 The one merge per package into 1.0-beta needs every section.
@@ -53,4 +53,4 @@ relies on, or "None." No fixture lands without a citation row. -->
 -   [ ] CI is green (tests on Node 22 and 24, lint, format, audit)
 -   [ ] The title is a conventional commit (`feat:`, `fix:`, `docs:`, …)
 -   [ ] Pure file moves are in their own commits and declared above
--   [ ] The prose follows docs/WRITING_STYLE.md
+-   [ ] The prose is plain, direct English — jargon defined on first use
