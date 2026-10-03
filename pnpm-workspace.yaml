@@ -44,3 +44,13 @@ overrides:
   browserslist: ">=4.28.7"
   "ws@7": ">=7.5.11"
   "form-data@3": ">=3.0.5"
+
+# GHSA-vfj7-8cjw-p6xm (braces <=3.0.3, high): published 2026-10-02 with a
+# "patched" range of >=3.0.4, but no such release exists on the registry
+# (latest braces is 3.0.3, 2024-05-21), so there is nothing to override to.
+# All 100 paths are dev tooling (cpy-cli, lint-staged, jest glob expansion);
+# braces never reaches the published package. Remove this ignore the moment
+# a patched braces ships and replace it with an override pin.
+auditConfig:
+  ignoreGhsas:
+    - GHSA-vfj7-8cjw-p6xm
