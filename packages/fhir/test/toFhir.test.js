@@ -7,16 +7,19 @@
 //
 // The v2 original read test/sample-dicom.dcm through the dcmjs umbrella;
 // here the fixture comes from packages/fixtures/dicom (same bytes, but
-// its upstream provenance is still being traced) and the parse goes
-// through the event-stream reader so the package tests stay off
-// @dcmjs-org/legacy. The facade half of the v2 "dcmjs.fhir umbrella
-// namespace" tests (an ArrayBuffer straight to FHIR) landed with the
-// event-stream slice as DicomEventStream.fromPart10(bytes).toFhir() —
-// see test/eventStream/fhirPdfEventStream.test.js at the repo root.
+// its upstream provenance is still being traced) and the package-level
+// suites parse through the event-stream reader. The facade half of the
+// v2 "dcmjs.fhir umbrella namespace" tests (an ArrayBuffer straight to
+// FHIR) landed with the event-stream slice as
+// DicomEventStream.fromPart10(bytes).toFhir() — see
+// test/eventStream/fhirPdfEventStream.test.js at the repo root. The
+// namespace half returned with the step-7 wrapper: the final describe
+// block below exercises dcmjs.fhir on the assembled umbrella surface.
 
 import fs from "fs";
 import path from "path";
 
+import dcmjs from "../../../src/index.js";
 import { fromPart10, NaturalizedListener } from "@dcmjs-org/parser";
 import {
     toFhir,
@@ -229,10 +232,27 @@ describe("@dcmjs-org/fhir sink", () => {
 
 // The v2 suite ends with a "dcmjs.fhir umbrella namespace" block
 // (dcmjs.fhir.fromPart10 straight to FHIR, and the namespace re-exports).
-// The facade integration landed with the event-stream slice: the
-// bytes-to-FHIR composition is DicomEventStream.fromPart10(x).toFhir(),
-// pinned in test/eventStream/fhirPdfEventStream.test.js at the repo root.
-// The dcmjs.fhir NAMESPACE itself (the spread of this package's exports
-// plus the fromPart10 convenience onto the dcmjs default export) is the
-// step-7 wrapper package's surface — the two namespace tests return when
-// that wrapper assembles the scoped packages.
+// Deferred by PR #579 until the step-7 wrapper assembled the scoped
+// packages; the wrapper exists now, so the two namespace tests are back,
+// exercising the real dcmjs default export from the root src/index.js.
+describe("dcmjs.fhir umbrella namespace", () => {
+    test("fromPart10 maps an ArrayBuffer straight to FHIR", () => {
+        const buffer = fs.readFileSync(FIXTURE);
+        const arrayBuffer = buffer.buffer.slice(
+            buffer.byteOffset,
+            buffer.byteOffset + buffer.byteLength
+        );
+
+        const { patient, imagingStudy } = dcmjs.fhir.fromPart10(arrayBuffer);
+
+        expect(patient.identifier[0].value).toBe("11791306742903");
+        expect(imagingStudy.identifier[0].value).toBe(`urn:oid:${STUDY_UID}`);
+    });
+
+    test("namespace re-exports the sink API", () => {
+        expect(typeof dcmjs.fhir.toFhir).toBe("function");
+        expect(typeof dcmjs.fhir.toBundle).toBe("function");
+        expect(typeof dcmjs.fhir.patientFromDataset).toBe("function");
+        expect(typeof dcmjs.fhir.imagingStudyFromDatasets).toBe("function");
+    });
+});

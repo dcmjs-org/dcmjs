@@ -29,9 +29,18 @@ importers:
       '@dcmjs-org/core':
         specifier: workspace:*
         version: link:packages/core
+      '@dcmjs-org/dicomdir':
+        specifier: workspace:*
+        version: link:packages/dicomdir
       '@dcmjs-org/fhir':
         specifier: workspace:*
         version: link:packages/fhir
+      '@dcmjs-org/generator':
+        specifier: workspace:*
+        version: link:packages/generator
+      '@dcmjs-org/media':
+        specifier: workspace:*
+        version: link:packages/media
       '@dcmjs-org/parser':
         specifier: workspace:*
         version: link:packages/parser
