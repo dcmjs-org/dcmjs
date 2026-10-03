@@ -305,8 +305,9 @@ describe("fromPdf / toPdf / toFhir", () => {
     // The facade form of v2's "dcmjs.fhir umbrella namespace / fromPart10
     // maps an ArrayBuffer straight to FHIR" test (deferred by PR #579):
     // the composition now lives on the event stream —
-    // fromPart10(bytes).toFhir(). The dcmjs.fhir namespace itself waits
-    // for the step-7 wrapper package.
+    // fromPart10(bytes).toFhir(). The dcmjs.fhir namespace itself landed
+    // with the step-7 wrapper; its tests are back in
+    // packages/fhir/test/toFhir.test.js.
     test("fromPart10 → toFhir maps a .dcm ArrayBuffer straight to FHIR", async () => {
         const buffer = fs.readFileSync(
             path.join(

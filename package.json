@@ -1,7 +1,6 @@
 {
-    "name": "dcmjs",
+    "name": "@dcmjs-org/dcmjs",
     "version": "0.49.2",
-    "private": true,
     "description": "Javascript implementation of DICOM manipulation",
     "main": "build/dcmjs.js",
     "module": "build/dcmjs.es.js",
@@ -80,7 +79,10 @@
     "dependencies": {
         "@babel/runtime-corejs3": "7.29.2",
         "@dcmjs-org/core": "workspace:*",
+        "@dcmjs-org/dicomdir": "workspace:*",
         "@dcmjs-org/fhir": "workspace:*",
+        "@dcmjs-org/generator": "workspace:*",
+        "@dcmjs-org/media": "workspace:*",
         "@dcmjs-org/parser": "workspace:*",
         "@dcmjs-org/pdfs": "workspace:*",
         "@dcmjs-org/video": "workspace:*",
