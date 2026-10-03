@@ -1,6 +1,7 @@
 # pnpm 11+ requires an explicit decision for dependencies with install scripts (see allowBuilds).
 packages:
   - "."
+  - "packages/*"
 
 # https://pnpm.io/supply-chain-security — transitive deps may not use git/tarball sources.
 blockExoticSubdeps: true
@@ -24,3 +25,32 @@ trustPolicyExclude:
 
 allowBuilds:
   core-js-pure: false
+
+# pnpm 11 reads overrides here; the package.json "pnpm" field is no longer read.
+# First group: pins carried over from the old package.json pnpm.overrides
+# (they match the trustPolicyExclude entries above). Second group: minimum
+# patched versions for high-severity audit advisories in dev tooling.
+overrides:
+  "@babel/traverse": 7.28.6
+  semver: 6.3.1
+  lodash: 4.18.1
+  serialize-javascript: 7.0.3
+  flatted: 3.4.2
+  picomatch: 2.3.2
+  minimatch: 3.1.5
+  adm-zip: ">=0.6.1"
+  js-yaml: ">=4.3.2"
+  "brace-expansion@1": ">=1.1.18"
+  browserslist: ">=4.28.7"
+  "ws@7": ">=7.5.11"
+  "form-data@3": ">=3.0.5"
+
+# GHSA-vfj7-8cjw-p6xm (braces <=3.0.3, high): published 2026-10-02 with a
+# "patched" range of >=3.0.4, but no such release exists on the registry
+# (latest braces is 3.0.3, 2024-05-21), so there is nothing to override to.
+# All 100 paths are dev tooling (cpy-cli, lint-staged, jest glob expansion);
+# braces never reaches the published package. Remove this ignore the moment
+# a patched braces ships and replace it with an override pin.
+auditConfig:
+  ignoreGhsas:
+    - GHSA-vfj7-8cjw-p6xm
