@@ -9,7 +9,9 @@ regressions to be fixed — reverting any of them would reintroduce
 non-conformant output.
 
 Each entry states what changed, which part of the standard governs it,
-and what to do if your code relied on the old behavior.
+and what to do if your code relied on the old behavior. For everything
+else a 0.x project needs to know about 1.0, see
+[MIGRATION.md](MIGRATION.md).
 
 ## `uid()` generates UUID-derived UIDs
 
