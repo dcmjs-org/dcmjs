@@ -108,7 +108,7 @@ workspace. (pnpm is the package manager this repository already uses; a
 "workspace" is its way of holding several packages in one repository so
 they can be developed and tested together.)
 
-A note on the scope name: this plan originally hoped for `@dcmjs-org/`, but
+A note on the scope name: this plan originally hoped for `@dcmjs/`, but
 that npm organization is not ours. The packages publish under `@dcmjs-org/`
 (matching the GitHub organization); the `@dcmjs-org` npm organization needs
 registering by someone with npm account access before the first publish, if
@@ -323,8 +323,9 @@ Named here so their absence is a decision, not an oversight:
 1. Branch protection on `1.0-beta` (require PRs and green checks).
 2. Add `1.0-beta` to the allowed branches of the `publish` GitHub
    environment, so the publish workflow may run from it.
-3. Confirm the npm token in repository secrets can publish new packages
-   under the `@dcmjs` scope, once the scope is claimed (section 3).
+3. Register the `@dcmjs-org` npm organization, if it is not registered
+   already, and confirm the npm token in repository secrets can publish new
+   packages under the `@dcmjs-org` scope (section 3).
 4. Clean up the stale npm dist-tags when convenient (section 10).
 
 ---
