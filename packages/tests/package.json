@@ -1,0 +1,10 @@
+{
+    "name": "@dcmjs-org/tests",
+    "version": "0.0.0",
+    "private": true,
+    "description": "Cross-package dcmjs test suites: the integration and equivalence tests that span several packages at once",
+    "dependencies": {
+        "@dcmjs-org/core": "workspace:*",
+        "@dcmjs-org/parser": "workspace:*"
+    }
+}

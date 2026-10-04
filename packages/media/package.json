@@ -1,0 +1,17 @@
+{
+    "name": "@dcmjs-org/media",
+    "version": "0.0.0",
+    "description": "The dcmjs bulk-data bundle: DICOMDIR building (@dcmjs-org/dicomdir), Encapsulated PDF wrapping (@dcmjs-org/pdfs), and video/image encapsulation (@dcmjs-org/video) re-exported under the stable dcmjs media, encapsulated, and image namespaces",
+    "main": "./src/index.js",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/dcmjs-org/dcmjs.git",
+        "directory": "packages/media"
+    },
+    "dependencies": {
+        "@dcmjs-org/dicomdir": "workspace:*",
+        "@dcmjs-org/pdfs": "workspace:*",
+        "@dcmjs-org/video": "workspace:*"
+    }
+}

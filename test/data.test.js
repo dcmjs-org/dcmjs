@@ -6,6 +6,7 @@ import { WriteBufferStream } from "../src/BufferStream";
 import dcmjs from "../src/index.js";
 import { log } from "./../src/log.js";
 import {
+    fixturePath,
     getTestDataset,
     getZippedTestDataset,
     readFileAsArrayBuffer
@@ -14,6 +15,7 @@ import {
 import arrayItem from "./arrayItem.json";
 import minimalDataset from "./mocks/minimal_fields_dataset.json";
 import datasetWithNullNumberVRs from "./mocks/null_number_vrs_dataset.json";
+import { createSampleDicom } from "./helper/sampleDicomPart10.js";
 import { rawTags } from "./rawTags";
 import sampleDicomSR from "./sample-sr.json";
 
@@ -320,7 +322,7 @@ it("test_normalizer_smaller", () => {
 });
 
 it("test_multiframe_us", () => {
-    const file = readFileAsArrayBuffer("test/cine-test.dcm");
+    const file = readFileAsArrayBuffer(fixturePath("cine-test.dcm"));
     const dicomData = dcmjs.data.DicomMessage.readFile(file, {
         // ignoreErrors: true,
     });
@@ -372,8 +374,43 @@ it("test_null_number_vrs", () => {
     expect(dataset.InstanceNumber).toEqual(null);
 });
 
+// Regression test for review finding 3 from the PR #512 review map:
+// a UV (Unsigned 64-bit Very Long) element with a null value threw
+// "Cannot convert null to a BigInt" on write. PS3.5 7.4 requires a Type 2
+// attribute to be written with zero length when the value is unknown, and
+// the other numeric VRs (US, UL, ...) already accept null entries and
+// plain Number values on write.
+it("test_uv_null_and_number_values_write", () => {
+    // (0066,0040) LongPrimitivePointIndexList has VR UV
+    const uvCases = [
+        { Value: null },
+        { Value: [null] },
+        { Value: undefined },
+        { Value: [] },
+        { Value: [5] }, // plain Number, like the other numeric VRs accept
+        { Value: ["5"] },
+        { Value: [BigInt(5)] }
+    ];
+
+    for (const uvCase of uvCases) {
+        const dicomDict = new DicomDict({
+            "00020010": { vr: "UI", Value: [EXPLICIT_LITTLE_ENDIAN] }
+        });
+        dicomDict.dict = {
+            "00660040": { vr: "UV", ...uvCase }
+        };
+
+        // must not throw
+        const part10Buffer = dicomDict.write();
+
+        // and the output must be a readable part10 file
+        const dicomData = DicomMessage.readFile(part10Buffer);
+        expect(dicomData.dict["00660040"].vr).toEqual("UV");
+    }
+});
+
 it("test_exponential_notation", () => {
-    const file = readFileAsArrayBuffer("test/sample-dicom.dcm");
+    const file = readFileAsArrayBuffer(fixturePath("sample-dicom.dcm"));
     const data = dcmjs.data.DicomMessage.readFile(file, {
         // ignoreErrors: true,
     });
@@ -391,7 +428,7 @@ it("test_exponential_notation", () => {
 });
 
 it("test_output_equality", () => {
-    const file = readFileAsArrayBuffer("test/cine-test.dcm");
+    const file = readFileAsArrayBuffer(fixturePath("cine-test.dcm"));
     const dicomData1 = dcmjs.data.DicomMessage.readFile(file, {
         // ignoreErrors: true,
     });
@@ -415,7 +452,7 @@ it("test_output_equality", () => {
 });
 
 it("test_performance", async () => {
-    const file = readFileAsArrayBuffer("test/cine-test.dcm");
+    const file = readFileAsArrayBuffer(fixturePath("cine-test.dcm"));
     let buffer = file;
     let json;
     const start = Date.now();
@@ -444,7 +481,9 @@ it("test_performance", async () => {
 });
 
 it("test_invalid_vr_length", () => {
-    const file = readFileAsArrayBuffer("test/invalid-vr-length-test.dcm");
+    const file = readFileAsArrayBuffer(
+        fixturePath("invalid-vr-length-test.dcm")
+    );
     const dicomDict = dcmjs.data.DicomMessage.readFile(file);
 
     expect(() =>
@@ -930,7 +969,7 @@ it("Reads and writes numbers with NaN and Infinity values of tags with type FD (
 });
 
 it("Tests that reading fails on a DICOM without a meta length tag when ignoreErrors is false", () => {
-    const rawFile = fs.readFileSync("test/no-meta-length-test.dcm");
+    const rawFile = fs.readFileSync(fixturePath("no-meta-length-test.dcm"));
 
     let arrayBuffer = rawFile.buffer;
     if (
@@ -956,7 +995,7 @@ it("Tests that reading fails on a DICOM without a meta length tag when ignoreErr
 });
 
 it("Tests that reading succeeds on a DICOM without a meta length tag when ignoreErrors is true", () => {
-    const rawFile = fs.readFileSync("test/no-meta-length-test.dcm");
+    const rawFile = fs.readFileSync(fixturePath("no-meta-length-test.dcm"));
 
     let arrayBuffer = rawFile.buffer;
     if (
@@ -983,12 +1022,53 @@ it("Tests that reading succeeds on a DICOM without a meta length tag when ignore
     }).not.toThrow();
 });
 
+it("Tests that an overstated meta group length does not pull dataset elements into the meta header (review finding 24)", () => {
+    const buffer = createSampleDicom();
+
+    // Overstate (0002,0000) by exactly the size of the first dataset
+    // element, (0028,0002) SamplesPerPixel US: tag(4) + VR(2) +
+    // length(2) + value(2) = 10 bytes. The declared meta window then
+    // swallows that element whole, so before the fix the file still
+    // parses -- quietly mis-framed -- with a dataset element inside
+    // dicomDict.meta and missing from dicomDict.dict.
+    const view = new DataView(buffer);
+    const metaLengthValueOffset = 132 + 4 + 2 + 2; // preamble + "DICM" + tag + VR + length field
+    const declaredLength = view.getUint32(metaLengthValueOffset, true);
+    view.setUint32(metaLengthValueOffset, declaredLength + 10, true);
+
+    const warnSpy = jest.spyOn(log, "warn").mockImplementation(() => {});
+    try {
+        const dicomDict = dcmjs.data.DicomMessage.readFile(buffer);
+
+        // every meta element belongs to group 0002
+        expect(
+            Object.keys(dicomDict.meta).every(tag => tag.startsWith("0002"))
+        ).toBe(true);
+        expect(dicomDict.meta["00020010"].Value[0]).toBe(
+            EXPLICIT_LITTLE_ENDIAN
+        );
+
+        // the swallowed element is framed back into the dataset,
+        // alongside the rest of the body
+        expect(dicomDict.dict["00280002"]).toBeDefined(); // SamplesPerPixel
+        expect(dicomDict.dict["00280010"]).toBeDefined(); // Rows
+        expect(dicomDict.dict["7FE00010"]).toBeDefined(); // PixelData
+
+        // the recovery is the warned case, not the quiet case
+        expect(warnSpy).toHaveBeenCalledWith(
+            expect.stringContaining("meta group length")
+        );
+    } finally {
+        warnSpy.mockRestore();
+    }
+});
+
 describe("The same DICOM file loaded from both DCM and JSON", () => {
     let dicomData;
     let jsonData;
 
     beforeEach(() => {
-        const file = readFileAsArrayBuffer("test/sample-sr.dcm");
+        const file = readFileAsArrayBuffer(fixturePath("sample-sr.dcm"));
         dicomData = dcmjs.data.DicomMessage.readFile(file, {
             // ignoreErrors: true,
         });
