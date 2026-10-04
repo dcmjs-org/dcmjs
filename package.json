@@ -20,7 +20,7 @@
     "directories": {
         "example": "examples"
     },
-    "packageManager": "pnpm@11.1.2",
+    "packageManager": "pnpm@12.9.1",
     "engines": {
         "node": ">=22.13"
     },
