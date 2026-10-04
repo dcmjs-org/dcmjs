@@ -1,6 +1,6 @@
 import dcmjs from "../src/index.js";
-import fs from "fs";
 import { validationLog } from "./../src/log.js";
+import { readFileAsArrayBuffer } from "./testUtils.js";
 
 // Ignore validation errors
 validationLog.setLevel(5);
@@ -14,7 +14,7 @@ it("test_export", () => {
 
 it("test_anonymization", () => {
     // given
-    const arrayBuffer = fs.readFileSync("test/sample-dicom.dcm").buffer;
+    const arrayBuffer = readFileAsArrayBuffer("test/sample-dicom.dcm");
     const dicomDict = DicomMessage.readFile(arrayBuffer);
 
     const tagInfo = dcmjs.data.DicomMetaDictionary.nameMap["PatientName"];
@@ -41,7 +41,7 @@ it("test_anonymization", () => {
 
 it("test_anonymization_no_change_ref", () => {
     // given
-    const arrayBuffer = fs.readFileSync("test/sample-sr.dcm").buffer;
+    const arrayBuffer = readFileAsArrayBuffer("test/sample-sr.dcm");
     const dicomDict = DicomMessage.readFile(arrayBuffer);
 
     // multiple value name
@@ -87,7 +87,7 @@ it("test_anonymization_no_change_ref", () => {
 
 it("test_anonymization_tagtoreplace_param", () => {
     // given
-    const arrayBuffer = fs.readFileSync("test/sample-dicom.dcm").buffer;
+    const arrayBuffer = readFileAsArrayBuffer("test/sample-dicom.dcm");
     const dicomDict = DicomMessage.readFile(arrayBuffer);
 
     const tagInfo = dcmjs.data.DicomMetaDictionary.nameMap["PatientName"];
@@ -120,7 +120,7 @@ it("test_anonymization_tagtoreplace_param", () => {
 
 it("test_anonymization_keep_tag", () => {
     // given
-    const arrayBuffer = fs.readFileSync("test/sample-dicom.dcm").buffer;
+    const arrayBuffer = readFileAsArrayBuffer("test/sample-dicom.dcm");
     const dicomDict = DicomMessage.readFile(arrayBuffer);
 
     const tagInfo = dcmjs.data.DicomMetaDictionary.nameMap["SeriesDescription"];
@@ -148,7 +148,7 @@ it("test_anonymization_keep_tag", () => {
 
 it("test_anonymization_anonymize_tag", () => {
     // given
-    const arrayBuffer = fs.readFileSync("test/sample-dicom.dcm").buffer;
+    const arrayBuffer = readFileAsArrayBuffer("test/sample-dicom.dcm");
     const dicomDict = DicomMessage.readFile(arrayBuffer);
 
     const tagInfo = dcmjs.data.DicomMetaDictionary.nameMap["SeriesInstanceUID"];
