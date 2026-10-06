@@ -7,7 +7,7 @@ blockExoticSubdeps: true
 
 # https://pnpm.io/supply-chain-security — only install releases at least this many minutes old;
 # strict: fail resolution if no version in range satisfies the age rule (no silent fallback).
-minimumReleaseAge: 1440
+minimumReleaseAge: 2880
 minimumReleaseAgeStrict: true
 
 # https://pnpm.io/supply-chain-security — block installs when npm trust signals regress vs older releases.
