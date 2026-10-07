@@ -287,7 +287,7 @@ export class AsyncDicomReader {
             }
             if (tagObj.group() === 0 || tag === TagHex.DataSetTrailingPadding) {
                 // Group length
-                stream.increment(tagObj.length);
+                stream.increment(length);
                 continue;
             }
             const addTagResult = listener.addTag(tag, tagInfo);
