@@ -89,7 +89,14 @@ export class DicomMessage {
                 if (cleanTagString === TagHex.SpecificCharacterSet) {
                     if (readInfo.values.length > 0) {
                         let coding = readInfo.values[0];
-                        coding = coding.replace(/[_ ]/g, "-").toLowerCase();
+                        // Strip illegal NUL padding (some modalities pad to
+                        // even length with \0 instead of the space required
+                        // by the standard) before normalizing.
+                        coding = coding
+                            .replace(/\0/g, "")
+                            .trim()
+                            .replace(/[_ ]/g, "-")
+                            .toLowerCase();
                         if (coding in encodingMapping) {
                             coding = encodingMapping[coding];
                             bufferStream.setDecoder(new TextDecoder(coding));

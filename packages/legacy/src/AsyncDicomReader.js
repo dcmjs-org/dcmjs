@@ -757,7 +757,14 @@ export class AsyncDicomReader {
         if (tagInfo.tag === TagHex.SpecificCharacterSet) {
             if (values.length > 0) {
                 let [coding] = values;
-                coding = coding.replace(/[_ ]/g, "-").toLowerCase();
+                // Strip illegal NUL padding (some modalities pad to even
+                // length with \0 instead of the space required by the
+                // standard) before normalizing.
+                coding = coding
+                    .replace(/\0/g, "")
+                    .trim()
+                    .replace(/[_ ]/g, "-")
+                    .toLowerCase();
                 if (coding in encodingMapping) {
                     coding = encodingMapping[coding];
                     this.stream.setDecoder(new TextDecoder(coding));
