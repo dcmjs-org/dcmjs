@@ -108,7 +108,7 @@ workspace. (pnpm is the package manager this repository already uses; a
 "workspace" is its way of holding several packages in one repository so
 they can be developed and tested together.)
 
-A note on the scope name: this plan originally hoped for `@dcmjs-org/`, but
+A note on the scope name: this plan originally hoped for `@dcmjs/`, but
 that npm organization is not ours. The packages publish under `@dcmjs-org/`
 (matching the GitHub organization); the `@dcmjs-org` npm organization needs
 registering by someone with npm account access before the first publish, if
@@ -323,9 +323,21 @@ Named here so their absence is a decision, not an oversight:
 1. Branch protection on `1.0-beta` (require PRs and green checks).
 2. Add `1.0-beta` to the allowed branches of the `publish` GitHub
    environment, so the publish workflow may run from it.
-3. Confirm the npm token in repository secrets can publish new packages
-   under the `@dcmjs` scope, once the scope is claimed (section 3).
-4. Clean up the stale npm dist-tags when convenient (section 10).
+3. Register the `@dcmjs-org` npm organization, if it is not registered
+   already (section 3).
+4. Configure **OIDC trusted publishing** on npmjs.com for every package
+   this plan publishes: on each package's Settings → Trusted publisher,
+   register this repository, the `publish-package.yml` workflow, and the
+   `publish` environment. npm has announced trusted publishing becomes
+   required in 2027, so the workflow uses it from the start — there is no
+   `NPM_TOKEN` repository secret to create or rotate. Note the
+   chicken-and-egg for *first* publishes: a trusted publisher can only be
+   configured on a package that already exists, so the very first publish
+   of each new package is done by an owner from a workstation (`npm
+   publish --access public` of the stamped package), after which the
+   trusted publisher is configured and CI handles every release that
+   follows.
+5. Clean up the stale npm dist-tags when convenient (section 10).
 
 ---
 
@@ -365,9 +377,18 @@ on:
             - release/0.5x
 ```
 
-The publish step also needs `NODE_AUTH_TOKEN` set alongside the existing
-`NPM_TOKEN`, because the recursive pnpm publish reads its credentials from
-the `.npmrc` that the Node setup action writes.
+The publish job authenticates to npm with **OIDC trusted publishing**
+(the workflow's `id-token: write` permission), not a long-lived token:
+each package registers this repository's `publish-package.yml` workflow
+and `publish` environment as its trusted publisher on npmjs.com (owner
+action 4 in section 12), and provenance comes with it. There is no
+`NPM_TOKEN` or `NODE_AUTH_TOKEN` to store or rotate. The job's other
+hardening, stated here so it survives review: every action is pinned by
+commit SHA, `semantic-release` and its plugins are exact-pinned
+devDependencies installed from the lockfile (nothing fetched at release
+time), the publish job uses no package-manager cache, and the workspace's
+`minimumReleaseAge` is 2880 minutes — newly published dependency versions
+must be two days old before they can be installed.
 
 ## Appendix C — version stamp script, sketch
 
