@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - master
+      - 1.0-beta
+      - release/0.5x
 
 permissions:
   contents: write
@@ -18,21 +20,27 @@ jobs:
     env:
       PNPM_CONFIG_FROZEN_LOCKFILE: "true"
 
+    # Actions are pinned by commit SHA. npm authentication is OIDC trusted
+    # publishing (the id-token: write permission above) — no long-lived
+    # NPM_TOKEN secret. Each published package must list this repository's
+    # publish-package.yml workflow and the "publish" environment as its
+    # trusted publisher on npmjs.com.
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
 
+      # No registry-url: setup-node's .npmrc would expect a NODE_AUTH_TOKEN
+      # that trusted publishing makes unnecessary. No cache: the publish
+      # toolchain installs from the lockfile only, never from a shared cache.
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
-          registry-url: 'https://registry.npmjs.org'
-          cache: pnpm
 
       - name: Install packages
         run: pnpm install
@@ -43,9 +51,9 @@ jobs:
       - name: Run build
         run: pnpm build
 
+      # semantic-release and its plugins are exact-pinned devDependencies
+      # installed from the lockfile above — nothing is fetched at release time.
       - name: Semantic release
-        uses: cycjimmy/semantic-release-action@v6
+        run: pnpm exec semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NPM_CONFIG_PROVENANCE: true
