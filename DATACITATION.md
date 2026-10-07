@@ -23,20 +23,20 @@ synthetic replacement instead.
 
 ## Files
 
-| File                              | Origin                                                                                            | License             | Patient data           | Citation / notes                       |
-| --------------------------------- | ------------------------------------------------------------------------------------------------- | ------------------- | ---------------------- | -------------------------------------- |
-| `test/sample-dicom.dcm`           | _provenance being traced — see below_                                                             | —                   | believed de-identified | —                                      |
-| `test/sample-sr.dcm`              | _provenance being traced — see below_                                                             | —                   | believed de-identified | —                                      |
-| `test/sample-op.dcm`              | _provenance being traced — see below_                                                             | —                   | believed de-identified | —                                      |
-| `test/cine-test.dcm`              | _provenance being traced — see below_                                                             | —                   | believed de-identified | —                                      |
-| `test/invalid-vr-length-test.dcm` | _provenance being traced — see below_                                                             | —                   | believed de-identified | —                                      |
-| `test/no-meta-length-test.dcm`    | _provenance being traced — see below_                                                             | —                   | believed de-identified | —                                      |
-| downloaded fixtures               | [dcmjs-org/data](https://github.com/dcmjs-org/data) releases, fetched at test time, not committed | per that repository | per that repository    | URLs in `test/testUtils.js` call sites |
+| File                                                 | Origin                                                                                            | License             | Patient data           | Citation / notes                       |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------- | ------------------- | ---------------------- | -------------------------------------- |
+| `packages/fixtures/dicom/sample-dicom.dcm`           | _provenance being traced — see below_                                                             | —                   | believed de-identified | —                                      |
+| `packages/fixtures/dicom/sample-sr.dcm`              | _provenance being traced — see below_                                                             | —                   | believed de-identified | —                                      |
+| `packages/fixtures/dicom/sample-op.dcm`              | _provenance being traced — see below_                                                             | —                   | believed de-identified | —                                      |
+| `packages/fixtures/dicom/cine-test.dcm`              | _provenance being traced — see below_                                                             | —                   | believed de-identified | —                                      |
+| `packages/fixtures/dicom/invalid-vr-length-test.dcm` | _provenance being traced — see below_                                                             | —                   | believed de-identified | —                                      |
+| `packages/fixtures/dicom/no-meta-length-test.dcm`    | _provenance being traced — see below_                                                             | —                   | believed de-identified | —                                      |
+| downloaded fixtures                                  | [dcmjs-org/data](https://github.com/dcmjs-org/data) releases, fetched at test time, not committed | per that repository | per that repository    | URLs in `test/testUtils.js` call sites |
 
 ## Known unknowns
 
-The committed `test/*.dcm` files predate this document; their exact
-origins are still being traced. Tracing them (or replacing any that cannot
+The committed files in `packages/fixtures/dicom/` predate this document;
+their exact origins are still being traced. Tracing them (or replacing any that cannot
 be traced with synthetic equivalents) is part of the planned
 `@dcmjs-org/fixtures` work — see RELEASE_PLAN.md, section 6, step 2. Until a
 file's row is complete, treat it as usable in tests here but not safe to

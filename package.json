@@ -37,6 +37,8 @@
         "format:check": "prettier --check \"src/**/*.js\" \"test/**/*.js\"",
         "lint": "eslint --fix \"src/**/*.js\" \"test/**/*.js\"",
         "generate-dictionary": "node generate/generate-dictionary.js",
+        "generate-schema": "node packages/schemas/generate/generate-schema.mjs",
+        "check:types": "tsc --noEmit --strict packages/schemas/types/checks/consumer.ts",
         "pack-dictionary": "node generate/pack_dicom.mjs",
         "bench:dictionary": "bun run generate/bench-dictionary-load.mjs"
     },
@@ -78,6 +80,7 @@
         "jest": "27.5.1",
         "lint-staged": "13.3.0",
         "prettier": "2.8.8",
+        "typescript": "^6.0.3",
         "rollup": "4.60.3",
         "semantic-release": "25.0.9",
         "xml2js": "0.6.2"
@@ -100,6 +103,14 @@
     "jest": {
         "setupFilesAfterEnv": [
             "<rootDir>/jest.setup.js"
+        ],
+        "transform": {
+            "\\.m?js$": "babel-jest"
+        },
+        "moduleFileExtensions": [
+            "js",
+            "mjs",
+            "json"
         ]
     }
 }

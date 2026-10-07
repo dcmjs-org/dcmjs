@@ -80,19 +80,19 @@ importers:
         version: 1.0.0(rollup@4.60.3)
       '@semantic-release/commit-analyzer':
         specifier: 13.0.1
-        version: 13.0.1(semantic-release@25.0.9)
+        version: 13.0.1(semantic-release@25.0.9(typescript@6.0.3))
       '@semantic-release/exec':
         specifier: 7.1.0
-        version: 7.1.0(semantic-release@25.0.9)
+        version: 7.1.0(semantic-release@25.0.9(typescript@6.0.3))
       '@semantic-release/github':
         specifier: 12.0.10
-        version: 12.0.10(semantic-release@25.0.9)
+        version: 12.0.10(semantic-release@25.0.9(typescript@6.0.3))
       '@semantic-release/npm':
         specifier: 13.2.0
-        version: 13.2.0(semantic-release@25.0.9)
+        version: 13.2.0(semantic-release@25.0.9(typescript@6.0.3))
       '@semantic-release/release-notes-generator':
         specifier: 14.1.1
-        version: 14.1.1(semantic-release@25.0.9)
+        version: 14.1.1(semantic-release@25.0.9(typescript@6.0.3))
       acorn:
         specifier: 7.4.1
         version: 7.4.1
@@ -131,10 +131,17 @@ importers:
         version: 4.60.3
       semantic-release:
         specifier: 25.0.9
-        version: 25.0.9
+        version: 25.0.9(typescript@6.0.3)
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
       xml2js:
         specifier: 0.6.2
         version: 0.6.2
+
+  packages/fixtures: {}
+
+  packages/schemas: {}
 
 packages:
 
@@ -3520,6 +3527,11 @@ packages:
   typedarray-to-buffer@3.1.5:
     resolution: {integrity: sha512-zdu8XMNEDepKKR+XYOXAVPtWui0ly0NtohUscw+UmaHiAWT8hrV1rr//H6V+0DvJ3OQ19S979M0laLfX8rm82Q==}
 
+  typescript@6.0.3:
+    resolution: {integrity: sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw==}
+    engines: {node: '>=14.17'}
+    hasBin: true
+
   uglify-js@3.19.3:
     resolution: {integrity: sha512-v3Xu+yuwBXisp6QYTcH4UbH+xYJXqnq2m/LtQVWKWzYc1iehYnLixoQDN9FH6/j9/oybfd6W9Ghwkl8+UMKTKQ==}
     engines: {node: '>=0.8.0'}
@@ -5003,7 +5015,7 @@ snapshots:
 
   '@sec-ant/readable-stream@0.4.1': {}
 
-  '@semantic-release/commit-analyzer@13.0.1(semantic-release@25.0.9)':
+  '@semantic-release/commit-analyzer@13.0.1(semantic-release@25.0.9(typescript@6.0.3))':
     dependencies:
       conventional-changelog-angular: 8.3.1
       conventional-changelog-writer: 8.4.0
@@ -5013,13 +5025,13 @@ snapshots:
       import-from-esm: 2.0.0
       lodash-es: 4.18.1
       micromatch: 4.0.8
-      semantic-release: 25.0.9
+      semantic-release: 25.0.9(typescript@6.0.3)
     transitivePeerDependencies:
       - supports-color
 
   '@semantic-release/error@4.0.0': {}
 
-  '@semantic-release/exec@7.1.0(semantic-release@25.0.9)':
+  '@semantic-release/exec@7.1.0(semantic-release@25.0.9(typescript@6.0.3))':
     dependencies:
       '@semantic-release/error': 4.0.0
       aggregate-error: 3.1.0
@@ -5027,11 +5039,11 @@ snapshots:
       execa: 9.6.1
       lodash-es: 4.18.1
       parse-json: 8.3.0
-      semantic-release: 25.0.9
+      semantic-release: 25.0.9(typescript@6.0.3)
     transitivePeerDependencies:
       - supports-color
 
-  '@semantic-release/github@12.0.10(semantic-release@25.0.9)':
+  '@semantic-release/github@12.0.10(semantic-release@25.0.9(typescript@6.0.3))':
     dependencies:
       '@octokit/core': 7.0.8
       '@octokit/plugin-paginate-rest': 15.0.0(@octokit/core@7.0.8)
@@ -5047,7 +5059,7 @@ snapshots:
       lodash-es: 4.18.1
       mime: 4.1.0
       p-filter: 4.1.0
-      semantic-release: 25.0.9
+      semantic-release: 25.0.9(typescript@6.0.3)
       tinyglobby: 0.2.17
       undici: 7.30.0
       url-join: 5.0.0
@@ -5055,7 +5067,7 @@ snapshots:
       - kerberos
       - supports-color
 
-  '@semantic-release/npm@13.2.0(semantic-release@25.0.9)':
+  '@semantic-release/npm@13.2.0(semantic-release@25.0.9(typescript@6.0.3))':
     dependencies:
       '@actions/core': 3.0.1
       '@semantic-release/error': 4.0.0
@@ -5070,11 +5082,11 @@ snapshots:
       rc: 1.2.8
       read-pkg: 10.1.0
       registry-auth-token: 5.1.1
-      semantic-release: 25.0.9
+      semantic-release: 25.0.9(typescript@6.0.3)
       semver: 6.3.1
       tempy: 3.2.0
 
-  '@semantic-release/release-notes-generator@14.1.1(semantic-release@25.0.9)':
+  '@semantic-release/release-notes-generator@14.1.1(semantic-release@25.0.9(typescript@6.0.3))':
     dependencies:
       conventional-changelog-angular: 8.3.1
       conventional-changelog-writer: 8.4.0
@@ -5084,7 +5096,7 @@ snapshots:
       import-from-esm: 2.0.0
       lodash-es: 4.18.1
       read-package-up: 11.0.0
-      semantic-release: 25.0.9
+      semantic-release: 25.0.9(typescript@6.0.3)
     transitivePeerDependencies:
       - supports-color
 
@@ -5536,12 +5548,14 @@ snapshots:
 
   core-util-is@1.0.3: {}
 
-  cosmiconfig@9.0.2:
+  cosmiconfig@9.0.2(typescript@6.0.3):
     dependencies:
       env-paths: 2.2.1
       import-fresh: 3.3.0
       js-yaml: 5.4.2
       parse-json: 5.2.0
+    optionalDependencies:
+      typescript: 6.0.3
 
   cpy-cli@7.0.0:
     dependencies:
@@ -7237,15 +7251,15 @@ snapshots:
     dependencies:
       xmlchars: 2.2.0
 
-  semantic-release@25.0.9:
+  semantic-release@25.0.9(typescript@6.0.3):
     dependencies:
-      '@semantic-release/commit-analyzer': 13.0.1(semantic-release@25.0.9)
+      '@semantic-release/commit-analyzer': 13.0.1(semantic-release@25.0.9(typescript@6.0.3))
       '@semantic-release/error': 4.0.0
-      '@semantic-release/github': 12.0.10(semantic-release@25.0.9)
-      '@semantic-release/npm': 13.2.0(semantic-release@25.0.9)
-      '@semantic-release/release-notes-generator': 14.1.1(semantic-release@25.0.9)
+      '@semantic-release/github': 12.0.10(semantic-release@25.0.9(typescript@6.0.3))
+      '@semantic-release/npm': 13.2.0(semantic-release@25.0.9(typescript@6.0.3))
+      '@semantic-release/release-notes-generator': 14.1.1(semantic-release@25.0.9(typescript@6.0.3))
       aggregate-error: 5.0.0
-      cosmiconfig: 9.0.2
+      cosmiconfig: 9.0.2(typescript@6.0.3)
       debug: 4.4.3
       env-ci: 11.2.0
       execa: 9.6.1
@@ -7540,6 +7554,8 @@ snapshots:
   typedarray-to-buffer@3.1.5:
     dependencies:
       is-typedarray: 1.0.0
+
+  typescript@6.0.3: {}
 
   uglify-js@3.19.3:
     optional: true
