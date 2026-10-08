@@ -39,12 +39,14 @@ export class DicomMessage {
         bufferStream,
         syntax,
         untilTag = null,
-        includeUntilTagValue = false
+        includeUntilTagValue = false,
+        interpretUnknownVRInExplicit = false,
     ) {
         log.warn("DicomMessage.readTag to be deprecated after dcmjs 0.24.x");
         return this._readTag(bufferStream, syntax, {
             untilTag: untilTag,
-            includeUntilTagValue: includeUntilTagValue
+            includeUntilTagValue: includeUntilTagValue,
+            interpretUnknownVRInExplicit: interpretUnknownVRInExplicit,
         });
     }
 
@@ -55,7 +57,8 @@ export class DicomMessage {
             ignoreErrors: false,
             untilTag: null,
             includeUntilTagValue: false,
-            stopOnGreaterTag: false
+            stopOnGreaterTag: false,
+            interpretUnknownVRInExplicit: false
         }
     ) {
         const { ignoreErrors, untilTag, stopOnGreaterTag } = options;
@@ -147,7 +150,8 @@ export class DicomMessage {
             untilTag: null,
             includeUntilTagValue: false,
             noCopy: false,
-            forceStoreRaw: false
+            forceStoreRaw: false,
+            interpretUnknownVRInExplicit: false,
         }
     ) {
         var stream = new ReadBufferStream(buffer, null, {
@@ -271,7 +275,8 @@ export class DicomMessage {
         syntax,
         options = {
             untilTag: null,
-            includeUntilTagValue: false
+            includeUntilTagValue: false,
+            interpretUnknownVRInExplicit: false,
         }
     ) {
         const { untilTag, includeUntilTagValue } = options;
@@ -319,14 +324,18 @@ export class DicomMessage {
         } else {
             vrType = stream.readVR();
 
-            if (
-                vrType === "UN" &&
-                DicomMessage.lookupTag(tag) &&
-                DicomMessage.lookupTag(tag).vr
-            ) {
-                vrType = DicomMessage.lookupTag(tag).vr;
+            if (options.interpretUnknownVRInExplicit) {
+                if (
+                    vrType === "UN" &&
+                    DicomMessage.lookupTag(tag) &&
+                    DicomMessage.lookupTag(tag).vr
+                ) {
+                    vrType = DicomMessage.lookupTag(tag).vr;
 
-                vr = ValueRepresentation.parseUnknownVr(vrType);
+                    vr = ValueRepresentation.parseUnknownVr(vrType);
+                } else {
+                    vr = ValueRepresentation.createByTypeString(vrType);
+                }
             } else {
                 vr = ValueRepresentation.createByTypeString(vrType);
             }
