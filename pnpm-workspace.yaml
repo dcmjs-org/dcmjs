@@ -8,11 +8,11 @@ blockExoticSubdeps: true
 
 # https://pnpm.io/supply-chain-security — only install releases at least this many minutes old;
 # strict: fail resolution if no version in range satisfies the age rule (no silent fallback).
-minimumReleaseAge: 1440
+minimumReleaseAge: 2880
 minimumReleaseAgeStrict: true
 
 # https://pnpm.io/supply-chain-security — block installs when npm trust signals regress vs older releases.
-# Excludes match package.json pnpm.overrides pins that predate provenance / publisher metadata on those versions.
+# Excludes match the overrides pins below that predate provenance / publisher metadata on those versions.
 trustPolicy: no-downgrade
 trustPolicyExclude:
   - semver
@@ -48,9 +48,10 @@ overrides:
 # GHSA-vfj7-8cjw-p6xm (braces <=3.0.3, high): published 2026-10-02 with a
 # "patched" range of >=3.0.4, but no such release exists on the registry
 # (latest braces is 3.0.3, 2024-05-21), so there is nothing to override to.
-# All 100 paths are dev tooling (cpy-cli, lint-staged, jest glob expansion);
-# braces never reaches the published package. Remove this ignore the moment
-# a patched braces ships and replace it with an override pin.
+# All paths are dev tooling (cpy-cli, lint-staged, jest glob expansion, and
+# now the semantic-release devDependencies' micromatch); braces never
+# reaches the published package. Remove this ignore the moment a patched
+# braces ships and replace it with an override pin.
 auditConfig:
   ignoreGhsas:
     - GHSA-vfj7-8cjw-p6xm
