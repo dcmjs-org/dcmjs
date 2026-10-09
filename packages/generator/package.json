@@ -1,0 +1,16 @@
+{
+    "name": "@dcmjs-org/generator",
+    "version": "0.0.0",
+    "description": "The event-stream writing side of dcmjs: the sinks that turn contract events into DICOM Part 10 bytes (collected or streaming) and DICOMweb JSON",
+    "main": "./src/index.js",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/dcmjs-org/dcmjs.git",
+        "directory": "packages/generator"
+    },
+    "dependencies": {
+        "@dcmjs-org/core": "workspace:*",
+        "@dcmjs-org/parser": "workspace:*"
+    }
+}
