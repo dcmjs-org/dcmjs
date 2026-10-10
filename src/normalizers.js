@@ -331,6 +331,7 @@ class ImageNormalizer extends Normalizer {
             log.error(
                 "Can only process multiframe data with SharedFunctionalGroupsSequence"
             );
+            ds.SharedFunctionalGroupsSequence = {};
         }
 
         // TODO: special case!
@@ -353,11 +354,13 @@ class ImageNormalizer extends Normalizer {
             RescaleType: "US"
         };
         let frameNumber = 1;
+        ds.PerFrameFunctionalGroupsSequence ||= [];
         this.datasets.forEach(dataset => {
             if (ds.NumberOfFrames === 1)
                 ds.PerFrameFunctionalGroupsSequence = [
                     ds.PerFrameFunctionalGroupsSequence
                 ];
+            ds.PerFrameFunctionalGroupsSequence[frameNumber - 1] ||= {};
             ds.PerFrameFunctionalGroupsSequence[
                 frameNumber - 1
             ].FrameContentSequence = {
