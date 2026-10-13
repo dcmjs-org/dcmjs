@@ -1,5 +1,4 @@
 import { jest } from "@jest/globals";
-import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
 import { WriteBufferStream } from "../src/BufferStream";
@@ -794,12 +793,8 @@ it("test_deflated", async () => {
     ];
 
     expected.forEach(e => {
-        const buffer = fs.readFileSync(path.join(deflatedPath, e.file));
         const dicomDict = DicomMessage.readFile(
-            buffer.buffer.slice(
-                buffer.byteOffset,
-                buffer.byteOffset + buffer.byteLength
-            )
+            readFileAsArrayBuffer(path.join(deflatedPath, e.file))
         );
         const dataset = DicomMetaDictionary.naturalizeDataset(dicomDict.dict);
         Object.keys(e.tags).forEach(t => {
@@ -930,18 +925,7 @@ it("Reads and writes numbers with NaN and Infinity values of tags with type FD (
 });
 
 it("Tests that reading fails on a DICOM without a meta length tag when ignoreErrors is false", () => {
-    const rawFile = fs.readFileSync("test/no-meta-length-test.dcm");
-
-    let arrayBuffer = rawFile.buffer;
-    if (
-        rawFile.byteOffset !== 0 ||
-        rawFile.byteLength !== arrayBuffer.byteLength
-    ) {
-        arrayBuffer = arrayBuffer.slice(
-            rawFile.byteOffset,
-            rawFile.byteOffset + rawFile.byteLength
-        );
-    }
+    const arrayBuffer = readFileAsArrayBuffer("test/no-meta-length-test.dcm");
 
     // Should throw an error when ignoreErrors is false
     expect(() => {
@@ -956,18 +940,7 @@ it("Tests that reading fails on a DICOM without a meta length tag when ignoreErr
 });
 
 it("Tests that reading succeeds on a DICOM without a meta length tag when ignoreErrors is true", () => {
-    const rawFile = fs.readFileSync("test/no-meta-length-test.dcm");
-
-    let arrayBuffer = rawFile.buffer;
-    if (
-        rawFile.byteOffset !== 0 ||
-        rawFile.byteLength !== arrayBuffer.byteLength
-    ) {
-        arrayBuffer = arrayBuffer.slice(
-            rawFile.byteOffset,
-            rawFile.byteOffset + rawFile.byteLength
-        );
-    }
+    const arrayBuffer = readFileAsArrayBuffer("test/no-meta-length-test.dcm");
 
     // Should not throw an error and should successfully parse the file when ignoreErrors is true
     expect(() => {
@@ -1815,9 +1788,7 @@ describe("test OtherDouble ValueRepresentation", () => {
             "https://github.com/dcmjs-org/data/releases/download/od-encoding-data/OD-single-word-example.dcm";
         const dcmPath = await getTestDataset(url, "OD-single-word-example");
         const file = readFileAsArrayBuffer(dcmPath);
-        const data = dcmjs.data.DicomMessage.readFile(
-            new Uint8Array(file).buffer
-        );
+        const data = dcmjs.data.DicomMessage.readFile(file);
 
         // expect OD VR data element (VolumetricCurveUpDirections) to be read with expected value
         expect(data.dict["00701A07"]).toBeTruthy();
