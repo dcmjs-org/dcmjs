@@ -48,6 +48,15 @@ describe("NUL-padded SpecificCharacterSet", () => {
         expect(dataset.SpecificCharacterSet).toEqual("ISO_IR 192");
     });
 
+    test("CS formatting removes trailing NUL padding from every value", () => {
+        const cs = dcmjs.data.ValueRepresentation.createByTypeString("CS");
+        expect(cs.applyFormatting("CT\0")).toBe("CT");
+        expect(cs.applyFormatting(["AXIAL\0", " PRIMARY "])).toEqual([
+            "AXIAL",
+            "PRIMARY"
+        ]);
+    });
+
     test("AsyncDicomReader parses a NUL-padded file", async () => {
         const reader = new AsyncDicomReader();
         const listener = new DicomMetadataListener();

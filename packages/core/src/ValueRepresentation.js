@@ -56,6 +56,15 @@ function rtrim(str) {
     return str.replace(/\s*$/g, "");
 }
 
+/**
+ * Like String.prototype.trim(), and also removes trailing NUL bytes. Some
+ * modalities pad CS values to even length with \0 instead of the space that
+ * the standard requires.
+ */
+export function trim0(str) {
+    return str.replace(/^\s+|[\s\0]+$/g, "");
+}
+
 function toWindows(inputArray, size) {
     return Array.from(
         { length: inputArray.length - (size - 1) }, //get the appropriate length
@@ -703,13 +712,11 @@ class CodeString extends AsciiStringRepresentation {
     }
 
     applyFormatting(value) {
-        const trim = str => str.trim();
-
         if (Array.isArray(value)) {
-            return value.map(str => trim(str));
+            return value.map(str => trim0(str));
         }
 
-        return trim(value);
+        return trim0(value);
     }
 }
 
@@ -1426,13 +1433,14 @@ class Unsigned64BitVeryLong extends ValueRepresentation {
         return stream.readBigUint64();
     }
 
+    /**
+     * DataView.setBigUint64 only accepts BigInt values, so this method
+     * coerces Numbers and numeric strings, as the other numeric VRs do with
+     * toInt/toFloat. A null or undefined entry becomes 0, as US/UL write null
+     * entries. A null, undefined or empty scalar stays as it is, so the base
+     * write() writes a zero-length element (PS3.5 7.4, Type 2).
+     */
     writeBytes(stream, value, writeOptions) {
-        // DataView.setBigUint64 only accepts BigInt values, so coerce
-        // Numbers and numeric strings the way the other numeric VRs do
-        // via toInt/toFloat. A null or undefined entry becomes 0, matching
-        // how US/UL write null entries. A null, undefined or empty scalar
-        // is left alone so the base write() short-circuit produces a
-        // zero-length element (PS3.5 7.4, Type 2).
         const coerce = v =>
             typeof v === "bigint"
                 ? v
