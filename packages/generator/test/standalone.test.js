@@ -1,30 +1,21 @@
 /**
  * Standalone-load regression for @dcmjs-org/generator (pattern of the
- * dicomdir wave's standalone test): import ONLY core + parser + generator by
+ * dicomdir wave's standalone test): import ONLY parser + generator by
  * package name and exercise Part10Writer end to end — events → Part 10 bytes
- * → fromPart10Stream readback — WITHOUT @dcmjs-org/legacy anywhere in the
- * module graph.
+ * → fromPart10Stream readback.
  *
- * The virtual jest.mock below is the tripwire: if any module on this path
- * still imports @dcmjs-org/legacy (as Part10Writer did while the Part 10
- * envelope lived in legacy DicomDict.write), loading it throws and every
- * test here goes red. `virtual: true` keeps the mock registrable even once
- * the dependency edge is gone and the name no longer resolves from this
- * package.
+ * The generator itself must not depend on @dcmjs-org/legacy (Part10Writer
+ * did while the Part 10 envelope lived in legacy DicomDict.write). The parser
+ * has a temporary legacy dependency for its eager-reader fallbacks (see
+ * beta-1-release-notes.md), so the tripwire checks the generator's own
+ * manifest and sources instead of the whole module graph. When the parser
+ * drops legacy, restore the virtual jest.mock tripwire on "@dcmjs-org/legacy".
  *
  * The deflated case matters most: the deflate branch of the envelope must
  * work legacy-free now that writePart10 lives in core/writeCore.js.
  */
-jest.mock(
-    "@dcmjs-org/legacy",
-    () => {
-        throw new Error(
-            "standalone: @dcmjs-org/legacy must not be loaded on the core+parser+generator path"
-        );
-    },
-    { virtual: true }
-);
-
+import fs from "fs";
+import path from "path";
 import {
     fromDataSet,
     fromPart10Stream,
@@ -74,7 +65,30 @@ function expectRoundTrippedValues(back, transferSyntaxUID) {
     expect(back.dict["00081110"].Value[0]["00081150"].Value).toEqual(["1.2.3"]);
 }
 
-describe("Part10Writer standalone (no @dcmjs-org/legacy in the module graph)", () => {
+function sourceFiles(dir) {
+    return fs.readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) return sourceFiles(full);
+        return entry.name.endsWith(".js") ? [full] : [];
+    });
+}
+
+describe("Part10Writer standalone (generator does not depend on @dcmjs-org/legacy)", () => {
+    test("the generator manifest and sources do not reference @dcmjs-org/legacy", () => {
+        const packageDir = path.join(__dirname, "..");
+        const manifest = JSON.parse(
+            fs.readFileSync(path.join(packageDir, "package.json"), "utf8")
+        );
+        expect(Object.keys(manifest.dependencies || {})).not.toContain(
+            "@dcmjs-org/legacy"
+        );
+        for (const file of sourceFiles(path.join(packageDir, "src"))) {
+            expect(fs.readFileSync(file, "utf8")).not.toMatch(
+                /["']@dcmjs-org\/legacy["']/
+            );
+        }
+    });
+
     test("round-trips events to Part 10 bytes and back (explicit little endian)", async () => {
         const { buffer, back } = await roundTrip(EXPLICIT_LITTLE_ENDIAN);
 

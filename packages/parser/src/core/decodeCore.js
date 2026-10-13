@@ -12,10 +12,14 @@ import {
 
 /**
  * The narrow eager-delegation seam: the eager reader class, resolved at call
- * time through core's late-binding slot instead of a static import, so this
- * package carries no edge to @dcmjs-org/legacy. Loading legacy's DicomMessage
- * module (directly, via any old src/ path, or via the dcmjs wrapper) wires
- * the slot; without it the one caller below fails with a clear error.
+ * time through core's late-binding slot. Loading legacy's DicomMessage module
+ * wires the slot. This package's index.js imports @dcmjs-org/legacy for that
+ * reason, so the slot is wired whenever the parser loads.
+ *
+ * TEMPORARY: the two callers (undefined-length elements that are not SQ, and
+ * the bare-dataset fallback in fromPart10Stream) must move to the standard
+ * async handling. Then remove this seam and the parser's dependency on
+ * @dcmjs-org/legacy (see beta-1-release-notes.md).
  */
 export function requireEagerReader(caller) {
     const DicomMessage = ValueRepresentation.getDicomMessageClass();

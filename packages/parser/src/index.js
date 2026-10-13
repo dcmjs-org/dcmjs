@@ -3,6 +3,14 @@
 // contract events, and the listeners that collect or naturalize them. The
 // writer sinks live in @dcmjs-org/generator; the DicomEventStream facade that
 // spans both sides stays with the dcmjs wrapper.
+
+// TEMPORARY dependency on @dcmjs-org/legacy: loading it wires the eager reader
+// that decodeCore.requireEagerReader returns. Remove this import and the
+// package.json dependency when the undefined-length non-SQ fallback and the
+// bare-dataset fallback move to the standard async handling
+// (beta-1-release-notes.md).
+import "@dcmjs-org/legacy";
+
 export {
     EventStreamListener,
     EVENT_STREAM_VOCABULARY,
