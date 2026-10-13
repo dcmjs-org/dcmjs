@@ -6,7 +6,7 @@ import {
     IMPLICIT_LITTLE_ENDIAN,
     VM_DELIMITER,
     TagHex,
-    encodingMapping,
+    resolveCharsetDecoder,
     UNDEFINED_LENGTH,
     VALID_VRS,
     DicomMetaDictionary,
@@ -87,38 +87,11 @@ export class DicomMessage {
                     break;
                 }
                 if (cleanTagString === TagHex.SpecificCharacterSet) {
-                    if (readInfo.values.length > 0) {
-                        let coding = readInfo.values[0];
-                        // Strip illegal NUL padding (some modalities pad to
-                        // even length with \0 instead of the space required
-                        // by the standard) before normalizing.
-                        coding = coding
-                            .replace(/\0/g, "")
-                            .trim()
-                            .replace(/[_ ]/g, "-")
-                            .toLowerCase();
-                        if (coding in encodingMapping) {
-                            coding = encodingMapping[coding];
-                            bufferStream.setDecoder(new TextDecoder(coding));
-                        } else if (ignoreErrors) {
-                            log.warn(
-                                `Unsupported character set: ${coding}, using default character set`
-                            );
-                        } else {
-                            throw Error(`Unsupported character set: ${coding}`);
-                        }
-                    }
-                    if (readInfo.values.length > 1) {
-                        if (ignoreErrors) {
-                            log.warn(
-                                "Using multiple character sets is not supported, proceeding with just the first character set",
-                                readInfo.values
-                            );
-                        } else {
-                            throw Error(
-                                `Using multiple character sets is not supported: ${readInfo.values}`
-                            );
-                        }
+                    const decoder = resolveCharsetDecoder(readInfo.values, {
+                        ignoreErrors
+                    });
+                    if (decoder) {
+                        bufferStream.setDecoder(decoder);
                     }
                     readInfo.values = ["ISO_IR 192"]; // change SpecificCharacterSet to UTF-8
                 }
@@ -183,6 +156,37 @@ export class DicomMessage {
             : IMPLICIT_LITTLE_ENDIAN;
     }
 
+    /**
+     * Walks the File Meta group element by element, and stops at the first
+     * tag after group 0002. Used when (0002,0000) is missing or overstated.
+     */
+    static _readMetaGroupStructurally(stream, syntax) {
+        return DicomMessage._read(stream, syntax, {
+            untilTag: "00030000",
+            stopOnGreaterTag: true,
+            ignoreErrors: true
+        });
+    }
+
+    /**
+     * Reads a Part 10 buffer into a DicomDict.
+     *
+     * `allowMissingHeader: true` (issue #93) is an explicit opt-in that also
+     * accepts inputs without a Part 10 header:
+     *   - full Part 10 (preamble + DICM): read as usual;
+     *   - no preamble, File Meta first (group 0002 at byte 0): the File Meta
+     *     parse starts at byte 0, and (0002,0000) can be absent;
+     *   - bare dataset (DIMSE-style, no File Meta): parsed as a raw dataset,
+     *     Explicit Little Endian unless the first element header shows
+     *     implicit VR (see _detectBareSyntax).
+     *
+     * File Meta group length (0002,0000): an overstated value pulls dataset
+     * elements into the meta header and puts the body start at the wrong
+     * offset. When the declared window holds any tag outside group 0002, the
+     * reader logs a warning and re-walks the group structurally, so the body
+     * starts at the first element after the File Meta group. An understated
+     * value holds only group 0002 elements, and the reader uses it as-is.
+     */
     static readFile(
         buffer,
         options = {
@@ -208,14 +212,7 @@ export class DicomMessage {
                 );
             }
         } else {
-            // allowMissingHeader: true (issue #93) is an explicit opt-in
-            // that also accepts headerless inputs:
-            //   - full Part 10 (preamble + DICM): read as usual;
-            //   - preamble-less with FMI (group 0002 first): FMI parsing
-            //     starts at byte 0;
-            //   - bare dataset (DIMSE-style, no FMI): parsed as a raw
-            //     dataset, assumed Explicit Little Endian unless implicit
-            //     VR is detected from the first element header.
+            // allowMissingHeader (issue #93): see the doc comment above.
             let hasPart10Header = false;
             if (stream.size >= 132) {
                 stream.increment(128);
@@ -250,25 +247,18 @@ export class DicomMessage {
 
         var metaHeader = {};
         if (el.tag.cleanString !== TagHex.FileMetaInformationGroupLength) {
-            // meta length tag is missing. allowMissingHeader (issue #93) is
-            // an explicit opt-in to headerless leniency, which includes FMI
-            // groups that start directly at (0002,0010) without a
-            // (0002,0000) group length.
+            // meta length tag is missing (allowed by allowMissingHeader)
             if (!options.ignoreErrors && !options.allowMissingHeader) {
                 throw new Error(
                     "Invalid DICOM file, meta length tag is malformed or not present."
                 );
             }
 
-            // reset stream to the position where we started reading tags
             stream.offset = metaStartPos;
-
-            // read meta header elements sequentially
-            metaHeader = DicomMessage._read(stream, useSyntax, {
-                untilTag: "00030000",
-                stopOnGreaterTag: true,
-                ignoreErrors: true
-            });
+            metaHeader = DicomMessage._readMetaGroupStructurally(
+                stream,
+                useSyntax
+            );
         } else {
             // meta length tag is present; save the position right after it
             var metaBodyPos = stream.offset;
@@ -278,27 +268,17 @@ export class DicomMessage {
             var metaStream = stream.more(metaLength);
             metaHeader = DicomMessage._read(metaStream, useSyntax, options);
 
-            // An overstated (0002,0000) pulls dataset elements into the
-            // meta header and mis-frames where the body starts. If the
-            // declared window contains anything outside group 0002,
-            // discard it, warn, and re-walk the meta group structurally
-            // so the body is framed at the first non-meta element.
-            // An understated (0002,0000) is left alone here: the declared
-            // window then holds group-0002 elements only, and is used as-is.
+            // overstated (0002,0000): see the doc comment above
             if (Object.keys(metaHeader).some(tag => !tag.startsWith("0002"))) {
                 log.warn(
                     "Invalid DICOM file, meta group length (0002,0000) extends past the end of the File Meta group. Re-reading the meta header structurally."
                 );
 
-                // reset stream to the position after the meta length tag
                 stream.offset = metaBodyPos;
-
-                // read meta header elements sequentially
-                metaHeader = DicomMessage._read(stream, useSyntax, {
-                    untilTag: "00030000",
-                    stopOnGreaterTag: true,
-                    ignoreErrors: true
-                });
+                metaHeader = DicomMessage._readMetaGroupStructurally(
+                    stream,
+                    useSyntax
+                );
             }
         }
 
