@@ -134,20 +134,30 @@ export function writePart10(
 
     var useSyntax = meta[TagHex.TransferSyntaxUID].Value[0];
     if (useSyntax === DEFLATED_EXPLICIT_LITTLE_ENDIAN) {
-        // Deflate-on-write (W4). Per PS3.10 A.5 only the dataset
-        // after the meta group is deflated - the preamble, "DICM" and
-        // the meta group (written uncompressed above) never are. The
-        // deflated syntax implies an explicit little endian body, so
-        // the body is produced as ELE into a scratch stream, then
-        // raw-deflated (RFC 1951, no zlib header - the mirror of the
-        // read side's inflateRaw).
-        const bodyStream = new WriteBufferStream(4096, true);
-        writeDataSet(dict, bodyStream, EXPLICIT_LITTLE_ENDIAN, writeOptions);
-        fileStream.writeRawBytes(
-            pako.deflateRaw(new Uint8Array(bodyStream.getBuffer()))
-        );
+        writeDeflatedDataSet(dict, fileStream, writeOptions);
         return fileStream.getBuffer();
     }
     writeDataSet(dict, fileStream, useSyntax, writeOptions);
     return fileStream.getBuffer();
+}
+
+/**
+ * Deflate-on-write (W4): append `dict` to `fileStream` as a deflated body.
+ *
+ * Per PS3.10 A.5 only the dataset after the meta group is deflated - the
+ * preamble, "DICM" and the meta group (written uncompressed by the caller)
+ * never are. The deflated syntax implies an explicit little endian body, so
+ * the body is produced as ELE into a scratch stream, then raw-deflated
+ * (RFC 1951, no zlib header - the mirror of the read side's inflateRaw).
+ *
+ * @param {Object} dict tag-keyed dataset
+ * @param {WriteBufferStream} fileStream the Part 10 output stream
+ * @param {Object} writeOptions
+ */
+function writeDeflatedDataSet(dict, fileStream, writeOptions) {
+    const bodyStream = new WriteBufferStream(4096, true);
+    writeDataSet(dict, bodyStream, EXPLICIT_LITTLE_ENDIAN, writeOptions);
+    fileStream.writeRawBytes(
+        pako.deflateRaw(new Uint8Array(bodyStream.getBuffer()))
+    );
 }

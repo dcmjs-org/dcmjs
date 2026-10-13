@@ -56,8 +56,40 @@ import {
  * watermark — so an element or fragment larger than this still accumulates
  * fully and the gate cannot deadlock. Overridable per call via
  * `options.feedHighWater`.
+ *
+ * Without this throttle, a listener stalled on its drain gate (e.g. a write
+ * sink flushing a fragment to disk) lets the feed buffer the entire remaining
+ * input. Parse settlement (parseState) wakes the gate on early exit or error.
  */
 const FEED_HIGH_WATER = 4 * 1024 * 1024;
+
+/**
+ * pako.Inflate chunkSize for the K5 deflate relay: controls when pako calls
+ * onData. The default is 64 KiB (pako 2.x source: 1024*64) — large enough
+ * that typical DICOM deflate bodies never fill a single chunk before the
+ * stream is finalised, so onData would never fire mid-stream. 16 KiB keeps
+ * the buffer small enough to ensure onData fires for every 16 KiB of
+ * inflated output, giving the body loop bytes to parse before the raw stream
+ * ends.
+ */
+const INFLATE_CHUNK_SIZE = 16384;
+
+/**
+ * K5 relay throttle (ED-1): pause the relay while the body loop holds more
+ * than RELAY_HIGH_WATER inflated bytes and has no pending demand — otherwise
+ * a fast feed + slow listener grows bodyStream without bound (the
+ * relay-balloon risk).
+ */
+const RELAY_HIGH_WATER = 16384;
+
+/**
+ * K5 relay sub-slice size (ED-1). Because DEFLATE can expand >100× (a whole
+ * file's output can hide in a few hundred compressed bytes), pausing between
+ * network chunks is not enough: raw bytes are fed to the inflater in
+ * RELAY_RAW_SLICE sub-slices with a retention check between each, bounding
+ * the overshoot to one sub-slice's expansion.
+ */
+const RELAY_RAW_SLICE = 128;
 
 /**
  * fromPart10Stream — parse a chunked DICOM Part 10 byte source into events.
@@ -109,29 +141,84 @@ export function fromPart10Stream(input, listener, options = {}) {
     );
 }
 
+/**
+ * The parse behind {@link fromPart10Stream}. It runs in four phases:
+ *
+ * 1. Preamble detection ({@link detectPreamble}); a bare dataset goes to
+ *    {@link replayBareDataset} instead.
+ * 2. Incremental FMI parse ({@link readFileMetaInformation}).
+ * 3. Emission of the collected FMI events, after startDataSet.
+ * 4. The body phase (K4 — fully incremental element loop).
+ *
+ * K4: the raw `stream` uses clearBuffers:true — the incremental body loop
+ * consume()s each completed top-level element, so chunk memory is released
+ * as the parse advances (bounded-memory streaming). The deflate and
+ * raw-dataset fallbacks run BEFORE any consume() and slice the full retained
+ * buffer, so they are unaffected by the flag.
+ *
+ * Body phase: every structure now streams natively, in source order, bounded
+ * only by the element currently being decoded:
+ *
+ *   - Defined-length leaves and SQ: emitted directly (K3 behavior).
+ *   - Undefined-length SQ / items: parsed delimiter-driven; the subtree is
+ *     buffered ONLY long enough to backfill the buffered-parity content-span
+ *     length payload on startSequence/startItem (unknown until the closing
+ *     FFFE,E0DD / FFFE,E00D is reached), then flushed.
+ *   - Encapsulated pixel data: fragments streamed one at a time (the Basic
+ *     Offset Table item is skipped, matching buffered fromPart10).
+ *   - Undefined-length non-SQ leaves ("eagerWindow"): the element window is
+ *     bounded by an item-delimiter scan (mirroring the parser's
+ *     findItemDelimitationItem) and decoded via decodeWithEagerReadTag.
+ *
+ * The K3 tail-fallback (walkBodyTail / TailFallbackSignal / EventBuffer-for-
+ * atomicity) is deleted: nothing can fall back mid-subtree anymore because
+ * deflate is decided BEFORE the body loop. The only remaining buffered path
+ * is deflate (K5). Chunk release is LIVE (clearBuffers:true + consume()).
+ *
+ * K5 deflate: a relay coroutine (runInflateRelay) reads compressed bytes from
+ * `stream` (raw space, fixed at metaEndOffset after FMI parsing) and pushes
+ * them through pako.Inflate into `bodyStream` (inflated/zero-based space).
+ * The body element loop reads from `bsrc`, which is `bodyStream` for deflate
+ * and `stream` for everything else. This is the ONLY branch that decides
+ * which offset space the body loop operates in.
+ *
+ * Offset-space invariant: `stream` coordinates are always raw/compressed;
+ * `bodyStream` coordinates are always inflated/zero-based. The two spaces are
+ * NEVER mixed: body element offsets, `ensureAbs` calls, `slice` calls, and
+ * `consume` calls all operate exclusively on whichever `bsrc` resolves to.
+ * The relay is the sole owner of `stream` during the body phase.
+ *
+ * K5 top-level body element loop: every element (defined or undefined
+ * length, leaf or SQ or encapsulated) is read and emitted incrementally by
+ * parseOneElement. After each top-level element completes, consume()
+ * releases the chunks it no longer needs. For deflate, `bsrc` is bodyStream
+ * (inflated space, zero-based); the relay concurrently pushes inflated
+ * chunks. For all other paths, `bsrc` is stream (raw space).
+ */
 async function fromPart10StreamImpl(input, listener, options, parseState) {
     const iterable = normalizeInput(input);
 
-    // K4: clearBuffers:true — the incremental body loop consume()s each
-    // completed top-level element, so chunk memory is released as the parse
-    // advances (bounded-memory streaming). The deflate and raw-dataset
-    // fallbacks run BEFORE any consume() and slice the full retained buffer,
-    // so they are unaffected by the flag.
+    // K4: clearBuffers releases chunks as the parse advances (see JSDoc).
     const stream = new ReadBufferStream(null, true, { clearBuffers: true });
 
     // Feed runs unawaited so the FMI parse can proceed concurrently.
     const feedHighWater = options.feedHighWater ?? FEED_HIGH_WATER;
     let feedError = null;
-    const feedPromise = (async () => {
+    const feedPromise = runFeed();
+
+    /**
+     * Feed loop: copies each source chunk into `stream`, then completes it.
+     * K5b: the loop throttles against the parse loop at `feedHighWater`
+     * retained bytes (see {@link FEED_HIGH_WATER}). Pending demand always
+     * wins so a starved consumer can never deadlock; parse settlement
+     * (parseState) wakes the gate on early exit or error. A source error is
+     * stored in `feedError` for the parse to rethrow.
+     */
+    async function runFeed() {
         try {
             for await (const chunk of iterable) {
                 stream.addBuffer(toArrayBuffer(chunk));
-                // K5b: throttle against the parse loop. Without this, a
-                // listener stalled on its drain gate (e.g. a write sink
-                // flushing a fragment to disk) lets the feed buffer the
-                // entire remaining input. Pending demand always wins so a
-                // starved consumer can never deadlock; parse settlement
-                // (parseState) wakes the gate on early exit or error.
+                // K5b: throttle against the parse loop (see JSDoc).
                 while (
                     !parseState.done &&
                     stream.getBufferMemoryInfo().totalSize > feedHighWater &&
@@ -150,7 +237,7 @@ async function fromPart10StreamImpl(input, listener, options, parseState) {
             // can observe the error and propagate it.
             stream.setComplete();
         }
-    })();
+    }
 
     const policy = {
         forceStoreRaw: !!options.forceStoreRaw,
@@ -159,259 +246,17 @@ async function fromPart10StreamImpl(input, listener, options, parseState) {
     };
 
     // ---- Phase 1: Preamble detection (incremental) ----
-    //
-    // Mirrors AsyncDicomReader.readPreamble() semantics:
-    //   - "DICM" at bytes 128-131 → normal Part 10, advance to offset 132
-    //   - First 2 bytes are group 0x0002 → PART10_NO_PREAMBLE, stay at 0
-    //   - Neither → raw dataset / non-DICOM → force-read via the eager
-    //     reader's allowMissingHeader opt-in (replayed through fromDataSet),
-    //     or refuse with a clear error when the opt-in is absent.
-
-    let rawDatasetFallback = false;
-
-    // Wait for enough bytes to check the DICM marker (requires 132 bytes:
-    // 128-byte preamble + 4-byte "DICM").  ensureAvailable resolves even
-    // at EOF if bytes are insufficient (OR-complete semantics), so we
-    // always re-check with isAvailable(N, false) after the await.
-    await stream.ensureAvailable(132);
-
-    if (stream.isAvailable(132, false)) {
-        // We have at least 132 bytes — check for "DICM" at bytes 128-131.
-        const hasDicm =
-            stream.view.getUint8(128) === 0x44 && // D
-            stream.view.getUint8(129) === 0x49 && // I
-            stream.view.getUint8(130) === 0x43 && // C
-            stream.view.getUint8(131) === 0x4d; //   M
-        if (hasDicm) {
-            // Normal Part 10: skip preamble + DICM marker.
-            stream.offset = 132;
-        } else {
-            // No DICM — check whether the file starts with group 0x0002.
-            const firstGroup = stream.view.getUint16(0, true); // LE
-            if (firstGroup === 0x0002) {
-                // PART10_NO_PREAMBLE: FMI starts at byte 0.
-                stream.offset = 0;
-            } else {
-                rawDatasetFallback = true;
-            }
-        }
-    } else {
-        // Fewer than 132 bytes available (short stream or early EOF).
-        // Try to at least check the 0x0002 group in the first 2 bytes.
-        await stream.ensureAvailable(4);
-        if (stream.isAvailable(2, false)) {
-            const firstGroup = stream.view.getUint16(0, true); // LE
-            if (firstGroup === 0x0002) {
-                stream.offset = 0; // PART10_NO_PREAMBLE
-            } else {
-                rawDatasetFallback = true;
-            }
-        } else {
-            rawDatasetFallback = true;
-        }
-    }
-
-    if (rawDatasetFallback) {
+    if (await detectPreamble(stream)) {
         await feedPromise;
         if (feedError) throw feedError;
         const byteArray = new Uint8Array(stream.slice(0, stream.size));
-        // Fixed in this arc (issue #93): with an explicit opt-in
-        // (allowMissingHeader, or the tolerant ignoreErrors mode) a bare
-        // (meta-less, DIMSE-style) dataset is force-read: the eager reader
-        // parses it via readFile({ allowMissingHeader: true }) — Explicit
-        // Little Endian assumed unless implicit VR is detected — and the
-        // resulting dict is replayed as events through fromDataSet. The
-        // eager reader is resolved through core's late-binding seam at call
-        // time (see decodeCore.requireEagerReader) so this package carries
-        // no static edge to @dcmjs-org/legacy; every old src/ import path and
-        // the dcmjs wrapper wire the seam automatically.
-        if (options.allowMissingHeader || options.ignoreErrors) {
-            const DicomMessage = requireEagerReader(
-                "fromPart10Stream (bare-dataset fallback)"
-            );
-            const bareDict = DicomMessage.readFile(byteArray.buffer, {
-                ...options,
-                allowMissingHeader: true
-            });
-            await fromDataSet(bareDict, listener);
-            return;
-        }
-        // Without the opt-in, input that is neither Part 10 nor an FMI
-        // group is refused with the streaming reader's own error. (The
-        // vendored tokenizer this path once delegated to for error parity
-        // is removed from 1.0; this error text is now the canonical one.)
-        throw new Error(
-            "fromPart10Stream: input has no DICM marker and does not start " +
-                "with a File Meta Information group; pass " +
-                "allowMissingHeader: true (or ignoreErrors: true) to " +
-                "force-read a bare dataset"
-        );
+        await replayBareDataset(byteArray, listener, options);
+        return;
     }
 
     // ---- Phase 2: Incremental FMI parse ----
-    //
-    // FMI is always EXPLICIT_LITTLE_ENDIAN regardless of the body TS.
-    // We accumulate decoded FMI elements (tag, VR, values, rawValues) into
-    // a local array so that we can emit startDataSet *after* we know the
-    // TransferSyntaxUID from (0002,0010) — the listener must receive
-    // startDataSet with the correct TS before any FMI events.
-
-    /** @type {Array<{tag:string, vrStr:string, length:number, values:any[], rawValues:any[]}>} */
-    const fmiElements = [];
-    let transferSyntaxUID = EXPLICIT_LITTLE_ENDIAN; // default if 0002,0010 absent
-    // Raw (un-normalised) TS read from (0002,0010): used for the K5 deflate
-    // detection because _normalizeSyntax maps deflate → ELE, which would
-    // prevent bodyStream from being created (K5 root bug).  transferSyntaxUID
-    // (normalised) is kept for listener.startDataSet and body-parsing parity
-    // with the eager reader, which normalises the same way.
-    let rawTransferSyntaxUID = EXPLICIT_LITTLE_ENDIAN;
-
-    // We need at least 8 bytes for the smallest possible FMI header.
-    await stream.ensureAvailable(8);
-
-    // Determine whether (0002,0000) FileMetaInformationGroupLength is present.
-    // If present, we know the exact end-of-FMI offset; otherwise we stop
-    // when the first non-0002 group tag appears (AsyncDicomReader.readMeta
-    // §233–240 fallback).
-    let metaEndOffset = null; // null → no fixed bound
-
-    if (
-        stream.isAvailable(8, false) &&
-        stream.view.getUint16(stream.offset, true) === 0x0002 &&
-        stream.view.getUint16(stream.offset + 2, true) === 0x0000
-    ) {
-        // (0002,0000) is present.  We'll parse it in the main loop below
-        // and set metaEndOffset once we have the UL value.
-        // (No special pre-read needed — the loop handles it uniformly.)
-    }
-
-    // ---- FMI element loop ----
-    while (true) {
-        // Fixed-bound termination: used when (0002,0000) was found.
-        if (metaEndOffset !== null && stream.offset >= metaEndOffset) break;
-
-        // Wait for enough bytes to read a minimal element header (8 bytes:
-        // 4-byte tag + 2-byte VR + 2-byte length).  If the stream ends
-        // before we get 8 bytes (unlikely for valid FMI), we stop.
-        await stream.ensureAvailable(8);
-
-        // EOF or insufficient data: stop FMI loop gracefully.
-        if (!stream.isAvailable(4, false)) break;
-
-        // Peek at the next element's group tag (LE uint16).
-        // For the no-group-length fallback: stop as soon as group != 0x0002.
-        const peekGroup = stream.view.getUint16(stream.offset, true);
-        if (peekGroup !== 0x0002) break; // body starts here
-
-        // Confirm we have at least a full 8-byte header before committing.
-        if (!stream.isAvailable(8, false)) break;
-
-        // ---- Read element header (Explicit Little Endian) ----
-        const elGroup = stream.readUint16(); // always 0x0002
-        const elElement = stream.readUint16();
-        // Build DICOM clean tag string: "GGGGEEEE" (uppercase hex, 8 chars)
-        const tagStr =
-            elGroup.toString(16).padStart(4, "0").toUpperCase() +
-            elElement.toString(16).padStart(4, "0").toUpperCase();
-
-        // VR: 2 ASCII bytes
-        const vrStr =
-            String.fromCharCode(stream.view.getUint8(stream.offset)) +
-            String.fromCharCode(stream.view.getUint8(stream.offset + 1));
-        stream.offset += 2;
-
-        // Length: 2 bytes (standard VR) or 2 reserved + 4 bytes (extended VR)
-        let valueLength;
-        // Resolve VR instance to determine header framing via isLength32()
-        // createByTypeString handles invalid VR strings by falling back to UN.
-        const vrForHeader = ValueRepresentation.createByTypeString(vrStr);
-        if (vrForHeader.isLength32()) {
-            // Extended form: need 2 more bytes (reserved) + 4 bytes (length32)
-            await stream.ensureAvailable(6);
-            if (!stream.isAvailable(6, false)) break; // truncated
-            stream.offset += 2; // skip reserved (0x0000)
-            valueLength = stream.readUint32();
-        } else {
-            // Standard form: length is already in the next 2 bytes
-            await stream.ensureAvailable(2);
-            if (!stream.isAvailable(2, false)) break; // truncated
-            valueLength = stream.readUint16();
-        }
-
-        // Set metaEndOffset after reading the FileMetaInformationGroupLength
-        // value (0002,0000) UL.  The bound is relative to the END of this
-        // element (i.e., the first byte AFTER the UL value bytes).
-        const isGroupLengthTag = elGroup === 0x0002 && elElement === 0x0000;
-
-        // Wait for value bytes
-        await stream.ensureAvailable(valueLength);
-
-        if (!stream.isAvailable(valueLength, false)) {
-            // Stream ended mid-value: best-effort stop (truncated FMI)
-            break;
-        }
-
-        // Extract value bytes into a fresh ArrayBuffer (copy is acceptable
-        // for FMI — FMI is at most a few hundred bytes).
-        const valueStart = stream.offset;
-        const valueAB = stream.slice(valueStart, valueStart + valueLength);
-
-        // Build a minimal read window for decodeCore
-        const fakeWindow = {
-            arrayBuffer: valueAB,
-            baseOffset: 0,
-            syntax: EXPLICIT_LITTLE_ENDIAN,
-            littleEndian: true,
-            implicit: false,
-            decoder: null
-        };
-        // elLike: the minimal shape decodeCore.resolveVrInstance and
-        // decodeCore.decodeElementValues require.
-        //   vr        — VR string (e.g. "UI", "UL", "OB")
-        //   tagValue  — numeric tag (group << 16) | element, for UN dictionary lookup
-        //   dataOffset — byte offset of value within the window.arrayBuffer
-        //   length    — value byte count
-        //   hadUndefinedLength — always false for FMI elements (PS3.5 §7.1)
-        const elLike = {
-            vr: vrStr,
-            tagValue: (elGroup << 16) | elElement,
-            dataOffset: 0,
-            length: valueLength,
-            hadUndefinedLength: false
-        };
-
-        const vrInstance = resolveVrInstance(elLike, fakeWindow);
-        const { values, rawValues } = decodeElementValues(
-            fakeWindow,
-            elLike,
-            vrInstance,
-            policy
-        );
-
-        // Capture TransferSyntaxUID for startDataSet and body-phase delegation.
-        // Matches seedReadContext's normalization (core normalizeSyntax).
-        if (tagStr === "00020010" && values[0]) {
-            rawTransferSyntaxUID = values[0];
-            transferSyntaxUID = normalizeSyntax(values[0]);
-        }
-
-        // Set meta end offset from (0002,0000) FileMetaInformationGroupLength
-        if (isGroupLengthTag && values[0] !== undefined) {
-            // values[0] is the UL integer: bytes after THIS element
-            metaEndOffset = valueStart + valueLength + values[0];
-        }
-
-        fmiElements.push({
-            tag: tagStr,
-            vrStr,
-            length: valueLength,
-            values,
-            rawValues
-        });
-
-        // Advance stream past the value bytes
-        stream.offset = valueStart + valueLength;
-    }
+    const { fmiElements, transferSyntaxUID, rawTransferSyntaxUID } =
+        await readFileMetaInformation(stream, policy);
 
     // ---- Phase 3: Emit collected FMI events ----
     //
@@ -428,41 +273,7 @@ async function fromPart10StreamImpl(input, listener, options, parseState) {
         listener.endFileMetaInformation();
     }
 
-    // ---- Phase 4: Body phase (K4 — fully incremental element loop) ----
-    //
-    // Every structure now streams natively, in source order, bounded only by
-    // the element currently being decoded:
-    //
-    //   - Defined-length leaves and SQ: emitted directly (K3 behavior).
-    //   - Undefined-length SQ / items: parsed delimiter-driven; the subtree is
-    //     buffered ONLY long enough to backfill the buffered-parity content-span
-    //     length payload on startSequence/startItem (unknown until the closing
-    //     FFFE,E0DD / FFFE,E00D is reached), then flushed.
-    //   - Encapsulated pixel data: fragments streamed one at a time (the Basic
-    //     Offset Table item is skipped, matching buffered fromPart10).
-    //   - Undefined-length non-SQ leaves ("eagerWindow"): the element window is
-    //     bounded by an item-delimiter scan (mirroring the parser's
-    //     findItemDelimitationItem) and decoded via decodeWithEagerReadTag.
-    //
-    // The K3 tail-fallback (walkBodyTail / TailFallbackSignal / EventBuffer-for-
-    // atomicity) is deleted: nothing can fall back mid-subtree anymore because
-    // deflate is decided BEFORE the body loop. The only remaining buffered path
-    // is deflate (K5). Chunk release is LIVE (clearBuffers:true + consume()).
-
-    // --- K5: Deflate TS → stream-inflate into bodyStream (incremental) ---
-    //
-    // A relay coroutine reads compressed bytes from `stream` (raw space, fixed
-    // at metaEndOffset after FMI parsing) and pushes them through pako.Inflate
-    // into `bodyStream` (inflated/zero-based space). The body element loop
-    // below reads from `bsrc`, which is `bodyStream` for deflate and `stream`
-    // for everything else. This is the ONLY branch that decides which offset
-    // space the body loop operates in.
-    //
-    // Offset-space invariant: `stream` coordinates are always raw/compressed;
-    // `bodyStream` coordinates are always inflated/zero-based. The two spaces
-    // are NEVER mixed: body element offsets, `ensureAbs` calls, `slice` calls,
-    // and `consume` calls all operate exclusively on whichever `bsrc` resolves
-    // to. The relay is the sole owner of `stream` during the body phase.
+    // ---- Phase 4: Body phase (K4 — fully incremental; see JSDoc) ----
 
     let bodyStream = null;
     let inflateError = null;
@@ -486,119 +297,114 @@ async function fromPart10StreamImpl(input, listener, options, parseState) {
         // from stream. This keeps raw-space and inflated-space counters separate.
         const relayStartPos = stream.offset; // == metaEndOffset
 
-        relayPromise = (async () => {
-            // chunkSize controls when pako calls onData.  The default is 64 KiB
-            // (pako 2.x source: 1024*64) — large enough that typical DICOM deflate
-            // bodies never fill a single chunk before the stream is finalised, so
-            // onData would never fire mid-stream.  16 KiB keeps the buffer small
-            // enough to ensure onData fires for every 16 KiB of inflated output,
-            // giving the body loop bytes to parse before the raw stream ends.
-            const inflater = new pako.Inflate({ raw: true, chunkSize: 16384 });
-            // K5 relay throttle (ED-1): pause the relay while the body loop
-            // holds more than RELAY_HIGH_WATER inflated bytes and has no
-            // pending demand — otherwise a fast feed + slow listener grows
-            // bodyStream without bound (the relay-balloon risk).  Because
-            // DEFLATE can expand >100× (a whole file's output can hide in a
-            // few hundred compressed bytes), pausing between network chunks
-            // is not enough: raw bytes are fed to the inflater in
-            // RELAY_RAW_SLICE sub-slices with a retention check between
-            // each, bounding the overshoot to one sub-slice's expansion.
-            const RELAY_HIGH_WATER = 16384;
-            const RELAY_RAW_SLICE = 128;
-            inflater.onData = chunk => {
-                // chunk is a Uint8Array (pako 2.x). Slice to an owned
-                // ArrayBuffer so bodyStream's view doesn't alias pako's buffer.
-                bodyStream.addBuffer(
-                    chunk.buffer.slice(
-                        chunk.byteOffset,
-                        chunk.byteOffset + chunk.byteLength
-                    )
-                );
-            };
+        relayPromise = runInflateRelay(relayStartPos);
+    }
 
-            let relayPos = relayStartPos;
-            for (;;) {
-                // Wait for at least one new byte at relayPos, or raw stream done.
-                // stream.offset stays fixed (== metaEndOffset), so:
-                //   need = relayPos + 1 - stream.offset = bytes to advance past offset.
-                const need = relayPos + 1 - stream.offset;
-                await stream.ensureAvailable(need);
+    /**
+     * K5 deflate relay: reads compressed bytes from `stream` starting at
+     * `relayStartPos`, inflates them (raw DEFLATE, chunk size
+     * {@link INFLATE_CHUNK_SIZE}) and appends the output to `bodyStream`.
+     * Sets `inflateError` on a decompress failure, or copies `feedError`
+     * there when the raw stream failed, then completes `bodyStream`.
+     *
+     * Throttle (ED-1, see {@link RELAY_HIGH_WATER} and
+     * {@link RELAY_RAW_SLICE}): after each raw sub-slice, the relay waits for
+     * the body loop to consume below the watermark before it inflates more.
+     * A consumer blocked on ensureAvailable (pending demand) always wins — the
+     * relay resumes immediately. A body loop that FAILED (listener threw)
+     * produces no consumer activity ever again, so the gate also races the
+     * bodyFailed deferred and winds down (F6).
+     */
+    async function runInflateRelay(relayStartPos) {
+        const inflater = new pako.Inflate({
+            raw: true,
+            chunkSize: INFLATE_CHUNK_SIZE
+        });
+        inflater.onData = chunk => {
+            // chunk is a Uint8Array (pako 2.x). Slice to an owned
+            // ArrayBuffer so bodyStream's view doesn't alias pako's buffer.
+            bodyStream.addBuffer(
+                chunk.buffer.slice(
+                    chunk.byteOffset,
+                    chunk.byteOffset + chunk.byteLength
+                )
+            );
+        };
 
-                // Synchronous snapshot after the await (JS single-threaded:
-                // no feed-loop interleaving between these two reads).
-                const nowEnd = stream.endOffset;
-                const done = stream.isComplete;
+        let relayPos = relayStartPos;
+        for (;;) {
+            // Wait for at least one new byte at relayPos, or raw stream done.
+            // stream.offset stays fixed (== metaEndOffset), so:
+            //   need = relayPos + 1 - stream.offset = bytes to advance past offset.
+            const need = relayPos + 1 - stream.offset;
+            await stream.ensureAvailable(need);
 
-                if (nowEnd > relayPos) {
-                    const rawSlice = new Uint8Array(
-                        stream.slice(relayPos, nowEnd)
+            // Synchronous snapshot after the await (JS single-threaded:
+            // no feed-loop interleaving between these two reads).
+            const nowEnd = stream.endOffset;
+            const done = stream.isComplete;
+
+            if (nowEnd > relayPos) {
+                const rawSlice = new Uint8Array(stream.slice(relayPos, nowEnd));
+                relayPos = nowEnd;
+                // Release raw chunks that the relay has fully passed.
+                stream.consume(relayPos);
+                // isLast: feed loop called setComplete() — no more chunks.
+                const isLast = done;
+                for (let s = 0; s < rawSlice.length; s += RELAY_RAW_SLICE) {
+                    const subEnd = Math.min(
+                        s + RELAY_RAW_SLICE,
+                        rawSlice.length
                     );
-                    relayPos = nowEnd;
-                    // Release raw chunks that the relay has fully passed.
-                    stream.consume(relayPos);
-                    // isLast: feed loop called setComplete() — no more chunks.
-                    const isLast = done;
-                    for (let s = 0; s < rawSlice.length; s += RELAY_RAW_SLICE) {
-                        const subEnd = Math.min(
-                            s + RELAY_RAW_SLICE,
-                            rawSlice.length
-                        );
-                        const subLast = isLast && subEnd === rawSlice.length;
-                        inflater.push(rawSlice.subarray(s, subEnd), subLast);
-                        if (inflater.err) {
-                            // pako 2.x stores the error message in inflater.msg.
-                            inflateError = new Error(
-                                `fromPart10Stream: deflate decompress failed: ${inflater.msg}`
-                            );
-                            bodyStream.setComplete(); // unblock waiting body parser
-                            return;
-                        }
-                        if (subLast) break;
-                        // Throttle: wait for the body loop to consume below
-                        // the watermark before inflating more.  A consumer
-                        // blocked on ensureAvailable (pending demand) always
-                        // wins — the relay resumes immediately.  A body loop
-                        // that FAILED (listener threw) produces no consumer
-                        // activity ever again, so the gate also races the
-                        // bodyFailed deferred and winds down (F6).
-                        while (
-                            !bodyFailed &&
-                            bodyStream.getBufferMemoryInfo().totalSize >
-                                RELAY_HIGH_WATER &&
-                            !bodyStream.hasPendingDemand()
-                        ) {
-                            await Promise.race([
-                                bodyStream.awaitConsumerActivity(),
-                                bodyFailedPromise
-                            ]);
-                        }
-                        if (bodyFailed) {
-                            bodyStream.setComplete();
-                            return;
-                        }
-                    }
-                    if (isLast) break;
-                } else {
-                    // No new bytes — stream must be isComplete (OR-complete).
-                    // Finalize: push empty batch with isLast=true.
-                    inflater.push(new Uint8Array(0), true);
+                    const subLast = isLast && subEnd === rawSlice.length;
+                    inflater.push(rawSlice.subarray(s, subEnd), subLast);
                     if (inflater.err) {
+                        // pako 2.x stores the error message in inflater.msg.
                         inflateError = new Error(
                             `fromPart10Stream: deflate decompress failed: ${inflater.msg}`
                         );
+                        bodyStream.setComplete(); // unblock waiting body parser
+                        return;
                     }
-                    break;
+                    if (subLast) break;
+                    // Throttle below the watermark; races bodyFailed (F6).
+                    while (
+                        !bodyFailed &&
+                        bodyStream.getBufferMemoryInfo().totalSize >
+                            RELAY_HIGH_WATER &&
+                        !bodyStream.hasPendingDemand()
+                    ) {
+                        await Promise.race([
+                            bodyStream.awaitConsumerActivity(),
+                            bodyFailedPromise
+                        ]);
+                    }
+                    if (bodyFailed) {
+                        bodyStream.setComplete();
+                        return;
+                    }
                 }
+                if (isLast) break;
+            } else {
+                // No new bytes — stream must be isComplete (OR-complete).
+                // Finalize: push empty batch with isLast=true.
+                inflater.push(new Uint8Array(0), true);
+                if (inflater.err) {
+                    inflateError = new Error(
+                        `fromPart10Stream: deflate decompress failed: ${inflater.msg}`
+                    );
+                }
+                break;
             }
+        }
 
-            // Propagate a feed error if the raw stream failed (e.g. network
-            // error mid-stream).  Prefer inflate error if both occurred.
-            if (!inflateError && feedError) {
-                inflateError = feedError;
-            }
+        // Propagate a feed error if the raw stream failed (e.g. network
+        // error mid-stream).  Prefer inflate error if both occurred.
+        if (!inflateError && feedError) {
+            inflateError = feedError;
+        }
 
-            bodyStream.setComplete();
-        })();
+        bodyStream.setComplete();
     }
 
     // Body source: inflated bodyStream for deflate, raw stream for everything else.
@@ -624,17 +430,21 @@ async function fromPart10StreamImpl(input, listener, options, parseState) {
         decoder: null
     };
 
-    // Byte-order helpers for body elements (tag, VR, length).
-    // Use `bsrc` (bodyStream for deflate, stream for everything else) so that
-    // these helpers operate in the correct offset space.
-    //
-    // FFFE-family item/delimiter tags (FFFE,E000 / FFFE,E00D / FFFE,E0DD) and
-    // their length fields are read in the body transfer-syntax byte order, exactly
-    // as the buffered fromPart10 reads them via Tag.readTag → readUint16, which
-    // honors stream.isLittleEndian.  They are NOT unconditionally little-endian:
-    // in an Explicit Big Endian dataset the item bytes on wire are big-endian
-    // (FF FE for the group, E0 00 for the element, etc.) and must be read as BE.
+    /**
+     * Byte-order helpers for body elements (tag, VR, length). They use `bsrc`
+     * (bodyStream for deflate, stream for everything else) so that they
+     * operate in the correct offset space.
+     *
+     * FFFE-family item/delimiter tags (FFFE,E000 / FFFE,E00D / FFFE,E0DD) and
+     * their length fields are read in the body transfer-syntax byte order,
+     * exactly as the buffered fromPart10 reads them via Tag.readTag →
+     * readUint16, which honors stream.isLittleEndian. They are NOT
+     * unconditionally little-endian: in an Explicit Big Endian dataset the
+     * item bytes on wire are big-endian (FF FE for the group, E0 00 for the
+     * element, etc.) and must be read as BE.
+     */
     const getU16 = abs => bsrc.view.getUint16(abs, bodyLittleEndian);
+    /** 32-bit form of {@link getU16}, in the body byte order. */
     const getU32 = abs => bsrc.view.getUint32(abs, bodyLittleEndian);
 
     /** Convert (group, element) numbers to clean DICOM tag string "GGGGEEEE". */
@@ -711,44 +521,45 @@ async function fromPart10StreamImpl(input, listener, options, parseState) {
     }
 
     // ---- Undefined-length structural end-finders (element-aware skip, no emission) ----
-    //
-    // DICOM PS3.5 permits undefined length (0xFFFFFFFF) ONLY for SQ elements,
-    // items, and encapsulated pixel data.  The only non-SQ undefined-length
-    // element dcmjs decodes cleanly via the eager reader (classifyElement
-    // "eagerWindow") is explicit-VR UN of undefined length (and private implicit
-    // undefined-length elements), which the offsets parser routes through
-    // readSequenceItemsImplicit.  These end at the SEQUENCE delimiter
-    // FFFE,E0DD, NOT at an item delimiter.
-    //
-    // For non-conformant text VRs (UT/UC/UR) with undefined length, the two
-    // paths DELIBERATELY diverge (empirically verified; pinned in the K4 test
-    // suite):
-    //   buffered fromPart10 — readEncodedString clamps the 0xFFFFFFFF read to
-    //     the actual buffer size, bleeds past any FFFE,E00D delimiter and
-    //     returns a garbage string containing all remaining bytes (no throw);
-    //     any element following the delimiter is silently consumed into the
-    //     string value.
-    //   fromPart10Stream — emitUndefinedLeaf's skipUndefinedSequence sees the
-    //     non-FFFE value bytes as malformed (not FFFE,E0DD / FFFE,E000), stops
-    //     the window at the value start; the body loop then re-parses the value
-    //     bytes as a DICOM element, producing a truncation throw.
-    //   This loud-failure divergence is DELIBERATE: stream fails loudly on
-    //   non-conformant data that buffered silently mishandles.
-    //
-    // For binary VRs (OB/OW/etc.) with undefined length, both paths throw
-    // (buffered: "Item tag not found after undefined binary length"; stream:
-    // similar truncation), so no path-divergence arises there.
-    //
-    // These scanners mirror the parser's sequence walk (FFFE,E0DD) with nested
-    // item-delimiter (FFFE,E00D) handling.  skipUndefinedItem is
-    // ELEMENT-AWARE — it steps whole element headers/values via
-    // skipOneElementEnd — not a 2-byte byte-scan like findItemDelimitationItem.
 
     /**
      * Skip an undefined-length sequence's items, returning
      * `{ contentEnd, end }`: `contentEnd` is the offset of the closing
      * FFFE,E0DD (the parser's content-span end == element.length base), `end`
      * is the offset just past it. Mirrors readSQElementUndefinedLength*.
+     *
+     * DICOM PS3.5 permits undefined length (0xFFFFFFFF) ONLY for SQ elements,
+     * items, and encapsulated pixel data. The only non-SQ undefined-length
+     * element dcmjs decodes cleanly via the eager reader (classifyElement
+     * "eagerWindow") is explicit-VR UN of undefined length (and private
+     * implicit undefined-length elements), which the offsets parser routes
+     * through readSequenceItemsImplicit. These end at the SEQUENCE delimiter
+     * FFFE,E0DD, NOT at an item delimiter.
+     *
+     * For non-conformant text VRs (UT/UC/UR) with undefined length, the two
+     * paths DELIBERATELY diverge (empirically verified; pinned in the K4 test
+     * suite):
+     *   - buffered fromPart10 — readEncodedString clamps the 0xFFFFFFFF read
+     *     to the actual buffer size, bleeds past any FFFE,E00D delimiter and
+     *     returns a garbage string containing all remaining bytes (no throw);
+     *     any element following the delimiter is silently consumed into the
+     *     string value.
+     *   - fromPart10Stream — emitUndefinedLeaf's skipUndefinedSequence sees
+     *     the non-FFFE value bytes as malformed (not FFFE,E0DD / FFFE,E000),
+     *     stops the window at the value start; the body loop then re-parses
+     *     the value bytes as a DICOM element, producing a truncation throw.
+     *
+     * This loud-failure divergence is DELIBERATE: stream fails loudly on
+     * non-conformant data that buffered silently mishandles.
+     *
+     * For binary VRs (OB/OW/etc.) with undefined length, both paths throw
+     * (buffered: "Item tag not found after undefined binary length"; stream:
+     * similar truncation), so no path-divergence arises there.
+     *
+     * These scanners mirror the parser's sequence walk (FFFE,E0DD) with
+     * nested item-delimiter (FFFE,E00D) handling. skipUndefinedItem is
+     * ELEMENT-AWARE — it steps whole element headers/values via
+     * skipOneElementEnd — not a 2-byte byte-scan like findItemDelimitationItem.
      */
     async function skipUndefinedSequence(fromAbs) {
         let pos = fromAbs;
@@ -825,6 +636,16 @@ async function fromPart10StreamImpl(input, listener, options, parseState) {
      * not a delimiter tag) and route it by classification, emitting into
      * `target`. Returns the (possibly charset-updated) decoder for the caller
      * to thread into the next element. Mirrors decodeCore.classifyElement.
+     *
+     * Defined length: resolveVrInstance is the single canonical implicit-VR
+     * contract (AD-1) — dictionary-miss elements resolve to UN and are never
+     * data-peek-promoted to SQ (eager parity). Only dictionary-known SQs take
+     * the sequence path.
+     *
+     * Undefined length: the element is classified as SQ
+     * ({@link isUndefinedLengthSequence}), encapsulated pixel data, or an
+     * eagerWindow leaf, matching decodeCore.classifyElement + the parser's SQ
+     * resolution.
      */
     async function parseOneElement(target, elemStartAbs, currentDecoder) {
         bsrc.offset = elemStartAbs;
@@ -887,10 +708,7 @@ async function fromPart10StreamImpl(input, listener, options, parseState) {
         let vrInstance = resolveVrInstance(elLike, EMPTY_WIN);
 
         if (!undef) {
-            // Defined length: resolveVrInstance is the single canonical
-            // implicit-VR contract (AD-1) — dictionary-miss elements resolve
-            // to UN and are never data-peek-promoted to SQ (eager parity).
-            // Only dictionary-known SQs take the sequence path here.
+            // Only dictionary-known SQs take the sequence path (AD-1).
             if (vrInstance.type === "SQ") {
                 await emitSequence(
                     target,
@@ -912,34 +730,12 @@ async function fromPart10StreamImpl(input, listener, options, parseState) {
             );
         }
 
-        // Undefined length: classify SQ / encapsulated / eagerWindow leaf,
-        // matching decodeCore.classifyElement + the parser's SQ resolution.
-        // The peek below is ROUTING-ONLY (AD-1): it chooses between streamed
-        // emitSequence and the delimiter-scanned eager-window leaf, both of
-        // which yield eager-SQ semantics for undefined-length dictionary-miss
-        // elements (resolveVrInstance's length rule). The semantic contract
-        // itself never data-peek-promotes defined-length elements.
-        let treatAsSq = false;
-        if (vrInstance.type === "SQ") {
-            if (!bodyImplicit) {
-                treatAsSq = true; // explicit VR SQ
-            } else {
-                // Implicit resolved-SQ: dictionary-known SQ (no peek) vs
-                // dictionary-unknown (hadUndefinedLength fallback → peek).
-                const dictVr = resolveVrInstance(
-                    { ...elLike, hadUndefinedLength: false },
-                    EMPTY_WIN
-                );
-                if (dictVr.type === "SQ") {
-                    treatAsSq = true;
-                } else if (await ensureAbs(valueStartAbs + 4)) {
-                    const pg = bsrc.view.getUint16(valueStartAbs, true);
-                    const pe = bsrc.view.getUint16(valueStartAbs + 2, true);
-                    treatAsSq =
-                        pg === 0xfffe && (pe === 0xe000 || pe === 0xe0dd);
-                }
-            }
-        }
+        // Undefined length: classify SQ / encapsulated / eagerWindow leaf.
+        const treatAsSq = await isUndefinedLengthSequence(
+            elLike,
+            vrInstance,
+            valueStartAbs
+        );
         if (treatAsSq) {
             await emitSequence(
                 target,
@@ -967,8 +763,53 @@ async function fromPart10StreamImpl(input, listener, options, parseState) {
     }
 
     /**
+     * Decide whether an undefined-length element streams as a sequence.
+     * Explicit VR: true when the resolved VR is SQ. Implicit VR: true for a
+     * dictionary-known SQ (no peek); a dictionary-unknown element that
+     * resolved to SQ (hadUndefinedLength fallback) is peeked for an
+     * FFFE,E000 / FFFE,E0DD first tag.
+     *
+     * The peek is ROUTING-ONLY (AD-1): it chooses between streamed
+     * emitSequence and the delimiter-scanned eager-window leaf, both of which
+     * yield eager-SQ semantics for undefined-length dictionary-miss elements
+     * (resolveVrInstance's length rule). The semantic contract itself never
+     * data-peek-promotes defined-length elements.
+     */
+    async function isUndefinedLengthSequence(
+        elLike,
+        vrInstance,
+        valueStartAbs
+    ) {
+        let treatAsSq = false;
+        if (vrInstance.type === "SQ") {
+            if (!bodyImplicit) {
+                treatAsSq = true; // explicit VR SQ
+            } else {
+                const dictVr = resolveVrInstance(
+                    { ...elLike, hadUndefinedLength: false },
+                    EMPTY_WIN
+                );
+                if (dictVr.type === "SQ") {
+                    treatAsSq = true;
+                } else if (await ensureAbs(valueStartAbs + 4)) {
+                    const pg = bsrc.view.getUint16(valueStartAbs, true);
+                    const pe = bsrc.view.getUint16(valueStartAbs + 2, true);
+                    treatAsSq =
+                        pg === 0xfffe && (pe === 0xe000 || pe === 0xe0dd);
+                }
+            }
+        }
+        return treatAsSq;
+    }
+
+    /**
      * Defined-length leaf element: decode the value and emit directly. Returns
      * the decoder to thread onward (updated when this is (0008,0005)).
+     *
+     * (0028,0103) PixelRepresentation drives the "xs" (US-or-SS) meta-VR
+     * resolution of subsequent elements (issue #368). EMPTY_WIN is the window
+     * handed to resolveVrInstance and is created per parse, so the in-place
+     * update is private to this stream.
      */
     async function emitDefinedLeaf(
         target,
@@ -1008,10 +849,7 @@ async function fromPart10StreamImpl(input, listener, options, parseState) {
             const csResult = resolveCharacterSet(win, elLike, policy);
             newDecoder = csResult?.decoder ?? null;
         }
-        // (0028,0103) PixelRepresentation drives the "xs" (US-or-SS)
-        // meta-VR resolution of subsequent elements (issue #368). EMPTY_WIN
-        // is the window handed to resolveVrInstance and is created per
-        // parse, so the in-place update is private to this stream.
+        // (0028,0103) drives "xs" VR resolution (issue #368; see JSDoc).
         if (tagStr === "00280103" && values && values.length) {
             EMPTY_WIN.pixelRepresentation = values[0];
         }
@@ -1059,6 +897,18 @@ async function fromPart10StreamImpl(input, listener, options, parseState) {
      * fragment). The startElement length payload is the on-wire 0xFFFFFFFF
      * (the computed span is unknown until the closing delimiter, which would
      * defeat fragment streaming) — a documented delta from buffered fromPart10.
+     *
+     * The Basic Offset Table item (FFFE,E000) offsets are surfaced on
+     * startBinary so BOT-aware listeners can merge fragments per frame window
+     * (issue #204).
+     *
+     * K6: per-fragment release (see {@link releaseConsumedChunks}) bounds
+     * peak memory to (largest fragment + chunk size + fixed slack) rather than
+     * the full pixel-data element. The fragment bytes were already copied
+     * into an owned ArrayBuffer by bsrc.slice(), so aliasing is safe to
+     * discard. Without this, the whole encapsulated element accumulates in
+     * the stream buffer until the post-element consume() in the body loop
+     * fires.
      */
     async function emitEncapsulated(target, tagStr, vrInstance, dataOffsetAbs) {
         target.startElement(tagStr, {
@@ -1067,10 +917,7 @@ async function fromPart10StreamImpl(input, listener, options, parseState) {
         });
         bsrc.offset = dataOffsetAbs;
 
-        // Basic Offset Table item (FFFE,E000) — its offsets are surfaced on
-        // startBinary so BOT-aware listeners can merge fragments per frame
-        // window (issue #204); its bytes are then skipped (buffered
-        // fromPart10 does NOT emit it as a fragment).
+        // Basic Offset Table: surface offsets (issue #204), then skip bytes.
         if (!(await ensureAbs(bsrc.offset + 8))) {
             throw new Error(
                 `fromPart10Stream: truncated: encapsulated BOT header at ${bsrc.offset}`
@@ -1125,25 +972,29 @@ async function fromPart10StreamImpl(input, listener, options, parseState) {
             target.binaryFragment(bsrc.slice(fragStart, fragEnd));
             bsrc.offset = fragEnd;
             await target.awaitDrain(); // backpressure between fragments
-            // K6: per-fragment release — bounding peak memory to (largest
-            // fragment + chunk size + fixed slack) rather than the full pixel-data
-            // element.  The fragment bytes were already copied into an owned
-            // ArrayBuffer by bsrc.slice(), so aliasing is safe to discard here.
-            // Without this, the whole encapsulated element accumulates in the stream
-            // buffer until the post-element consume() in the body loop fires.
+            // K6: per-fragment release (see JSDoc).
             if (releaseEnabled) {
-                bsrc.consume(bsrc.offset);
-                const info = bsrc.getBufferMemoryInfo();
-                // For the deflate path (bodyStream active), mirror the body-loop
-                // pattern: include raw stream memory state alongside inflated state.
-                if (bodyStream) {
-                    info.rawStreamInfo = stream.getBufferMemoryInfo();
-                }
-                options.onConsume?.(info);
+                releaseConsumedChunks();
             }
         }
         target.endBinary();
         target.endElement();
+    }
+
+    /**
+     * Release every `bsrc` chunk fully behind the current position, then
+     * report the buffer memory state to `options.onConsume`. For the deflate
+     * path (bodyStream active), the report also includes the raw stream
+     * memory state, so tests can verify both streams release chunks
+     * concurrently.
+     */
+    function releaseConsumedChunks() {
+        bsrc.consume(bsrc.offset);
+        const info = bsrc.getBufferMemoryInfo();
+        if (bodyStream) {
+            info.rawStreamInfo = stream.getBufferMemoryInfo();
+        }
+        options.onConsume?.(info);
     }
 
     /**
@@ -1152,7 +1003,8 @@ async function fromPart10StreamImpl(input, listener, options, parseState) {
      * element span, and decode via decodeWithEagerReadTag — the same narrow
      * eager fallback buffered fromPart10 uses. The emitted length payload is the
      * parser's computed content span (delimiter offset minus the data offset),
-     * for parity with buffered.
+     * for parity with buffered. See {@link skipUndefinedSequence} for the
+     * deliberate divergence on non-conformant undefined-length UT/UC/UR.
      */
     async function emitUndefinedLeaf(
         target,
@@ -1290,13 +1142,7 @@ async function fromPart10StreamImpl(input, listener, options, parseState) {
         return bsrc.offset;
     }
 
-    // ---- K5 top-level body element loop ----
-    // Every element (defined or undefined length, leaf or SQ or encapsulated)
-    // is read and emitted incrementally by parseOneElement.  After each
-    // top-level element completes, consume() releases the chunks it no longer
-    // needs. For deflate, `bsrc` is bodyStream (inflated space, zero-based);
-    // the relay concurrently pushes inflated chunks. For all other paths,
-    // `bsrc` is stream (raw space). The two offset spaces are never mixed.
+    // ---- K5 top-level body element loop (see fromPart10StreamImpl JSDoc) ----
     let bodyDecoder = null; // resolved when (0008,0005) is first seen in body
 
     try {
@@ -1324,15 +1170,7 @@ async function fromPart10StreamImpl(input, listener, options, parseState) {
             );
             await listener.awaitDrain();
             if (releaseEnabled) {
-                // Release every chunk fully behind the current position.
-                bsrc.consume(bsrc.offset);
-                const info = bsrc.getBufferMemoryInfo();
-                // For deflate (bodyStream active), also include raw stream memory state
-                // so tests can verify both streams release chunks concurrently.
-                if (bodyStream) {
-                    info.rawStreamInfo = stream.getBufferMemoryInfo();
-                }
-                options.onConsume?.(info);
+                releaseConsumedChunks();
             }
         }
     } catch (bodyErr) {
@@ -1363,6 +1201,317 @@ async function fromPart10StreamImpl(input, listener, options, parseState) {
     options.onPhase?.("native");
 
     listener.endDataSet();
+}
+
+// ---------------------------------------------------------------------------
+// Preamble, bare dataset and FMI parse
+// ---------------------------------------------------------------------------
+
+/**
+ * Phase 1: preamble detection (incremental). Sets `stream.offset` to the
+ * start of the FMI and returns false, or returns true when the input is a
+ * bare dataset that must take the raw-dataset fallback.
+ *
+ * Mirrors AsyncDicomReader.readPreamble() semantics:
+ *   - "DICM" at bytes 128-131 → normal Part 10, advance to offset 132
+ *   - First 2 bytes are group 0x0002 → PART10_NO_PREAMBLE, stay at 0
+ *   - Neither → raw dataset / non-DICOM → force-read via the eager
+ *     reader's allowMissingHeader opt-in (replayed through fromDataSet),
+ *     or refuse with a clear error when the opt-in is absent
+ *     (see {@link replayBareDataset}).
+ *
+ * @param {ReadBufferStream} stream the raw input stream
+ * @returns {Promise<boolean>} true for the raw-dataset fallback
+ */
+async function detectPreamble(stream) {
+    let rawDatasetFallback = false;
+
+    // Wait for enough bytes to check the DICM marker (requires 132 bytes:
+    // 128-byte preamble + 4-byte "DICM").  ensureAvailable resolves even
+    // at EOF if bytes are insufficient (OR-complete semantics), so we
+    // always re-check with isAvailable(N, false) after the await.
+    await stream.ensureAvailable(132);
+
+    if (stream.isAvailable(132, false)) {
+        // We have at least 132 bytes — check for "DICM" at bytes 128-131.
+        const hasDicm =
+            stream.view.getUint8(128) === 0x44 && // D
+            stream.view.getUint8(129) === 0x49 && // I
+            stream.view.getUint8(130) === 0x43 && // C
+            stream.view.getUint8(131) === 0x4d; //   M
+        if (hasDicm) {
+            // Normal Part 10: skip preamble + DICM marker.
+            stream.offset = 132;
+        } else {
+            // No DICM — check whether the file starts with group 0x0002.
+            const firstGroup = stream.view.getUint16(0, true); // LE
+            if (firstGroup === 0x0002) {
+                // PART10_NO_PREAMBLE: FMI starts at byte 0.
+                stream.offset = 0;
+            } else {
+                rawDatasetFallback = true;
+            }
+        }
+    } else {
+        // Fewer than 132 bytes available (short stream or early EOF).
+        // Try to at least check the 0x0002 group in the first 2 bytes.
+        await stream.ensureAvailable(4);
+        if (stream.isAvailable(2, false)) {
+            const firstGroup = stream.view.getUint16(0, true); // LE
+            if (firstGroup === 0x0002) {
+                stream.offset = 0; // PART10_NO_PREAMBLE
+            } else {
+                rawDatasetFallback = true;
+            }
+        } else {
+            rawDatasetFallback = true;
+        }
+    }
+    return rawDatasetFallback;
+}
+
+/**
+ * Raw-dataset fallback: replay a bare (meta-less, DIMSE-style) dataset as
+ * events, or refuse it.
+ *
+ * Fixed in this arc (issue #93): with an explicit opt-in
+ * (allowMissingHeader, or the tolerant ignoreErrors mode) a bare dataset is
+ * force-read: the eager reader parses it via
+ * readFile({ allowMissingHeader: true }) — Explicit Little Endian assumed
+ * unless implicit VR is detected — and the resulting dict is replayed as
+ * events through fromDataSet. The eager reader is resolved at call time
+ * through decodeCore.requireEagerReader.
+ *
+ * Without the opt-in, input that is neither Part 10 nor an FMI group is
+ * refused with the streaming reader's own error. (The vendored tokenizer
+ * this path once delegated to for error parity is removed from 1.0; this
+ * error text is now the canonical one.)
+ *
+ * @param {Uint8Array} byteArray the complete input bytes
+ * @param {import("./EventStreamListener").EventStreamListener} listener
+ * @param {Object} options the fromPart10Stream options
+ * @returns {Promise<void>}
+ */
+async function replayBareDataset(byteArray, listener, options) {
+    if (options.allowMissingHeader || options.ignoreErrors) {
+        const DicomMessage = requireEagerReader(
+            "fromPart10Stream (bare-dataset fallback)"
+        );
+        const bareDict = DicomMessage.readFile(byteArray.buffer, {
+            ...options,
+            allowMissingHeader: true
+        });
+        await fromDataSet(bareDict, listener);
+        return;
+    }
+    throw new Error(
+        "fromPart10Stream: input has no DICM marker and does not start " +
+            "with a File Meta Information group; pass " +
+            "allowMissingHeader: true (or ignoreErrors: true) to " +
+            "force-read a bare dataset"
+    );
+}
+
+/**
+ * Phase 2: incremental FMI parse, from `stream.offset` to the end of the
+ * File Meta Information. Leaves `stream.offset` at the first body byte.
+ *
+ * FMI is always EXPLICIT_LITTLE_ENDIAN regardless of the body TS. The decoded
+ * FMI elements (tag, VR, values, rawValues) are accumulated into an array so
+ * that the caller can emit startDataSet *after* it knows the
+ * TransferSyntaxUID from (0002,0010) — the listener must receive
+ * startDataSet with the correct TS before any FMI events.
+ *
+ * Two forms of the TS are returned. `rawTransferSyntaxUID` is the raw
+ * (un-normalised) TS read from (0002,0010): it is used for the K5 deflate
+ * detection because _normalizeSyntax maps deflate → ELE, which would prevent
+ * bodyStream from being created (K5 root bug). `transferSyntaxUID`
+ * (normalised) is kept for listener.startDataSet and body-parsing parity with
+ * the eager reader, which normalises the same way. Both default to
+ * EXPLICIT_LITTLE_ENDIAN when (0002,0010) is absent.
+ *
+ * @param {ReadBufferStream} stream the raw input stream
+ * @param {Object} policy the decode policy
+ * @returns {Promise<{fmiElements: Array<{tag:string, vrStr:string, length:number, values:any[], rawValues:any[]}>, transferSyntaxUID: string, rawTransferSyntaxUID: string}>}
+ */
+async function readFileMetaInformation(stream, policy) {
+    const fmiElements = [];
+    let transferSyntaxUID = EXPLICIT_LITTLE_ENDIAN; // default if 0002,0010 absent
+    let rawTransferSyntaxUID = EXPLICIT_LITTLE_ENDIAN;
+
+    // We need at least 8 bytes for the smallest possible FMI header.
+    await stream.ensureAvailable(8);
+
+    // Determine whether (0002,0000) FileMetaInformationGroupLength is present.
+    // If present, we know the exact end-of-FMI offset; otherwise we stop
+    // when the first non-0002 group tag appears (AsyncDicomReader.readMeta
+    // §233–240 fallback).
+    let metaEndOffset = null; // null → no fixed bound
+
+    if (
+        stream.isAvailable(8, false) &&
+        stream.view.getUint16(stream.offset, true) === 0x0002 &&
+        stream.view.getUint16(stream.offset + 2, true) === 0x0000
+    ) {
+        // (0002,0000) is present.  We'll parse it in the main loop below
+        // and set metaEndOffset once we have the UL value.
+        // (No special pre-read needed — the loop handles it uniformly.)
+    }
+
+    // ---- FMI element loop ----
+    while (true) {
+        // Fixed-bound termination: used when (0002,0000) was found.
+        if (metaEndOffset !== null && stream.offset >= metaEndOffset) break;
+
+        // Wait for enough bytes to read a minimal element header (8 bytes:
+        // 4-byte tag + 2-byte VR + 2-byte length).  If the stream ends
+        // before we get 8 bytes (unlikely for valid FMI), we stop.
+        await stream.ensureAvailable(8);
+
+        // EOF or insufficient data: stop FMI loop gracefully.
+        if (!stream.isAvailable(4, false)) break;
+
+        // Peek at the next element's group tag (LE uint16).
+        // For the no-group-length fallback: stop as soon as group != 0x0002.
+        const peekGroup = stream.view.getUint16(stream.offset, true);
+        if (peekGroup !== 0x0002) break; // body starts here
+
+        // Confirm we have at least a full 8-byte header before committing.
+        if (!stream.isAvailable(8, false)) break;
+
+        // ---- Read element header (Explicit Little Endian) ----
+        const elGroup = stream.readUint16(); // always 0x0002
+        const elElement = stream.readUint16();
+        // Build DICOM clean tag string: "GGGGEEEE" (uppercase hex, 8 chars)
+        const tagStr =
+            elGroup.toString(16).padStart(4, "0").toUpperCase() +
+            elElement.toString(16).padStart(4, "0").toUpperCase();
+
+        // VR: 2 ASCII bytes
+        const vrStr =
+            String.fromCharCode(stream.view.getUint8(stream.offset)) +
+            String.fromCharCode(stream.view.getUint8(stream.offset + 1));
+        stream.offset += 2;
+
+        // Length: 2 bytes (standard VR) or 2 reserved + 4 bytes (extended VR)
+        let valueLength;
+        // Resolve VR instance to determine header framing via isLength32()
+        // createByTypeString handles invalid VR strings by falling back to UN.
+        const vrForHeader = ValueRepresentation.createByTypeString(vrStr);
+        if (vrForHeader.isLength32()) {
+            // Extended form: need 2 more bytes (reserved) + 4 bytes (length32)
+            await stream.ensureAvailable(6);
+            if (!stream.isAvailable(6, false)) break; // truncated
+            stream.offset += 2; // skip reserved (0x0000)
+            valueLength = stream.readUint32();
+        } else {
+            // Standard form: length is already in the next 2 bytes
+            await stream.ensureAvailable(2);
+            if (!stream.isAvailable(2, false)) break; // truncated
+            valueLength = stream.readUint16();
+        }
+
+        // Set metaEndOffset after reading the FileMetaInformationGroupLength
+        // value (0002,0000) UL.  The bound is relative to the END of this
+        // element (i.e., the first byte AFTER the UL value bytes).
+        const isGroupLengthTag = elGroup === 0x0002 && elElement === 0x0000;
+
+        // Wait for value bytes
+        await stream.ensureAvailable(valueLength);
+
+        if (!stream.isAvailable(valueLength, false)) {
+            // Stream ended mid-value: best-effort stop (truncated FMI)
+            break;
+        }
+
+        // Extract value bytes into a fresh ArrayBuffer (copy is acceptable
+        // for FMI — FMI is at most a few hundred bytes).
+        const valueStart = stream.offset;
+        const valueAB = stream.slice(valueStart, valueStart + valueLength);
+
+        const { values, rawValues } = decodeFmiValue(
+            valueAB,
+            elGroup,
+            elElement,
+            vrStr,
+            valueLength,
+            policy
+        );
+
+        // Capture TransferSyntaxUID for startDataSet and body-phase delegation.
+        // Matches seedReadContext's normalization (core normalizeSyntax).
+        if (tagStr === "00020010" && values[0]) {
+            rawTransferSyntaxUID = values[0];
+            transferSyntaxUID = normalizeSyntax(values[0]);
+        }
+
+        // Set meta end offset from (0002,0000) FileMetaInformationGroupLength
+        if (isGroupLengthTag && values[0] !== undefined) {
+            // values[0] is the UL integer: bytes after THIS element
+            metaEndOffset = valueStart + valueLength + values[0];
+        }
+
+        fmiElements.push({
+            tag: tagStr,
+            vrStr,
+            length: valueLength,
+            values,
+            rawValues
+        });
+
+        // Advance stream past the value bytes
+        stream.offset = valueStart + valueLength;
+    }
+
+    return { fmiElements, transferSyntaxUID, rawTransferSyntaxUID };
+}
+
+/**
+ * Decode one FMI element value through decodeCore, over a minimal
+ * Explicit Little Endian read window that holds only the value bytes.
+ *
+ * The `elLike` object is the minimal shape decodeCore.resolveVrInstance and
+ * decodeCore.decodeElementValues require:
+ *   - vr — VR string (e.g. "UI", "UL", "OB")
+ *   - tagValue — numeric tag (group << 16) | element, for UN dictionary lookup
+ *   - dataOffset — byte offset of value within the window.arrayBuffer
+ *   - length — value byte count
+ *   - hadUndefinedLength — always false for FMI elements (PS3.5 §7.1)
+ *
+ * @param {ArrayBuffer} valueAB a fresh copy of the value bytes
+ * @param {number} elGroup the tag group
+ * @param {number} elElement the tag element
+ * @param {string} vrStr the on-wire VR string
+ * @param {number} valueLength the value byte count
+ * @param {Object} policy the decode policy
+ * @returns {{values: any[], rawValues: any[]}}
+ */
+function decodeFmiValue(
+    valueAB,
+    elGroup,
+    elElement,
+    vrStr,
+    valueLength,
+    policy
+) {
+    const fakeWindow = {
+        arrayBuffer: valueAB,
+        baseOffset: 0,
+        syntax: EXPLICIT_LITTLE_ENDIAN,
+        littleEndian: true,
+        implicit: false,
+        decoder: null
+    };
+    const elLike = {
+        vr: vrStr,
+        tagValue: (elGroup << 16) | elElement,
+        dataOffset: 0,
+        length: valueLength,
+        hadUndefinedLength: false
+    };
+
+    const vrInstance = resolveVrInstance(elLike, fakeWindow);
+    return decodeElementValues(fakeWindow, elLike, vrInstance, policy);
 }
 
 // ---------------------------------------------------------------------------
