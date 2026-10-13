@@ -67,8 +67,8 @@ describe("Colors", () => {
     });
 
     it("clips colors outside the sRGB gamut per channel", () => {
-        // A shift of all channels by the minimum (the old approach) gives no
-        // zero channel next to the saturated one, so these values detect it.
+        // Shifting all channels by the minimum (the old approach) and then
+        // clamping gives other values, e.g. [255, 86, 0] for the second case.
         expect(Colors.dicomlab2RGB8([0, 0, 0])).toEqual([0, 59, 195]);
         expect(Colors.dicomlab2RGB8([65535, 65535, 65535])).toEqual([
             255, 67, 0
