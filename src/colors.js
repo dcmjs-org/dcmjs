@@ -15,7 +15,10 @@
 // sample code (https://www.w3.org/TR/css-color-4/#color-conversion-code).
 //
 
-// White points, defined by their 4-figure CIE x,y chromaticities
+// White points, defined by their 4-figure CIE x,y chromaticities.
+// D50 is intentionally [0.96430, 1, 0.82510] and not the ICC.1 PCS illuminant
+// [0.9642, 1, 0.8249]: this matches DCMTK, highdicom and CSS Color 4, and
+// encodes sRGB white as exactly 0x8080 in a* and b*.
 const D50_WHITEPOINT_XYZ = [
     0.3457 / 0.3585,
     1.0,
@@ -27,14 +30,37 @@ const D65_WHITEPOINT_XYZ = [
     (1.0 - 0.3127 - 0.329) / 0.329
 ];
 
+function clamp01(n) {
+    return Math.min(1.0, Math.max(0.0, n));
+}
+
+// Rounds to the nearest integer in [0, max]; NaN (invalid input) gives 0
+function roundClamp(n, max) {
+    if (!(n >= 0.0)) {
+        return 0;
+    }
+    if (n > max) {
+        return max;
+    }
+    return Math.floor(n + 0.5);
+}
+
 class Colors {
+    /**
+     * White point of the D50 illuminant (ICC PCS), the reference white of
+     * DICOM CIELab. Use this white with the XYZ values of rgb2XYZ, xyz2RGB,
+     * lab2XYZ and xyz2LAB.
+     */
     static d50WhitePointXYZ() {
-        // white point of D50 illuminant (ICC PCS, reference white for DICOM CIELab)
         return [...D50_WHITEPOINT_XYZ];
     }
 
+    /**
+     * White point of the D65 illuminant, the native white of sRGB. No
+     * conversion in this class uses it. Do not combine it with the XYZ
+     * values of this class, which are relative to D50.
+     */
     static d65WhitePointXYZ() {
-        // white point of D65 illuminant (native white point of sRGB)
         return [...D65_WHITEPOINT_XYZ];
     }
 
@@ -49,14 +75,14 @@ class Colors {
     // 16 bit DICOM CIELab -> 8 bit sRGB, rounded and clamped
     static dicomlab2RGB8(dicomlab) {
         return Colors.dicomlab2RGB(dicomlab).map(n =>
-            Colors.roundClamp(n * 255.0, 255)
+            roundClamp(n * 255.0, 255)
         );
     }
 
-    // 8 bit sRGB -> 16 bit DICOM CIELab, rounded and clamped
+    // 8 bit sRGB (array or typed array) -> 16 bit DICOM CIELab, rounded and clamped
     static rgb82DICOMLAB(rgb) {
-        return Colors.rgb2DICOMLAB(rgb.map(n => n / 255.0)).map(n =>
-            Colors.roundClamp(n, 65535)
+        return Colors.rgb2DICOMLAB(Array.from(rgb, n => n / 255.0)).map(n =>
+            roundClamp(n, 65535)
         );
     }
 
@@ -98,6 +124,7 @@ class Colors {
         }
     }
 
+    // sRGB -> CIE XYZ relative to D50, as DICOM CIELab requires (not D65)
     static rgb2XYZ(rgb) {
         // sRGB to linear RGB
         const R = Colors.invGammaCorrection(rgb[0]);
@@ -132,6 +159,7 @@ class Colors {
         ];
     }
 
+    // CIE XYZ relative to D50 -> CIELab
     static xyz2LAB(xyz) {
         let X = xyz[0] / D50_WHITEPOINT_XYZ[0];
         let Y = xyz[1] / D50_WHITEPOINT_XYZ[1];
@@ -146,6 +174,7 @@ class Colors {
         return Colors.xyz2RGB(Colors.lab2XYZ(lab));
     }
 
+    // CIELab -> CIE XYZ relative to D50
     static lab2XYZ(lab) {
         let L = (lab[0] + 16) / 116;
         let a = L + lab[1] / 500;
@@ -157,6 +186,7 @@ class Colors {
         ];
     }
 
+    // CIE XYZ relative to D50 -> sRGB, clipped per channel to [0, 1]
     static xyz2RGB(xyz) {
         const [X, Y, Z] = xyz;
 
@@ -191,9 +221,9 @@ class Colors {
         // Clip to the sRGB gamut (also makes sure that gamma encoding is
         // well-defined), then transform from linear RGB to sRGB
         return [
-            Colors.gammaCorrection(Colors.clamp01(R1)),
-            Colors.gammaCorrection(Colors.clamp01(G1)),
-            Colors.gammaCorrection(Colors.clamp01(B1))
+            Colors.gammaCorrection(clamp01(R1)),
+            Colors.gammaCorrection(clamp01(G1)),
+            Colors.gammaCorrection(clamp01(B1))
         ];
     }
 
@@ -213,20 +243,6 @@ class Colors {
         } else {
             return (116.0 * n - 16.0) / (24389.0 / 27.0);
         }
-    }
-
-    static clamp01(n) {
-        return Math.min(1.0, Math.max(0.0, n));
-    }
-
-    static roundClamp(n, max) {
-        if (n < 0.0) {
-            return 0;
-        }
-        if (n > max) {
-            return max;
-        }
-        return Math.floor(n + 0.5);
     }
 }
 

@@ -66,19 +66,26 @@ describe("Colors", () => {
         expect(Colors.dicomlab2RGB8([19378, 50557, 3680])).toEqual([0, 0, 255]);
     });
 
-    it("clips colors outside the sRGB gamut to the valid range", () => {
-        const corners = [
-            [0, 0, 0],
-            [65535, 65535, 65535],
-            [65535, 0, 0],
-            [0, 65535, 65535]
-        ];
-        for (const lab of corners) {
-            for (const c of Colors.dicomlab2RGB(lab)) {
-                expect(c).toBeGreaterThanOrEqual(0);
-                expect(c).toBeLessThanOrEqual(1);
-            }
-        }
+    it("clips colors outside the sRGB gamut per channel", () => {
+        // A shift of all channels by the minimum (the old approach) gives no
+        // zero channel next to the saturated one, so these values detect it.
+        expect(Colors.dicomlab2RGB8([0, 0, 0])).toEqual([0, 59, 195]);
+        expect(Colors.dicomlab2RGB8([65535, 65535, 65535])).toEqual([
+            255, 67, 0
+        ]);
+        expect(Colors.dicomlab2RGB8([65535, 0, 0])).toEqual([0, 255, 255]);
+        expect(Colors.dicomlab2RGB8([0, 65535, 65535])).toEqual([128, 0, 0]);
+        const rgb = Colors.lab2RGB([50, 127, -128]);
+        expect(rgb[1]).toBe(0);
+        expect(rgb[2]).toBeCloseTo(1, 12);
+        expect(rgb[0]).toBeCloseTo(0.838545, 5);
+    });
+
+    it("accepts typed arrays and does not return NaN", () => {
+        expect(Colors.rgb82DICOMLAB(Uint8Array.of(128, 64, 32))).toEqual(
+            Colors.rgb82DICOMLAB([128, 64, 32])
+        );
+        expect(Colors.dicomlab2RGB8([1, 2])).toEqual([0, 0, 0]);
     });
 
     it("round trips 8 bit RGB exactly through 16 bit DICOM CIELab", () => {
