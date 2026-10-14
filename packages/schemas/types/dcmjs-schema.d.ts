@@ -8099,9 +8099,9 @@ export interface NaturalizedDataset {
     /** 00720081 · VR OV · VM 1 */
     SelectorOVValue?: BinaryValue;
     /** 00720082 · VR SV · VM 1-n */
-    SelectorSVValue?: number | string[];
+    SelectorSVValue?: (number | string)[];
     /** 00720083 · VR UV · VM 1-n */
-    SelectorUVValue?: number | string[];
+    SelectorUVValue?: (number | string)[];
     /** 00720100 · VR US · VM 1 */
     NumberOfScreens?: number;
     /** 00720102 · VR SQ · VM 1 */

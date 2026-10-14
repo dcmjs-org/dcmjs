@@ -75,7 +75,7 @@ export function tsTypeFor(entry) {
     if (!multi) {
         return scalar;
     }
-    return scalars.length > 1 ? `(${scalar})[]` : `${scalar}[]`;
+    return scalar.includes("|") ? `(${scalar})[]` : `${scalar}[]`;
 }
 
 function tsPropName(keyword) {
