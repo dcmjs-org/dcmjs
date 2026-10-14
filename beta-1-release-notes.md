@@ -106,6 +106,58 @@ when a better approach appears.
   1,500 lines) are large. When the current work stops, keep the tests that
   check the API contract or the user experience, and remove the tests that
   only repeat internal branches.
+- **Labels of the work breakdown in comments.** Code comments and test titles
+  still use the labels of the work breakdown. A comment must describe the
+  behavior, not the slice or stage that added the code. Remove these labels,
+  and rewrite each comment so that it states the current behavior:
+  - Slice labels: "slice A" to "slice K", for example "slice C: a DICOMweb
+    JSON (DICOM JSON model)".
+  - Stage labels: K1 to K6, K5b, J4a, J4b, D1, D2, E1, E2 and R4.
+  - Decision and review labels: D-E, D15, AD-1, ED-1, F6, F7 and F23.
+  - Notes from the TDD process: "RED", "GREEN", "KEY RED TEST", and "Written
+    first (RED) before K3 implementation".
+  - References to files that are not in the tree: `task-K2-report.md`,
+    `task-K3-report.md` and `CLAUDE_REFACTOR_PLAN.md`.
+
+  The labels are in these files:
+  - `packages/parser/src/eventStream/`: `fromPart10Stream.js`,
+    `fromDicomWebJson.js`, `fromDataSet.js`, `EventStreamListener.js`,
+    `CollectorListener.js` and `NaturalizedListener.js`.
+  - `packages/generator/src/eventStream/`: `DicomWebJsonWriter.js`,
+    `Part10Writer.js` and `StreamingPart10Writer.js`.
+  - `packages/validator/src/index.js`, `packages/validator/README.md` and
+    `src/eventStream/api.js`.
+  - `test/eventStream/`: `fromPart10Stream.test.js` (the most labels),
+    `streamEquivalence.test.js`, `fromPart10.test.js`, `crossSource.test.js`
+    and `NaturalizedListener.test.js`.
+  - `test/issues/issue93-missing-preamble.test.js`.
+
+  Keep the `§` references to the specification. Keep "Phase 1" to "Phase 4"
+  in `fromPart10Stream.js`, because these names describe the phases of the
+  parse. In `streamEquivalence.test.js`, "Phase 1" to "Phase 7" name the
+  truncation points, so keep them too.
+
+  Some comments describe old behavior. Correct these comments when you
+  remove the labels:
+  - The doc comment of `NaturalizedListener.js` says that the PN accessors
+    (§17), the private-tag grouping (§18) and the precision retention (§16)
+    are deferred to D2. The listener now has all three.
+  - The doc comment about undefined-length text VRs in `fromPart10Stream.js`
+    says that the buffered path returns a garbage string. The test banner of
+    the UT test in `fromPart10Stream.test.js` says the same thing. Both paths
+    now throw (see the user-facing changes above).
+  - `fromPart10Stream.js` gives history: "The K3 tail-fallback ... is
+    deleted", and "K5 root bug". `Part10Writer.js` also gives history:
+    "relocated from legacy `DicomDict.write()`", and "This closed the one
+    temporary `@dcmjs-org/legacy` edge". Remove the history, or move it to the
+    changelog.
+  - Several tests in `fromPart10Stream.test.js` say "previously", "pre-fix",
+    "Historically" or "History:". The test titles of the source-error test
+    contain "pre-fix". State the behavior that each test guards.
+
+  The error message of `validate()` in `@dcmjs-org/validator` contains
+  "(slice H)". A change to this message changes the text that a user sees.
+  The package is private, so the change is safe.
 - **Move the root `src/` into `packages/dcmjs/`.** The root `package.json` is
   the workspace root and also the `dcmjs` package. Only `"private": true` stops
   `pnpm -r publish` from a publish of the workspace root. Move the package to
