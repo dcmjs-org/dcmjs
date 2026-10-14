@@ -3,16 +3,17 @@
 // See RELEASE_PLAN.md, section 6, step 0.
 import fs from "fs";
 import dcmjs from "../src/index.js";
+import { fixturePath } from "./testUtils.js";
 
 describe("pipeline smoke test", () => {
     it("finds the DICM marker in a sample file", () => {
-        const file = fs.readFileSync("test/sample-sr.dcm");
+        const file = fs.readFileSync(fixturePath("sample-sr.dcm"));
         const marker = file.subarray(128, 132).toString("ascii");
         expect(marker).toBe("DICM");
     });
 
     it("reads the sample file end to end", () => {
-        const file = fs.readFileSync("test/sample-sr.dcm");
+        const file = fs.readFileSync(fixturePath("sample-sr.dcm"));
         const arrayBuffer = file.buffer.slice(
             file.byteOffset,
             file.byteOffset + file.byteLength

@@ -1,0 +1,6 @@
+{
+    "name": "@dcmjs-org/fixtures",
+    "version": "0.0.0",
+    "private": true,
+    "description": "DICOM files used by the dcmjs test suites, each with documented origin and license"
+}

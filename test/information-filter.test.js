@@ -5,10 +5,11 @@ import {
     createInformationFilter
 } from "../src/utilities/DicomMetadataListener";
 import { TagHex } from "../src/constants/dicom";
+import { fixturePath } from "./testUtils.js";
 
 describe("Information Filter", () => {
     test("listener.information is populated with default tags", async () => {
-        const buffer = fs.readFileSync("test/sample-dicom.dcm");
+        const buffer = fs.readFileSync(fixturePath("sample-dicom.dcm"));
         const reader = new AsyncDicomReader();
         const listener = new DicomMetadataListener();
 
@@ -39,7 +40,7 @@ describe("Information Filter", () => {
     });
 
     test("listener.information can be accessed for pixel data processing", async () => {
-        const buffer = fs.readFileSync("test/sample-dicom.dcm");
+        const buffer = fs.readFileSync(fixturePath("sample-dicom.dcm"));
         const reader = new AsyncDicomReader();
         const listener = new DicomMetadataListener();
 
@@ -60,7 +61,7 @@ describe("Information Filter", () => {
     });
 
     test("custom information tags can be specified", async () => {
-        const buffer = fs.readFileSync("test/sample-dicom.dcm");
+        const buffer = fs.readFileSync(fixturePath("sample-dicom.dcm"));
         const reader = new AsyncDicomReader();
 
         // Only track specific tags
@@ -84,7 +85,7 @@ describe("Information Filter", () => {
     });
 
     test("information contains normalized camelCase names", async () => {
-        const buffer = fs.readFileSync("test/sample-dicom.dcm");
+        const buffer = fs.readFileSync(fixturePath("sample-dicom.dcm"));
         const reader = new AsyncDicomReader();
         const listener = new DicomMetadataListener();
 
@@ -131,7 +132,7 @@ describe("Information Filter", () => {
     });
 
     test("custom informationFilter can be passed to listener", async () => {
-        const buffer = fs.readFileSync("test/sample-dicom.dcm");
+        const buffer = fs.readFileSync(fixturePath("sample-dicom.dcm"));
         const reader = new AsyncDicomReader();
 
         // Create a custom information object to track the filter was used

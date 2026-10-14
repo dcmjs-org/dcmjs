@@ -1,5 +1,9 @@
 import { jest } from "@jest/globals";
-import { getTestDataset, readFileAsArrayBuffer } from "./testUtils";
+import {
+    fixturePath,
+    getTestDataset,
+    readFileAsArrayBuffer
+} from "./testUtils";
 import { DicomMessage } from "../src/DicomMessage";
 import { DicomMetaDictionary } from "../src/DicomMetaDictionary";
 import dcmjs from "../src";
@@ -8,7 +12,7 @@ import dcmjs from "../src";
 jest.setTimeout(60000);
 
 it("test_normalizer_op", async () => {
-    const file = readFileAsArrayBuffer("test/sample-op.dcm");
+    const file = readFileAsArrayBuffer(fixturePath("sample-op.dcm"));
     const dicomDict = DicomMessage.readFile(file);
 
     const dataset = DicomMetaDictionary.naturalizeDataset(dicomDict.dict);
