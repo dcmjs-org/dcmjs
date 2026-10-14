@@ -15,6 +15,7 @@ import {
 import arrayItem from "./arrayItem.json";
 import minimalDataset from "./mocks/minimal_fields_dataset.json";
 import datasetWithNullNumberVRs from "./mocks/null_number_vrs_dataset.json";
+import { createSampleDicom } from "./helper/sampleDicomPart10.js";
 import { rawTags } from "./rawTags";
 import sampleDicomSR from "./sample-sr.json";
 
@@ -178,9 +179,11 @@ it("test_json_1", () => {
         naturalSequence.SharedFunctionalGroupsSequence.PixelMeasuresSequence
             .SpacingBetweenSlices;
     expect(spacing).toEqual(0.12);
+    expect(naturalSequence.SharedFunctionalGroupsSequence.length).toEqual(1);
     expect(
-        Array.isArray(naturalSequence.SharedFunctionalGroupsSequence)
-    ).toEqual(true);
+        naturalSequence.SharedFunctionalGroupsSequence[0].PixelMeasuresSequence
+            .SpacingBetweenSlices
+    ).toEqual(0.12);
 
     expect(naturalSequence.ProcedureCodeSequence[0]).toMatchObject({
         CodingSchemeDesignator: "L",
@@ -371,6 +374,41 @@ it("test_null_number_vrs", () => {
 
     expect(dataset.ImageAndFluoroscopyAreaDoseProduct).toEqual(null);
     expect(dataset.InstanceNumber).toEqual(null);
+});
+
+// Regression test for review finding 3 from the PR #512 review map:
+// a UV (Unsigned 64-bit Very Long) element with a null value threw
+// "Cannot convert null to a BigInt" on write. PS3.5 7.4 requires a Type 2
+// attribute to be written with zero length when the value is unknown, and
+// the other numeric VRs (US, UL, ...) already accept null entries and
+// plain Number values on write.
+it("test_uv_null_and_number_values_write", () => {
+    // (0066,0040) LongPrimitivePointIndexList has VR UV
+    const uvCases = [
+        { Value: null },
+        { Value: [null] },
+        { Value: undefined },
+        { Value: [] },
+        { Value: [5] }, // plain Number, like the other numeric VRs accept
+        { Value: ["5"] },
+        { Value: [BigInt(5)] }
+    ];
+
+    for (const uvCase of uvCases) {
+        const dicomDict = new DicomDict({
+            "00020010": { vr: "UI", Value: [EXPLICIT_LITTLE_ENDIAN] }
+        });
+        dicomDict.dict = {
+            "00660040": { vr: "UV", ...uvCase }
+        };
+
+        // must not throw
+        const part10Buffer = dicomDict.write();
+
+        // and the output must be a readable part10 file
+        const dicomData = DicomMessage.readFile(part10Buffer);
+        expect(dicomData.dict["00660040"].vr).toEqual("UV");
+    }
 });
 
 it("test_exponential_notation", () => {
@@ -986,6 +1024,47 @@ it("Tests that reading succeeds on a DICOM without a meta length tag when ignore
     }).not.toThrow();
 });
 
+it("Tests that an overstated meta group length does not pull dataset elements into the meta header (review finding 24)", () => {
+    const buffer = createSampleDicom();
+
+    // Overstate (0002,0000) by exactly the size of the first dataset
+    // element, (0028,0002) SamplesPerPixel US: tag(4) + VR(2) +
+    // length(2) + value(2) = 10 bytes. The declared meta window then
+    // swallows that element whole, so before the fix the file still
+    // parses -- quietly mis-framed -- with a dataset element inside
+    // dicomDict.meta and missing from dicomDict.dict.
+    const view = new DataView(buffer);
+    const metaLengthValueOffset = 132 + 4 + 2 + 2; // preamble + "DICM" + tag + VR + length field
+    const declaredLength = view.getUint32(metaLengthValueOffset, true);
+    view.setUint32(metaLengthValueOffset, declaredLength + 10, true);
+
+    const warnSpy = jest.spyOn(log, "warn").mockImplementation(() => {});
+    try {
+        const dicomDict = dcmjs.data.DicomMessage.readFile(buffer);
+
+        // every meta element belongs to group 0002
+        expect(
+            Object.keys(dicomDict.meta).every(tag => tag.startsWith("0002"))
+        ).toBe(true);
+        expect(dicomDict.meta["00020010"].Value[0]).toBe(
+            EXPLICIT_LITTLE_ENDIAN
+        );
+
+        // the swallowed element is framed back into the dataset,
+        // alongside the rest of the body
+        expect(dicomDict.dict["00280002"]).toBeDefined(); // SamplesPerPixel
+        expect(dicomDict.dict["00280010"]).toBeDefined(); // Rows
+        expect(dicomDict.dict["7FE00010"]).toBeDefined(); // PixelData
+
+        // the recovery is the warned case, not the quiet case
+        expect(warnSpy).toHaveBeenCalledWith(
+            expect.stringContaining("meta group length")
+        );
+    } finally {
+        warnSpy.mockRestore();
+    }
+});
+
 describe("The same DICOM file loaded from both DCM and JSON", () => {
     let dicomData;
     let jsonData;
@@ -1027,10 +1106,6 @@ describe("The same DICOM file loaded from both DCM and JSON", () => {
             expect(dcmDenaturalized["00081070"].Value.__hasValueAccessors).toBe(
                 true
             );
-            expect(jsonDataset.__hasTagAccessors).toBe(true);
-            expect(dcmDataset.__hasTagAccessors).toBe(true);
-            expect(jsonDenaturalized["00081070"].__hasTagAccessors).toBe(true);
-            expect(dcmDenaturalized["00081070"].__hasTagAccessors).toBe(true);
             expect(jsonDenaturalized["00081070"]).not.toBe(
                 jsonDataset.OperatorsName
             );
@@ -1054,12 +1129,14 @@ describe("The same DICOM file loaded from both DCM and JSON", () => {
         });
 
         it("Adds a new PN tag", () => {
+            // No tag Proxy: an assigned value gets its accessors when it is
+            // denaturalized (written), not on assignment.
             jsonDataset.PerformingPhysicianName = { Alphabetic: "Doe^John" };
+            const dict =
+                dcmjs.data.DicomMetaDictionary.denaturalizeDataset(jsonDataset);
 
-            expect(String(jsonDataset.PerformingPhysicianName)).toEqual(
-                "Doe^John"
-            );
-            expect(JSON.stringify(jsonDataset.PerformingPhysicianName)).toEqual(
+            expect(String(dict["00081050"].Value)).toEqual("Doe^John");
+            expect(JSON.stringify(dict["00081050"].Value)).toEqual(
                 '[{"Alphabetic":"Doe^John"}]'
             );
         });
@@ -1143,12 +1220,13 @@ describe("The same DICOM file loaded from both DCM and JSON", () => {
             });
 
             it("Compares changed values", () => {
-                jsonDataset.OperatorsName.Alphabetic =
-                    dcmDataset.OperatorsName.Alphabetic = "Doe^John";
-                jsonDataset.OperatorsName.Ideographic =
-                    dcmDataset.OperatorsName.Ideographic = undefined;
-                jsonDataset.OperatorsName.Phonetic =
-                    dcmDataset.OperatorsName.Phonetic = undefined;
+                // OperatorsName has VM 1-n, so it stays a list
+                jsonDataset.OperatorsName[0].Alphabetic =
+                    dcmDataset.OperatorsName[0].Alphabetic = "Doe^John";
+                jsonDataset.OperatorsName[0].Ideographic =
+                    dcmDataset.OperatorsName[0].Ideographic = undefined;
+                jsonDataset.OperatorsName[0].Phonetic =
+                    dcmDataset.OperatorsName[0].Phonetic = undefined;
 
                 expect(JSON.stringify(jsonDataset.OperatorsName)).toEqual(
                     JSON.stringify(dcmDataset.OperatorsName)

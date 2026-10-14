@@ -1,0 +1,34 @@
+{
+    "name": "@dcmjs-org/parser",
+    "version": "0.0.0",
+    "description": "The event-stream reading side of dcmjs: the listener contract and the generators that turn Part 10 bytes or streams, DICOMweb JSON, and parsed datasets into contract events",
+    "main": "./src/index.js",
+    "files": [
+        "dist",
+        "README.md"
+    ],
+    "scripts": {
+        "build": "rollup -c ../../rollup.packages.config.mjs"
+    },
+    "publishConfig": {
+        "main": "./dist/index.cjs",
+        "module": "./dist/index.mjs",
+        "exports": {
+            ".": {
+                "import": "./dist/index.mjs",
+                "require": "./dist/index.cjs"
+            },
+            "./package.json": "./package.json"
+        }
+    },
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/dcmjs-org/dcmjs.git",
+        "directory": "packages/parser"
+    },
+    "dependencies": {
+        "@dcmjs-org/core": "workspace:*",
+        "pako": "2.1.0"
+    }
+}

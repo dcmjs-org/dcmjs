@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import pako from "pako";
 import dcmjs from "../src/index.js";
 import { deepEqual } from "../src/utilities/deepEqual";
 import {
@@ -1233,7 +1234,7 @@ describe("lossless-read-write", () => {
 
         // confirm starting dataset contains empty tag value for referring physician person name
         expect(origDicomDict.dict["00080090"]._rawValue).toEqual("");
-        expect(origNaturalizedDataset.ReferringPhysicianName).toEqual([]);
+        expect(origNaturalizedDataset.ReferringPhysicianName).toBeNull(); // VM 1, empty
 
         // re-encode the unnaturalized object
         origDicomDict.dict = DicomMetaDictionary.denaturalizeDataset(
@@ -1247,7 +1248,7 @@ describe("lossless-read-write", () => {
 
         // confirm output referring physician name remains the same
         expect(newDicomDict.dict["00080090"]._rawValue).toEqual("");
-        expect(newNaturalizedDataset.ReferringPhysicianName).toEqual([]);
+        expect(newNaturalizedDataset.ReferringPhysicianName).toBeNull();
 
         // confirm no other changes to the rest of the file
         deepEqual(origDicomDict, newDicomDict);
@@ -1343,8 +1344,18 @@ describe("lossless-read-write", () => {
                       outputBuffer.byteOffset,
                       outputBuffer.byteOffset + outputBuffer.byteLength
                   );
+        // The body after the (uncompressed) meta group is now actually
+        // deflate-compressed (PS3.10 A.5), so inflate it and reassemble
+        // header + inflated body before scanning for the pixel element.
+        const outBytes = new Uint8Array(arrayBuf);
+        const metaLength = new DataView(arrayBuf).getUint32(140, true);
+        const bodyStart = 144 + metaLength;
+        const inflatedBody = pako.inflateRaw(outBytes.subarray(bodyStart));
+        const reassembled = new Uint8Array(bodyStart + inflatedBody.length);
+        reassembled.set(outBytes.subarray(0, bodyStart), 0);
+        reassembled.set(inflatedBody, bodyStart);
         const pixelInfo = readPixelDataFromRawBuffer(
-            arrayBuf,
+            reassembled,
             transferSyntaxUid
         );
         expect(pixelInfo).not.toBeNull();

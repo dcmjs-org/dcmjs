@@ -166,4 +166,47 @@ describe("WriteBufferStream Tests", () => {
             expect(stream.end()).toBe(true);
         });
     });
+
+    // Review finding 28: concat copies the range [startOffset, size) of
+    // the source, but used to advance the write position by the full
+    // stream.size. For a source whose startOffset is above 0 that left
+    // startOffset uninitialized bytes at the tail of the destination.
+    describe("concat", () => {
+        it("advances the write position by only the copied bytes", () => {
+            const out = new WriteBufferStream(32, true);
+            out.writeAsciiString("AB");
+
+            const srcBytes = new Uint8Array([1, 2, 3, 4, 5, 6]).buffer;
+            const src = new ReadBufferStream(srcBytes, true, {
+                start: 2,
+                stop: 6
+            });
+            expect(src.startOffset).toBe(2);
+            expect(src.size).toBe(6);
+
+            out.concat(src);
+
+            // 2 bytes written + 4 bytes copied — not + the source's
+            // whole 6-byte size.
+            expect(out.size).toBe(6);
+            expect(out.offset).toBe(6);
+            const bytes = new Uint8Array(out.getBuffer(0, out.size));
+            expect(Array.from(bytes)).toEqual([65, 66, 3, 4, 5, 6]);
+        });
+
+        it("keeps the full-stream concat behaviour unchanged", () => {
+            const out = new WriteBufferStream(32, true);
+            out.writeAsciiString("CD");
+
+            const srcBytes = new Uint8Array([7, 8, 9]).buffer;
+            const src = new ReadBufferStream(srcBytes, true);
+            expect(src.startOffset).toBe(0);
+
+            out.concat(src);
+
+            expect(out.size).toBe(5);
+            const bytes = new Uint8Array(out.getBuffer(0, out.size));
+            expect(Array.from(bytes)).toEqual([67, 68, 7, 8, 9]);
+        });
+    });
 });
