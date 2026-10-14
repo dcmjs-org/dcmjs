@@ -49,6 +49,14 @@ when a better approach appears.
   character sets is not supported", or used only the first value.
 - A CS value loses trailing NUL padding when it is read. Before, a value
   such as `"CT\0"` kept the NUL.
+- Naturalization has no Proxy, and the dictionary VM decides the shape. A
+  VM of "1" or "0-1" gives a single value, or `null` when empty. Any other VM
+  keeps the list, also for one value (for example `ImageType`). A binary VR
+  keeps the list. A single-item sequence is the item object, with a hidden
+  `[0]`, a `length` of 1 and an iterator; it is not an array, so `forEach`,
+  `map` and `push` do not work on it. A PN value that a caller assigns gets
+  its accessors when the dataset is denaturalized. `addTagAccessors` is a
+  no-op. `docs/MIGRATION.md` gives the details.
 - New packages: `@dcmjs-org/core`, `@dcmjs-org/legacy`, `@dcmjs-org/parser`
   and `@dcmjs-org/generator`. Each package publishes a built `dist/` folder
   (ES module and CommonJS), so it loads in plain Node without a bundler.
