@@ -45,7 +45,7 @@ describe("NUL-padded SpecificCharacterSet", () => {
         const dicomDict = DicomMessage.readFile(createNulPaddedSample());
         const dataset = DicomMetaDictionary.naturalizeDataset(dicomDict.dict);
         expect(String(dataset.PatientName)).toEqual("Test^Padding");
-        expect(dataset.SpecificCharacterSet).toEqual("ISO_IR 192");
+        expect(dataset.SpecificCharacterSet).toEqual(["ISO_IR 192"]); // VM 1-n
     });
 
     test("CS formatting removes trailing NUL padding from every value", () => {

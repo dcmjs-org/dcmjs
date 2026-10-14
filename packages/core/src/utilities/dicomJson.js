@@ -84,9 +84,10 @@ function pnAddValueAccessors(value) {
         Object.defineProperty(value, "toJSON", {
             value: function () {
                 if (Array.isArray(this)) {
-                    return this.filter(Boolean).map(x =>
-                        pnStringToObject(x, false)
-                    );
+                    // plain copies: an element's own toJSON would nest it
+                    return this.filter(Boolean).map(x => ({
+                        ...pnStringToObject(x, false)
+                    }));
                 } else {
                     return pnStringToObject(this);
                 }

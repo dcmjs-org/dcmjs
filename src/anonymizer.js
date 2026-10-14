@@ -272,10 +272,11 @@ export function cleanTags(
                 } else {
                     newValue = [];
                 }
-                dict[tagString] = ValueRepresentation.addTagAccessors(
-                    dict[tagString]
-                );
-                dict[tagString].Value = newValue;
+                dict[tagString].Value =
+                    ValueRepresentation.addValueAccessorsFor(
+                        dict[tagString].vr,
+                        newValue
+                    );
             }
         }
     });

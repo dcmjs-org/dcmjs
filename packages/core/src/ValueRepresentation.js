@@ -8,50 +8,6 @@ import {
 import { log, validationLog } from "./log.js";
 import dicomJson from "./utilities/dicomJson.js";
 
-// We replace the tag with a Proxy which intercepts assignments to obj[valueProp]
-// and adds additional overrides/accessors to the value if need be. If valueProp
-// is falsy, we check target.vr and add accessors via a ValueRepresentation lookup.
-// Specifically, this helps address the incorrect (though common) use of the library:
-//   dicomDict.dict.upsertTag('00101001', 'PN', 'Doe^John'); /* direct string assignment */
-//   dicomDict.dict['00081070'].Value = 'Doe^John\Doe^Jane'; /* overwrite with multiplicity */
-//   ...
-//   jsonOutput = JSON.serialize(dicomDict);
-// or:
-//   naturalizedDataset.OperatorsName = 'Doe^John';
-//   jsonOutput = JSON.serialize(naturalizedDataset);
-// Whereas the correct usage of the dicom+json model would be:
-//   dicomDict.dict.upsertTag('00101001', 'PN', [{Alphabetic:'Doe^John'}]);
-//   naturalizedDataset.OperatorsName = [{Alphabetic:'Doe^John'},{Alphabetic:'Doe^Jane'}];
-// TODO: refactor with addAccessors.js in mind
-const tagProxyHandler = {
-    set(target, prop, value) {
-        var vrType;
-        if (
-            ["values", "Value"].includes(prop) &&
-            target.vr &&
-            ValueRepresentation.hasValueAccessors(target.vr)
-        ) {
-            vrType = ValueRepresentation.createByTypeString(target.vr);
-        } else if (
-            prop in DicomMetaDictionary.nameMap &&
-            ValueRepresentation.hasValueAccessors(
-                DicomMetaDictionary.nameMap[prop].vr
-            )
-        ) {
-            vrType = ValueRepresentation.createByTypeString(
-                DicomMetaDictionary.nameMap[prop].vr
-            );
-        } else {
-            target[prop] = value;
-            return true;
-        }
-
-        target[prop] = vrType.addValueAccessors(value);
-
-        return true;
-    }
-};
-
 function rtrim(str) {
     return str.replace(/\s*$/g, "");
 }
@@ -72,6 +28,9 @@ function toWindows(inputArray, size) {
     );
 }
 
+// DicomMetaDictionary is still wired for API compatibility; nothing reads it
+// since the tag Proxy left core.
+// eslint-disable-next-line no-unused-vars
 let Tag, DicomMetaDictionary, writeDataSet;
 
 var binaryVRs = ["FL", "FD", "SL", "SS", "UL", "US", "AT", "UV"],
@@ -158,22 +117,20 @@ class ValueRepresentation {
     }
 
     /**
-     * Replaces a tag with a Proxy which assigns value accessors based on the vr field
-     * of the tag being given to it. If the tag object does not have a vr or vr.type
-     * property, the proxy will look for the prop name in the natural name map.
-     * @param {any} tag object to add accessors to
-     * @returns {any} either the same object if no accessor needed, or a Proxy
+     * Adds the value accessors of a VR (today only PN has them) to a value.
+     * Readers and naturalize call this when they store a value, so a value
+     * has its accessors from the start and no Proxy is needed.
+     * @param {string} vrType the VR, for example "PN"
+     * @param {any} value the value or the list of values
+     * @returns {any} the value, with the accessors when the VR has them
      */
-    static addTagAccessors(tag) {
-        if (
-            !tag.__hasTagAccessors &&
-            ValueRepresentation.hasValueAccessors(tag.vr?.type || tag.vr)
-        ) {
-            Object.defineProperty(tag, "__hasTagAccessors", { value: true });
-            // See note in declaration of taxProxyHandler
-            return new Proxy(tag, tagProxyHandler);
+    static addValueAccessorsFor(vrType, value) {
+        if (!vrType || !ValueRepresentation.hasValueAccessors(vrType)) {
+            return value;
         }
-        return tag;
+        return ValueRepresentation.createByTypeString(vrType).addValueAccessors(
+            value
+        );
     }
 
     /**

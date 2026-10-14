@@ -14,13 +14,13 @@ class DicomDict {
     }
 
     upsertTag(tag, vr, values) {
-        if (this.dict[tag]) {
-            // Should already have tag accessors.
-            this.dict[tag].Value = values;
-        } else {
-            this.dict[tag] = ValueRepresentation.addTagAccessors({ vr: vr });
-            this.dict[tag].Value = values;
+        if (!this.dict[tag]) {
+            this.dict[tag] = { vr: vr };
         }
+        this.dict[tag].Value = ValueRepresentation.addValueAccessorsFor(
+            this.dict[tag].vr,
+            values
+        );
     }
 
     // The Part 10 envelope (preamble/DICM, computed meta group length,

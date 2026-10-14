@@ -96,10 +96,14 @@ export class DicomMessage {
                     readInfo.values = ["ISO_IR 192"]; // change SpecificCharacterSet to UTF-8
                 }
 
-                dict[cleanTagString] = ValueRepresentation.addTagAccessors({
-                    vr: readInfo.vr.type
-                });
-                dict[cleanTagString].Value = readInfo.values;
+                // the upsert: value accessors (PN) are added on read
+                dict[cleanTagString] = {
+                    vr: readInfo.vr.type,
+                    Value: ValueRepresentation.addValueAccessorsFor(
+                        readInfo.vr.type,
+                        readInfo.values
+                    )
+                };
                 dict[cleanTagString]._rawValue = readInfo.rawValues;
 
                 if (
@@ -460,10 +464,7 @@ export class DicomMessage {
         }
         stream.setEndian(oldEndian);
 
-        const retObj = ValueRepresentation.addTagAccessors({
-            tag: tag,
-            vr: vr
-        });
+        const retObj = { tag: tag, vr: vr };
         retObj.values = values;
         retObj.rawValues = rawValues;
         return retObj;
