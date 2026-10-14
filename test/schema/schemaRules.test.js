@@ -31,7 +31,8 @@ describe("VR maps", () => {
     test("scalar map covers the string/number/PN/SQ/binary split", () => {
         expect(VR_SCALAR.CS).toBe("string");
         expect(VR_SCALAR.DA).toBe("string");
-        expect(VR_SCALAR.AT).toBe("string");
+        // AT naturalizes as the numeric tag value, not the hex string
+        expect(VR_SCALAR.AT).toBe("number");
         expect(VR_SCALAR.DS).toBe("number");
         expect(VR_SCALAR.US).toBe("number");
         expect(VR_SCALAR.PN).toBe("PersonName");

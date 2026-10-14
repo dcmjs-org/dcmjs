@@ -1911,13 +1911,13 @@
       "x-dicom-tag": "30080060"
     },
     "ParameterSequencePointer": {
-      "type": "string",
+      "type": "number",
       "x-dicom-vr": "AT",
       "x-dicom-vm": "1",
       "x-dicom-tag": "30080061"
     },
     "OverrideParameterPointer": {
-      "type": "string",
+      "type": "number",
       "x-dicom-vr": "AT",
       "x-dicom-vm": "1",
       "x-dicom-tag": "30080062"
@@ -1935,7 +1935,7 @@
       "x-dicom-tag": "30080064"
     },
     "ParameterPointer": {
-      "type": "string",
+      "type": "number",
       "x-dicom-vr": "AT",
       "x-dicom-vm": "1",
       "x-dicom-tag": "30080065"
@@ -4110,7 +4110,7 @@
     "RETIRED_OverlayCompressionStepPointers": {
       "type": "array",
       "items": {
-        "type": "string"
+        "type": "number"
       },
       "x-dicom-vr": "AT",
       "x-dicom-vm": "1-n",
@@ -4174,7 +4174,7 @@
     "RETIRED_OverlayCodeTableLocation": {
       "type": "array",
       "items": {
-        "type": "string"
+        "type": "number"
       },
       "x-dicom-vr": "AT",
       "x-dicom-vm": "1-n",
@@ -4405,7 +4405,7 @@
     "OffendingElement": {
       "type": "array",
       "items": {
-        "type": "string"
+        "type": "number"
       },
       "x-dicom-vr": "AT",
       "x-dicom-vm": "1-n",
@@ -4449,7 +4449,7 @@
     "AttributeIdentifierList": {
       "type": "array",
       "items": {
-        "type": "string"
+        "type": "number"
       },
       "x-dicom-vr": "AT",
       "x-dicom-vm": "1-n",
@@ -8014,7 +8014,7 @@
       "x-dicom-tag": "00140201"
     },
     "DataElement": {
-      "type": "string",
+      "type": "number",
       "x-dicom-vr": "AT",
       "x-dicom-vm": "1",
       "x-dicom-tag": "00140202"
@@ -17111,7 +17111,7 @@
     "RETIRED_OriginalImageIdentification": {
       "type": "array",
       "items": {
-        "type": "string"
+        "type": "number"
       },
       "x-dicom-vr": "AT",
       "x-dicom-vm": "1-n",
@@ -17259,13 +17259,13 @@
       "x-dicom-tag": "00209164"
     },
     "DimensionIndexPointer": {
-      "type": "string",
+      "type": "number",
       "x-dicom-vr": "AT",
       "x-dicom-vm": "1",
       "x-dicom-tag": "00209165"
     },
     "FunctionalGroupPointer": {
-      "type": "string",
+      "type": "number",
       "x-dicom-vr": "AT",
       "x-dicom-vm": "1",
       "x-dicom-tag": "00209167"
@@ -19757,7 +19757,7 @@
     "FrameIncrementPointer": {
       "type": "array",
       "items": {
-        "type": "string"
+        "type": "number"
       },
       "x-dicom-vr": "AT",
       "x-dicom-vm": "1-n",
@@ -19766,7 +19766,7 @@
     "FrameDimensionPointer": {
       "type": "array",
       "items": {
-        "type": "string"
+        "type": "number"
       },
       "x-dicom-vr": "AT",
       "x-dicom-vm": "1-n",
@@ -19915,7 +19915,7 @@
     "RETIRED_CompressionStepPointers": {
       "type": "array",
       "items": {
-        "type": "string"
+        "type": "number"
       },
       "x-dicom-vr": "AT",
       "x-dicom-vm": "1-n",
@@ -20188,7 +20188,7 @@
     "RETIRED_DetailsOfCoefficients": {
       "type": "array",
       "items": {
-        "type": "string"
+        "type": "number"
       },
       "x-dicom-vr": "AT",
       "x-dicom-vm": "1-n",
@@ -20219,7 +20219,7 @@
     "RETIRED_CoefficientCodingPointers": {
       "type": "array",
       "items": {
-        "type": "string"
+        "type": "number"
       },
       "x-dicom-vr": "AT",
       "x-dicom-vm": "1-n",
@@ -20246,7 +20246,7 @@
     "RETIRED_DataBlock": {
       "type": "array",
       "items": {
-        "type": "string"
+        "type": "number"
       },
       "x-dicom-vr": "AT",
       "x-dicom-vm": "1-n",
@@ -20267,7 +20267,7 @@
     "RETIRED_ZonalMapLocation": {
       "type": "array",
       "items": {
-        "type": "string"
+        "type": "number"
       },
       "x-dicom-vr": "AT",
       "x-dicom-vm": "1-n",
@@ -20311,7 +20311,7 @@
     "RETIRED_CodeTableLocation": {
       "type": "array",
       "items": {
-        "type": "string"
+        "type": "number"
       },
       "x-dicom-vr": "AT",
       "x-dicom-vm": "1-n",
@@ -20326,7 +20326,7 @@
     "RETIRED_ImageDataLocation": {
       "type": "array",
       "items": {
-        "type": "string"
+        "type": "number"
       },
       "x-dicom-vr": "AT",
       "x-dicom-vm": "1-n",
@@ -30525,7 +30525,7 @@
       "x-dicom-tag": "00720024"
     },
     "SelectorAttribute": {
-      "type": "string",
+      "type": "number",
       "x-dicom-vr": "AT",
       "x-dicom-vm": "1",
       "x-dicom-tag": "00720026"
@@ -30614,7 +30614,7 @@
     "SelectorSequencePointer": {
       "type": "array",
       "items": {
-        "type": "string"
+        "type": "number"
       },
       "x-dicom-vr": "AT",
       "x-dicom-vm": "1-n",
@@ -30660,7 +30660,7 @@
     "SelectorATValue": {
       "type": "array",
       "items": {
-        "type": "string"
+        "type": "number"
       },
       "x-dicom-vr": "AT",
       "x-dicom-vm": "1-n",
@@ -31693,7 +31693,7 @@
       "x-dicom-tag": "00741050"
     },
     "AttributeOccurrencePointer": {
-      "type": "string",
+      "type": "number",
       "x-dicom-vr": "AT",
       "x-dicom-vm": "1",
       "x-dicom-tag": "00741052"
@@ -32696,7 +32696,7 @@
     "DataElementsSigned": {
       "type": "array",
       "items": {
-        "type": "string"
+        "type": "number"
       },
       "x-dicom-vr": "AT",
       "x-dicom-vm": "1-n",
@@ -33040,7 +33040,7 @@
     "FailureAttributes": {
       "type": "array",
       "items": {
-        "type": "string"
+        "type": "number"
       },
       "x-dicom-vr": "AT",
       "x-dicom-vm": "1-n",

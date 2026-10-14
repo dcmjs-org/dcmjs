@@ -32,8 +32,10 @@ export function parseVm(vm) {
     throw new Error(`unclassifiable VM pattern: "${vm}"`);
 }
 
-const STRING_VRS = "AE AS AT CS DA DT LO LT SH ST TM UC UI UR UT".split(" ");
-const NUMBER_VRS = "DS FL FD IS SL SS UL US".split(" ");
+const STRING_VRS = "AE AS CS DA DT LO LT SH ST TM UC UI UR UT".split(" ");
+// AT naturalizes as a number: the readers store Tag.readTag(stream).value,
+// not the "ggggeeee" string of the DICOM JSON model.
+const NUMBER_VRS = "AT DS FL FD IS SL SS UL US".split(" ");
 const BINARY_VRS = "OB OD OF OL OV OW UN".split(" ");
 
 export const VR_SCALAR = Object.fromEntries([

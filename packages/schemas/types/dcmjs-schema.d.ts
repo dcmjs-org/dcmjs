@@ -497,15 +497,15 @@ export interface NaturalizedDataset {
     /** 30080060 · VR SQ · VM 1 */
     OverrideSequence?: NaturalizedDataset[];
     /** 30080061 · VR AT · VM 1 */
-    ParameterSequencePointer?: string;
+    ParameterSequencePointer?: number;
     /** 30080062 · VR AT · VM 1 */
-    OverrideParameterPointer?: string;
+    OverrideParameterPointer?: number;
     /** 30080063 · VR IS · VM 1 */
     ParameterItemIndex?: number;
     /** 30080064 · VR IS · VM 1 */
     MeasuredDoseReferenceNumber?: number;
     /** 30080065 · VR AT · VM 1 */
-    ParameterPointer?: string;
+    ParameterPointer?: number;
     /** 30080066 · VR ST · VM 1 */
     OverrideReason?: string;
     /** 30080067 · VR US · VM 1 */
@@ -1069,7 +1069,7 @@ export interface NaturalizedDataset {
     /** 60000063 · VR CS · VM 1 */
     RETIRED_OverlayCompressionDescription?: string;
     /** 60000066 · VR AT · VM 1-n */
-    RETIRED_OverlayCompressionStepPointers?: string[];
+    RETIRED_OverlayCompressionStepPointers?: number[];
     /** 60000068 · VR US · VM 1 */
     RETIRED_OverlayRepeatInterval?: number;
     /** 60000069 · VR US · VM 1 */
@@ -1087,7 +1087,7 @@ export interface NaturalizedDataset {
     /** 60000802 · VR US · VM 1 */
     RETIRED_OverlayNumberOfTables?: number;
     /** 60000803 · VR AT · VM 1-n */
-    RETIRED_OverlayCodeTableLocation?: string[];
+    RETIRED_OverlayCodeTableLocation?: number[];
     /** 60000804 · VR US · VM 1 */
     RETIRED_OverlayBitsForCodeWord?: number;
     /** 60001001 · VR CS · VM 1 */
@@ -1155,7 +1155,7 @@ export interface NaturalizedDataset {
     /** 00000900 · VR US · VM 1 */
     Status?: number;
     /** 00000901 · VR AT · VM 1-n */
-    OffendingElement?: string[];
+    OffendingElement?: number[];
     /** 00000902 · VR LO · VM 1 */
     ErrorComment?: string;
     /** 00000903 · VR US · VM 1 */
@@ -1167,7 +1167,7 @@ export interface NaturalizedDataset {
     /** 00001002 · VR US · VM 1 */
     EventTypeID?: number;
     /** 00001005 · VR AT · VM 1-n */
-    AttributeIdentifierList?: string[];
+    AttributeIdentifierList?: number[];
     /** 00001008 · VR US · VM 1 */
     ActionTypeID?: number;
     /** 00001020 · VR US · VM 1 */
@@ -2073,7 +2073,7 @@ export interface NaturalizedDataset {
     /** 00140201 · VR SQ · VM 1 */
     DataElementLabelItemSequence?: NaturalizedDataset[];
     /** 00140202 · VR AT · VM 1 */
-    DataElement?: string;
+    DataElement?: number;
     /** 00140203 · VR LO · VM 1 */
     DataElementName?: string;
     /** 00140204 · VR LO · VM 1 */
@@ -4551,7 +4551,7 @@ export interface NaturalizedDataset {
     /** 00204000 · VR LT · VM 1 */
     ImageComments?: string;
     /** 00205000 · VR AT · VM 1-n */
-    RETIRED_OriginalImageIdentification?: string[];
+    RETIRED_OriginalImageIdentification?: number[];
     /** 00205002 · VR LO · VM 1-n */
     RETIRED_OriginalImageIdentificationNomenclature?: string[];
     /** 00209056 · VR SH · VM 1 */
@@ -4591,9 +4591,9 @@ export interface NaturalizedDataset {
     /** 00209164 · VR UI · VM 1 */
     DimensionOrganizationUID?: string;
     /** 00209165 · VR AT · VM 1 */
-    DimensionIndexPointer?: string;
+    DimensionIndexPointer?: number;
     /** 00209167 · VR AT · VM 1 */
-    FunctionalGroupPointer?: string;
+    FunctionalGroupPointer?: number;
     /** 00209170 · VR SQ · VM 1 */
     UnassignedSharedConvertedAttributesSequence?: NaturalizedDataset[];
     /** 00209171 · VR SQ · VM 1 */
@@ -5245,9 +5245,9 @@ export interface NaturalizedDataset {
     /** 00280008 · VR IS · VM 1 */
     NumberOfFrames?: number;
     /** 00280009 · VR AT · VM 1-n */
-    FrameIncrementPointer?: string[];
+    FrameIncrementPointer?: number[];
     /** 0028000A · VR AT · VM 1-n */
-    FrameDimensionPointer?: string[];
+    FrameDimensionPointer?: number[];
     /** 00280010 · VR US · VM 1 */
     Rows?: number;
     /** 00280011 · VR US · VM 1 */
@@ -5283,7 +5283,7 @@ export interface NaturalizedDataset {
     /** 00280065 · VR CS · VM 1-n */
     RETIRED_CompressionSequence?: string[];
     /** 00280066 · VR AT · VM 1-n */
-    RETIRED_CompressionStepPointers?: string[];
+    RETIRED_CompressionStepPointers?: number[];
     /** 00280068 · VR US · VM 1 */
     RETIRED_RepeatInterval?: number;
     /** 00280069 · VR US · VM 1 */
@@ -5365,7 +5365,7 @@ export interface NaturalizedDataset {
     /** 00280403 · VR LO · VM 1-n */
     RETIRED_SequenceOfCompressedData?: string[];
     /** 00280404 · VR AT · VM 1-n */
-    RETIRED_DetailsOfCoefficients?: string[];
+    RETIRED_DetailsOfCoefficients?: number[];
     /** 00280410 · VR US · VM 1 */
     RETIRED_RowsForNthOrderCoefficients?: number;
     /** 00280411 · VR US · VM 1 */
@@ -5373,19 +5373,19 @@ export interface NaturalizedDataset {
     /** 00280412 · VR LO · VM 1-n */
     RETIRED_CoefficientCoding?: string[];
     /** 00280413 · VR AT · VM 1-n */
-    RETIRED_CoefficientCodingPointers?: string[];
+    RETIRED_CoefficientCodingPointers?: number[];
     /** 00280700 · VR LO · VM 1 */
     RETIRED_DCTLabel?: string;
     /** 00280701 · VR CS · VM 1-n */
     RETIRED_DataBlockDescription?: string[];
     /** 00280702 · VR AT · VM 1-n */
-    RETIRED_DataBlock?: string[];
+    RETIRED_DataBlock?: number[];
     /** 00280710 · VR US · VM 1 */
     RETIRED_NormalizationFactorFormat?: number;
     /** 00280720 · VR US · VM 1 */
     RETIRED_ZonalMapNumberFormat?: number;
     /** 00280721 · VR AT · VM 1-n */
-    RETIRED_ZonalMapLocation?: string[];
+    RETIRED_ZonalMapLocation?: number[];
     /** 00280722 · VR US · VM 1 */
     RETIRED_ZonalMapFormat?: number;
     /** 00280730 · VR US · VM 1 */
@@ -5397,11 +5397,11 @@ export interface NaturalizedDataset {
     /** 00280802 · VR US · VM 1 */
     RETIRED_NumberOfTables?: number;
     /** 00280803 · VR AT · VM 1-n */
-    RETIRED_CodeTableLocation?: string[];
+    RETIRED_CodeTableLocation?: number[];
     /** 00280804 · VR US · VM 1 */
     RETIRED_BitsForCodeWord?: number;
     /** 00280808 · VR AT · VM 1-n */
-    RETIRED_ImageDataLocation?: string[];
+    RETIRED_ImageDataLocation?: number[];
     /** 00280A02 · VR CS · VM 1 */
     PixelSpacingCalibrationType?: string;
     /** 00280A04 · VR LO · VM 1 */
@@ -8007,7 +8007,7 @@ export interface NaturalizedDataset {
     /** 00720024 · VR CS · VM 1 */
     ImageSetSelectorUsageFlag?: string;
     /** 00720026 · VR AT · VM 1 */
-    SelectorAttribute?: string;
+    SelectorAttribute?: number;
     /** 00720028 · VR US · VM 1 */
     SelectorValueNumber?: number;
     /** 00720030 · VR SQ · VM 1 */
@@ -8029,7 +8029,7 @@ export interface NaturalizedDataset {
     /** 00720050 · VR CS · VM 1 */
     SelectorAttributeVR?: string;
     /** 00720052 · VR AT · VM 1-n */
-    SelectorSequencePointer?: string[];
+    SelectorSequencePointer?: number[];
     /** 00720054 · VR LO · VM 1-n */
     SelectorSequencePointerPrivateCreator?: string[];
     /** 00720056 · VR LO · VM 1 */
@@ -8039,7 +8039,7 @@ export interface NaturalizedDataset {
     /** 0072005F · VR AS · VM 1-n */
     SelectorASValue?: string[];
     /** 00720060 · VR AT · VM 1-n */
-    SelectorATValue?: string[];
+    SelectorATValue?: number[];
     /** 00720061 · VR DA · VM 1-n */
     SelectorDAValue?: string[];
     /** 00720062 · VR CS · VM 1-n */
@@ -8303,7 +8303,7 @@ export interface NaturalizedDataset {
     /** 00741050 · VR SQ · VM 1 */
     AttributeOccurrenceSequence?: NaturalizedDataset[];
     /** 00741052 · VR AT · VM 1 */
-    AttributeOccurrencePointer?: string;
+    AttributeOccurrencePointer?: number;
     /** 00741054 · VR UL · VM 1 */
     AttributeItemSelector?: number;
     /** 00741056 · VR LO · VM 1 */
@@ -8561,7 +8561,7 @@ export interface NaturalizedDataset {
     /** 04000015 · VR CS · VM 1 */
     MACAlgorithm?: string;
     /** 04000020 · VR AT · VM 1-n */
-    DataElementsSigned?: string[];
+    DataElementsSigned?: number[];
     /** 04000100 · VR UI · VM 1 */
     DigitalSignatureUID?: string;
     /** 04000105 · VR DT · VM 1 */
@@ -8649,7 +8649,7 @@ export interface NaturalizedDataset {
     /** 2200000D · VR SQ · VM 1 */
     ReferencedStorageMediaSequence?: NaturalizedDataset[];
     /** 2200000E · VR AT · VM 1-n */
-    FailureAttributes?: string[];
+    FailureAttributes?: number[];
     /** 2200000F · VR CS · VM 1 */
     AllowLossyCompression?: string;
     /** 3002000A · VR CS · VM 1 */
