@@ -66,16 +66,25 @@ export function buildCatalog() {
 
 export function tsTypeFor(entry) {
     const vrs = Array.isArray(entry.vr) ? entry.vr : [entry.vr];
-    const scalars = [...new Set(vrs.map(vr => VR_SCALAR[vr]))];
-    const scalar = scalars.join(" | ");
-    if (scalar === "NaturalizedDataset[]") {
-        return scalar; // sequences are arrays regardless of VM
-    }
     const { multi } = parseVm(entry.vm);
-    if (!multi) {
-        return scalar;
-    }
-    return scalar.includes("|") ? `(${scalar})[]` : `${scalar}[]`;
+    // Per-VR: sequences and binary VRs are arrays regardless of VM (a binary
+    // Value lists frames); everything else follows the VM rule.
+    const parts = new Set(
+        vrs.map(vr => {
+            const scalar = VR_SCALAR[vr];
+            if (scalar === "NaturalizedDataset[]") {
+                return scalar;
+            }
+            if (scalar === "BinaryValue") {
+                return "BinaryValue[]";
+            }
+            if (!multi) {
+                return scalar;
+            }
+            return scalar.includes("|") ? `(${scalar})[]` : `${scalar}[]`;
+        })
+    );
+    return [...parts].join(" | ");
 }
 
 function tsPropName(keyword) {
@@ -160,13 +169,16 @@ export function jsonSchemaFor(entry, catalog) {
     }
     const vm = parseVm(entry.vm);
     const isSq = scalarTs[0] === "NaturalizedDataset[]";
+    // A binary Value lists frames, so it is an array regardless of VM; its
+    // VM does not bound the frame count.
+    const isBinary = scalarTs.length === 1 && scalarTs[0] === "BinaryValue";
     let prop;
-    if (isSq || vm.multi) {
+    if (isSq || isBinary || vm.multi) {
         prop = { type: "array", items: item };
-        if (!isSq && vm.min > 1) {
+        if (!isSq && !isBinary && vm.min > 1) {
             prop.minItems = vm.min;
         }
-        if (!isSq && vm.max !== null && vm.max !== vm.min) {
+        if (!isSq && !isBinary && vm.max !== null && vm.max !== vm.min) {
             prop.maxItems = vm.max;
         }
     } else {

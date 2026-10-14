@@ -853,7 +853,7 @@ export interface NaturalizedDataset {
     /** 40101005 · VR FL · VM 3 */
     ThreatROIExtents?: number[];
     /** 40101006 · VR OB · VM 1 */
-    ThreatROIBitmap?: BinaryValue;
+    ThreatROIBitmap?: BinaryValue[];
     /** 40101007 · VR SH · VM 1 */
     RouteSegmentID?: string;
     /** 40101008 · VR CS · VM 1 */
@@ -1019,7 +1019,7 @@ export interface NaturalizedDataset {
     /** 50002610 · VR US · VM 1 */
     RETIRED_CurveReferencedOverlayGroup?: number;
     /** 50003000 · VR OB/OW · VM 1 */
-    RETIRED_CurveData?: BinaryValue;
+    RETIRED_CurveData?: BinaryValue[];
     /** 52009229 · VR SQ · VM 1 */
     SharedFunctionalGroupsSequence?: NaturalizedDataset[];
     /** 52009230 · VR SQ · VM 1 */
@@ -1027,19 +1027,19 @@ export interface NaturalizedDataset {
     /** 54000100 · VR SQ · VM 1 */
     WaveformSequence?: NaturalizedDataset[];
     /** 54000110 · VR OB/OW · VM 1 */
-    ChannelMinimumValue?: BinaryValue;
+    ChannelMinimumValue?: BinaryValue[];
     /** 54000112 · VR OB/OW · VM 1 */
-    ChannelMaximumValue?: BinaryValue;
+    ChannelMaximumValue?: BinaryValue[];
     /** 54001004 · VR US · VM 1 */
     WaveformBitsAllocated?: number;
     /** 54001006 · VR CS · VM 1 */
     WaveformSampleInterpretation?: string;
     /** 54001010 · VR OB/OW · VM 1 */
-    WaveformData?: BinaryValue;
+    WaveformData?: BinaryValue[];
     /** 56000010 · VR OF · VM 1 */
-    FirstOrderPhaseCorrectionAngle?: BinaryValue;
+    FirstOrderPhaseCorrectionAngle?: BinaryValue[];
     /** 56000020 · VR OF · VM 1 */
-    SpectroscopyData?: BinaryValue;
+    SpectroscopyData?: BinaryValue[];
     /** 60000010 · VR US · VM 1 */
     OverlayRows?: number;
     /** 60000011 · VR US · VM 1 */
@@ -1117,7 +1117,7 @@ export interface NaturalizedDataset {
     /** 60001500 · VR LO · VM 1 */
     OverlayLabel?: string;
     /** 60003000 · VR OB/OW · VM 1 */
-    OverlayData?: BinaryValue;
+    OverlayData?: BinaryValue[];
     /** 60004000 · VR LT · VM 1 */
     RETIRED_OverlayComments?: string;
     /** 00000000 · VR UL · VM 1 */
@@ -1215,7 +1215,7 @@ export interface NaturalizedDataset {
     /** 00020000 · VR UL · VM 1 */
     FileMetaInformationGroupLength?: number;
     /** 00020001 · VR OB · VM 1 */
-    FileMetaInformationVersion?: BinaryValue;
+    FileMetaInformationVersion?: BinaryValue[];
     /** 00020002 · VR UI · VM 1 */
     MediaStorageSOPClassUID?: string;
     /** 00020003 · VR UI · VM 1 */
@@ -1235,7 +1235,7 @@ export interface NaturalizedDataset {
     /** 00020100 · VR UI · VM 1 */
     PrivateInformationCreatorUID?: string;
     /** 00020102 · VR OB · VM 1 */
-    PrivateInformation?: BinaryValue;
+    PrivateInformation?: BinaryValue[];
     /** 00041130 · VR CS · VM 1 */
     FileSetID?: string;
     /** 00041141 · VR CS · VM 1-8 */
@@ -1541,9 +1541,9 @@ export interface NaturalizedDataset {
     /** 0008041A · VR SQ · VM 1 */
     FileAccessSequence?: NaturalizedDataset[];
     /** 0008041B · VR OB · VM 1 */
-    RecordKey?: BinaryValue;
+    RecordKey?: BinaryValue[];
     /** 0008041C · VR OB · VM 1 */
-    PriorRecordKey?: BinaryValue;
+    PriorRecordKey?: BinaryValue[];
     /** 0008041D · VR SQ · VM 1 */
     MetadataSequence?: NaturalizedDataset[];
     /** 0008041E · VR SQ · VM 1 */
@@ -2131,7 +2131,7 @@ export interface NaturalizedDataset {
     /** 0014220E · VR CS · VM 1 */
     CoordinateSystemAxisUnits?: string;
     /** 00142210 · VR OB · VM 1 */
-    CoordinateSystemAxisValues?: BinaryValue;
+    CoordinateSystemAxisValues?: BinaryValue[];
     /** 00142220 · VR SQ · VM 1 */
     CoordinateSystemTransformSequence?: NaturalizedDataset[];
     /** 00142222 · VR ST · VM 1 */
@@ -2163,11 +2163,11 @@ export interface NaturalizedDataset {
     /** 00143040 · VR SQ · VM 1 */
     DarkCurrentSequence?: NaturalizedDataset[];
     /** 00143050 · VR OB/OW · VM 1 */
-    DarkCurrentCounts?: BinaryValue;
+    DarkCurrentCounts?: BinaryValue[];
     /** 00143060 · VR SQ · VM 1 */
     GainCorrectionReferenceSequence?: NaturalizedDataset[];
     /** 00143070 · VR OB/OW · VM 1 */
-    AirCounts?: BinaryValue;
+    AirCounts?: BinaryValue[];
     /** 00143071 · VR DS · VM 1 */
     KVUsedInGainCalibration?: number;
     /** 00143072 · VR DS · VM 1 */
@@ -2183,7 +2183,7 @@ export interface NaturalizedDataset {
     /** 00143077 · VR TM · VM 1 */
     TimeOfGainCalibration?: string;
     /** 00143080 · VR OB · VM 1 */
-    BadPixelImage?: BinaryValue;
+    BadPixelImage?: BinaryValue[];
     /** 00143099 · VR LT · VM 1 */
     CalibrationNotes?: string;
     /** 00143100 · VR LT · VM 1 */
@@ -2509,7 +2509,7 @@ export interface NaturalizedDataset {
     /** 0016002A · VR IS · VM 2-4 */
     SubjectArea?: number[];
     /** 0016002B · VR OB · VM 1 */
-    MakerNote?: BinaryValue;
+    MakerNote?: BinaryValue[];
     /** 00160030 · VR DS · VM 1 */
     Temperature?: number;
     /** 00160031 · VR DS · VM 1 */
@@ -2555,7 +2555,7 @@ export interface NaturalizedDataset {
     /** 0016004A · VR US · VM 1 */
     Sharpness?: number;
     /** 0016004B · VR OB · VM 1 */
-    DeviceSettingDescription?: BinaryValue;
+    DeviceSettingDescription?: BinaryValue[];
     /** 0016004C · VR US · VM 1 */
     SubjectDistanceRange?: number;
     /** 0016004D · VR UT · VM 1 */
@@ -2571,9 +2571,9 @@ export interface NaturalizedDataset {
     /** 00160061 · VR CS · VM 1 */
     InteroperabilityIndex?: string;
     /** 00160062 · VR OB · VM 1 */
-    InteroperabilityVersion?: BinaryValue;
+    InteroperabilityVersion?: BinaryValue[];
     /** 00160070 · VR OB · VM 1 */
-    GPSVersionID?: BinaryValue;
+    GPSVersionID?: BinaryValue[];
     /** 00160071 · VR CS · VM 1 */
     GPSLatitudeRef?: string;
     /** 00160072 · VR DS · VM 3 */
@@ -2627,9 +2627,9 @@ export interface NaturalizedDataset {
     /** 0016008A · VR DS · VM 1 */
     GPSDestDistance?: number;
     /** 0016008B · VR OB · VM 1 */
-    GPSProcessingMethod?: BinaryValue;
+    GPSProcessingMethod?: BinaryValue[];
     /** 0016008C · VR OB · VM 1 */
-    GPSAreaInformation?: BinaryValue;
+    GPSAreaInformation?: BinaryValue[];
     /** 0016008D · VR DT · VM 1 */
     GPSDateStamp?: string;
     /** 0016008E · VR IS · VM 1 */
@@ -3165,7 +3165,7 @@ export interface NaturalizedDataset {
     /** 00181637 · VR UL · VM 1 */
     NumberOfPolygonalVertices?: number;
     /** 00181638 · VR OF · VM 1 */
-    VerticesOfThePolygonalOutline?: BinaryValue;
+    VerticesOfThePolygonalOutline?: BinaryValue[];
     /** 00181700 · VR CS · VM 1-3 */
     CollimatorShape?: string[];
     /** 00181702 · VR IS · VM 1 */
@@ -4991,7 +4991,7 @@ export interface NaturalizedDataset {
     /** 00221530 · VR UL · VM 1 */
     NumberOfMapPoints?: number;
     /** 00221531 · VR OF · VM 1 */
-    TwoDimensionalToThreeDimensionalMapData?: BinaryValue;
+    TwoDimensionalToThreeDimensionalMapData?: BinaryValue[];
     /** 00221612 · VR SQ · VM 1 */
     DerivationAlgorithmSequence?: NaturalizedDataset[];
     /** 00221615 · VR SQ · VM 1 */
@@ -5447,31 +5447,31 @@ export interface NaturalizedDataset {
     /** 00281199 · VR UI · VM 1 */
     PaletteColorLookupTableUID?: string;
     /** 00281200 · VR OW/US/SS · VM 1-n */
-    RETIRED_GrayLookupTableData?: (BinaryValue | number)[];
+    RETIRED_GrayLookupTableData?: BinaryValue[] | number[];
     /** 00281201 · VR OW · VM 1 */
-    RedPaletteColorLookupTableData?: BinaryValue;
+    RedPaletteColorLookupTableData?: BinaryValue[];
     /** 00281202 · VR OW · VM 1 */
-    GreenPaletteColorLookupTableData?: BinaryValue;
+    GreenPaletteColorLookupTableData?: BinaryValue[];
     /** 00281203 · VR OW · VM 1 */
-    BluePaletteColorLookupTableData?: BinaryValue;
+    BluePaletteColorLookupTableData?: BinaryValue[];
     /** 00281204 · VR OW · VM 1 */
-    AlphaPaletteColorLookupTableData?: BinaryValue;
+    AlphaPaletteColorLookupTableData?: BinaryValue[];
     /** 00281211 · VR OW · VM 1 */
-    RETIRED_LargeRedPaletteColorLookupTableData?: BinaryValue;
+    RETIRED_LargeRedPaletteColorLookupTableData?: BinaryValue[];
     /** 00281212 · VR OW · VM 1 */
-    RETIRED_LargeGreenPaletteColorLookupTableData?: BinaryValue;
+    RETIRED_LargeGreenPaletteColorLookupTableData?: BinaryValue[];
     /** 00281213 · VR OW · VM 1 */
-    RETIRED_LargeBluePaletteColorLookupTableData?: BinaryValue;
+    RETIRED_LargeBluePaletteColorLookupTableData?: BinaryValue[];
     /** 00281214 · VR UI · VM 1 */
     RETIRED_LargePaletteColorLookupTableUID?: string;
     /** 00281221 · VR OW · VM 1 */
-    SegmentedRedPaletteColorLookupTableData?: BinaryValue;
+    SegmentedRedPaletteColorLookupTableData?: BinaryValue[];
     /** 00281222 · VR OW · VM 1 */
-    SegmentedGreenPaletteColorLookupTableData?: BinaryValue;
+    SegmentedGreenPaletteColorLookupTableData?: BinaryValue[];
     /** 00281223 · VR OW · VM 1 */
-    SegmentedBluePaletteColorLookupTableData?: BinaryValue;
+    SegmentedBluePaletteColorLookupTableData?: BinaryValue[];
     /** 00281224 · VR OW · VM 1 */
-    SegmentedAlphaPaletteColorLookupTableData?: BinaryValue;
+    SegmentedAlphaPaletteColorLookupTableData?: BinaryValue[];
     /** 00281230 · VR SQ · VM 1 */
     StoredValueColorRangeSequence?: NaturalizedDataset[];
     /** 00281231 · VR FD · VM 1 */
@@ -5503,7 +5503,7 @@ export interface NaturalizedDataset {
     /** 00281407 · VR US · VM 3 */
     BlendingLookupTableDescriptor?: number[];
     /** 00281408 · VR OW · VM 1 */
-    BlendingLookupTableData?: BinaryValue;
+    BlendingLookupTableData?: BinaryValue[];
     /** 0028140B · VR SQ · VM 1 */
     EnhancedPaletteColorLookupTableSequence?: NaturalizedDataset[];
     /** 0028140C · VR SQ · VM 1 */
@@ -5517,7 +5517,7 @@ export interface NaturalizedDataset {
     /** 00281410 · VR CS · VM 1 */
     AlphaLUTTransferFunction?: string;
     /** 00282000 · VR OB · VM 1 */
-    ICCProfile?: BinaryValue;
+    ICCProfile?: BinaryValue[];
     /** 00282002 · VR CS · VM 1 */
     ColorSpace?: string;
     /** 00282110 · VR CS · VM 1 */
@@ -5537,7 +5537,7 @@ export interface NaturalizedDataset {
     /** 00283004 · VR LO · VM 1 */
     ModalityLUTType?: string;
     /** 00283006 · VR OW/US/SS · VM 1-n */
-    LUTData?: (BinaryValue | number)[];
+    LUTData?: BinaryValue[] | number[];
     /** 00283010 · VR SQ · VM 1 */
     VOILUTSequence?: NaturalizedDataset[];
     /** 00283110 · VR SQ · VM 1 */
@@ -5789,15 +5789,15 @@ export interface NaturalizedDataset {
     /** 00340001 · VR SQ · VM 1 */
     FlowIdentifierSequence?: NaturalizedDataset[];
     /** 00340002 · VR OB · VM 1 */
-    FlowIdentifier?: BinaryValue;
+    FlowIdentifier?: BinaryValue[];
     /** 00340003 · VR UI · VM 1 */
     FlowTransferSyntaxUID?: string;
     /** 00340004 · VR UL · VM 1 */
     FlowRTPSamplingRate?: number;
     /** 00340005 · VR OB · VM 1 */
-    SourceIdentifier?: BinaryValue;
+    SourceIdentifier?: BinaryValue[];
     /** 00340007 · VR OB · VM 1 */
-    FrameOriginTimestamp?: BinaryValue;
+    FrameOriginTimestamp?: BinaryValue[];
     /** 00340008 · VR CS · VM 1 */
     IncludesImagingSubject?: string;
     /** 00340009 · VR SQ · VM 1 */
@@ -5995,7 +5995,7 @@ export interface NaturalizedDataset {
     /** 003A032D · VR SQ · VM 1 */
     MagnitudeEncodingCodeSequence?: NaturalizedDataset[];
     /** 003A032E · VR OD · VM 1 */
-    FilterLookupTableData?: BinaryValue;
+    FilterLookupTableData?: BinaryValue[];
     /** 00400001 · VR AE · VM 1-n */
     ScheduledStationAETitle?: string[];
     /** 00400002 · VR DA · VM 1 */
@@ -6423,7 +6423,7 @@ export interface NaturalizedDataset {
     /** 0040A073 · VR SQ · VM 1 */
     VerifyingObserverSequence?: NaturalizedDataset[];
     /** 0040A074 · VR OB · VM 1 */
-    RETIRED_ObjectBinaryIdentifierTrial?: BinaryValue;
+    RETIRED_ObjectBinaryIdentifierTrial?: BinaryValue[];
     /** 0040A075 · VR PN · VM 1 */
     VerifyingObserverName?: PersonName;
     /** 0040A076 · VR SQ · VM 1 */
@@ -6445,7 +6445,7 @@ export interface NaturalizedDataset {
     /** 0040A088 · VR SQ · VM 1 */
     VerifyingObserverIdentificationCodeSequence?: NaturalizedDataset[];
     /** 0040A089 · VR OB · VM 1 */
-    RETIRED_ObjectDirectoryBinaryIdentifierTrial?: BinaryValue;
+    RETIRED_ObjectDirectoryBinaryIdentifierTrial?: BinaryValue[];
     /** 0040A090 · VR SQ · VM 1 */
     RETIRED_EquivalentCDADocumentSequence?: NaturalizedDataset[];
     /** 0040A0B0 · VR US · VM 2-2n */
@@ -6655,7 +6655,7 @@ export interface NaturalizedDataset {
     /** 00420010 · VR ST · VM 1 */
     DocumentTitle?: string;
     /** 00420011 · VR OB · VM 1 */
-    EncapsulatedDocument?: BinaryValue;
+    EncapsulatedDocument?: BinaryValue[];
     /** 00420012 · VR LO · VM 1 */
     MIMETypeOfEncapsulatedDocument?: string;
     /** 00420013 · VR SQ · VM 1 */
@@ -7281,7 +7281,7 @@ export interface NaturalizedDataset {
     /** 00640008 · VR FD · VM 3 */
     GridResolution?: number[];
     /** 00640009 · VR OF · VM 1 */
-    VectorGridData?: BinaryValue;
+    VectorGridData?: BinaryValue[];
     /** 0064000F · VR SQ · VM 1 */
     PreDeformationMatrixRegistrationSequence?: NaturalizedDataset[];
     /** 00640010 · VR SQ · VM 1 */
@@ -7317,7 +7317,7 @@ export interface NaturalizedDataset {
     /** 00660015 · VR UL · VM 1 */
     NumberOfSurfacePoints?: number;
     /** 00660016 · VR OF · VM 1 */
-    PointCoordinatesData?: BinaryValue;
+    PointCoordinatesData?: BinaryValue[];
     /** 00660017 · VR FL · VM 3 */
     PointPositionAccuracy?: number[];
     /** 00660018 · VR FL · VM 1 */
@@ -7337,15 +7337,15 @@ export interface NaturalizedDataset {
     /** 00660020 · VR FL · VM 1-n */
     VectorAccuracy?: number[];
     /** 00660021 · VR OF · VM 1 */
-    VectorCoordinateData?: BinaryValue;
+    VectorCoordinateData?: BinaryValue[];
     /** 00660022 · VR OD · VM 1 */
-    DoublePointCoordinatesData?: BinaryValue;
+    DoublePointCoordinatesData?: BinaryValue[];
     /** 00660023 · VR OW · VM 1 */
-    TrianglePointIndexList?: BinaryValue;
+    TrianglePointIndexList?: BinaryValue[];
     /** 00660024 · VR OW · VM 1 */
-    EdgePointIndexList?: BinaryValue;
+    EdgePointIndexList?: BinaryValue[];
     /** 00660025 · VR OW · VM 1 */
-    VertexPointIndexList?: BinaryValue;
+    VertexPointIndexList?: BinaryValue[];
     /** 00660026 · VR SQ · VM 1 */
     TriangleStripSequence?: NaturalizedDataset[];
     /** 00660027 · VR SQ · VM 1 */
@@ -7353,7 +7353,7 @@ export interface NaturalizedDataset {
     /** 00660028 · VR SQ · VM 1 */
     LineSequence?: NaturalizedDataset[];
     /** 00660029 · VR OW · VM 1 */
-    PrimitivePointIndexList?: BinaryValue;
+    PrimitivePointIndexList?: BinaryValue[];
     /** 0066002A · VR UL · VM 1 */
     SurfaceCount?: number;
     /** 0066002B · VR SQ · VM 1 */
@@ -7395,7 +7395,7 @@ export interface NaturalizedDataset {
     /** 00660102 · VR SQ · VM 1 */
     TrackSequence?: NaturalizedDataset[];
     /** 00660103 · VR OW · VM 1 */
-    RecommendedDisplayCIELabValueList?: BinaryValue;
+    RecommendedDisplayCIELabValueList?: BinaryValue[];
     /** 00660104 · VR SQ · VM 1 */
     TrackingAlgorithmIdentificationSequence?: NaturalizedDataset[];
     /** 00660105 · VR UL · VM 1 */
@@ -7411,9 +7411,9 @@ export interface NaturalizedDataset {
     /** 00660124 · VR SQ · VM 1 */
     TrackSetStatisticsSequence?: NaturalizedDataset[];
     /** 00660125 · VR OF · VM 1 */
-    FloatingPointValues?: BinaryValue;
+    FloatingPointValues?: BinaryValue[];
     /** 00660129 · VR OL · VM 1 */
-    TrackPointIndexList?: BinaryValue;
+    TrackPointIndexList?: BinaryValue[];
     /** 00660130 · VR SQ · VM 1 */
     TrackStatisticsSequence?: NaturalizedDataset[];
     /** 00660132 · VR SQ · VM 1 */
@@ -7463,7 +7463,7 @@ export interface NaturalizedDataset {
     /** 006862F2 · VR FD · VM 1 */
     HPGLDocumentScaling?: number;
     /** 00686300 · VR OB · VM 1 */
-    HPGLDocument?: BinaryValue;
+    HPGLDocument?: BinaryValue[];
     /** 00686310 · VR US · VM 1 */
     HPGLContourPenNumber?: number;
     /** 00686320 · VR SQ · VM 1 */
@@ -7603,7 +7603,7 @@ export interface NaturalizedDataset {
     /** 006A0010 · VR FD · VM 1-n */
     CommonZCoordinateValue?: number[];
     /** 006A0011 · VR OL · VM 1 */
-    AnnotationIndexList?: BinaryValue;
+    AnnotationIndexList?: BinaryValue[];
     /** 00700001 · VR SQ · VM 1 */
     GraphicAnnotationSequence?: NaturalizedDataset[];
     /** 00700002 · VR CS · VM 1 */
@@ -7743,7 +7743,7 @@ export interface NaturalizedDataset {
     /** 00700255 · VR UL · VM 1 */
     LinePattern?: number;
     /** 00700256 · VR OB · VM 1 */
-    FillPattern?: BinaryValue;
+    FillPattern?: BinaryValue[];
     /** 00700257 · VR CS · VM 1 */
     FillMode?: string;
     /** 00700258 · VR FL · VM 1 */
@@ -7887,7 +7887,7 @@ export interface NaturalizedDataset {
     /** 0070150C · VR FL · VM 1 */
     NumberOfVolumetricCurvePoints?: number;
     /** 0070150D · VR OD · VM 1 */
-    VolumetricCurvePoints?: BinaryValue;
+    VolumetricCurvePoints?: BinaryValue[];
     /** 00701511 · VR FD · VM 3 */
     MPRViewHeightDirection?: number[];
     /** 00701512 · VR FD · VM 1 */
@@ -7931,7 +7931,7 @@ export interface NaturalizedDataset {
     /** 00701807 · VR US · VM 3 */
     WeightingLookupTableDescriptor?: number[];
     /** 00701808 · VR OB · VM 1 */
-    WeightingLookupTableData?: BinaryValue;
+    WeightingLookupTableData?: BinaryValue[];
     /** 00701901 · VR SQ · VM 1 */
     VolumetricAnnotationSequence?: NaturalizedDataset[];
     /** 00701903 · VR SQ · VM 1 */
@@ -7953,7 +7953,7 @@ export interface NaturalizedDataset {
     /** 00701A06 · VR FD · VM 1 */
     SwivelRange?: number;
     /** 00701A07 · VR OD · VM 1 */
-    VolumetricCurveUpDirections?: BinaryValue;
+    VolumetricCurveUpDirections?: BinaryValue[];
     /** 00701A08 · VR SQ · VM 1 */
     VolumeStreamSequence?: NaturalizedDataset[];
     /** 00701A09 · VR LO · VM 1 */
@@ -8049,15 +8049,15 @@ export interface NaturalizedDataset {
     /** 00720064 · VR IS · VM 1-n */
     SelectorISValue?: number[];
     /** 00720065 · VR OB · VM 1 */
-    SelectorOBValue?: BinaryValue;
+    SelectorOBValue?: BinaryValue[];
     /** 00720066 · VR LO · VM 1-n */
     SelectorLOValue?: string[];
     /** 00720067 · VR OF · VM 1 */
-    SelectorOFValue?: BinaryValue;
+    SelectorOFValue?: BinaryValue[];
     /** 00720068 · VR LT · VM 1 */
     SelectorLTValue?: string;
     /** 00720069 · VR OW · VM 1 */
-    SelectorOWValue?: BinaryValue;
+    SelectorOWValue?: BinaryValue[];
     /** 0072006A · VR PN · VM 1-n */
     SelectorPNValue?: PersonName[];
     /** 0072006B · VR TM · VM 1-n */
@@ -8065,7 +8065,7 @@ export interface NaturalizedDataset {
     /** 0072006C · VR SH · VM 1-n */
     SelectorSHValue?: string[];
     /** 0072006D · VR UN · VM 1 */
-    SelectorUNValue?: BinaryValue;
+    SelectorUNValue?: BinaryValue[];
     /** 0072006E · VR ST · VM 1 */
     SelectorSTValue?: string;
     /** 0072006F · VR UC · VM 1-n */
@@ -8077,11 +8077,11 @@ export interface NaturalizedDataset {
     /** 00720072 · VR DS · VM 1-n */
     SelectorDSValue?: number[];
     /** 00720073 · VR OD · VM 1 */
-    SelectorODValue?: BinaryValue;
+    SelectorODValue?: BinaryValue[];
     /** 00720074 · VR FD · VM 1-n */
     SelectorFDValue?: number[];
     /** 00720075 · VR OL · VM 1 */
-    SelectorOLValue?: BinaryValue;
+    SelectorOLValue?: BinaryValue[];
     /** 00720076 · VR FL · VM 1-n */
     SelectorFLValue?: number[];
     /** 00720078 · VR UL · VM 1-n */
@@ -8097,7 +8097,7 @@ export interface NaturalizedDataset {
     /** 00720080 · VR SQ · VM 1 */
     SelectorCodeSequenceValue?: NaturalizedDataset[];
     /** 00720081 · VR OV · VM 1 */
-    SelectorOVValue?: BinaryValue;
+    SelectorOVValue?: BinaryValue[];
     /** 00720082 · VR SV · VM 1-n */
     SelectorSVValue?: (number | string)[];
     /** 00720083 · VR UV · VM 1-n */
@@ -8569,13 +8569,13 @@ export interface NaturalizedDataset {
     /** 04000110 · VR CS · VM 1 */
     CertificateType?: string;
     /** 04000115 · VR OB · VM 1 */
-    CertificateOfSigner?: BinaryValue;
+    CertificateOfSigner?: BinaryValue[];
     /** 04000120 · VR OB · VM 1 */
-    Signature?: BinaryValue;
+    Signature?: BinaryValue[];
     /** 04000305 · VR CS · VM 1 */
     CertifiedTimestampType?: string;
     /** 04000310 · VR OB · VM 1 */
-    CertifiedTimestamp?: BinaryValue;
+    CertifiedTimestamp?: BinaryValue[];
     /** 04000401 · VR SQ · VM 1 */
     DigitalSignaturePurposeCodeSequence?: NaturalizedDataset[];
     /** 04000402 · VR SQ · VM 1 */
@@ -8583,19 +8583,19 @@ export interface NaturalizedDataset {
     /** 04000403 · VR SQ · VM 1 */
     ReferencedSOPInstanceMACSequence?: NaturalizedDataset[];
     /** 04000404 · VR OB · VM 1 */
-    MAC?: BinaryValue;
+    MAC?: BinaryValue[];
     /** 04000500 · VR SQ · VM 1 */
     EncryptedAttributesSequence?: NaturalizedDataset[];
     /** 04000510 · VR UI · VM 1 */
     EncryptedContentTransferSyntaxUID?: string;
     /** 04000520 · VR OB · VM 1 */
-    EncryptedContent?: BinaryValue;
+    EncryptedContent?: BinaryValue[];
     /** 04000550 · VR SQ · VM 1 */
     ModifiedAttributesSequence?: NaturalizedDataset[];
     /** 04000551 · VR SQ · VM 1 */
     NonconformingModifiedAttributesSequence?: NaturalizedDataset[];
     /** 04000552 · VR OB · VM 1 */
-    NonconformingDataElementValue?: BinaryValue;
+    NonconformingDataElementValue?: BinaryValue[];
     /** 04000561 · VR SQ · VM 1 */
     OriginalAttributesSequence?: NaturalizedDataset[];
     /** 04000562 · VR DT · VM 1 */
@@ -9813,9 +9813,9 @@ export interface NaturalizedDataset {
     /** 300A0663 · VR CS · VM 1 */
     CompensatorMapOrientation?: string;
     /** 300A0664 · VR OF · VM 1 */
-    CompensatorProximalThicknessMap?: BinaryValue;
+    CompensatorProximalThicknessMap?: BinaryValue[];
     /** 300A0665 · VR OF · VM 1 */
-    CompensatorDistalThicknessMap?: BinaryValue;
+    CompensatorDistalThicknessMap?: BinaryValue[];
     /** 300A0666 · VR FD · VM 1 */
     CompensatorBasePlaneOffset?: number;
     /** 300A0667 · VR SQ · VM 1 */
@@ -9827,7 +9827,7 @@ export interface NaturalizedDataset {
     /** 300A066A · VR SQ · VM 1 */
     BlockDefinitionSequence?: NaturalizedDataset[];
     /** 300A066B · VR OF · VM 1 */
-    BlockEdgeData?: BinaryValue;
+    BlockEdgeData?: BinaryValue[];
     /** 300A066C · VR CS · VM 1 */
     BlockOrientation?: string;
     /** 300A066D · VR FD · VM 1 */
@@ -10273,7 +10273,7 @@ export interface NaturalizedDataset {
     /** 4010103A · VR CS · VM 1 */
     DICOSVersion?: string;
     /** 4010106C · VR OB · VM 1 */
-    DetectorCalibrationData?: BinaryValue;
+    DetectorCalibrationData?: BinaryValue[];
     /** 4010106D · VR CS · VM 1 */
     AdditionalScreeningPerformed?: string;
     /** 4010106E · VR CS · VM 1 */
@@ -10295,43 +10295,43 @@ export interface NaturalizedDataset {
     /** 5000200A · VR UL · VM 1 */
     RETIRED_TotalTime?: number;
     /** 5000200C · VR OB/OW · VM 1 */
-    RETIRED_AudioSampleData?: BinaryValue;
+    RETIRED_AudioSampleData?: BinaryValue[];
     /** 5000200E · VR LT · VM 1 */
     RETIRED_AudioComments?: string;
     /** 5400100A · VR OB/OW · VM 1 */
-    WaveformPaddingValue?: BinaryValue;
+    WaveformPaddingValue?: BinaryValue[];
     /** 7F000010 · VR OB/OW · VM 1 */
-    RETIRED_VariablePixelData?: BinaryValue;
+    RETIRED_VariablePixelData?: BinaryValue[];
     /** 7F000011 · VR US · VM 1 */
     RETIRED_VariableNextDataGroup?: number;
     /** 7F000020 · VR OW · VM 1 */
-    RETIRED_VariableCoefficientsSDVN?: BinaryValue;
+    RETIRED_VariableCoefficientsSDVN?: BinaryValue[];
     /** 7F000030 · VR OW · VM 1 */
-    RETIRED_VariableCoefficientsSDHN?: BinaryValue;
+    RETIRED_VariableCoefficientsSDHN?: BinaryValue[];
     /** 7F000040 · VR OW · VM 1 */
-    RETIRED_VariableCoefficientsSDDN?: BinaryValue;
+    RETIRED_VariableCoefficientsSDDN?: BinaryValue[];
     /** 7FE00001 · VR OV · VM 1 */
-    ExtendedOffsetTable?: BinaryValue;
+    ExtendedOffsetTable?: BinaryValue[];
     /** 7FE00002 · VR OV · VM 1 */
-    ExtendedOffsetTableLengths?: BinaryValue;
+    ExtendedOffsetTableLengths?: BinaryValue[];
     /** 7FE00003 · VR UV · VM 1 */
     EncapsulatedPixelDataValueTotalLength?: number | string;
     /** 7FE00008 · VR OF · VM 1 */
-    FloatPixelData?: BinaryValue;
+    FloatPixelData?: BinaryValue[];
     /** 7FE00009 · VR OD · VM 1 */
-    DoubleFloatPixelData?: BinaryValue;
+    DoubleFloatPixelData?: BinaryValue[];
     /** 7FE00010 · VR OB/OW · VM 1 */
-    PixelData?: BinaryValue;
+    PixelData?: BinaryValue[];
     /** 7FE00020 · VR OW · VM 1 */
-    RETIRED_CoefficientsSDVN?: BinaryValue;
+    RETIRED_CoefficientsSDVN?: BinaryValue[];
     /** 7FE00030 · VR OW · VM 1 */
-    RETIRED_CoefficientsSDHN?: BinaryValue;
+    RETIRED_CoefficientsSDHN?: BinaryValue[];
     /** 7FE00040 · VR OW · VM 1 */
-    RETIRED_CoefficientsSDDN?: BinaryValue;
+    RETIRED_CoefficientsSDDN?: BinaryValue[];
     /** FFFAFFFA · VR SQ · VM 1 */
     DigitalSignaturesSequence?: NaturalizedDataset[];
     /** FFFCFFFC · VR OB · VM 1 */
-    DataSetTrailingPadding?: BinaryValue;
+    DataSetTrailingPadding?: BinaryValue[];
     /** Private ('<slot>:<creator>') and unknown-tag keys (spec 12.3) */
     [privateOrUnknown: string]: unknown;
 }

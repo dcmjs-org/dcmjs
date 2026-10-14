@@ -26,8 +26,9 @@ const alpha: string | undefined = ds.PatientName?.Alphabetic;
 const shared: NaturalizedDataset[] | undefined =
     ds.SharedFunctionalGroupsSequence;
 
-// Binary
-const pixels: BinaryValue | undefined = ds.PixelData;
+// Binary: a frame list, even for a single frame
+const pixels: BinaryValue[] | undefined = ds.PixelData;
+const firstFrame: BinaryValue | undefined = ds.PixelData?.[0];
 
 // Negative cases — these MUST be type errors:
 // @ts-expect-error ImageType is string[], not string (VM 2-n stays a list)
@@ -41,6 +42,7 @@ export {
     patientId,
     imageType,
     firstType,
+    firstFrame,
     spacing,
     pn,
     alpha,

@@ -3298,6 +3298,8 @@
       "x-dicom-tag": "40101005"
     },
     "ThreatROIBitmap": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OB",
       "x-dicom-vm": "1",
       "x-dicom-tag": "40101006"
@@ -3939,6 +3941,8 @@
       "x-dicom-tag": "50002610"
     },
     "RETIRED_CurveData": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OB/OW",
       "x-dicom-vm": "1",
       "x-dicom-tag": "50003000"
@@ -3971,11 +3975,15 @@
       "x-dicom-tag": "54000100"
     },
     "ChannelMinimumValue": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OB/OW",
       "x-dicom-vm": "1",
       "x-dicom-tag": "54000110"
     },
     "ChannelMaximumValue": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OB/OW",
       "x-dicom-vm": "1",
       "x-dicom-tag": "54000112"
@@ -3995,16 +4003,22 @@
       "x-dicom-tag": "54001006"
     },
     "WaveformData": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OB/OW",
       "x-dicom-vm": "1",
       "x-dicom-tag": "54001010"
     },
     "FirstOrderPhaseCorrectionAngle": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OF",
       "x-dicom-vm": "1",
       "x-dicom-tag": "56000010"
     },
     "SpectroscopyData": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OF",
       "x-dicom-vm": "1",
       "x-dicom-tag": "56000020"
@@ -4280,6 +4294,8 @@
       "x-dicom-tag": "60001500"
     },
     "OverlayData": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OB/OW",
       "x-dicom-vm": "1",
       "x-dicom-tag": "60003000"
@@ -4618,6 +4634,8 @@
       "x-dicom-tag": "00020000"
     },
     "FileMetaInformationVersion": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OB",
       "x-dicom-vm": "1",
       "x-dicom-tag": "00020001"
@@ -4691,6 +4709,8 @@
       "x-dicom-tag": "00020100"
     },
     "PrivateInformation": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OB",
       "x-dicom-vm": "1",
       "x-dicom-tag": "00020102"
@@ -5882,11 +5902,15 @@
       "x-dicom-tag": "0008041A"
     },
     "RecordKey": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OB",
       "x-dicom-vm": "1",
       "x-dicom-tag": "0008041B"
     },
     "PriorRecordKey": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OB",
       "x-dicom-vm": "1",
       "x-dicom-tag": "0008041C"
@@ -8226,6 +8250,8 @@
       "x-dicom-tag": "0014220E"
     },
     "CoordinateSystemAxisValues": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OB",
       "x-dicom-vm": "1",
       "x-dicom-tag": "00142210"
@@ -8343,6 +8369,8 @@
       "x-dicom-tag": "00143040"
     },
     "DarkCurrentCounts": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OB/OW",
       "x-dicom-vm": "1",
       "x-dicom-tag": "00143050"
@@ -8357,6 +8385,8 @@
       "x-dicom-tag": "00143060"
     },
     "AirCounts": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OB/OW",
       "x-dicom-vm": "1",
       "x-dicom-tag": "00143070"
@@ -8407,6 +8437,8 @@
       "x-dicom-tag": "00143077"
     },
     "BadPixelImage": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OB",
       "x-dicom-vm": "1",
       "x-dicom-tag": "00143080"
@@ -9526,6 +9558,8 @@
       "x-dicom-tag": "0016002A"
     },
     "MakerNote": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OB",
       "x-dicom-vm": "1",
       "x-dicom-tag": "0016002B"
@@ -9671,6 +9705,8 @@
       "x-dicom-tag": "0016004A"
     },
     "DeviceSettingDescription": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OB",
       "x-dicom-vm": "1",
       "x-dicom-tag": "0016004B"
@@ -9724,11 +9760,15 @@
       "x-dicom-tag": "00160061"
     },
     "InteroperabilityVersion": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OB",
       "x-dicom-vm": "1",
       "x-dicom-tag": "00160062"
     },
     "GPSVersionID": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OB",
       "x-dicom-vm": "1",
       "x-dicom-tag": "00160070"
@@ -9930,11 +9970,15 @@
       "x-dicom-tag": "0016008A"
     },
     "GPSProcessingMethod": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OB",
       "x-dicom-vm": "1",
       "x-dicom-tag": "0016008B"
     },
     "GPSAreaInformation": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OB",
       "x-dicom-vm": "1",
       "x-dicom-tag": "0016008C"
@@ -11877,6 +11921,8 @@
       "x-dicom-tag": "00181637"
     },
     "VerticesOfThePolygonalOutline": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OF",
       "x-dicom-vm": "1",
       "x-dicom-tag": "00181638"
@@ -18834,6 +18880,8 @@
       "x-dicom-tag": "00221530"
     },
     "TwoDimensionalToThreeDimensionalMapData": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OF",
       "x-dicom-vm": "1",
       "x-dicom-tag": "00221531"
@@ -20528,36 +20576,50 @@
       "x-dicom-tag": "00281200"
     },
     "RedPaletteColorLookupTableData": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OW",
       "x-dicom-vm": "1",
       "x-dicom-tag": "00281201"
     },
     "GreenPaletteColorLookupTableData": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OW",
       "x-dicom-vm": "1",
       "x-dicom-tag": "00281202"
     },
     "BluePaletteColorLookupTableData": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OW",
       "x-dicom-vm": "1",
       "x-dicom-tag": "00281203"
     },
     "AlphaPaletteColorLookupTableData": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OW",
       "x-dicom-vm": "1",
       "x-dicom-tag": "00281204"
     },
     "RETIRED_LargeRedPaletteColorLookupTableData": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OW",
       "x-dicom-vm": "1",
       "x-dicom-tag": "00281211"
     },
     "RETIRED_LargeGreenPaletteColorLookupTableData": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OW",
       "x-dicom-vm": "1",
       "x-dicom-tag": "00281212"
     },
     "RETIRED_LargeBluePaletteColorLookupTableData": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OW",
       "x-dicom-vm": "1",
       "x-dicom-tag": "00281213"
@@ -20571,21 +20633,29 @@
       "x-dicom-tag": "00281214"
     },
     "SegmentedRedPaletteColorLookupTableData": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OW",
       "x-dicom-vm": "1",
       "x-dicom-tag": "00281221"
     },
     "SegmentedGreenPaletteColorLookupTableData": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OW",
       "x-dicom-vm": "1",
       "x-dicom-tag": "00281222"
     },
     "SegmentedBluePaletteColorLookupTableData": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OW",
       "x-dicom-vm": "1",
       "x-dicom-tag": "00281223"
     },
     "SegmentedAlphaPaletteColorLookupTableData": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OW",
       "x-dicom-vm": "1",
       "x-dicom-tag": "00281224"
@@ -20708,6 +20778,8 @@
       "x-dicom-tag": "00281407"
     },
     "BlendingLookupTableData": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OW",
       "x-dicom-vm": "1",
       "x-dicom-tag": "00281408"
@@ -20763,6 +20835,8 @@
       "x-dicom-tag": "00281410"
     },
     "ICCProfile": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OB",
       "x-dicom-vm": "1",
       "x-dicom-tag": "00282000"
@@ -21845,6 +21919,8 @@
       "x-dicom-tag": "00340001"
     },
     "FlowIdentifier": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OB",
       "x-dicom-vm": "1",
       "x-dicom-tag": "00340002"
@@ -21864,11 +21940,15 @@
       "x-dicom-tag": "00340004"
     },
     "SourceIdentifier": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OB",
       "x-dicom-vm": "1",
       "x-dicom-tag": "00340005"
     },
     "FrameOriginTimestamp": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OB",
       "x-dicom-vm": "1",
       "x-dicom-tag": "00340007"
@@ -22617,6 +22697,8 @@
       "x-dicom-tag": "003A032D"
     },
     "FilterLookupTableData": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OD",
       "x-dicom-vm": "1",
       "x-dicom-tag": "003A032E"
@@ -24304,6 +24386,8 @@
       "x-dicom-tag": "0040A073"
     },
     "RETIRED_ObjectBinaryIdentifierTrial": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OB",
       "x-dicom-vm": "1",
       "x-dicom-tag": "0040A074"
@@ -24392,6 +24476,8 @@
       "x-dicom-tag": "0040A088"
     },
     "RETIRED_ObjectDirectoryBinaryIdentifierTrial": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OB",
       "x-dicom-vm": "1",
       "x-dicom-tag": "0040A089"
@@ -25246,6 +25332,8 @@
       "x-dicom-tag": "00420010"
     },
     "EncapsulatedDocument": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OB",
       "x-dicom-vm": "1",
       "x-dicom-tag": "00420011"
@@ -27626,6 +27714,8 @@
       "x-dicom-tag": "00640008"
     },
     "VectorGridData": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OF",
       "x-dicom-vm": "1",
       "x-dicom-tag": "00640009"
@@ -27761,6 +27851,8 @@
       "x-dicom-tag": "00660015"
     },
     "PointCoordinatesData": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OF",
       "x-dicom-vm": "1",
       "x-dicom-tag": "00660016"
@@ -27839,26 +27931,36 @@
       "x-dicom-tag": "00660020"
     },
     "VectorCoordinateData": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OF",
       "x-dicom-vm": "1",
       "x-dicom-tag": "00660021"
     },
     "DoublePointCoordinatesData": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OD",
       "x-dicom-vm": "1",
       "x-dicom-tag": "00660022"
     },
     "TrianglePointIndexList": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OW",
       "x-dicom-vm": "1",
       "x-dicom-tag": "00660023"
     },
     "EdgePointIndexList": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OW",
       "x-dicom-vm": "1",
       "x-dicom-tag": "00660024"
     },
     "VertexPointIndexList": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OW",
       "x-dicom-vm": "1",
       "x-dicom-tag": "00660025"
@@ -27891,6 +27993,8 @@
       "x-dicom-tag": "00660028"
     },
     "PrimitivePointIndexList": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OW",
       "x-dicom-vm": "1",
       "x-dicom-tag": "00660029"
@@ -28060,6 +28164,8 @@
       "x-dicom-tag": "00660102"
     },
     "RecommendedDisplayCIELabValueList": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OW",
       "x-dicom-vm": "1",
       "x-dicom-tag": "00660103"
@@ -28120,11 +28226,15 @@
       "x-dicom-tag": "00660124"
     },
     "FloatingPointValues": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OF",
       "x-dicom-vm": "1",
       "x-dicom-tag": "00660125"
     },
     "TrackPointIndexList": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OL",
       "x-dicom-vm": "1",
       "x-dicom-tag": "00660129"
@@ -28327,6 +28437,8 @@
       "x-dicom-tag": "006862F2"
     },
     "HPGLDocument": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OB",
       "x-dicom-vm": "1",
       "x-dicom-tag": "00686300"
@@ -28916,6 +29028,8 @@
       "x-dicom-tag": "006A0010"
     },
     "AnnotationIndexList": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OL",
       "x-dicom-vm": "1",
       "x-dicom-tag": "006A0011"
@@ -29477,6 +29591,8 @@
       "x-dicom-tag": "00700255"
     },
     "FillPattern": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OB",
       "x-dicom-vm": "1",
       "x-dicom-tag": "00700256"
@@ -30052,6 +30168,8 @@
       "x-dicom-tag": "0070150C"
     },
     "VolumetricCurvePoints": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OD",
       "x-dicom-vm": "1",
       "x-dicom-tag": "0070150D"
@@ -30229,6 +30347,8 @@
       "x-dicom-tag": "00701807"
     },
     "WeightingLookupTableData": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OB",
       "x-dicom-vm": "1",
       "x-dicom-tag": "00701808"
@@ -30312,6 +30432,8 @@
       "x-dicom-tag": "00701A06"
     },
     "VolumetricCurveUpDirections": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OD",
       "x-dicom-vm": "1",
       "x-dicom-tag": "00701A07"
@@ -30708,6 +30830,8 @@
       "x-dicom-tag": "00720064"
     },
     "SelectorOBValue": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OB",
       "x-dicom-vm": "1",
       "x-dicom-tag": "00720065"
@@ -30723,6 +30847,8 @@
       "x-dicom-tag": "00720066"
     },
     "SelectorOFValue": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OF",
       "x-dicom-vm": "1",
       "x-dicom-tag": "00720067"
@@ -30735,6 +30861,8 @@
       "x-dicom-tag": "00720068"
     },
     "SelectorOWValue": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OW",
       "x-dicom-vm": "1",
       "x-dicom-tag": "00720069"
@@ -30767,6 +30895,8 @@
       "x-dicom-tag": "0072006C"
     },
     "SelectorUNValue": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "UN",
       "x-dicom-vm": "1",
       "x-dicom-tag": "0072006D"
@@ -30809,6 +30939,8 @@
       "x-dicom-tag": "00720072"
     },
     "SelectorODValue": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OD",
       "x-dicom-vm": "1",
       "x-dicom-tag": "00720073"
@@ -30823,6 +30955,8 @@
       "x-dicom-tag": "00720074"
     },
     "SelectorOLValue": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OL",
       "x-dicom-vm": "1",
       "x-dicom-tag": "00720075"
@@ -30893,6 +31027,8 @@
       "x-dicom-tag": "00720080"
     },
     "SelectorOVValue": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OV",
       "x-dicom-vm": "1",
       "x-dicom-tag": "00720081"
@@ -32727,11 +32863,15 @@
       "x-dicom-tag": "04000110"
     },
     "CertificateOfSigner": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OB",
       "x-dicom-vm": "1",
       "x-dicom-tag": "04000115"
     },
     "Signature": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OB",
       "x-dicom-vm": "1",
       "x-dicom-tag": "04000120"
@@ -32745,6 +32885,8 @@
       "x-dicom-tag": "04000305"
     },
     "CertifiedTimestamp": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OB",
       "x-dicom-vm": "1",
       "x-dicom-tag": "04000310"
@@ -32777,6 +32919,8 @@
       "x-dicom-tag": "04000403"
     },
     "MAC": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OB",
       "x-dicom-vm": "1",
       "x-dicom-tag": "04000404"
@@ -32799,6 +32943,8 @@
       "x-dicom-tag": "04000510"
     },
     "EncryptedContent": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OB",
       "x-dicom-vm": "1",
       "x-dicom-tag": "04000520"
@@ -32822,6 +32968,8 @@
       "x-dicom-tag": "04000551"
     },
     "NonconformingDataElementValue": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OB",
       "x-dicom-vm": "1",
       "x-dicom-tag": "04000552"
@@ -37333,11 +37481,15 @@
       "x-dicom-tag": "300A0663"
     },
     "CompensatorProximalThicknessMap": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OF",
       "x-dicom-vm": "1",
       "x-dicom-tag": "300A0664"
     },
     "CompensatorDistalThicknessMap": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OF",
       "x-dicom-vm": "1",
       "x-dicom-tag": "300A0665"
@@ -37382,6 +37534,8 @@
       "x-dicom-tag": "300A066A"
     },
     "BlockEdgeData": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OF",
       "x-dicom-vm": "1",
       "x-dicom-tag": "300A066B"
@@ -39102,6 +39256,8 @@
       "x-dicom-tag": "4010103A"
     },
     "DetectorCalibrationData": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OB",
       "x-dicom-vm": "1",
       "x-dicom-tag": "4010106C"
@@ -39193,6 +39349,8 @@
       "x-dicom-tag": "5000200A"
     },
     "RETIRED_AudioSampleData": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OB/OW",
       "x-dicom-vm": "1",
       "x-dicom-tag": "5000200C"
@@ -39205,11 +39363,15 @@
       "x-dicom-tag": "5000200E"
     },
     "WaveformPaddingValue": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OB/OW",
       "x-dicom-vm": "1",
       "x-dicom-tag": "5400100A"
     },
     "RETIRED_VariablePixelData": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OB/OW",
       "x-dicom-vm": "1",
       "x-dicom-tag": "7F000010"
@@ -39221,26 +39383,36 @@
       "x-dicom-tag": "7F000011"
     },
     "RETIRED_VariableCoefficientsSDVN": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OW",
       "x-dicom-vm": "1",
       "x-dicom-tag": "7F000020"
     },
     "RETIRED_VariableCoefficientsSDHN": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OW",
       "x-dicom-vm": "1",
       "x-dicom-tag": "7F000030"
     },
     "RETIRED_VariableCoefficientsSDDN": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OW",
       "x-dicom-vm": "1",
       "x-dicom-tag": "7F000040"
     },
     "ExtendedOffsetTable": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OV",
       "x-dicom-vm": "1",
       "x-dicom-tag": "7FE00001"
     },
     "ExtendedOffsetTableLengths": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OV",
       "x-dicom-vm": "1",
       "x-dicom-tag": "7FE00002"
@@ -39251,31 +39423,43 @@
       "x-dicom-tag": "7FE00003"
     },
     "FloatPixelData": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OF",
       "x-dicom-vm": "1",
       "x-dicom-tag": "7FE00008"
     },
     "DoubleFloatPixelData": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OD",
       "x-dicom-vm": "1",
       "x-dicom-tag": "7FE00009"
     },
     "PixelData": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OB/OW",
       "x-dicom-vm": "1",
       "x-dicom-tag": "7FE00010"
     },
     "RETIRED_CoefficientsSDVN": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OW",
       "x-dicom-vm": "1",
       "x-dicom-tag": "7FE00020"
     },
     "RETIRED_CoefficientsSDHN": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OW",
       "x-dicom-vm": "1",
       "x-dicom-tag": "7FE00030"
     },
     "RETIRED_CoefficientsSDDN": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OW",
       "x-dicom-vm": "1",
       "x-dicom-tag": "7FE00040"
@@ -39290,6 +39474,8 @@
       "x-dicom-tag": "FFFAFFFA"
     },
     "DataSetTrailingPadding": {
+      "type": "array",
+      "items": {},
       "x-dicom-vr": "OB",
       "x-dicom-vm": "1",
       "x-dicom-tag": "FFFCFFFC"
