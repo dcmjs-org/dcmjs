@@ -42,10 +42,13 @@ describe("JSON-Schema projection", () => {
 
     test("sequences accept a dataset array or a single item", () => {
         expect(schema.properties.SharedFunctionalGroupsSequence).toEqual({
-            oneOf: [{ type: "array", items: { $ref: "#" } }, { $ref: "#" }],
+            $ref: "#/$defs/sequenceValue",
             "x-dicom-vr": "SQ",
             "x-dicom-vm": "1",
             "x-dicom-tag": "52009229"
+        });
+        expect(schema.$defs.sequenceValue).toEqual({
+            anyOf: [{ type: "array", items: { $ref: "#" } }, { $ref: "#" }]
         });
     });
 

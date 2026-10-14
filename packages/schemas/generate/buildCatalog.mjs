@@ -171,9 +171,9 @@ export function jsonSchemaFor(entry, catalog) {
     const isBinary = scalarTs.length === 1 && scalarTs[0] === "BinaryValue";
     let prop;
     if (isSq) {
-        // A single-item sequence naturalizes as the item itself, not an
-        // array, so a sequence value is a dataset or a dataset array.
-        prop = { oneOf: [{ type: "array", items: item }, item] };
+        // One shared $defs entry: inlining the two-branch sequence shape
+        // into every SQ property overflows ajv's codegen on this schema.
+        prop = { $ref: "#/$defs/sequenceValue" };
     } else if (isBinary || vm.multi) {
         prop = { type: "array", items: item };
         if (!isBinary && vm.min > 1) {
@@ -208,7 +208,14 @@ export function jsonSchemaSource(catalog) {
         "x-dicom-dictionary-hash": catalog.dictionaryHash,
         type: "object",
         properties,
-        additionalProperties: true
+        additionalProperties: true,
+        $defs: {
+            // A single-item sequence naturalizes as the item itself, not
+            // an array, so a sequence value is a dataset or a dataset array.
+            sequenceValue: {
+                anyOf: [{ type: "array", items: { $ref: "#" } }, { $ref: "#" }]
+            }
+        }
     };
     return JSON.stringify(doc, null, 2) + "\n";
 }
