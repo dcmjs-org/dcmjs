@@ -178,7 +178,7 @@ export function jsonSchemaFor(entry, catalog) {
         if (!isSq && !isBinary && vm.min > 1) {
             prop.minItems = vm.min;
         }
-        if (!isSq && !isBinary && vm.max !== null && vm.max !== vm.min) {
+        if (!isSq && !isBinary && vm.max !== null) {
             prop.maxItems = vm.max;
         }
     } else {

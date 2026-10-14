@@ -12,6 +12,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "US",
       "x-dicom-vm": "3",
       "x-dicom-tag": "10000010"
@@ -22,6 +23,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "US",
       "x-dicom-vm": "3",
       "x-dicom-tag": "10000011"
@@ -38,6 +40,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "US",
       "x-dicom-vm": "3",
       "x-dicom-tag": "10000013"
@@ -54,6 +57,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "US",
       "x-dicom-vm": "3",
       "x-dicom-tag": "10000015"
@@ -305,6 +309,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "DS",
       "x-dicom-vm": "2",
       "x-dicom-tag": "20100376"
@@ -841,6 +846,7 @@
         "type": "number"
       },
       "minItems": 6,
+      "maxItems": 6,
       "x-dicom-vr": "DS",
       "x-dicom-vm": "6",
       "x-dicom-tag": "30020010"
@@ -851,6 +857,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "DS",
       "x-dicom-vm": "2",
       "x-dicom-tag": "30020011"
@@ -861,6 +868,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "DS",
       "x-dicom-vm": "2",
       "x-dicom-tag": "30020012"
@@ -923,6 +931,7 @@
         "type": "number"
       },
       "minItems": 4,
+      "maxItems": 4,
       "x-dicom-vr": "DS",
       "x-dicom-vm": "4",
       "x-dicom-tag": "30020034"
@@ -1318,6 +1327,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "DS",
       "x-dicom-vm": "3",
       "x-dicom-tag": "30040008"
@@ -1355,6 +1365,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "DS",
       "x-dicom-vm": "3",
       "x-dicom-tag": "30040040"
@@ -1635,6 +1646,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "DS",
       "x-dicom-vm": "3",
       "x-dicom-tag": "30060045"
@@ -3015,6 +3027,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "3",
       "x-dicom-tag": "30100093"
@@ -3283,6 +3296,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "FL",
       "x-dicom-vm": "3",
       "x-dicom-tag": "40101004"
@@ -3293,6 +3307,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "FL",
       "x-dicom-vm": "3",
       "x-dicom-tag": "40101005"
@@ -3540,6 +3555,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "FL",
       "x-dicom-vm": "3",
       "x-dicom-tag": "40101043"
@@ -3650,6 +3666,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "FL",
       "x-dicom-vm": "3",
       "x-dicom-tag": "40101060"
@@ -3660,6 +3677,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "FL",
       "x-dicom-vm": "3",
       "x-dicom-tag": "40101061"
@@ -4075,6 +4093,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "SS",
       "x-dicom-vm": "2",
       "x-dicom-tag": "60000050"
@@ -6374,6 +6393,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "2",
       "x-dicom-tag": "00081163"
@@ -6849,6 +6869,7 @@
         "pattern": "^[A-Z0-9 _]*$"
       },
       "minItems": 4,
+      "maxItems": 4,
       "x-dicom-vr": "CS",
       "x-dicom-vm": "4",
       "x-dicom-tag": "00089007"
@@ -7047,6 +7068,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "US",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00100028"
@@ -9293,6 +9315,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "DS",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00160002"
@@ -9616,6 +9639,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "IS",
       "x-dicom-vm": "2",
       "x-dicom-tag": "00160037"
@@ -9729,6 +9753,7 @@
         "type": "number"
       },
       "minItems": 4,
+      "maxItems": 4,
       "x-dicom-vr": "DS",
       "x-dicom-vm": "4",
       "x-dicom-tag": "0016004E"
@@ -9787,6 +9812,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "DS",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00160072"
@@ -9805,6 +9831,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "DS",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00160074"
@@ -9919,6 +9946,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "DS",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00160084"
@@ -9937,6 +9965,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "DS",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00160086"
@@ -10769,6 +10798,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "US",
       "x-dicom-vm": "2",
       "x-dicom-tag": "0018106C"
@@ -11163,6 +11193,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "DS",
       "x-dicom-vm": "2",
       "x-dicom-tag": "00181164"
@@ -11574,6 +11605,7 @@
         "type": "number"
       },
       "minItems": 4,
+      "maxItems": 4,
       "x-dicom-vr": "US",
       "x-dicom-vm": "4",
       "x-dicom-tag": "00181310"
@@ -11824,6 +11856,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "IS",
       "x-dicom-vm": "2",
       "x-dicom-tag": "00181610"
@@ -11862,6 +11895,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "US",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00181624"
@@ -11904,6 +11938,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "2",
       "x-dicom-tag": "00181635"
@@ -11969,6 +12004,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "IS",
       "x-dicom-vm": "2",
       "x-dicom-tag": "00181710"
@@ -12081,6 +12117,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "DS",
       "x-dicom-vm": "2",
       "x-dicom-tag": "00182010"
@@ -12122,6 +12159,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "FL",
       "x-dicom-vm": "2",
       "x-dicom-tag": "00182043"
@@ -12132,6 +12170,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "FL",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00182044"
@@ -12331,6 +12370,7 @@
         "type": "number"
       },
       "minItems": 6,
+      "maxItems": 6,
       "x-dicom-vr": "DS",
       "x-dicom-vm": "6",
       "x-dicom-tag": "00185210"
@@ -12341,6 +12381,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "DS",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00185212"
@@ -12754,6 +12795,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "DS",
       "x-dicom-vm": "2",
       "x-dicom-tag": "0018701A"
@@ -12764,6 +12806,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "DS",
       "x-dicom-vm": "2",
       "x-dicom-tag": "00187020"
@@ -12774,6 +12817,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "DS",
       "x-dicom-vm": "2",
       "x-dicom-tag": "00187022"
@@ -12802,6 +12846,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "DS",
       "x-dicom-vm": "2",
       "x-dicom-tag": "00187028"
@@ -12826,6 +12871,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "DS",
       "x-dicom-vm": "2",
       "x-dicom-tag": "00187030"
@@ -12850,6 +12896,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "FL",
       "x-dicom-vm": "2",
       "x-dicom-tag": "00187036"
@@ -12892,6 +12939,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "IS",
       "x-dicom-vm": "2",
       "x-dicom-tag": "00187046"
@@ -13564,6 +13612,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00189089"
@@ -13574,6 +13623,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00189090"
@@ -13670,6 +13720,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00189105"
@@ -13680,6 +13731,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00189106"
@@ -14142,6 +14194,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00189255"
@@ -14152,6 +14205,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00189256"
@@ -14348,6 +14402,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00189313"
@@ -14383,6 +14438,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "2",
       "x-dicom-tag": "00189317"
@@ -14393,6 +14449,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00189318"
@@ -14425,6 +14482,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "2",
       "x-dicom-tag": "00189322"
@@ -14600,6 +14658,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "FL",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00189352"
@@ -14914,6 +14973,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "FL",
       "x-dicom-vm": "2",
       "x-dicom-tag": "00189404"
@@ -15031,6 +15091,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "FL",
       "x-dicom-vm": "2",
       "x-dicom-tag": "00189429"
@@ -15041,6 +15102,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "FL",
       "x-dicom-vm": "2",
       "x-dicom-tag": "00189430"
@@ -15108,6 +15170,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "SS",
       "x-dicom-vm": "2",
       "x-dicom-tag": "00189440"
@@ -15561,6 +15624,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00189557"
@@ -15571,6 +15635,7 @@
         "type": "number"
       },
       "minItems": 6,
+      "maxItems": 6,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "6",
       "x-dicom-tag": "00189558"
@@ -16835,6 +16900,7 @@
         "pattern": "^[A-Z0-9 _]*$"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "CS",
       "x-dicom-vm": "2",
       "x-dicom-tag": "00200020"
@@ -16870,6 +16936,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "DS",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00200030"
@@ -16880,6 +16947,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "DS",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00200032"
@@ -16890,6 +16958,7 @@
         "type": "number"
       },
       "minItems": 6,
+      "maxItems": 6,
       "x-dicom-vr": "DS",
       "x-dicom-vm": "6",
       "x-dicom-tag": "00200035"
@@ -16900,6 +16969,7 @@
         "type": "number"
       },
       "minItems": 6,
+      "maxItems": 6,
       "x-dicom-vr": "DS",
       "x-dicom-vm": "6",
       "x-dicom-tag": "00200037"
@@ -17480,6 +17550,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00209301"
@@ -17490,6 +17561,7 @@
         "type": "number"
       },
       "minItems": 6,
+      "maxItems": 6,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "6",
       "x-dicom-tag": "00209302"
@@ -17508,6 +17580,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00209308"
@@ -17518,6 +17591,7 @@
         "type": "number"
       },
       "minItems": 16,
+      "maxItems": 16,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "16",
       "x-dicom-tag": "00209309"
@@ -17528,6 +17602,7 @@
         "type": "number"
       },
       "minItems": 16,
+      "maxItems": 16,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "16",
       "x-dicom-tag": "0020930A"
@@ -17664,6 +17739,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "US",
       "x-dicom-vm": "2",
       "x-dicom-tag": "00220002"
@@ -17680,6 +17756,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "US",
       "x-dicom-vm": "2",
       "x-dicom-tag": "00220004"
@@ -18737,6 +18814,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "FL",
       "x-dicom-vm": "2",
       "x-dicom-tag": "00221463"
@@ -18764,6 +18842,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "FL",
       "x-dicom-vm": "2",
       "x-dicom-tag": "00221467"
@@ -18774,6 +18853,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "FL",
       "x-dicom-vm": "2",
       "x-dicom-tag": "00221468"
@@ -19850,6 +19930,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "DS",
       "x-dicom-vm": "2",
       "x-dicom-tag": "00280030"
@@ -19860,6 +19941,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "DS",
       "x-dicom-vm": "2",
       "x-dicom-tag": "00280031"
@@ -19870,6 +19952,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "DS",
       "x-dicom-vm": "2",
       "x-dicom-tag": "00280032"
@@ -19880,6 +19963,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "IS",
       "x-dicom-vm": "2",
       "x-dicom-tag": "00280034"
@@ -20486,6 +20570,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "US/SS",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00281100"
@@ -20496,6 +20581,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "US/SS",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00281101"
@@ -20506,6 +20592,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "US/SS",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00281102"
@@ -20516,6 +20603,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "US/SS",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00281103"
@@ -20526,6 +20614,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "US",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00281104"
@@ -20536,6 +20625,7 @@
         "type": "number"
       },
       "minItems": 4,
+      "maxItems": 4,
       "x-dicom-vr": "US/SS",
       "x-dicom-vm": "4",
       "x-dicom-tag": "00281111"
@@ -20546,6 +20636,7 @@
         "type": "number"
       },
       "minItems": 4,
+      "maxItems": 4,
       "x-dicom-vr": "US/SS",
       "x-dicom-vm": "4",
       "x-dicom-tag": "00281112"
@@ -20556,6 +20647,7 @@
         "type": "number"
       },
       "minItems": 4,
+      "maxItems": 4,
       "x-dicom-vr": "US/SS",
       "x-dicom-vm": "4",
       "x-dicom-tag": "00281113"
@@ -20773,6 +20865,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "US",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00281407"
@@ -20901,6 +20994,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "US/SS",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00283002"
@@ -21062,6 +21156,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "FL",
       "x-dicom-vm": "2",
       "x-dicom-tag": "00286114"
@@ -21270,6 +21365,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "FL",
       "x-dicom-vm": "2",
       "x-dicom-tag": "00287018"
@@ -21674,6 +21770,7 @@
         "type": "number"
       },
       "minItems": 16,
+      "maxItems": 16,
       "x-dicom-vr": "DS",
       "x-dicom-vm": "16",
       "x-dicom-tag": "00289520"
@@ -22417,6 +22514,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "US",
       "x-dicom-vm": "3",
       "x-dicom-tag": "003A0231"
@@ -22451,6 +22549,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "US",
       "x-dicom-vm": "3",
       "x-dicom-tag": "003A0244"
@@ -24558,6 +24657,7 @@
         "pattern": "^[A-Z0-9 _]*$"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "CS",
       "x-dicom-vm": "2",
       "x-dicom-tag": "0040A125"
@@ -25990,6 +26090,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "SS",
       "x-dicom-vm": "2",
       "x-dicom-tag": "00460135"
@@ -26042,6 +26143,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "FL",
       "x-dicom-vm": "2",
       "x-dicom-tag": "00460202"
@@ -26113,6 +26215,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "FL",
       "x-dicom-vm": "2",
       "x-dicom-tag": "00460213"
@@ -26206,6 +26309,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "FL",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00460247"
@@ -26329,6 +26433,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "US",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00480015"
@@ -26348,6 +26453,7 @@
         "type": "number"
       },
       "minItems": 6,
+      "maxItems": 6,
       "x-dicom-vr": "DS",
       "x-dicom-vm": "6",
       "x-dicom-tag": "00480102"
@@ -26466,6 +26572,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "US",
       "x-dicom-vm": "2",
       "x-dicom-tag": "00480201"
@@ -26476,6 +26583,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "US",
       "x-dicom-vm": "2",
       "x-dicom-tag": "00480202"
@@ -27246,6 +27354,7 @@
         "pattern": "^[A-Z0-9 _]*$"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "CS",
       "x-dicom-vm": "2",
       "x-dicom-tag": "00541000"
@@ -27338,6 +27447,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "IS",
       "x-dicom-vm": "2",
       "x-dicom-tag": "00541201"
@@ -27354,6 +27464,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "DS",
       "x-dicom-vm": "2",
       "x-dicom-tag": "00541203"
@@ -27600,6 +27711,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "US",
       "x-dicom-vm": "3",
       "x-dicom-tag": "0062000D"
@@ -27699,6 +27811,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "UL",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00640007"
@@ -27709,6 +27822,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00640008"
@@ -27863,6 +27977,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "FL",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00660017"
@@ -27885,6 +28000,7 @@
         "type": "number"
       },
       "minItems": 6,
+      "maxItems": 6,
       "x-dicom-vr": "FL",
       "x-dicom-vm": "6",
       "x-dicom-tag": "0066001A"
@@ -27895,6 +28011,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "FL",
       "x-dicom-vm": "3",
       "x-dicom-tag": "0066001B"
@@ -27905,6 +28022,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "FL",
       "x-dicom-vm": "3",
       "x-dicom-tag": "0066001C"
@@ -28426,6 +28544,7 @@
         "type": "number"
       },
       "minItems": 9,
+      "maxItems": 9,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "9",
       "x-dicom-tag": "006862F0"
@@ -28484,6 +28603,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "2",
       "x-dicom-tag": "00686346"
@@ -28494,6 +28614,7 @@
         "type": "number"
       },
       "minItems": 4,
+      "maxItems": 4,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "4",
       "x-dicom-tag": "00686347"
@@ -28646,6 +28767,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "2",
       "x-dicom-tag": "00686450"
@@ -28656,6 +28778,7 @@
         "type": "number"
       },
       "minItems": 4,
+      "maxItems": 4,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "4",
       "x-dicom-tag": "00686460"
@@ -28675,6 +28798,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00686490"
@@ -28685,6 +28809,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "2",
       "x-dicom-tag": "006864A0"
@@ -28695,6 +28820,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "3",
       "x-dicom-tag": "006864C0"
@@ -28705,6 +28831,7 @@
         "type": "number"
       },
       "minItems": 9,
+      "maxItems": 9,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "9",
       "x-dicom-tag": "006864D0"
@@ -28715,6 +28842,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "3",
       "x-dicom-tag": "006864F0"
@@ -28783,6 +28911,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "2",
       "x-dicom-tag": "00686560"
@@ -28793,6 +28922,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00686590"
@@ -28812,6 +28942,7 @@
         "type": "number"
       },
       "minItems": 4,
+      "maxItems": 4,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "4",
       "x-dicom-tag": "006865B0"
@@ -28822,6 +28953,7 @@
         "type": "number"
       },
       "minItems": 6,
+      "maxItems": 6,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "6",
       "x-dicom-tag": "006865D0"
@@ -28841,6 +28973,7 @@
         "type": "number"
       },
       "minItems": 4,
+      "maxItems": 4,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "4",
       "x-dicom-tag": "006865F0"
@@ -28851,6 +28984,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00686610"
@@ -28861,6 +28995,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00686620"
@@ -29106,6 +29241,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "FL",
       "x-dicom-vm": "2",
       "x-dicom-tag": "00700010"
@@ -29116,6 +29252,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "FL",
       "x-dicom-vm": "2",
       "x-dicom-tag": "00700011"
@@ -29134,6 +29271,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "FL",
       "x-dicom-vm": "2",
       "x-dicom-tag": "00700014"
@@ -29210,6 +29348,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "US",
       "x-dicom-vm": "2",
       "x-dicom-tag": "00700050"
@@ -29220,6 +29359,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "US",
       "x-dicom-vm": "2",
       "x-dicom-tag": "00700051"
@@ -29230,6 +29370,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "SL",
       "x-dicom-vm": "2",
       "x-dicom-tag": "00700052"
@@ -29240,6 +29381,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "SL",
       "x-dicom-vm": "2",
       "x-dicom-tag": "00700053"
@@ -29280,6 +29422,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "US",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00700067"
@@ -29357,6 +29500,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "DS",
       "x-dicom-vm": "2",
       "x-dicom-tag": "00700101"
@@ -29367,6 +29511,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "IS",
       "x-dicom-vm": "2",
       "x-dicom-tag": "00700102"
@@ -29476,6 +29621,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "US",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00700241"
@@ -29522,6 +29668,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "US",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00700247"
@@ -29556,6 +29703,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "US",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00700251"
@@ -29566,6 +29714,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "US",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00700252"
@@ -29629,6 +29778,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "FL",
       "x-dicom-vm": "2",
       "x-dicom-tag": "00700273"
@@ -29754,6 +29904,7 @@
         "type": "number"
       },
       "minItems": 16,
+      "maxItems": 16,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "16",
       "x-dicom-tag": "0070030B"
@@ -29880,6 +30031,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "US",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00700401"
@@ -30074,6 +30226,7 @@
         "type": "number"
       },
       "minItems": 6,
+      "maxItems": 6,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "6",
       "x-dicom-tag": "00701303"
@@ -30093,6 +30246,7 @@
         "type": "number"
       },
       "minItems": 4,
+      "maxItems": 4,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "4",
       "x-dicom-tag": "00701305"
@@ -30103,6 +30257,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00701306"
@@ -30141,6 +30296,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00701505"
@@ -30151,6 +30307,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00701507"
@@ -30180,6 +30337,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00701511"
@@ -30204,6 +30362,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00701603"
@@ -30214,6 +30373,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00701604"
@@ -30224,6 +30384,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00701605"
@@ -30234,6 +30395,7 @@
         "type": "number"
       },
       "minItems": 6,
+      "maxItems": 6,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "6",
       "x-dicom-tag": "00701606"
@@ -30264,6 +30426,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00701703"
@@ -30342,6 +30505,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "US",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00701807"
@@ -30687,6 +30851,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "US",
       "x-dicom-vm": "2",
       "x-dicom-tag": "00720038"
@@ -30705,6 +30870,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "SS",
       "x-dicom-vm": "2",
       "x-dicom-tag": "0072003C"
@@ -31080,6 +31246,7 @@
         "type": "number"
       },
       "minItems": 4,
+      "maxItems": 4,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "4",
       "x-dicom-tag": "00720108"
@@ -31310,6 +31477,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "US",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00720420"
@@ -31320,6 +31488,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "US",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00720421"
@@ -31458,6 +31627,7 @@
         "pattern": "^[A-Z0-9 _]*$"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "CS",
       "x-dicom-vm": "2",
       "x-dicom-tag": "00720700"
@@ -31743,6 +31913,7 @@
         "type": "number"
       },
       "minItems": 4,
+      "maxItems": 4,
       "x-dicom-vr": "DS",
       "x-dicom-vm": "4",
       "x-dicom-tag": "0074103A"
@@ -32000,6 +32171,7 @@
         "type": "number"
       },
       "minItems": 4,
+      "maxItems": 4,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "4",
       "x-dicom-tag": "0074133A"
@@ -32347,6 +32519,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "3",
       "x-dicom-tag": "00780050"
@@ -32357,6 +32530,7 @@
         "type": "number"
       },
       "minItems": 9,
+      "maxItems": 9,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "9",
       "x-dicom-tag": "00780060"
@@ -32376,6 +32550,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "2",
       "x-dicom-tag": "00780090"
@@ -32386,6 +32561,7 @@
         "type": "number"
       },
       "minItems": 4,
+      "maxItems": 4,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "4",
       "x-dicom-tag": "007800A0"
@@ -33224,6 +33400,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "DS",
       "x-dicom-vm": "3",
       "x-dicom-tag": "3002000D"
@@ -33285,6 +33462,7 @@
         "type": "number"
       },
       "minItems": 16,
+      "maxItems": 16,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "16",
       "x-dicom-tag": "3002010F"
@@ -33415,6 +33593,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "IS",
       "x-dicom-vm": "3",
       "x-dicom-tag": "3006002A"
@@ -33601,6 +33780,7 @@
         "type": "number"
       },
       "minItems": 16,
+      "maxItems": 16,
       "x-dicom-vr": "DS",
       "x-dicom-vm": "16",
       "x-dicom-tag": "300600C6"
@@ -33960,6 +34140,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "DS",
       "x-dicom-vm": "3",
       "x-dicom-tag": "300A0018"
@@ -34216,6 +34397,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "DS",
       "x-dicom-vm": "3",
       "x-dicom-tag": "300A0082"
@@ -34341,6 +34523,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "DS",
       "x-dicom-vm": "3",
       "x-dicom-tag": "300A00A2"
@@ -34672,6 +34855,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "DS",
       "x-dicom-vm": "2",
       "x-dicom-tag": "300A00E9"
@@ -34682,6 +34866,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "DS",
       "x-dicom-vm": "2",
       "x-dicom-tag": "300A00EA"
@@ -35041,6 +35226,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "DS",
       "x-dicom-vm": "3",
       "x-dicom-tag": "300A012C"
@@ -35051,6 +35237,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "DS",
       "x-dicom-vm": "3",
       "x-dicom-tag": "300A012E"
@@ -35079,6 +35266,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "FL",
       "x-dicom-vm": "3",
       "x-dicom-tag": "300A0133"
@@ -35844,6 +36032,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "DS",
       "x-dicom-vm": "3",
       "x-dicom-tag": "300A02D4"
@@ -35974,6 +36163,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "FL",
       "x-dicom-vm": "2",
       "x-dicom-tag": "300A030A"
@@ -36349,6 +36539,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "FL",
       "x-dicom-vm": "2",
       "x-dicom-tag": "300A0398"
@@ -36463,6 +36654,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "FL",
       "x-dicom-vm": "3",
       "x-dicom-tag": "300A0412"
@@ -36636,6 +36828,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "FL",
       "x-dicom-vm": "2",
       "x-dicom-tag": "300A0503"
@@ -36646,6 +36839,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "FL",
       "x-dicom-vm": "2",
       "x-dicom-tag": "300A0504"
@@ -36686,6 +36880,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "FL",
       "x-dicom-vm": "2",
       "x-dicom-tag": "300A0509"
@@ -36696,6 +36891,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "FL",
       "x-dicom-vm": "2",
       "x-dicom-tag": "300A0510"
@@ -36940,6 +37136,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "3",
       "x-dicom-tag": "300A061E"
@@ -36990,6 +37187,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "2",
       "x-dicom-tag": "300A0624"
@@ -37012,6 +37210,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "3",
       "x-dicom-tag": "300A0627"
@@ -37286,6 +37485,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "2",
       "x-dicom-tag": "300A064B"
@@ -38309,6 +38509,7 @@
         "type": "number"
       },
       "minItems": 16,
+      "maxItems": 16,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "16",
       "x-dicom-tag": "300A079B"
@@ -38675,6 +38876,7 @@
         "type": "number"
       },
       "minItems": 2,
+      "maxItems": 2,
       "x-dicom-vr": "FD",
       "x-dicom-vm": "2",
       "x-dicom-tag": "300C0122"
@@ -39194,6 +39396,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "FL",
       "x-dicom-vm": "3",
       "x-dicom-tag": "4010101B"
@@ -39204,6 +39407,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "FL",
       "x-dicom-vm": "3",
       "x-dicom-tag": "4010101C"
@@ -39293,6 +39497,7 @@
         "type": "number"
       },
       "minItems": 3,
+      "maxItems": 3,
       "x-dicom-vr": "FL",
       "x-dicom-vm": "3",
       "x-dicom-tag": "4010107A"
@@ -39329,6 +39534,7 @@
         "type": "number"
       },
       "minItems": 6,
+      "maxItems": 6,
       "x-dicom-vr": "DS",
       "x-dicom-vm": "6",
       "x-dicom-tag": "4010107E"
