@@ -40,10 +40,9 @@ describe("JSON-Schema projection", () => {
         });
     });
 
-    test("sequences reference the dataset schema recursively", () => {
+    test("sequences accept a dataset array or a single item", () => {
         expect(schema.properties.SharedFunctionalGroupsSequence).toEqual({
-            type: "array",
-            items: { $ref: "#" },
+            oneOf: [{ type: "array", items: { $ref: "#" } }, { $ref: "#" }],
             "x-dicom-vr": "SQ",
             "x-dicom-vm": "1",
             "x-dicom-tag": "52009229"

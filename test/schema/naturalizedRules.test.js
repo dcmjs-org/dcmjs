@@ -67,7 +67,7 @@ describe("naturalizedRules catalog", () => {
         expect(naturalizedRules.envelope).toEqual({
             cardinality: "vm-based",
             personName: "componentObject",
-            sequences: "datasetArray",
+            sequences: "datasetArrayOrItem",
             privateTags: "creatorGrouped",
             unknownTags: "preserved",
             rawRetention: "inexactOnly",

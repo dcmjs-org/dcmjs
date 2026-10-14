@@ -51,9 +51,9 @@ export interface NaturalizedDataset {
     /** 20000069 · VR CS · VM 1 */
     RETIRED_PresentationLUTFlag?: string;
     /** 20000500 · VR SQ · VM 1 */
-    ReferencedFilmBoxSequence?: NaturalizedDataset[];
+    ReferencedFilmBoxSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 20000510 · VR SQ · VM 1 */
-    RETIRED_ReferencedStoredPrintSequence?: NaturalizedDataset[];
+    RETIRED_ReferencedStoredPrintSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 20100010 · VR ST · VM 1 */
     ImageDisplayFormat?: string;
     /** 20100030 · VR CS · VM 1 */
@@ -91,11 +91,11 @@ export interface NaturalizedDataset {
     /** 20100376 · VR DS · VM 2 */
     PrinterPixelSpacing?: number[];
     /** 20100500 · VR SQ · VM 1 */
-    ReferencedFilmSessionSequence?: NaturalizedDataset[];
+    ReferencedFilmSessionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 20100510 · VR SQ · VM 1 */
-    ReferencedImageBoxSequence?: NaturalizedDataset[];
+    ReferencedImageBoxSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 20100520 · VR SQ · VM 1 */
-    ReferencedBasicAnnotationBoxSequence?: NaturalizedDataset[];
+    ReferencedBasicAnnotationBoxSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 20200010 · VR US · VM 1 */
     ImageBoxPosition?: number;
     /** 20200020 · VR CS · VM 1 */
@@ -107,23 +107,23 @@ export interface NaturalizedDataset {
     /** 20200050 · VR CS · VM 1 */
     RequestedResolutionID?: string;
     /** 20200110 · VR SQ · VM 1 */
-    BasicGrayscaleImageSequence?: NaturalizedDataset[];
+    BasicGrayscaleImageSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 20200111 · VR SQ · VM 1 */
-    BasicColorImageSequence?: NaturalizedDataset[];
+    BasicColorImageSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 20200130 · VR SQ · VM 1 */
-    RETIRED_ReferencedImageOverlayBoxSequence?: NaturalizedDataset[];
+    RETIRED_ReferencedImageOverlayBoxSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 20200140 · VR SQ · VM 1 */
-    RETIRED_ReferencedVOILUTBoxSequence?: NaturalizedDataset[];
+    RETIRED_ReferencedVOILUTBoxSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 20300010 · VR US · VM 1 */
     AnnotationPosition?: number;
     /** 20300020 · VR LO · VM 1 */
     TextString?: string;
     /** 20400010 · VR SQ · VM 1 */
-    RETIRED_ReferencedOverlayPlaneSequence?: NaturalizedDataset[];
+    RETIRED_ReferencedOverlayPlaneSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 20400011 · VR US · VM 1-99 */
     RETIRED_ReferencedOverlayPlaneGroups?: number[];
     /** 20400020 · VR SQ · VM 1 */
-    RETIRED_OverlayPixelDataSequence?: NaturalizedDataset[];
+    RETIRED_OverlayPixelDataSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 20400060 · VR CS · VM 1 */
     RETIRED_OverlayMagnificationType?: string;
     /** 20400070 · VR CS · VM 1 */
@@ -141,13 +141,13 @@ export interface NaturalizedDataset {
     /** 20400100 · VR CS · VM 1 */
     RETIRED_ThresholdDensity?: string;
     /** 20400500 · VR SQ · VM 1 */
-    RETIRED_ReferencedImageBoxSequenceRetired?: NaturalizedDataset[];
+    RETIRED_ReferencedImageBoxSequenceRetired?: NaturalizedDataset | NaturalizedDataset[];
     /** 20500010 · VR SQ · VM 1 */
-    PresentationLUTSequence?: NaturalizedDataset[];
+    PresentationLUTSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 20500020 · VR CS · VM 1 */
     PresentationLUTShape?: string;
     /** 20500500 · VR SQ · VM 1 */
-    ReferencedPresentationLUTSequence?: NaturalizedDataset[];
+    ReferencedPresentationLUTSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 21000010 · VR SH · VM 1 */
     RETIRED_PrintJobID?: string;
     /** 21000020 · VR CS · VM 1 */
@@ -167,7 +167,7 @@ export interface NaturalizedDataset {
     /** 21000170 · VR IS · VM 1 */
     NumberOfFilms?: number;
     /** 21000500 · VR SQ · VM 1 */
-    RETIRED_ReferencedPrintJobSequencePullStoredPrint?: NaturalizedDataset[];
+    RETIRED_ReferencedPrintJobSequencePullStoredPrint?: NaturalizedDataset | NaturalizedDataset[];
     /** 21100010 · VR CS · VM 1 */
     PrinterStatus?: string;
     /** 21100020 · VR CS · VM 1 */
@@ -179,23 +179,23 @@ export interface NaturalizedDataset {
     /** 21200010 · VR CS · VM 1 */
     RETIRED_QueueStatus?: string;
     /** 21200050 · VR SQ · VM 1 */
-    RETIRED_PrintJobDescriptionSequence?: NaturalizedDataset[];
+    RETIRED_PrintJobDescriptionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 21200070 · VR SQ · VM 1 */
-    RETIRED_ReferencedPrintJobSequence?: NaturalizedDataset[];
+    RETIRED_ReferencedPrintJobSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 21300010 · VR SQ · VM 1 */
-    RETIRED_PrintManagementCapabilitiesSequence?: NaturalizedDataset[];
+    RETIRED_PrintManagementCapabilitiesSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 21300015 · VR SQ · VM 1 */
-    RETIRED_PrinterCharacteristicsSequence?: NaturalizedDataset[];
+    RETIRED_PrinterCharacteristicsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 21300030 · VR SQ · VM 1 */
-    RETIRED_FilmBoxContentSequence?: NaturalizedDataset[];
+    RETIRED_FilmBoxContentSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 21300040 · VR SQ · VM 1 */
-    RETIRED_ImageBoxContentSequence?: NaturalizedDataset[];
+    RETIRED_ImageBoxContentSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 21300050 · VR SQ · VM 1 */
-    RETIRED_AnnotationContentSequence?: NaturalizedDataset[];
+    RETIRED_AnnotationContentSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 21300060 · VR SQ · VM 1 */
-    RETIRED_ImageOverlayBoxContentSequence?: NaturalizedDataset[];
+    RETIRED_ImageOverlayBoxContentSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 21300080 · VR SQ · VM 1 */
-    RETIRED_PresentationLUTContentSequence?: NaturalizedDataset[];
+    RETIRED_PresentationLUTContentSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 22000001 · VR CS · VM 1 */
     LabelUsingInformationExtractedFromInstances?: string;
     /** 22000002 · VR UT · VM 1 */
@@ -241,19 +241,19 @@ export interface NaturalizedDataset {
     /** 30020029 · VR IS · VM 1 */
     FractionNumber?: number;
     /** 30020030 · VR SQ · VM 1 */
-    ExposureSequence?: NaturalizedDataset[];
+    ExposureSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30020032 · VR DS · VM 1 */
     MetersetExposure?: number;
     /** 30020034 · VR DS · VM 4 */
     DiaphragmPosition?: number[];
     /** 30020040 · VR SQ · VM 1 */
-    FluenceMapSequence?: NaturalizedDataset[];
+    FluenceMapSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30020041 · VR CS · VM 1 */
     FluenceDataSource?: string;
     /** 30020042 · VR DS · VM 1 */
     FluenceDataScale?: number;
     /** 30020050 · VR SQ · VM 1 */
-    PrimaryFluenceModeSequence?: NaturalizedDataset[];
+    PrimaryFluenceModeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30020051 · VR CS · VM 1 */
     FluenceMode?: string;
     /** 30020052 · VR SH · VM 1 */
@@ -261,13 +261,13 @@ export interface NaturalizedDataset {
     /** 30020100 · VR IS · VM 1 */
     SelectedFrameNumber?: number;
     /** 30020101 · VR SQ · VM 1 */
-    SelectedFrameFunctionalGroupsSequence?: NaturalizedDataset[];
+    SelectedFrameFunctionalGroupsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30020102 · VR SQ · VM 1 */
-    RTImageFrameGeneralContentSequence?: NaturalizedDataset[];
+    RTImageFrameGeneralContentSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30020103 · VR SQ · VM 1 */
-    RTImageFrameContextSequence?: NaturalizedDataset[];
+    RTImageFrameContextSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30020104 · VR SQ · VM 1 */
-    RTImageScopeSequence?: NaturalizedDataset[];
+    RTImageScopeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30020105 · VR CS · VM 1 */
     BeamModifierCoordinatesPresenceFlag?: string;
     /** 30020106 · VR FD · VM 1 */
@@ -275,61 +275,61 @@ export interface NaturalizedDataset {
     /** 30020107 · VR FD · VM 1 */
     StopCumulativeMeterset?: number;
     /** 30020108 · VR SQ · VM 1 */
-    RTAcquisitionPatientPositionSequence?: NaturalizedDataset[];
+    RTAcquisitionPatientPositionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30020109 · VR SQ · VM 1 */
-    RTImageFrameImagingDevicePositionSequence?: NaturalizedDataset[];
+    RTImageFrameImagingDevicePositionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30020110 · VR SQ · VM 1 */
-    DevicePositionParameterSequence?: NaturalizedDataset[];
+    DevicePositionParameterSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30020111 · VR CS · VM 1 */
     ImagingSourceLocationSpecificationType?: string;
     /** 30020112 · VR SQ · VM 1 */
-    ImagingDeviceLocationMatrixSequence?: NaturalizedDataset[];
+    ImagingDeviceLocationMatrixSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30020113 · VR SQ · VM 1 */
-    ImagingDeviceLocationParameterSequence?: NaturalizedDataset[];
+    ImagingDeviceLocationParameterSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30020114 · VR SQ · VM 1 */
-    ImagingApertureSequence?: NaturalizedDataset[];
+    ImagingApertureSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30020115 · VR CS · VM 1 */
     ImagingApertureSpecificationType?: string;
     /** 30020116 · VR US · VM 1 */
     NumberOfAcquisitionDevices?: number;
     /** 30020117 · VR SQ · VM 1 */
-    AcquisitionDeviceSequence?: NaturalizedDataset[];
+    AcquisitionDeviceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30020118 · VR SQ · VM 1 */
-    AcquisitionTaskSequence?: NaturalizedDataset[];
+    AcquisitionTaskSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30020119 · VR SQ · VM 1 */
-    AcquisitionTaskWorkitemCodeSequence?: NaturalizedDataset[];
+    AcquisitionTaskWorkitemCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30020120 · VR ST · VM 1 */
     PositionAcquisitionTemplateID?: string;
     /** 30020121 · VR LO · VM 1 */
     PositionAcquisitionTemplateName?: string;
     /** 30020122 · VR SQ · VM 1 */
-    PositionAcquisitionTemplateCodeSequence?: NaturalizedDataset[];
+    PositionAcquisitionTemplateCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30020123 · VR LT · VM 1 */
     PositionAcquisitionTemplateDescription?: string;
     /** 30020124 · VR SQ · VM 1 */
-    AcquisitionTaskApplicabilitySequence?: NaturalizedDataset[];
+    AcquisitionTaskApplicabilitySequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30020125 · VR SQ · VM 1 */
-    ProjectionImagingAcquisitionParameterSequence?: NaturalizedDataset[];
+    ProjectionImagingAcquisitionParameterSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30020126 · VR SQ · VM 1 */
-    CTImagingAcquisitionParameterSequence?: NaturalizedDataset[];
+    CTImagingAcquisitionParameterSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30020127 · VR SQ · VM 1 */
-    KVImagingGenerationParametersSequence?: NaturalizedDataset[];
+    KVImagingGenerationParametersSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30020128 · VR SQ · VM 1 */
-    MVImagingGenerationParametersSequence?: NaturalizedDataset[];
+    MVImagingGenerationParametersSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30020129 · VR CS · VM 1 */
     AcquisitionSignalType?: string;
     /** 30020130 · VR SQ · VM 1 */
-    AdditionalRTAccessoryDeviceSequence?: NaturalizedDataset[];
+    AdditionalRTAccessoryDeviceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30020131 · VR SQ · VM 1 */
-    DeviceSpecificAcquisitionParameterSequence?: NaturalizedDataset[];
+    DeviceSpecificAcquisitionParameterSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30020132 · VR SQ · VM 1 */
-    ReferencedPositionReferenceInstanceSequence?: NaturalizedDataset[];
+    ReferencedPositionReferenceInstanceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30020133 · VR SQ · VM 1 */
-    EnergyDerivationCodeSequence?: NaturalizedDataset[];
+    EnergyDerivationCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30020134 · VR FD · VM 1 */
     MaximumCumulativeMetersetExposure?: number;
     /** 30020135 · VR SQ · VM 1 */
-    AcquisitionInitiationSequence?: NaturalizedDataset[];
+    AcquisitionInitiationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30040001 · VR CS · VM 1 */
     DVHType?: string;
     /** 30040002 · VR CS · VM 1 */
@@ -343,7 +343,7 @@ export interface NaturalizedDataset {
     /** 30040008 · VR DS · VM 3 */
     NormalizationPoint?: number[];
     /** 30040010 · VR SQ · VM 1 */
-    RTDoseROISequence?: NaturalizedDataset[];
+    RTDoseROISequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30040012 · VR DS · VM 1 */
     DoseValue?: number;
     /** 30040014 · VR CS · VM 1-3 */
@@ -353,7 +353,7 @@ export interface NaturalizedDataset {
     /** 30040042 · VR DS · VM 1 */
     DVHNormalizationDoseValue?: number;
     /** 30040050 · VR SQ · VM 1 */
-    DVHSequence?: NaturalizedDataset[];
+    DVHSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30040052 · VR DS · VM 1 */
     DVHDoseScaling?: number;
     /** 30040054 · VR CS · VM 1 */
@@ -363,7 +363,7 @@ export interface NaturalizedDataset {
     /** 30040058 · VR DS · VM 2-2n */
     DVHData?: number[];
     /** 30040060 · VR SQ · VM 1 */
-    DVHReferencedROISequence?: NaturalizedDataset[];
+    DVHReferencedROISequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30040062 · VR CS · VM 1 */
     DVHROIContributionType?: string;
     /** 30040070 · VR DS · VM 1 */
@@ -383,17 +383,17 @@ export interface NaturalizedDataset {
     /** 30060009 · VR TM · VM 1 */
     StructureSetTime?: string;
     /** 30060010 · VR SQ · VM 1 */
-    ReferencedFrameOfReferenceSequence?: NaturalizedDataset[];
+    ReferencedFrameOfReferenceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30060012 · VR SQ · VM 1 */
-    RTReferencedStudySequence?: NaturalizedDataset[];
+    RTReferencedStudySequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30060014 · VR SQ · VM 1 */
-    RTReferencedSeriesSequence?: NaturalizedDataset[];
+    RTReferencedSeriesSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30060016 · VR SQ · VM 1 */
-    ContourImageSequence?: NaturalizedDataset[];
+    ContourImageSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30060018 · VR SQ · VM 1 */
-    PredecessorStructureSetSequence?: NaturalizedDataset[];
+    PredecessorStructureSetSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30060020 · VR SQ · VM 1 */
-    StructureSetROISequence?: NaturalizedDataset[];
+    StructureSetROISequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30060022 · VR IS · VM 1 */
     ROINumber?: number;
     /** 30060024 · VR UI · VM 1 */
@@ -403,19 +403,19 @@ export interface NaturalizedDataset {
     /** 30060028 · VR ST · VM 1 */
     ROIDescription?: string;
     /** 30060030 · VR SQ · VM 1 */
-    RTRelatedROISequence?: NaturalizedDataset[];
+    RTRelatedROISequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30060033 · VR CS · VM 1 */
     RTROIRelationship?: string;
     /** 30060036 · VR CS · VM 1 */
     ROIGenerationAlgorithm?: string;
     /** 30060037 · VR SQ · VM 1 */
-    ROIDerivationAlgorithmIdentificationSequence?: NaturalizedDataset[];
+    ROIDerivationAlgorithmIdentificationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30060038 · VR LO · VM 1 */
     ROIGenerationDescription?: string;
     /** 30060039 · VR SQ · VM 1 */
-    ROIContourSequence?: NaturalizedDataset[];
+    ROIContourSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30060040 · VR SQ · VM 1 */
-    ContourSequence?: NaturalizedDataset[];
+    ContourSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30060042 · VR CS · VM 1 */
     ContourGeometricType?: string;
     /** 30060044 · VR DS · VM 1 */
@@ -431,7 +431,7 @@ export interface NaturalizedDataset {
     /** 30060050 · VR DS · VM 3-3n */
     ContourData?: number[];
     /** 30060080 · VR SQ · VM 1 */
-    RTROIObservationsSequence?: NaturalizedDataset[];
+    RTROIObservationsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30060082 · VR IS · VM 1 */
     ObservationNumber?: number;
     /** 30060084 · VR IS · VM 1 */
@@ -439,11 +439,11 @@ export interface NaturalizedDataset {
     /** 30060085 · VR SH · VM 1 */
     ROIObservationLabel?: string;
     /** 30060086 · VR SQ · VM 1 */
-    RTROIIdentificationCodeSequence?: NaturalizedDataset[];
+    RTROIIdentificationCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30060088 · VR ST · VM 1 */
     ROIObservationDescription?: string;
     /** 30080010 · VR SQ · VM 1 */
-    MeasuredDoseReferenceSequence?: NaturalizedDataset[];
+    MeasuredDoseReferenceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30080012 · VR ST · VM 1 */
     MeasuredDoseDescription?: string;
     /** 30080014 · VR CS · VM 1 */
@@ -451,9 +451,9 @@ export interface NaturalizedDataset {
     /** 30080016 · VR DS · VM 1 */
     MeasuredDoseValue?: number;
     /** 30080020 · VR SQ · VM 1 */
-    TreatmentSessionBeamSequence?: NaturalizedDataset[];
+    TreatmentSessionBeamSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30080021 · VR SQ · VM 1 */
-    TreatmentSessionIonBeamSequence?: NaturalizedDataset[];
+    TreatmentSessionIonBeamSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30080022 · VR IS · VM 1 */
     CurrentFractionNumber?: number;
     /** 30080024 · VR DA · VM 1 */
@@ -461,7 +461,7 @@ export interface NaturalizedDataset {
     /** 30080025 · VR TM · VM 1 */
     TreatmentControlPointTime?: string;
     /** 30080030 · VR SQ · VM 1 */
-    ReferencedTreatmentRecordSequence?: NaturalizedDataset[];
+    ReferencedTreatmentRecordSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30080032 · VR DS · VM 1 */
     SpecifiedPrimaryMeterset?: number;
     /** 30080033 · VR DS · VM 1 */
@@ -471,9 +471,9 @@ export interface NaturalizedDataset {
     /** 30080037 · VR DS · VM 1 */
     DeliveredSecondaryMeterset?: number;
     /** 30080040 · VR SQ · VM 1 */
-    ControlPointDeliverySequence?: NaturalizedDataset[];
+    ControlPointDeliverySequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30080041 · VR SQ · VM 1 */
-    IonControlPointDeliverySequence?: NaturalizedDataset[];
+    IonControlPointDeliverySequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30080042 · VR DS · VM 1 */
     SpecifiedMeterset?: number;
     /** 30080044 · VR DS · VM 1 */
@@ -487,7 +487,7 @@ export interface NaturalizedDataset {
     /** 30080048 · VR DS · VM 1 */
     DoseRateDelivered?: number;
     /** 30080050 · VR SQ · VM 1 */
-    TreatmentSummaryCalculatedDoseReferenceSequence?: NaturalizedDataset[];
+    TreatmentSummaryCalculatedDoseReferenceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30080052 · VR DS · VM 1 */
     CumulativeDoseToDoseReference?: number;
     /** 30080054 · VR DA · VM 1 */
@@ -495,7 +495,7 @@ export interface NaturalizedDataset {
     /** 30080056 · VR DA · VM 1 */
     MostRecentTreatmentDate?: string;
     /** 30080060 · VR SQ · VM 1 */
-    OverrideSequence?: NaturalizedDataset[];
+    OverrideSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30080061 · VR AT · VM 1 */
     ParameterSequencePointer?: number;
     /** 30080062 · VR AT · VM 1 */
@@ -511,9 +511,9 @@ export interface NaturalizedDataset {
     /** 30080067 · VR US · VM 1 */
     ParameterValueNumber?: number;
     /** 30080068 · VR SQ · VM 1 */
-    CorrectedParameterSequence?: NaturalizedDataset[];
+    CorrectedParameterSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30080070 · VR SQ · VM 1 */
-    CalculatedDoseReferenceSequence?: NaturalizedDataset[];
+    CalculatedDoseReferenceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30080072 · VR IS · VM 1 */
     CalculatedDoseReferenceNumber?: number;
     /** 30080074 · VR ST · VM 1 */
@@ -523,27 +523,27 @@ export interface NaturalizedDataset {
     /** 30080078 · VR DS · VM 1 */
     StartMeterset?: number;
     /** 30080080 · VR SQ · VM 1 */
-    ReferencedMeasuredDoseReferenceSequence?: NaturalizedDataset[];
+    ReferencedMeasuredDoseReferenceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30080082 · VR IS · VM 1 */
     ReferencedMeasuredDoseReferenceNumber?: number;
     /** 30080090 · VR SQ · VM 1 */
-    ReferencedCalculatedDoseReferenceSequence?: NaturalizedDataset[];
+    ReferencedCalculatedDoseReferenceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30080092 · VR IS · VM 1 */
     ReferencedCalculatedDoseReferenceNumber?: number;
     /** 30080100 · VR SQ · VM 1 */
-    RecordedSourceSequence?: NaturalizedDataset[];
+    RecordedSourceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30080105 · VR LO · VM 1 */
     SourceSerialNumber?: string;
     /** 30080110 · VR SQ · VM 1 */
-    TreatmentSessionApplicationSetupSequence?: NaturalizedDataset[];
+    TreatmentSessionApplicationSetupSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30080116 · VR CS · VM 1 */
     ApplicationSetupCheck?: string;
     /** 30080120 · VR SQ · VM 1 */
-    RecordedBrachyAccessoryDeviceSequence?: NaturalizedDataset[];
+    RecordedBrachyAccessoryDeviceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30080122 · VR IS · VM 1 */
     ReferencedBrachyAccessoryDeviceNumber?: number;
     /** 30080130 · VR SQ · VM 1 */
-    RecordedChannelSequence?: NaturalizedDataset[];
+    RecordedChannelSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30080132 · VR DS · VM 1 */
     SpecifiedChannelTotalTime?: number;
     /** 30080134 · VR DS · VM 1 */
@@ -553,15 +553,15 @@ export interface NaturalizedDataset {
     /** 30080138 · VR IS · VM 1 */
     DeliveredNumberOfPulses?: number;
     /** 30080140 · VR SQ · VM 1 */
-    RecordedSourceApplicatorSequence?: NaturalizedDataset[];
+    RecordedSourceApplicatorSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30080142 · VR IS · VM 1 */
     ReferencedSourceApplicatorNumber?: number;
     /** 30080150 · VR SQ · VM 1 */
-    RecordedChannelShieldSequence?: NaturalizedDataset[];
+    RecordedChannelShieldSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30080152 · VR IS · VM 1 */
     ReferencedChannelShieldNumber?: number;
     /** 30080160 · VR SQ · VM 1 */
-    BrachyControlPointDeliveredSequence?: NaturalizedDataset[];
+    BrachyControlPointDeliveredSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30080162 · VR DA · VM 1 */
     SafePositionExitDate?: string;
     /** 30080164 · VR TM · VM 1 */
@@ -571,17 +571,17 @@ export interface NaturalizedDataset {
     /** 30080168 · VR TM · VM 1 */
     SafePositionReturnTime?: string;
     /** 30080171 · VR SQ · VM 1 */
-    PulseSpecificBrachyControlPointDeliveredSequence?: NaturalizedDataset[];
+    PulseSpecificBrachyControlPointDeliveredSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30080172 · VR US · VM 1 */
     PulseNumber?: number;
     /** 30080173 · VR SQ · VM 1 */
-    BrachyPulseControlPointDeliveredSequence?: NaturalizedDataset[];
+    BrachyPulseControlPointDeliveredSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30080200 · VR CS · VM 1 */
     CurrentTreatmentStatus?: string;
     /** 30080202 · VR ST · VM 1 */
     TreatmentStatusComment?: string;
     /** 30080220 · VR SQ · VM 1 */
-    FractionGroupSummarySequence?: NaturalizedDataset[];
+    FractionGroupSummarySequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30080223 · VR IS · VM 1 */
     ReferencedFractionNumber?: number;
     /** 30080224 · VR CS · VM 1 */
@@ -589,75 +589,75 @@ export interface NaturalizedDataset {
     /** 30080230 · VR CS · VM 1 */
     BeamStopperPosition?: string;
     /** 30080240 · VR SQ · VM 1 */
-    FractionStatusSummarySequence?: NaturalizedDataset[];
+    FractionStatusSummarySequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30080250 · VR DA · VM 1 */
     TreatmentDate?: string;
     /** 30080251 · VR TM · VM 1 */
     TreatmentTime?: string;
     /** 30100001 · VR SQ · VM 1 */
-    RadiobiologicalDoseEffectSequence?: NaturalizedDataset[];
+    RadiobiologicalDoseEffectSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30100002 · VR CS · VM 1 */
     RadiobiologicalDoseEffectFlag?: string;
     /** 30100003 · VR SQ · VM 1 */
-    EffectiveDoseCalculationMethodCategoryCodeSequence?: NaturalizedDataset[];
+    EffectiveDoseCalculationMethodCategoryCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30100004 · VR SQ · VM 1 */
-    EffectiveDoseCalculationMethodCodeSequence?: NaturalizedDataset[];
+    EffectiveDoseCalculationMethodCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30100005 · VR LO · VM 1 */
     EffectiveDoseCalculationMethodDescription?: string;
     /** 30100006 · VR UI · VM 1 */
     ConceptualVolumeUID?: string;
     /** 30100007 · VR SQ · VM 1 */
-    OriginatingSOPInstanceReferenceSequence?: NaturalizedDataset[];
+    OriginatingSOPInstanceReferenceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30100008 · VR SQ · VM 1 */
-    ConceptualVolumeConstituentSequence?: NaturalizedDataset[];
+    ConceptualVolumeConstituentSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30100009 · VR SQ · VM 1 */
-    EquivalentConceptualVolumeInstanceReferenceSequence?: NaturalizedDataset[];
+    EquivalentConceptualVolumeInstanceReferenceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30100010 · VR CS · VM 1 */
     ConceptualVolumeSegmentationDefinedFlag?: string;
     /** 30100011 · VR SQ · VM 1 */
-    ConceptualVolumeSegmentationReferenceSequence?: NaturalizedDataset[];
+    ConceptualVolumeSegmentationReferenceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30100012 · VR SQ · VM 1 */
-    ConceptualVolumeConstituentSegmentationReferenceSequence?: NaturalizedDataset[];
+    ConceptualVolumeConstituentSegmentationReferenceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30100013 · VR UI · VM 1 */
     ConstituentConceptualVolumeUID?: string;
     /** 30100014 · VR SQ · VM 1 */
-    DerivationConceptualVolumeSequence?: NaturalizedDataset[];
+    DerivationConceptualVolumeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30100015 · VR UI · VM 1 */
     SourceConceptualVolumeUID?: string;
     /** 30100016 · VR SQ · VM 1 */
-    ConceptualVolumeDerivationAlgorithmSequence?: NaturalizedDataset[];
+    ConceptualVolumeDerivationAlgorithmSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30100017 · VR ST · VM 1 */
     ConceptualVolumeDescription?: string;
     /** 30100018 · VR SQ · VM 1 */
-    SourceConceptualVolumeSequence?: NaturalizedDataset[];
+    SourceConceptualVolumeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30100019 · VR SQ · VM 1 */
-    AuthorIdentificationSequence?: NaturalizedDataset[];
+    AuthorIdentificationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30100020 · VR US · VM 1 */
     ReferencedSegmentReferenceIndex?: number;
     /** 30100021 · VR SQ · VM 1 */
-    SegmentReferenceSequence?: NaturalizedDataset[];
+    SegmentReferenceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30100022 · VR US · VM 1 */
     SegmentReferenceIndex?: number;
     /** 30100023 · VR SQ · VM 1 */
-    DirectSegmentReferenceSequence?: NaturalizedDataset[];
+    DirectSegmentReferenceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30100024 · VR SQ · VM 1 */
-    CombinationSegmentReferenceSequence?: NaturalizedDataset[];
+    CombinationSegmentReferenceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30100025 · VR SQ · VM 1 */
-    ConceptualVolumeSequence?: NaturalizedDataset[];
+    ConceptualVolumeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30100026 · VR SQ · VM 1 */
-    SegmentedRTAccessoryDeviceSequence?: NaturalizedDataset[];
+    SegmentedRTAccessoryDeviceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30100027 · VR SQ · VM 1 */
-    SegmentCharacteristicsSequence?: NaturalizedDataset[];
+    SegmentCharacteristicsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30100028 · VR SQ · VM 1 */
-    RelatedSegmentCharacteristicsSequence?: NaturalizedDataset[];
+    RelatedSegmentCharacteristicsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30100029 · VR US · VM 1 */
     SegmentCharacteristicsPrecedence?: number;
     /** 30100030 · VR SQ · VM 1 */
-    PatientEquipmentRelationshipCodeSequence?: NaturalizedDataset[];
+    PatientEquipmentRelationshipCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30100031 · VR UI · VM 1 */
     ReferencedFiducialsUID?: string;
     /** 30100032 · VR SQ · VM 1 */
-    PatientTreatmentOrientationSequence?: NaturalizedDataset[];
+    PatientTreatmentOrientationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30100033 · VR SH · VM 1 */
     UserContentLabel?: string;
     /** 30100034 · VR LO · VM 1 */
@@ -681,7 +681,7 @@ export interface NaturalizedDataset {
     /** 30100043 · VR ST · VM 1 */
     ManufacturerDeviceIdentifier?: string;
     /** 30100044 · VR SQ · VM 1 */
-    InstanceLevelReferencedPerformedProcedureStepSequence?: NaturalizedDataset[];
+    InstanceLevelReferencedPerformedProcedureStepSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30100045 · VR CS · VM 1 */
     RTTreatmentPhaseIntentPresenceFlag?: string;
     /** 30100046 · VR CS · VM 1 */
@@ -691,7 +691,7 @@ export interface NaturalizedDataset {
     /** 30100048 · VR CS · VM 1-n */
     BrachytherapySourceType?: string[];
     /** 30100049 · VR SQ · VM 1 */
-    ReferencedRTTreatmentPhaseSequence?: NaturalizedDataset[];
+    ReferencedRTTreatmentPhaseSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30100050 · VR FD · VM 1 */
     MinimumNumberOfIntervalDays?: number;
     /** 30100051 · VR FD · VM 1 */
@@ -703,39 +703,39 @@ export interface NaturalizedDataset {
     /** 30100054 · VR LO · VM 1 */
     RTPrescriptionLabel?: string;
     /** 30100055 · VR SQ · VM 1 */
-    RTPhysicianIntentPredecessorSequence?: NaturalizedDataset[];
+    RTPhysicianIntentPredecessorSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30100056 · VR LO · VM 1 */
     RTTreatmentApproachLabel?: string;
     /** 30100057 · VR SQ · VM 1 */
-    RTPhysicianIntentSequence?: NaturalizedDataset[];
+    RTPhysicianIntentSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30100058 · VR US · VM 1 */
     RTPhysicianIntentIndex?: number;
     /** 30100059 · VR CS · VM 1 */
     RTTreatmentIntentType?: string;
     /** 30100060 · VR SQ · VM 1 */
-    RTAnatomicPrescriptionSequence?: NaturalizedDataset[];
+    RTAnatomicPrescriptionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30100061 · VR UT · VM 1 */
     PriorTreatmentDoseDescription?: string;
     /** 30100062 · VR SQ · VM 1 */
-    PriorTreatmentReferenceSequence?: NaturalizedDataset[];
+    PriorTreatmentReferenceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30100063 · VR CS · VM 1 */
     DosimetricObjectiveEvaluationScope?: string;
     /** 30100064 · VR SQ · VM 1 */
-    TherapeuticRoleCategoryCodeSequence?: NaturalizedDataset[];
+    TherapeuticRoleCategoryCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30100065 · VR SQ · VM 1 */
-    TherapeuticRoleTypeCodeSequence?: NaturalizedDataset[];
+    TherapeuticRoleTypeCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30100066 · VR US · VM 1 */
     ConceptualVolumeOptimizationPrecedence?: number;
     /** 30100067 · VR SQ · VM 1 */
-    ConceptualVolumeCategoryCodeSequence?: NaturalizedDataset[];
+    ConceptualVolumeCategoryCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30100068 · VR CS · VM 1 */
     ConceptualVolumeBlockingConstraint?: string;
     /** 30100069 · VR SQ · VM 1 */
-    ConceptualVolumeTypeCodeSequence?: NaturalizedDataset[];
+    ConceptualVolumeTypeCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30100070 · VR SQ · VM 1 */
-    DosimetricObjectiveParameterSequence?: NaturalizedDataset[];
+    DosimetricObjectiveParameterSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30100071 · VR SQ · VM 1 */
-    ReferencedDosimetricObjectivesSequence?: NaturalizedDataset[];
+    ReferencedDosimetricObjectivesSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30100073 · VR CS · VM 1 */
     AbsoluteDosimetricObjectiveFlag?: string;
     /** 30100074 · VR FD · VM 1 */
@@ -743,19 +743,19 @@ export interface NaturalizedDataset {
     /** 30100075 · VR CS · VM 1 */
     DosimetricObjectivePurpose?: string;
     /** 30100076 · VR SQ · VM 1 */
-    PlanningInputInformationSequence?: NaturalizedDataset[];
+    PlanningInputInformationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30100077 · VR LO · VM 1 */
     TreatmentSite?: string;
     /** 30100078 · VR SQ · VM 1 */
-    TreatmentSiteCodeSequence?: NaturalizedDataset[];
+    TreatmentSiteCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30100079 · VR SQ · VM 1 */
-    FractionPatternSequence?: NaturalizedDataset[];
+    FractionPatternSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30100080 · VR SQ · VM 1 */
-    RTTreatmentTechniqueCodeSequence?: NaturalizedDataset[];
+    RTTreatmentTechniqueCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30100081 · VR SQ · VM 1 */
-    PrescriptionNotesSequence?: NaturalizedDataset[];
+    PrescriptionNotesSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30100082 · VR SQ · VM 1 */
-    FractionBasedRelationshipSequence?: NaturalizedDataset[];
+    FractionBasedRelationshipSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30100083 · VR CS · VM 1 */
     FractionBasedRelationshipIntervalAnchor?: string;
     /** 30100084 · VR FD · VM 1 */
@@ -765,15 +765,15 @@ export interface NaturalizedDataset {
     /** 30100086 · VR LT · VM 1 */
     IntendedStartDayOfWeek?: string;
     /** 30100087 · VR SQ · VM 1 */
-    WeekdayFractionPatternSequence?: NaturalizedDataset[];
+    WeekdayFractionPatternSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30100088 · VR SQ · VM 1 */
-    DeliveryTimeStructureCodeSequence?: NaturalizedDataset[];
+    DeliveryTimeStructureCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30100089 · VR SQ · VM 1 */
-    TreatmentSiteModifierCodeSequence?: NaturalizedDataset[];
+    TreatmentSiteModifierCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30100090 · VR CS · VM 1 */
     RoboticBaseLocationIndicator?: string;
     /** 30100091 · VR SQ · VM 1 */
-    RoboticPathNodeSetCodeSequence?: NaturalizedDataset[];
+    RoboticPathNodeSetCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30100092 · VR UL · VM 1 */
     RoboticNodeIdentifier?: number;
     /** 30100093 · VR FD · VM 3 */
@@ -785,9 +785,9 @@ export interface NaturalizedDataset {
     /** 30100096 · VR FD · VM 1 */
     RadiationSourceCoordinateSystemPitchAngle?: number;
     /** 30100097 · VR SQ · VM 1 */
-    RoboticPathControlPointSequence?: NaturalizedDataset[];
+    RoboticPathControlPointSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30100098 · VR SQ · VM 1 */
-    TomotherapeuticControlPointSequence?: NaturalizedDataset[];
+    TomotherapeuticControlPointSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 30100099 · VR FD · VM 1-n */
     TomotherapeuticLeafOpenDurations?: number[];
     /** 40000010 · VR LT · VM 1 */
@@ -799,7 +799,7 @@ export interface NaturalizedDataset {
     /** 40080042 · VR LO · VM 1 */
     RETIRED_ResultsIDIssuer?: string;
     /** 40080050 · VR SQ · VM 1 */
-    RETIRED_ReferencedInterpretationSequence?: NaturalizedDataset[];
+    RETIRED_ReferencedInterpretationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 40080100 · VR DA · VM 1 */
     RETIRED_InterpretationRecordedDate?: string;
     /** 40080101 · VR TM · VM 1 */
@@ -813,7 +813,7 @@ export interface NaturalizedDataset {
     /** 40080109 · VR TM · VM 1 */
     RETIRED_InterpretationTranscriptionTime?: string;
     /** 40080111 · VR SQ · VM 1 */
-    RETIRED_InterpretationApproverSequence?: NaturalizedDataset[];
+    RETIRED_InterpretationApproverSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 40080112 · VR DA · VM 1 */
     RETIRED_InterpretationApprovalDate?: string;
     /** 40080113 · VR TM · VM 1 */
@@ -823,9 +823,9 @@ export interface NaturalizedDataset {
     /** 40080115 · VR LT · VM 1 */
     RETIRED_InterpretationDiagnosisDescription?: string;
     /** 40080117 · VR SQ · VM 1 */
-    RETIRED_InterpretationDiagnosisCodeSequence?: NaturalizedDataset[];
+    RETIRED_InterpretationDiagnosisCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 40080118 · VR SQ · VM 1 */
-    RETIRED_ResultsDistributionListSequence?: NaturalizedDataset[];
+    RETIRED_ResultsDistributionListSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 40080119 · VR PN · VM 1 */
     RETIRED_DistributionName?: PersonName;
     /** 40080200 · VR SH · VM 1 */
@@ -845,9 +845,9 @@ export interface NaturalizedDataset {
     /** 40100002 · VR CS · VM 1 */
     HighEnergyDetectors?: string;
     /** 40100004 · VR SQ · VM 1 */
-    DetectorGeometrySequence?: NaturalizedDataset[];
+    DetectorGeometrySequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 40101001 · VR SQ · VM 1 */
-    ThreatROIVoxelSequence?: NaturalizedDataset[];
+    ThreatROIVoxelSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 40101004 · VR FL · VM 3 */
     ThreatROIBase?: number[];
     /** 40101005 · VR FL · VM 3 */
@@ -863,7 +863,7 @@ export interface NaturalizedDataset {
     /** 40101010 · VR US · VM 1 */
     PotentialThreatObjectID?: number;
     /** 40101011 · VR SQ · VM 1 */
-    ThreatSequence?: NaturalizedDataset[];
+    ThreatSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 40101012 · VR CS · VM 1 */
     ThreatCategory?: string;
     /** 40101013 · VR LT · VM 1 */
@@ -905,9 +905,9 @@ export interface NaturalizedDataset {
     /** 40101034 · VR US · VM 1 */
     NumberOfAlarmObjects?: number;
     /** 40101037 · VR SQ · VM 1 */
-    PTORepresentationSequence?: NaturalizedDataset[];
+    PTORepresentationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 40101038 · VR SQ · VM 1 */
-    ATDAssessmentSequence?: NaturalizedDataset[];
+    ATDAssessmentSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 40101039 · VR CS · VM 1 */
     TIPType?: string;
     /** 40101041 · VR DT · VM 1 */
@@ -919,11 +919,11 @@ export interface NaturalizedDataset {
     /** 40101044 · VR CS · VM 1 */
     AcquisitionStatus?: string;
     /** 40101045 · VR SQ · VM 1 */
-    BasisMaterialsCodeSequence?: NaturalizedDataset[];
+    BasisMaterialsCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 40101046 · VR CS · VM 1 */
     PhantomType?: string;
     /** 40101047 · VR SQ · VM 1 */
-    OOIOwnerSequence?: NaturalizedDataset[];
+    OOIOwnerSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 40101048 · VR CS · VM 1 */
     ScanType?: string;
     /** 40101051 · VR LO · VM 1 */
@@ -949,7 +949,7 @@ export interface NaturalizedDataset {
     /** 40101062 · VR FL · VM 1 */
     BeltHeight?: number;
     /** 40101064 · VR SQ · VM 1 */
-    AlgorithmRoutingCodeSequence?: NaturalizedDataset[];
+    AlgorithmRoutingCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 40101067 · VR CS · VM 1 */
     TransportClassification?: string;
     /** 40101068 · VR LT · VM 1 */
@@ -959,21 +959,21 @@ export interface NaturalizedDataset {
     /** 40101070 · VR CS · VM 1 */
     AITDeviceType?: string;
     /** 40101071 · VR SQ · VM 1 */
-    QRMeasurementsSequence?: NaturalizedDataset[];
+    QRMeasurementsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 40101072 · VR SQ · VM 1 */
-    TargetMaterialSequence?: NaturalizedDataset[];
+    TargetMaterialSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 40101073 · VR FD · VM 1 */
     SNRThreshold?: number;
     /** 40101075 · VR DS · VM 1 */
     ImageScaleRepresentation?: number;
     /** 40101076 · VR SQ · VM 1 */
-    ReferencedPTOSequence?: NaturalizedDataset[];
+    ReferencedPTOSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 40101077 · VR SQ · VM 1 */
-    ReferencedTDRInstanceSequence?: NaturalizedDataset[];
+    ReferencedTDRInstanceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 40101078 · VR ST · VM 1 */
     PTOLocationDescription?: string;
     /** 40101079 · VR SQ · VM 1 */
-    AnomalyLocatorIndicatorSequence?: NaturalizedDataset[];
+    AnomalyLocatorIndicatorSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 50000005 · VR US · VM 1 */
     RETIRED_CurveDimensions?: number;
     /** 50000010 · VR US · VM 1 */
@@ -1015,17 +1015,17 @@ export interface NaturalizedDataset {
     /** 50002500 · VR LO · VM 1 */
     RETIRED_CurveLabel?: string;
     /** 50002600 · VR SQ · VM 1 */
-    RETIRED_CurveReferencedOverlaySequence?: NaturalizedDataset[];
+    RETIRED_CurveReferencedOverlaySequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 50002610 · VR US · VM 1 */
     RETIRED_CurveReferencedOverlayGroup?: number;
     /** 50003000 · VR OB/OW · VM 1 */
     RETIRED_CurveData?: BinaryValue[];
     /** 52009229 · VR SQ · VM 1 */
-    SharedFunctionalGroupsSequence?: NaturalizedDataset[];
+    SharedFunctionalGroupsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 52009230 · VR SQ · VM 1 */
-    PerFrameFunctionalGroupsSequence?: NaturalizedDataset[];
+    PerFrameFunctionalGroupsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 54000100 · VR SQ · VM 1 */
-    WaveformSequence?: NaturalizedDataset[];
+    WaveformSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 54000110 · VR OB/OW · VM 1 */
     ChannelMinimumValue?: BinaryValue[];
     /** 54000112 · VR OB/OW · VM 1 */
@@ -1249,7 +1249,7 @@ export interface NaturalizedDataset {
     /** 00041212 · VR US · VM 1 */
     FileSetConsistencyFlag?: number;
     /** 00041220 · VR SQ · VM 1 */
-    DirectoryRecordSequence?: NaturalizedDataset[];
+    DirectoryRecordSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00041400 · VR UL · VM 1 */
     OffsetOfTheNextDirectoryRecord?: number;
     /** 00041410 · VR US · VM 1 */
@@ -1279,7 +1279,7 @@ export interface NaturalizedDataset {
     /** 00080005 · VR CS · VM 1-n */
     SpecificCharacterSet?: string[];
     /** 00080006 · VR SQ · VM 1 */
-    LanguageCodeSequence?: NaturalizedDataset[];
+    LanguageCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00080008 · VR CS · VM 2-n */
     ImageType?: string[];
     /** 00080010 · VR SH · VM 1 */
@@ -1341,7 +1341,7 @@ export interface NaturalizedDataset {
     /** 00080050 · VR SH · VM 1 */
     AccessionNumber?: string;
     /** 00080051 · VR SQ · VM 1 */
-    IssuerOfAccessionNumberSequence?: NaturalizedDataset[];
+    IssuerOfAccessionNumberSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00080052 · VR CS · VM 1 */
     QueryRetrieveLevel?: string;
     /** 00080053 · VR CS · VM 1 */
@@ -1361,7 +1361,7 @@ export interface NaturalizedDataset {
     /** 00080062 · VR UI · VM 1-n */
     SOPClassesInStudy?: string[];
     /** 00080063 · VR SQ · VM 1 */
-    AnatomicRegionsInStudyCodeSequence?: NaturalizedDataset[];
+    AnatomicRegionsInStudyCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00080064 · VR CS · VM 1 */
     ConversionType?: string;
     /** 00080068 · VR CS · VM 1 */
@@ -1373,7 +1373,7 @@ export interface NaturalizedDataset {
     /** 00080081 · VR ST · VM 1 */
     InstitutionAddress?: string;
     /** 00080082 · VR SQ · VM 1 */
-    InstitutionCodeSequence?: NaturalizedDataset[];
+    InstitutionCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00080090 · VR PN · VM 1 */
     ReferringPhysicianName?: PersonName;
     /** 00080092 · VR ST · VM 1 */
@@ -1381,11 +1381,11 @@ export interface NaturalizedDataset {
     /** 00080094 · VR SH · VM 1-n */
     ReferringPhysicianTelephoneNumbers?: string[];
     /** 00080096 · VR SQ · VM 1 */
-    ReferringPhysicianIdentificationSequence?: NaturalizedDataset[];
+    ReferringPhysicianIdentificationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0008009C · VR PN · VM 1-n */
     ConsultingPhysicianName?: PersonName[];
     /** 0008009D · VR SQ · VM 1 */
-    ConsultingPhysicianIdentificationSequence?: NaturalizedDataset[];
+    ConsultingPhysicianIdentificationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00080100 · VR SH · VM 1 */
     CodeValue?: string;
     /** 00080101 · VR LO · VM 1 */
@@ -1405,7 +1405,7 @@ export interface NaturalizedDataset {
     /** 00080108 · VR LT · VM 1 */
     ExtendedCodeMeaning?: string;
     /** 00080109 · VR SQ · VM 1 */
-    CodingSchemeResourcesSequence?: NaturalizedDataset[];
+    CodingSchemeResourcesSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0008010A · VR CS · VM 1 */
     CodingSchemeURLType?: string;
     /** 0008010B · VR CS · VM 1 */
@@ -1419,7 +1419,7 @@ export interface NaturalizedDataset {
     /** 0008010F · VR CS · VM 1 */
     ContextIdentifier?: string;
     /** 00080110 · VR SQ · VM 1 */
-    CodingSchemeIdentificationSequence?: NaturalizedDataset[];
+    CodingSchemeIdentificationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00080112 · VR LO · VM 1 */
     CodingSchemeRegistry?: string;
     /** 00080114 · VR ST · VM 1 */
@@ -1437,23 +1437,23 @@ export interface NaturalizedDataset {
     /** 00080120 · VR UR · VM 1 */
     URNCodeValue?: string;
     /** 00080121 · VR SQ · VM 1 */
-    EquivalentCodeSequence?: NaturalizedDataset[];
+    EquivalentCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00080122 · VR LO · VM 1 */
     MappingResourceName?: string;
     /** 00080123 · VR SQ · VM 1 */
-    ContextGroupIdentificationSequence?: NaturalizedDataset[];
+    ContextGroupIdentificationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00080124 · VR SQ · VM 1 */
-    MappingResourceIdentificationSequence?: NaturalizedDataset[];
+    MappingResourceIdentificationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00080201 · VR SH · VM 1 */
     TimezoneOffsetFromUTC?: string;
     /** 00080220 · VR SQ · VM 1 */
-    ResponsibleGroupCodeSequence?: NaturalizedDataset[];
+    ResponsibleGroupCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00080221 · VR CS · VM 1 */
     EquipmentModality?: string;
     /** 00080222 · VR LO · VM 1 */
     ManufacturerRelatedModelGroup?: string;
     /** 00080300 · VR SQ · VM 1 */
-    PrivateDataElementCharacteristicsSequence?: NaturalizedDataset[];
+    PrivateDataElementCharacteristicsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00080301 · VR US · VM 1 */
     PrivateGroupReference?: number;
     /** 00080302 · VR LO · VM 1 */
@@ -1463,7 +1463,7 @@ export interface NaturalizedDataset {
     /** 00080304 · VR US · VM 1-n */
     NonidentifyingPrivateElements?: number[];
     /** 00080305 · VR SQ · VM 1 */
-    DeidentificationActionSequence?: NaturalizedDataset[];
+    DeidentificationActionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00080306 · VR US · VM 1-n */
     IdentifyingPrivateElements?: number[];
     /** 00080307 · VR CS · VM 1 */
@@ -1485,9 +1485,9 @@ export interface NaturalizedDataset {
     /** 0008030F · VR UT · VM 1 */
     PrivateDataElementEncoding?: string;
     /** 00080310 · VR SQ · VM 1 */
-    PrivateDataElementDefinitionSequence?: NaturalizedDataset[];
+    PrivateDataElementDefinitionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00080400 · VR SQ · VM 1 */
-    ScopeOfInventorySequence?: NaturalizedDataset[];
+    ScopeOfInventorySequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00080401 · VR LT · VM 1 */
     InventoryPurpose?: string;
     /** 00080402 · VR LT · VM 1 */
@@ -1499,7 +1499,7 @@ export interface NaturalizedDataset {
     /** 00080405 · VR CS · VM 1 */
     RemovedFromOperationalUse?: string;
     /** 00080406 · VR SQ · VM 1 */
-    ReasonForRemovalCodeSequence?: NaturalizedDataset[];
+    ReasonForRemovalCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00080407 · VR UR · VM 1 */
     StoredInstanceBaseURI?: string;
     /** 00080408 · VR UR · VM 1 */
@@ -1519,13 +1519,13 @@ export interface NaturalizedDataset {
     /** 0008040F · VR CS · VM 1-n */
     ExtendedMatchingMechanisms?: string[];
     /** 00080410 · VR SQ · VM 1 */
-    RangeMatchingSequence?: NaturalizedDataset[];
+    RangeMatchingSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00080411 · VR SQ · VM 1 */
-    ListOfUIDMatchingSequence?: NaturalizedDataset[];
+    ListOfUIDMatchingSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00080412 · VR SQ · VM 1 */
-    EmptyValueMatchingSequence?: NaturalizedDataset[];
+    EmptyValueMatchingSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00080413 · VR SQ · VM 1 */
-    GeneralMatchingSequence?: NaturalizedDataset[];
+    GeneralMatchingSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00080414 · VR US · VM 1 */
     RequestedStatusInterval?: number;
     /** 00080415 · VR CS · VM 1 */
@@ -1537,31 +1537,31 @@ export interface NaturalizedDataset {
     /** 00080418 · VR LT · VM 1 */
     TransactionStatusComment?: string;
     /** 00080419 · VR SQ · VM 1 */
-    FileSetAccessSequence?: NaturalizedDataset[];
+    FileSetAccessSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0008041A · VR SQ · VM 1 */
-    FileAccessSequence?: NaturalizedDataset[];
+    FileAccessSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0008041B · VR OB · VM 1 */
     RecordKey?: BinaryValue[];
     /** 0008041C · VR OB · VM 1 */
     PriorRecordKey?: BinaryValue[];
     /** 0008041D · VR SQ · VM 1 */
-    MetadataSequence?: NaturalizedDataset[];
+    MetadataSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0008041E · VR SQ · VM 1 */
-    UpdatedMetadataSequence?: NaturalizedDataset[];
+    UpdatedMetadataSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0008041F · VR DT · VM 1 */
     StudyUpdateDateTime?: string;
     /** 00080420 · VR SQ · VM 1 */
-    InventoryAccessEndPointsSequence?: NaturalizedDataset[];
+    InventoryAccessEndPointsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00080421 · VR SQ · VM 1 */
-    StudyAccessEndPointsSequence?: NaturalizedDataset[];
+    StudyAccessEndPointsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00080422 · VR SQ · VM 1 */
-    IncorporatedInventoryInstanceSequence?: NaturalizedDataset[];
+    IncorporatedInventoryInstanceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00080423 · VR SQ · VM 1 */
-    InventoriedStudiesSequence?: NaturalizedDataset[];
+    InventoriedStudiesSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00080424 · VR SQ · VM 1 */
-    InventoriedSeriesSequence?: NaturalizedDataset[];
+    InventoriedSeriesSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00080425 · VR SQ · VM 1 */
-    InventoriedInstancesSequence?: NaturalizedDataset[];
+    InventoriedInstancesSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00080426 · VR CS · VM 1 */
     InventoryCompletionStatus?: string;
     /** 00080427 · VR UL · VM 1 */
@@ -1577,73 +1577,73 @@ export interface NaturalizedDataset {
     /** 00081030 · VR LO · VM 1 */
     StudyDescription?: string;
     /** 00081032 · VR SQ · VM 1 */
-    ProcedureCodeSequence?: NaturalizedDataset[];
+    ProcedureCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0008103E · VR LO · VM 1 */
     SeriesDescription?: string;
     /** 0008103F · VR SQ · VM 1 */
-    SeriesDescriptionCodeSequence?: NaturalizedDataset[];
+    SeriesDescriptionCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00081040 · VR LO · VM 1 */
     InstitutionalDepartmentName?: string;
     /** 00081041 · VR SQ · VM 1 */
-    InstitutionalDepartmentTypeCodeSequence?: NaturalizedDataset[];
+    InstitutionalDepartmentTypeCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00081048 · VR PN · VM 1-n */
     PhysiciansOfRecord?: PersonName[];
     /** 00081049 · VR SQ · VM 1 */
-    PhysiciansOfRecordIdentificationSequence?: NaturalizedDataset[];
+    PhysiciansOfRecordIdentificationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00081050 · VR PN · VM 1-n */
     PerformingPhysicianName?: PersonName[];
     /** 00081052 · VR SQ · VM 1 */
-    PerformingPhysicianIdentificationSequence?: NaturalizedDataset[];
+    PerformingPhysicianIdentificationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00081060 · VR PN · VM 1-n */
     NameOfPhysiciansReadingStudy?: PersonName[];
     /** 00081062 · VR SQ · VM 1 */
-    PhysiciansReadingStudyIdentificationSequence?: NaturalizedDataset[];
+    PhysiciansReadingStudyIdentificationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00081070 · VR PN · VM 1-n */
     OperatorsName?: PersonName[];
     /** 00081072 · VR SQ · VM 1 */
-    OperatorIdentificationSequence?: NaturalizedDataset[];
+    OperatorIdentificationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00081080 · VR LO · VM 1-n */
     AdmittingDiagnosesDescription?: string[];
     /** 00081084 · VR SQ · VM 1 */
-    AdmittingDiagnosesCodeSequence?: NaturalizedDataset[];
+    AdmittingDiagnosesCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00081088 · VR LO · VM 1 */
     PyramidDescription?: string;
     /** 00081090 · VR LO · VM 1 */
     ManufacturerModelName?: string;
     /** 00081100 · VR SQ · VM 1 */
-    RETIRED_ReferencedResultsSequence?: NaturalizedDataset[];
+    RETIRED_ReferencedResultsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00081110 · VR SQ · VM 1 */
-    ReferencedStudySequence?: NaturalizedDataset[];
+    ReferencedStudySequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00081111 · VR SQ · VM 1 */
-    ReferencedPerformedProcedureStepSequence?: NaturalizedDataset[];
+    ReferencedPerformedProcedureStepSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00081112 · VR SQ · VM 1 */
-    ReferencedInstancesBySOPClassSequence?: NaturalizedDataset[];
+    ReferencedInstancesBySOPClassSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00081115 · VR SQ · VM 1 */
-    ReferencedSeriesSequence?: NaturalizedDataset[];
+    ReferencedSeriesSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00081120 · VR SQ · VM 1 */
-    ReferencedPatientSequence?: NaturalizedDataset[];
+    ReferencedPatientSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00081125 · VR SQ · VM 1 */
-    ReferencedVisitSequence?: NaturalizedDataset[];
+    ReferencedVisitSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00081130 · VR SQ · VM 1 */
-    RETIRED_ReferencedOverlaySequence?: NaturalizedDataset[];
+    RETIRED_ReferencedOverlaySequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00081134 · VR SQ · VM 1 */
-    ReferencedStereometricInstanceSequence?: NaturalizedDataset[];
+    ReferencedStereometricInstanceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0008113A · VR SQ · VM 1 */
-    ReferencedWaveformSequence?: NaturalizedDataset[];
+    ReferencedWaveformSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00081140 · VR SQ · VM 1 */
-    ReferencedImageSequence?: NaturalizedDataset[];
+    ReferencedImageSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00081145 · VR SQ · VM 1 */
-    RETIRED_ReferencedCurveSequence?: NaturalizedDataset[];
+    RETIRED_ReferencedCurveSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0008114A · VR SQ · VM 1 */
-    ReferencedInstanceSequence?: NaturalizedDataset[];
+    ReferencedInstanceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0008114B · VR SQ · VM 1 */
-    ReferencedRealWorldValueMappingInstanceSequence?: NaturalizedDataset[];
+    ReferencedRealWorldValueMappingInstanceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00081150 · VR UI · VM 1 */
     ReferencedSOPClassUID?: string;
     /** 00081155 · VR UI · VM 1 */
     ReferencedSOPInstanceUID?: string;
     /** 00081156 · VR SQ · VM 1 */
-    DefinitionSourceSequence?: NaturalizedDataset[];
+    DefinitionSourceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0008115A · VR UI · VM 1-n */
     SOPClassesSupported?: string[];
     /** 00081160 · VR IS · VM 1-n */
@@ -1655,7 +1655,7 @@ export interface NaturalizedDataset {
     /** 00081163 · VR FD · VM 2 */
     TimeRange?: number[];
     /** 00081164 · VR SQ · VM 1 */
-    FrameExtractionSequence?: NaturalizedDataset[];
+    FrameExtractionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00081167 · VR UI · VM 1 */
     MultiFrameSourceSOPInstanceUID?: string;
     /** 00081190 · VR UR · VM 1 */
@@ -1667,23 +1667,23 @@ export interface NaturalizedDataset {
     /** 00081197 · VR US · VM 1 */
     FailureReason?: number;
     /** 00081198 · VR SQ · VM 1 */
-    FailedSOPSequence?: NaturalizedDataset[];
+    FailedSOPSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00081199 · VR SQ · VM 1 */
-    ReferencedSOPSequence?: NaturalizedDataset[];
+    ReferencedSOPSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0008119A · VR SQ · VM 1 */
-    OtherFailuresSequence?: NaturalizedDataset[];
+    OtherFailuresSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0008119B · VR SQ · VM 1 */
-    FailedStudySequence?: NaturalizedDataset[];
+    FailedStudySequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00081200 · VR SQ · VM 1 */
-    StudiesContainingOtherReferencedInstancesSequence?: NaturalizedDataset[];
+    StudiesContainingOtherReferencedInstancesSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00081250 · VR SQ · VM 1 */
-    RelatedSeriesSequence?: NaturalizedDataset[];
+    RelatedSeriesSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00082110 · VR CS · VM 1 */
     RETIRED_LossyImageCompressionRetired?: string;
     /** 00082111 · VR ST · VM 1 */
     DerivationDescription?: string;
     /** 00082112 · VR SQ · VM 1 */
-    SourceImageSequence?: NaturalizedDataset[];
+    SourceImageSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00082120 · VR SH · VM 1 */
     StageName?: string;
     /** 00082122 · VR IS · VM 1 */
@@ -1703,11 +1703,11 @@ export interface NaturalizedDataset {
     /** 00082132 · VR LO · VM 1-n */
     EventTimerNames?: string[];
     /** 00082133 · VR SQ · VM 1 */
-    EventTimerSequence?: NaturalizedDataset[];
+    EventTimerSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00082134 · VR FD · VM 1 */
     EventTimeOffset?: number;
     /** 00082135 · VR SQ · VM 1 */
-    EventCodeSequence?: NaturalizedDataset[];
+    EventCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00082142 · VR IS · VM 1 */
     StartTrim?: number;
     /** 00082143 · VR IS · VM 1 */
@@ -1721,49 +1721,49 @@ export interface NaturalizedDataset {
     /** 00082208 · VR CS · VM 1 */
     RETIRED_AnatomicStructure?: string;
     /** 00082218 · VR SQ · VM 1 */
-    AnatomicRegionSequence?: NaturalizedDataset[];
+    AnatomicRegionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00082220 · VR SQ · VM 1 */
-    AnatomicRegionModifierSequence?: NaturalizedDataset[];
+    AnatomicRegionModifierSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00082228 · VR SQ · VM 1 */
-    PrimaryAnatomicStructureSequence?: NaturalizedDataset[];
+    PrimaryAnatomicStructureSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00082229 · VR SQ · VM 1 */
-    AnatomicStructureSpaceOrRegionSequence?: NaturalizedDataset[];
+    AnatomicStructureSpaceOrRegionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00082230 · VR SQ · VM 1 */
-    PrimaryAnatomicStructureModifierSequence?: NaturalizedDataset[];
+    PrimaryAnatomicStructureModifierSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00082240 · VR SQ · VM 1 */
-    RETIRED_TransducerPositionSequence?: NaturalizedDataset[];
+    RETIRED_TransducerPositionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00082242 · VR SQ · VM 1 */
-    RETIRED_TransducerPositionModifierSequence?: NaturalizedDataset[];
+    RETIRED_TransducerPositionModifierSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00082244 · VR SQ · VM 1 */
-    RETIRED_TransducerOrientationSequence?: NaturalizedDataset[];
+    RETIRED_TransducerOrientationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00082246 · VR SQ · VM 1 */
-    RETIRED_TransducerOrientationModifierSequence?: NaturalizedDataset[];
+    RETIRED_TransducerOrientationModifierSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00082251 · VR SQ · VM 1 */
-    RETIRED_AnatomicStructureSpaceOrRegionCodeSequenceTrial?: NaturalizedDataset[];
+    RETIRED_AnatomicStructureSpaceOrRegionCodeSequenceTrial?: NaturalizedDataset | NaturalizedDataset[];
     /** 00082253 · VR SQ · VM 1 */
-    RETIRED_AnatomicPortalOfEntranceCodeSequenceTrial?: NaturalizedDataset[];
+    RETIRED_AnatomicPortalOfEntranceCodeSequenceTrial?: NaturalizedDataset | NaturalizedDataset[];
     /** 00082255 · VR SQ · VM 1 */
-    RETIRED_AnatomicApproachDirectionCodeSequenceTrial?: NaturalizedDataset[];
+    RETIRED_AnatomicApproachDirectionCodeSequenceTrial?: NaturalizedDataset | NaturalizedDataset[];
     /** 00082256 · VR ST · VM 1 */
     RETIRED_AnatomicPerspectiveDescriptionTrial?: string;
     /** 00082257 · VR SQ · VM 1 */
-    RETIRED_AnatomicPerspectiveCodeSequenceTrial?: NaturalizedDataset[];
+    RETIRED_AnatomicPerspectiveCodeSequenceTrial?: NaturalizedDataset | NaturalizedDataset[];
     /** 00082258 · VR ST · VM 1 */
     RETIRED_AnatomicLocationOfExaminingInstrumentDescriptionTrial?: string;
     /** 00082259 · VR SQ · VM 1 */
-    RETIRED_AnatomicLocationOfExaminingInstrumentCodeSequenceTrial?: NaturalizedDataset[];
+    RETIRED_AnatomicLocationOfExaminingInstrumentCodeSequenceTrial?: NaturalizedDataset | NaturalizedDataset[];
     /** 0008225A · VR SQ · VM 1 */
-    RETIRED_AnatomicStructureSpaceOrRegionModifierCodeSequenceTrial?: NaturalizedDataset[];
+    RETIRED_AnatomicStructureSpaceOrRegionModifierCodeSequenceTrial?: NaturalizedDataset | NaturalizedDataset[];
     /** 0008225C · VR SQ · VM 1 */
-    RETIRED_OnAxisBackgroundAnatomicStructureCodeSequenceTrial?: NaturalizedDataset[];
+    RETIRED_OnAxisBackgroundAnatomicStructureCodeSequenceTrial?: NaturalizedDataset | NaturalizedDataset[];
     /** 00083001 · VR SQ · VM 1 */
-    AlternateRepresentationSequence?: NaturalizedDataset[];
+    AlternateRepresentationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00083002 · VR UI · VM 1-n */
     AvailableTransferSyntaxUID?: string[];
     /** 00083010 · VR UI · VM 1-n */
     IrradiationEventUID?: string[];
     /** 00083011 · VR SQ · VM 1 */
-    SourceIrradiationEventSequence?: NaturalizedDataset[];
+    SourceIrradiationEventSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00083012 · VR UI · VM 1 */
     RadiopharmaceuticalAdministrationEventUID?: string;
     /** 00084000 · VR LT · VM 1 */
@@ -1771,15 +1771,15 @@ export interface NaturalizedDataset {
     /** 00089007 · VR CS · VM 4 */
     FrameType?: string[];
     /** 00089092 · VR SQ · VM 1 */
-    ReferencedImageEvidenceSequence?: NaturalizedDataset[];
+    ReferencedImageEvidenceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00089121 · VR SQ · VM 1 */
-    ReferencedRawDataSequence?: NaturalizedDataset[];
+    ReferencedRawDataSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00089123 · VR UI · VM 1 */
     CreatorVersionUID?: string;
     /** 00089124 · VR SQ · VM 1 */
-    DerivationImageSequence?: NaturalizedDataset[];
+    DerivationImageSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00089154 · VR SQ · VM 1 */
-    SourceImageEvidenceSequence?: NaturalizedDataset[];
+    SourceImageEvidenceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00089205 · VR CS · VM 1 */
     PixelPresentation?: string;
     /** 00089206 · VR CS · VM 1 */
@@ -1791,13 +1791,13 @@ export interface NaturalizedDataset {
     /** 00089209 · VR CS · VM 1 */
     AcquisitionContrast?: string;
     /** 00089215 · VR SQ · VM 1 */
-    DerivationCodeSequence?: NaturalizedDataset[];
+    DerivationCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00089237 · VR SQ · VM 1 */
-    ReferencedPresentationStateSequence?: NaturalizedDataset[];
+    ReferencedPresentationStateSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00089410 · VR SQ · VM 1 */
-    ReferencedOtherPlaneSequence?: NaturalizedDataset[];
+    ReferencedOtherPlaneSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00089458 · VR SQ · VM 1 */
-    FrameDisplaySequence?: NaturalizedDataset[];
+    FrameDisplaySequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00089459 · VR FL · VM 1 */
     RecommendedDisplayFrameRateInFloat?: number;
     /** 00089460 · VR CS · VM 1 */
@@ -1811,11 +1811,11 @@ export interface NaturalizedDataset {
     /** 00100022 · VR CS · VM 1 */
     TypeOfPatientID?: string;
     /** 00100024 · VR SQ · VM 1 */
-    IssuerOfPatientIDQualifiersSequence?: NaturalizedDataset[];
+    IssuerOfPatientIDQualifiersSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00100026 · VR SQ · VM 1 */
-    SourcePatientGroupIdentificationSequence?: NaturalizedDataset[];
+    SourcePatientGroupIdentificationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00100027 · VR SQ · VM 1 */
-    GroupOfPatientsIdentificationSequence?: NaturalizedDataset[];
+    GroupOfPatientsIdentificationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00100028 · VR US · VM 3 */
     SubjectRelativePositionInImage?: number[];
     /** 00100030 · VR DA · VM 1 */
@@ -1831,15 +1831,15 @@ export interface NaturalizedDataset {
     /** 00100040 · VR CS · VM 1 */
     PatientSex?: string;
     /** 00100050 · VR SQ · VM 1 */
-    PatientInsurancePlanCodeSequence?: NaturalizedDataset[];
+    PatientInsurancePlanCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00100101 · VR SQ · VM 1 */
-    PatientPrimaryLanguageCodeSequence?: NaturalizedDataset[];
+    PatientPrimaryLanguageCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00100102 · VR SQ · VM 1 */
-    PatientPrimaryLanguageModifierCodeSequence?: NaturalizedDataset[];
+    PatientPrimaryLanguageModifierCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00100200 · VR CS · VM 1 */
     QualityControlSubject?: string;
     /** 00100201 · VR SQ · VM 1 */
-    QualityControlSubjectTypeCodeSequence?: NaturalizedDataset[];
+    QualityControlSubjectTypeCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00100212 · VR UC · VM 1 */
     StrainDescription?: string;
     /** 00100213 · VR LO · VM 1 */
@@ -1847,29 +1847,29 @@ export interface NaturalizedDataset {
     /** 00100214 · VR LO · VM 1 */
     StrainStockNumber?: string;
     /** 00100215 · VR SQ · VM 1 */
-    StrainSourceRegistryCodeSequence?: NaturalizedDataset[];
+    StrainSourceRegistryCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00100216 · VR SQ · VM 1 */
-    StrainStockSequence?: NaturalizedDataset[];
+    StrainStockSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00100217 · VR LO · VM 1 */
     StrainSource?: string;
     /** 00100218 · VR UT · VM 1 */
     StrainAdditionalInformation?: string;
     /** 00100219 · VR SQ · VM 1 */
-    StrainCodeSequence?: NaturalizedDataset[];
+    StrainCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00100221 · VR SQ · VM 1 */
-    GeneticModificationsSequence?: NaturalizedDataset[];
+    GeneticModificationsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00100222 · VR UC · VM 1 */
     GeneticModificationsDescription?: string;
     /** 00100223 · VR LO · VM 1 */
     GeneticModificationsNomenclature?: string;
     /** 00100229 · VR SQ · VM 1 */
-    GeneticModificationsCodeSequence?: NaturalizedDataset[];
+    GeneticModificationsCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00101000 · VR LO · VM 1-n */
     OtherPatientIDs?: string[];
     /** 00101001 · VR PN · VM 1-n */
     OtherPatientNames?: PersonName[];
     /** 00101002 · VR SQ · VM 1 */
-    OtherPatientIDsSequence?: NaturalizedDataset[];
+    OtherPatientIDsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00101005 · VR PN · VM 1 */
     PatientBirthName?: PersonName;
     /** 00101010 · VR AS · VM 1 */
@@ -1877,7 +1877,7 @@ export interface NaturalizedDataset {
     /** 00101020 · VR DS · VM 1 */
     PatientSize?: number;
     /** 00101021 · VR SQ · VM 1 */
-    PatientSizeCodeSequence?: NaturalizedDataset[];
+    PatientSizeCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00101022 · VR DS · VM 1 */
     PatientBodyMassIndex?: number;
     /** 00101023 · VR DS · VM 1 */
@@ -1899,7 +1899,7 @@ export interface NaturalizedDataset {
     /** 00101090 · VR LO · VM 1 */
     MedicalRecordLocator?: string;
     /** 00101100 · VR SQ · VM 1 */
-    ReferencedPatientPhotoSequence?: NaturalizedDataset[];
+    ReferencedPatientPhotoSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00102000 · VR LO · VM 1-n */
     MedicalAlerts?: string[];
     /** 00102110 · VR LO · VM 1-n */
@@ -1915,7 +1915,7 @@ export interface NaturalizedDataset {
     /** 00102160 · VR SH · VM 1 */
     EthnicGroup?: string;
     /** 00102161 · VR SQ · VM 1 */
-    EthnicGroupCodeSequence?: NaturalizedDataset[];
+    EthnicGroupCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00102180 · VR SH · VM 1 */
     Occupation?: string;
     /** 001021A0 · VR CS · VM 1 */
@@ -1931,7 +1931,7 @@ export interface NaturalizedDataset {
     /** 00102201 · VR LO · VM 1 */
     PatientSpeciesDescription?: string;
     /** 00102202 · VR SQ · VM 1 */
-    PatientSpeciesCodeSequence?: NaturalizedDataset[];
+    PatientSpeciesCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00102203 · VR CS · VM 1 */
     PatientSexNeutered?: string;
     /** 00102210 · VR CS · VM 1 */
@@ -1939,13 +1939,13 @@ export interface NaturalizedDataset {
     /** 00102292 · VR LO · VM 1 */
     PatientBreedDescription?: string;
     /** 00102293 · VR SQ · VM 1 */
-    PatientBreedCodeSequence?: NaturalizedDataset[];
+    PatientBreedCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00102294 · VR SQ · VM 1 */
-    BreedRegistrationSequence?: NaturalizedDataset[];
+    BreedRegistrationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00102295 · VR LO · VM 1 */
     BreedRegistrationNumber?: string;
     /** 00102296 · VR SQ · VM 1 */
-    BreedRegistryCodeSequence?: NaturalizedDataset[];
+    BreedRegistryCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00102297 · VR PN · VM 1 */
     ResponsiblePerson?: PersonName;
     /** 00102298 · VR CS · VM 1 */
@@ -1965,7 +1965,7 @@ export interface NaturalizedDataset {
     /** 00120022 · VR LO · VM 1 */
     IssuerOfClinicalTrialProtocolID?: string;
     /** 00120023 · VR SQ · VM 1 */
-    OtherClinicalTrialProtocolIDsSequence?: NaturalizedDataset[];
+    OtherClinicalTrialProtocolIDsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00120030 · VR LO · VM 1 */
     ClinicalTrialSiteID?: string;
     /** 00120031 · VR LO · VM 1 */
@@ -1989,7 +1989,7 @@ export interface NaturalizedDataset {
     /** 00120053 · VR CS · VM 1 */
     LongitudinalTemporalEventType?: string;
     /** 00120054 · VR SQ · VM 1 */
-    ClinicalTrialTimePointTypeCodeSequence?: NaturalizedDataset[];
+    ClinicalTrialTimePointTypeCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00120055 · VR LO · VM 1 */
     IssuerOfClinicalTrialTimePointID?: string;
     /** 00120060 · VR LO · VM 1 */
@@ -1999,7 +1999,7 @@ export interface NaturalizedDataset {
     /** 00120063 · VR LO · VM 1-n */
     DeidentificationMethod?: string[];
     /** 00120064 · VR SQ · VM 1 */
-    DeidentificationMethodCodeSequence?: NaturalizedDataset[];
+    DeidentificationMethodCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00120071 · VR LO · VM 1 */
     ClinicalTrialSeriesID?: string;
     /** 00120072 · VR LO · VM 1 */
@@ -2011,7 +2011,7 @@ export interface NaturalizedDataset {
     /** 00120082 · VR LO · VM 1 */
     ClinicalTrialProtocolEthicsCommitteeApprovalNumber?: string;
     /** 00120083 · VR SQ · VM 1 */
-    ConsentForClinicalTrialUseSequence?: NaturalizedDataset[];
+    ConsentForClinicalTrialUseSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00120084 · VR CS · VM 1 */
     DistributionType?: string;
     /** 00120085 · VR CS · VM 1 */
@@ -2063,15 +2063,15 @@ export interface NaturalizedDataset {
     /** 00140105 · VR ST · VM 1 */
     RepairID?: string;
     /** 00140106 · VR SQ · VM 1 */
-    MultipleComponentApprovalSequence?: NaturalizedDataset[];
+    MultipleComponentApprovalSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00140107 · VR CS · VM 1-n */
     OtherApprovalStatus?: string[];
     /** 00140108 · VR CS · VM 1-n */
     OtherSecondaryApprovalStatus?: string[];
     /** 00140200 · VR SQ · VM 1 */
-    DataElementLabelSequence?: NaturalizedDataset[];
+    DataElementLabelSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00140201 · VR SQ · VM 1 */
-    DataElementLabelItemSequence?: NaturalizedDataset[];
+    DataElementLabelItemSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00140202 · VR AT · VM 1 */
     DataElement?: number;
     /** 00140203 · VR LO · VM 1 */
@@ -2091,7 +2091,7 @@ export interface NaturalizedDataset {
     /** 00141040 · VR ST · VM 1 */
     EnvironmentalConditions?: string;
     /** 00142002 · VR SQ · VM 1 */
-    EvaluatorSequence?: NaturalizedDataset[];
+    EvaluatorSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00142004 · VR IS · VM 1 */
     EvaluatorNumber?: number;
     /** 00142006 · VR PN · VM 1 */
@@ -2099,7 +2099,7 @@ export interface NaturalizedDataset {
     /** 00142008 · VR IS · VM 1 */
     EvaluationAttempt?: number;
     /** 00142012 · VR SQ · VM 1 */
-    IndicationSequence?: NaturalizedDataset[];
+    IndicationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00142014 · VR IS · VM 1 */
     IndicationNumber?: number;
     /** 00142016 · VR SH · VM 1 */
@@ -2111,15 +2111,15 @@ export interface NaturalizedDataset {
     /** 0014201C · VR CS · VM 1 */
     IndicationDisposition?: string;
     /** 0014201E · VR SQ · VM 1 */
-    IndicationROISequence?: NaturalizedDataset[];
+    IndicationROISequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00142030 · VR SQ · VM 1 */
-    IndicationPhysicalPropertySequence?: NaturalizedDataset[];
+    IndicationPhysicalPropertySequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00142032 · VR SH · VM 1 */
     PropertyLabel?: string;
     /** 00142202 · VR IS · VM 1 */
     CoordinateSystemNumberOfAxes?: number;
     /** 00142204 · VR SQ · VM 1 */
-    CoordinateSystemAxesSequence?: NaturalizedDataset[];
+    CoordinateSystemAxesSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00142206 · VR ST · VM 1 */
     CoordinateSystemAxisDescription?: string;
     /** 00142208 · VR CS · VM 1 */
@@ -2133,7 +2133,7 @@ export interface NaturalizedDataset {
     /** 00142210 · VR OB · VM 1 */
     CoordinateSystemAxisValues?: BinaryValue[];
     /** 00142220 · VR SQ · VM 1 */
-    CoordinateSystemTransformSequence?: NaturalizedDataset[];
+    CoordinateSystemTransformSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00142222 · VR ST · VM 1 */
     TransformDescription?: string;
     /** 00142224 · VR IS · VM 1 */
@@ -2151,7 +2151,7 @@ export interface NaturalizedDataset {
     /** 00143012 · VR DS · VM 1 */
     NumberOfFramesIntegrated?: number;
     /** 00143020 · VR SQ · VM 1 */
-    DetectorTemperatureSequence?: NaturalizedDataset[];
+    DetectorTemperatureSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00143022 · VR ST · VM 1 */
     SensorName?: string;
     /** 00143024 · VR DS · VM 1 */
@@ -2161,11 +2161,11 @@ export interface NaturalizedDataset {
     /** 00143028 · VR DS · VM 1 */
     SensorTemperature?: number;
     /** 00143040 · VR SQ · VM 1 */
-    DarkCurrentSequence?: NaturalizedDataset[];
+    DarkCurrentSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00143050 · VR OB/OW · VM 1 */
     DarkCurrentCounts?: BinaryValue[];
     /** 00143060 · VR SQ · VM 1 */
-    GainCorrectionReferenceSequence?: NaturalizedDataset[];
+    GainCorrectionReferenceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00143070 · VR OB/OW · VM 1 */
     AirCounts?: BinaryValue[];
     /** 00143071 · VR DS · VM 1 */
@@ -2191,25 +2191,25 @@ export interface NaturalizedDataset {
     /** 00143101 · VR LT · VM 1 */
     BeamHardeningCorrectionTechnique?: string;
     /** 00144002 · VR SQ · VM 1 */
-    PulserEquipmentSequence?: NaturalizedDataset[];
+    PulserEquipmentSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00144004 · VR CS · VM 1 */
     PulserType?: string;
     /** 00144006 · VR LT · VM 1 */
     PulserNotes?: string;
     /** 00144008 · VR SQ · VM 1 */
-    ReceiverEquipmentSequence?: NaturalizedDataset[];
+    ReceiverEquipmentSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0014400A · VR CS · VM 1 */
     AmplifierType?: string;
     /** 0014400C · VR LT · VM 1 */
     ReceiverNotes?: string;
     /** 0014400E · VR SQ · VM 1 */
-    PreAmplifierEquipmentSequence?: NaturalizedDataset[];
+    PreAmplifierEquipmentSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0014400F · VR LT · VM 1 */
     PreAmplifierNotes?: string;
     /** 00144010 · VR SQ · VM 1 */
-    TransmitTransducerSequence?: NaturalizedDataset[];
+    TransmitTransducerSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00144011 · VR SQ · VM 1 */
-    ReceiveTransducerSequence?: NaturalizedDataset[];
+    ReceiveTransducerSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00144012 · VR US · VM 1 */
     NumberOfElements?: number;
     /** 00144013 · VR CS · VM 1 */
@@ -2235,7 +2235,7 @@ export interface NaturalizedDataset {
     /** 0014401D · VR DS · VM 1 */
     ElementPitchB?: number;
     /** 00144020 · VR SQ · VM 1 */
-    PulserSettingsSequence?: NaturalizedDataset[];
+    PulserSettingsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00144022 · VR DS · VM 1 */
     PulseWidth?: number;
     /** 00144024 · VR DS · VM 1 */
@@ -2245,7 +2245,7 @@ export interface NaturalizedDataset {
     /** 00144028 · VR DS · VM 1 */
     Damping?: number;
     /** 00144030 · VR SQ · VM 1 */
-    ReceiverSettingsSequence?: NaturalizedDataset[];
+    ReceiverSettingsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00144031 · VR DS · VM 1 */
     AcquiredSoundpathLength?: number;
     /** 00144032 · VR CS · VM 1 */
@@ -2255,7 +2255,7 @@ export interface NaturalizedDataset {
     /** 00144034 · VR DS · VM 1 */
     RectifierSmoothing?: number;
     /** 00144035 · VR SQ · VM 1 */
-    DACSequence?: NaturalizedDataset[];
+    DACSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00144036 · VR CS · VM 1 */
     DACType?: string;
     /** 00144038 · VR DS · VM 1-n */
@@ -2265,11 +2265,11 @@ export interface NaturalizedDataset {
     /** 0014403C · VR DS · VM 1-n */
     DACAmplitude?: number[];
     /** 00144040 · VR SQ · VM 1 */
-    PreAmplifierSettingsSequence?: NaturalizedDataset[];
+    PreAmplifierSettingsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00144050 · VR SQ · VM 1 */
-    TransmitTransducerSettingsSequence?: NaturalizedDataset[];
+    TransmitTransducerSettingsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00144051 · VR SQ · VM 1 */
-    ReceiveTransducerSettingsSequence?: NaturalizedDataset[];
+    ReceiveTransducerSettingsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00144052 · VR DS · VM 1 */
     IncidentAngle?: number;
     /** 00144054 · VR ST · VM 1 */
@@ -2287,13 +2287,13 @@ export interface NaturalizedDataset {
     /** 0014405C · VR ST · VM 1 */
     DelayLawIdentifier?: string;
     /** 00144060 · VR SQ · VM 1 */
-    GateSettingsSequence?: NaturalizedDataset[];
+    GateSettingsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00144062 · VR DS · VM 1 */
     GateThreshold?: number;
     /** 00144064 · VR DS · VM 1 */
     VelocityOfSound?: number;
     /** 00144070 · VR SQ · VM 1 */
-    CalibrationSettingsSequence?: NaturalizedDataset[];
+    CalibrationSettingsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00144072 · VR ST · VM 1 */
     CalibrationProcedure?: string;
     /** 00144074 · VR SH · VM 1 */
@@ -2309,21 +2309,21 @@ export interface NaturalizedDataset {
     /** 0014407E · VR DA · VM 1-n */
     CalibrationDate?: string[];
     /** 00144080 · VR SQ · VM 1 */
-    ProbeDriveEquipmentSequence?: NaturalizedDataset[];
+    ProbeDriveEquipmentSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00144081 · VR CS · VM 1 */
     DriveType?: string;
     /** 00144082 · VR LT · VM 1 */
     ProbeDriveNotes?: string;
     /** 00144083 · VR SQ · VM 1 */
-    DriveProbeSequence?: NaturalizedDataset[];
+    DriveProbeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00144084 · VR DS · VM 1 */
     ProbeInductance?: number;
     /** 00144085 · VR DS · VM 1 */
     ProbeResistance?: number;
     /** 00144086 · VR SQ · VM 1 */
-    ReceiveProbeSequence?: NaturalizedDataset[];
+    ReceiveProbeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00144087 · VR SQ · VM 1 */
-    ProbeDriveSettingsSequence?: NaturalizedDataset[];
+    ProbeDriveSettingsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00144088 · VR DS · VM 1 */
     BridgeResistors?: number;
     /** 00144089 · VR DS · VM 1 */
@@ -2337,11 +2337,11 @@ export interface NaturalizedDataset {
     /** 0014408E · VR DS · VM 1 */
     UserSelectedOffsetY?: number;
     /** 00144091 · VR SQ · VM 1 */
-    ChannelSettingsSequence?: NaturalizedDataset[];
+    ChannelSettingsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00144092 · VR DS · VM 1 */
     ChannelThreshold?: number;
     /** 0014409A · VR SQ · VM 1 */
-    ScannerSettingsSequence?: NaturalizedDataset[];
+    ScannerSettingsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0014409B · VR ST · VM 1 */
     ScanProcedure?: string;
     /** 0014409C · VR DS · VM 1 */
@@ -2647,11 +2647,11 @@ export interface NaturalizedDataset {
     /** 00180010 · VR LO · VM 1 */
     ContrastBolusAgent?: string;
     /** 00180012 · VR SQ · VM 1 */
-    ContrastBolusAgentSequence?: NaturalizedDataset[];
+    ContrastBolusAgentSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00180013 · VR FL · VM 1 */
     ContrastBolusT1Relaxivity?: number;
     /** 00180014 · VR SQ · VM 1 */
-    ContrastBolusAdministrationRouteSequence?: NaturalizedDataset[];
+    ContrastBolusAdministrationRouteSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00180015 · VR CS · VM 1 */
     BodyPartExamined?: string;
     /** 00180020 · VR CS · VM 1-n */
@@ -2667,15 +2667,15 @@ export interface NaturalizedDataset {
     /** 00180025 · VR CS · VM 1 */
     AngioFlag?: string;
     /** 00180026 · VR SQ · VM 1 */
-    InterventionDrugInformationSequence?: NaturalizedDataset[];
+    InterventionDrugInformationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00180027 · VR TM · VM 1 */
     InterventionDrugStopTime?: string;
     /** 00180028 · VR DS · VM 1 */
     InterventionDrugDose?: number;
     /** 00180029 · VR SQ · VM 1 */
-    InterventionDrugCodeSequence?: NaturalizedDataset[];
+    InterventionDrugCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0018002A · VR SQ · VM 1 */
-    AdditionalDrugSequence?: NaturalizedDataset[];
+    AdditionalDrugSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00180030 · VR LO · VM 1-n */
     RETIRED_Radionuclide?: string[];
     /** 00180031 · VR LO · VM 1 */
@@ -2689,7 +2689,7 @@ export interface NaturalizedDataset {
     /** 00180035 · VR TM · VM 1 */
     InterventionDrugStartTime?: string;
     /** 00180036 · VR SQ · VM 1 */
-    InterventionSequence?: NaturalizedDataset[];
+    InterventionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00180037 · VR CS · VM 1 */
     RETIRED_TherapyType?: string;
     /** 00180038 · VR CS · VM 1 */
@@ -2767,7 +2767,7 @@ export interface NaturalizedDataset {
     /** 00181009 · VR UT · VM 1 */
     UniqueDeviceIdentifier?: string;
     /** 0018100A · VR SQ · VM 1 */
-    UDISequence?: NaturalizedDataset[];
+    UDISequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0018100B · VR UI · VM 1-n */
     ManufacturerDeviceClassUID?: string[];
     /** 00181010 · VR LO · VM 1 */
@@ -3003,25 +3003,25 @@ export interface NaturalizedDataset {
     /** 001811B7 · VR FD · VM 1 */
     ContrastBolusInjectionDelay?: number;
     /** 001811B8 · VR SQ · VM 1 */
-    XAAcquisitionPhaseDetailsSequence?: NaturalizedDataset[];
+    XAAcquisitionPhaseDetailsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 001811B9 · VR FD · VM 1 */
     XAAcquisitionFrameRate?: number;
     /** 001811BA · VR SQ · VM 1 */
-    XAPlaneDetailsSequence?: NaturalizedDataset[];
+    XAPlaneDetailsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 001811BB · VR LO · VM 1 */
     AcquisitionFieldOfViewLabel?: string;
     /** 001811BC · VR SQ · VM 1 */
-    XRayFilterDetailsSequence?: NaturalizedDataset[];
+    XRayFilterDetailsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 001811BD · VR FD · VM 1 */
     XAAcquisitionDuration?: number;
     /** 001811BE · VR CS · VM 1 */
     ReconstructionPipelineType?: string;
     /** 001811BF · VR SQ · VM 1 */
-    ImageFilterDetailsSequence?: NaturalizedDataset[];
+    ImageFilterDetailsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 001811C0 · VR CS · VM 1 */
     AppliedMaskSubtractionFlag?: string;
     /** 001811C1 · VR SQ · VM 1 */
-    RequestedSeriesDescriptionCodeSequence?: NaturalizedDataset[];
+    RequestedSeriesDescriptionCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00181200 · VR DA · VM 1-n */
     DateOfLastCalibration?: string[];
     /** 00181201 · VR TM · VM 1-n */
@@ -3055,7 +3055,7 @@ export interface NaturalizedDataset {
     /** 00181271 · VR FD · VM 1 */
     WaterEquivalentDiameter?: number;
     /** 00181272 · VR SQ · VM 1 */
-    WaterEquivalentDiameterCalculationMethodCodeSequence?: NaturalizedDataset[];
+    WaterEquivalentDiameterCalculationMethodCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00181300 · VR DS · VM 1 */
     ScanVelocity?: number;
     /** 00181301 · VR CS · VM 1-n */
@@ -3207,7 +3207,7 @@ export interface NaturalizedDataset {
     /** 00182030 · VR DS · VM 1 */
     RotationOfScannedFilm?: number;
     /** 00182041 · VR SQ · VM 1 */
-    BiopsyTargetSequence?: NaturalizedDataset[];
+    BiopsyTargetSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00182042 · VR UI · VM 1 */
     TargetUID?: string;
     /** 00182043 · VR FL · VM 2 */
@@ -3237,7 +3237,7 @@ export interface NaturalizedDataset {
     /** 00185010 · VR LO · VM 1-n */
     TransducerData?: string[];
     /** 00185011 · VR SQ · VM 1 */
-    TransducerIdentificationSequence?: NaturalizedDataset[];
+    TransducerIdentificationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00185012 · VR DS · VM 1 */
     FocusDepth?: number;
     /** 00185020 · VR LO · VM 1 */
@@ -3267,7 +3267,7 @@ export interface NaturalizedDataset {
     /** 00185101 · VR CS · VM 1 */
     ViewPosition?: string;
     /** 00185104 · VR SQ · VM 1 */
-    ProjectionEponymousNameCodeSequence?: NaturalizedDataset[];
+    ProjectionEponymousNameCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00185210 · VR DS · VM 6 */
     RETIRED_ImageTransformationMatrix?: number[];
     /** 00185212 · VR DS · VM 3 */
@@ -3275,7 +3275,7 @@ export interface NaturalizedDataset {
     /** 00186000 · VR DS · VM 1 */
     Sensitivity?: number;
     /** 00186011 · VR SQ · VM 1 */
-    SequenceOfUltrasoundRegions?: NaturalizedDataset[];
+    SequenceOfUltrasoundRegions?: NaturalizedDataset | NaturalizedDataset[];
     /** 00186012 · VR US · VM 1 */
     RegionSpatialFormat?: number;
     /** 00186014 · VR US · VM 1 */
@@ -3463,7 +3463,7 @@ export interface NaturalizedDataset {
     /** 00189005 · VR SH · VM 1 */
     PulseSequenceName?: string;
     /** 00189006 · VR SQ · VM 1 */
-    MRImagingModifierSequence?: NaturalizedDataset[];
+    MRImagingModifierSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189008 · VR CS · VM 1 */
     EchoPulseSequence?: string;
     /** 00189009 · VR CS · VM 1 */
@@ -3521,13 +3521,13 @@ export interface NaturalizedDataset {
     /** 00189041 · VR LO · VM 1 */
     ReceiveCoilManufacturerName?: string;
     /** 00189042 · VR SQ · VM 1 */
-    MRReceiveCoilSequence?: NaturalizedDataset[];
+    MRReceiveCoilSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189043 · VR CS · VM 1 */
     ReceiveCoilType?: string;
     /** 00189044 · VR CS · VM 1 */
     QuadratureReceiveCoil?: string;
     /** 00189045 · VR SQ · VM 1 */
-    MultiCoilDefinitionSequence?: NaturalizedDataset[];
+    MultiCoilDefinitionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189046 · VR LO · VM 1 */
     MultiCoilConfiguration?: string;
     /** 00189047 · VR SH · VM 1 */
@@ -3535,7 +3535,7 @@ export interface NaturalizedDataset {
     /** 00189048 · VR CS · VM 1 */
     MultiCoilElementUsed?: string;
     /** 00189049 · VR SQ · VM 1 */
-    MRTransmitCoilSequence?: NaturalizedDataset[];
+    MRTransmitCoilSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189050 · VR LO · VM 1 */
     TransmitCoilManufacturerName?: string;
     /** 00189051 · VR CS · VM 1 */
@@ -3577,7 +3577,7 @@ export interface NaturalizedDataset {
     /** 00189075 · VR CS · VM 1 */
     DiffusionDirectionality?: string;
     /** 00189076 · VR SQ · VM 1 */
-    DiffusionGradientDirectionSequence?: NaturalizedDataset[];
+    DiffusionGradientDirectionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189077 · VR CS · VM 1 */
     ParallelAcquisition?: string;
     /** 00189078 · VR CS · VM 1 */
@@ -3591,9 +3591,9 @@ export interface NaturalizedDataset {
     /** 00189082 · VR FD · VM 1 */
     EffectiveEchoTime?: number;
     /** 00189083 · VR SQ · VM 1 */
-    MetaboliteMapCodeSequence?: NaturalizedDataset[];
+    MetaboliteMapCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189084 · VR SQ · VM 1 */
-    ChemicalShiftSequence?: NaturalizedDataset[];
+    ChemicalShiftSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189085 · VR CS · VM 1 */
     CardiacSignalSource?: string;
     /** 00189087 · VR FD · VM 1 */
@@ -3605,7 +3605,7 @@ export interface NaturalizedDataset {
     /** 00189091 · VR FD · VM 1 */
     VelocityEncodingMinimumValue?: number;
     /** 00189092 · VR SQ · VM 1 */
-    VelocityEncodingAcquisitionSequence?: NaturalizedDataset[];
+    VelocityEncodingAcquisitionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189093 · VR US · VM 1 */
     NumberOfKSpaceTrajectories?: number;
     /** 00189094 · VR CS · VM 1 */
@@ -3621,7 +3621,7 @@ export interface NaturalizedDataset {
     /** 00189101 · VR CS · VM 1 */
     FrequencyCorrection?: string;
     /** 00189103 · VR SQ · VM 1 */
-    MRSpectroscopyFOVGeometrySequence?: NaturalizedDataset[];
+    MRSpectroscopyFOVGeometrySequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189104 · VR FD · VM 1 */
     SlabThickness?: number;
     /** 00189105 · VR FD · VM 3 */
@@ -3629,23 +3629,23 @@ export interface NaturalizedDataset {
     /** 00189106 · VR FD · VM 3 */
     MidSlabPosition?: number[];
     /** 00189107 · VR SQ · VM 1 */
-    MRSpatialSaturationSequence?: NaturalizedDataset[];
+    MRSpatialSaturationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189112 · VR SQ · VM 1 */
-    MRTimingAndRelatedParametersSequence?: NaturalizedDataset[];
+    MRTimingAndRelatedParametersSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189114 · VR SQ · VM 1 */
-    MREchoSequence?: NaturalizedDataset[];
+    MREchoSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189115 · VR SQ · VM 1 */
-    MRModifierSequence?: NaturalizedDataset[];
+    MRModifierSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189117 · VR SQ · VM 1 */
-    MRDiffusionSequence?: NaturalizedDataset[];
+    MRDiffusionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189118 · VR SQ · VM 1 */
-    CardiacSynchronizationSequence?: NaturalizedDataset[];
+    CardiacSynchronizationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189119 · VR SQ · VM 1 */
-    MRAveragesSequence?: NaturalizedDataset[];
+    MRAveragesSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189125 · VR SQ · VM 1 */
-    MRFOVGeometrySequence?: NaturalizedDataset[];
+    MRFOVGeometrySequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189126 · VR SQ · VM 1 */
-    VolumeLocalizationSequence?: NaturalizedDataset[];
+    VolumeLocalizationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189127 · VR UL · VM 1 */
     SpectroscopyAcquisitionDataColumns?: number;
     /** 00189147 · VR CS · VM 1 */
@@ -3653,7 +3653,7 @@ export interface NaturalizedDataset {
     /** 00189151 · VR DT · VM 1 */
     FrameReferenceDateTime?: string;
     /** 00189152 · VR SQ · VM 1 */
-    MRMetaboliteMapSequence?: NaturalizedDataset[];
+    MRMetaboliteMapSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189155 · VR FD · VM 1 */
     ParallelReductionFactorOutOfPlane?: number;
     /** 00189159 · VR UL · VM 1 */
@@ -3677,7 +3677,7 @@ export interface NaturalizedDataset {
     /** 00189175 · VR LO · VM 1 */
     ApplicableSafetyStandardDescription?: string;
     /** 00189176 · VR SQ · VM 1 */
-    OperatingModeSequence?: NaturalizedDataset[];
+    OperatingModeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189177 · VR CS · VM 1 */
     OperatingModeType?: string;
     /** 00189178 · VR CS · VM 1 */
@@ -3703,7 +3703,7 @@ export interface NaturalizedDataset {
     /** 00189196 · VR FD · VM 1 */
     RETIRED_ChemicalShiftMaximumIntegrationLimitInHz?: number;
     /** 00189197 · VR SQ · VM 1 */
-    MRVelocityEncodingSequence?: NaturalizedDataset[];
+    MRVelocityEncodingSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189198 · VR CS · VM 1 */
     FirstOrderPhaseCorrection?: string;
     /** 00189199 · VR CS · VM 1 */
@@ -3721,9 +3721,9 @@ export interface NaturalizedDataset {
     /** 00189220 · VR FD · VM 1 */
     FrameAcquisitionDuration?: number;
     /** 00189226 · VR SQ · VM 1 */
-    MRImageFrameTypeSequence?: NaturalizedDataset[];
+    MRImageFrameTypeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189227 · VR SQ · VM 1 */
-    MRSpectroscopyFrameTypeSequence?: NaturalizedDataset[];
+    MRSpectroscopyFrameTypeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189231 · VR US · VM 1 */
     MRAcquisitionPhaseEncodingStepsInPlane?: number;
     /** 00189232 · VR US · VM 1 */
@@ -3733,7 +3733,7 @@ export interface NaturalizedDataset {
     /** 00189236 · VR CS · VM 1 */
     CardiacCyclePosition?: string;
     /** 00189239 · VR SQ · VM 1 */
-    SpecificAbsorptionRateSequence?: NaturalizedDataset[];
+    SpecificAbsorptionRateSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189240 · VR US · VM 1 */
     RFEchoTrainLength?: number;
     /** 00189241 · VR US · VM 1 */
@@ -3741,7 +3741,7 @@ export interface NaturalizedDataset {
     /** 00189250 · VR CS · VM 1 */
     ArterialSpinLabelingContrast?: string;
     /** 00189251 · VR SQ · VM 1 */
-    MRArterialSpinLabelingSequence?: NaturalizedDataset[];
+    MRArterialSpinLabelingSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189252 · VR LO · VM 1 */
     ASLTechniqueDescription?: string;
     /** 00189253 · VR US · VM 1 */
@@ -3765,13 +3765,13 @@ export interface NaturalizedDataset {
     /** 0018925C · VR CS · VM 1 */
     ASLBolusCutoffFlag?: string;
     /** 0018925D · VR SQ · VM 1 */
-    ASLBolusCutoffTimingSequence?: NaturalizedDataset[];
+    ASLBolusCutoffTimingSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0018925E · VR LO · VM 1 */
     ASLBolusCutoffTechnique?: string;
     /** 0018925F · VR UL · VM 1 */
     ASLBolusCutoffDelayTime?: number;
     /** 00189260 · VR SQ · VM 1 */
-    ASLSlabSequence?: NaturalizedDataset[];
+    ASLSlabSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189295 · VR FD · VM 1 */
     ChemicalShiftMinimumIntegrationLimitInppm?: number;
     /** 00189296 · VR FD · VM 1 */
@@ -3781,13 +3781,13 @@ export interface NaturalizedDataset {
     /** 00189298 · VR IS · VM 1 */
     EchoPeakPosition?: number;
     /** 00189301 · VR SQ · VM 1 */
-    CTAcquisitionTypeSequence?: NaturalizedDataset[];
+    CTAcquisitionTypeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189302 · VR CS · VM 1 */
     AcquisitionType?: string;
     /** 00189303 · VR FD · VM 1 */
     TubeAngle?: number;
     /** 00189304 · VR SQ · VM 1 */
-    CTAcquisitionDetailsSequence?: NaturalizedDataset[];
+    CTAcquisitionDetailsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189305 · VR FD · VM 1 */
     RevolutionTime?: number;
     /** 00189306 · VR FD · VM 1 */
@@ -3795,7 +3795,7 @@ export interface NaturalizedDataset {
     /** 00189307 · VR FD · VM 1 */
     TotalCollimationWidth?: number;
     /** 00189308 · VR SQ · VM 1 */
-    CTTableDynamicsSequence?: NaturalizedDataset[];
+    CTTableDynamicsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189309 · VR FD · VM 1 */
     TableSpeed?: number;
     /** 00189310 · VR FD · VM 1 */
@@ -3803,11 +3803,11 @@ export interface NaturalizedDataset {
     /** 00189311 · VR FD · VM 1 */
     SpiralPitchFactor?: number;
     /** 00189312 · VR SQ · VM 1 */
-    CTGeometrySequence?: NaturalizedDataset[];
+    CTGeometrySequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189313 · VR FD · VM 3 */
     DataCollectionCenterPatient?: number[];
     /** 00189314 · VR SQ · VM 1 */
-    CTReconstructionSequence?: NaturalizedDataset[];
+    CTReconstructionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189315 · VR CS · VM 1 */
     ReconstructionAlgorithm?: string;
     /** 00189316 · VR CS · VM 1 */
@@ -3821,7 +3821,7 @@ export interface NaturalizedDataset {
     /** 00189320 · VR SH · VM 1 */
     ImageFilter?: string;
     /** 00189321 · VR SQ · VM 1 */
-    CTExposureSequence?: NaturalizedDataset[];
+    CTExposureSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189322 · VR FD · VM 2 */
     ReconstructionPixelSpacing?: number[];
     /** 00189323 · VR CS · VM 1 */
@@ -3829,15 +3829,15 @@ export interface NaturalizedDataset {
     /** 00189324 · VR FD · VM 1 */
     EstimatedDoseSaving?: number;
     /** 00189325 · VR SQ · VM 1 */
-    CTXRayDetailsSequence?: NaturalizedDataset[];
+    CTXRayDetailsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189326 · VR SQ · VM 1 */
-    CTPositionSequence?: NaturalizedDataset[];
+    CTPositionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189327 · VR FD · VM 1 */
     TablePosition?: number;
     /** 00189328 · VR FD · VM 1 */
     ExposureTimeInms?: number;
     /** 00189329 · VR SQ · VM 1 */
-    CTImageFrameTypeSequence?: NaturalizedDataset[];
+    CTImageFrameTypeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189330 · VR FD · VM 1 */
     XRayTubeCurrentInmA?: number;
     /** 00189332 · VR FD · VM 1 */
@@ -3851,11 +3851,11 @@ export interface NaturalizedDataset {
     /** 00189337 · VR US · VM 1 */
     ContrastBolusAgentNumber?: number;
     /** 00189338 · VR SQ · VM 1 */
-    ContrastBolusIngredientCodeSequence?: NaturalizedDataset[];
+    ContrastBolusIngredientCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189340 · VR SQ · VM 1 */
-    ContrastAdministrationProfileSequence?: NaturalizedDataset[];
+    ContrastAdministrationProfileSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189341 · VR SQ · VM 1 */
-    ContrastBolusUsageSequence?: NaturalizedDataset[];
+    ContrastBolusUsageSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189342 · VR CS · VM 1 */
     ContrastBolusAgentAdministered?: string;
     /** 00189343 · VR CS · VM 1 */
@@ -3865,7 +3865,7 @@ export interface NaturalizedDataset {
     /** 00189345 · VR FD · VM 1 */
     CTDIvol?: number;
     /** 00189346 · VR SQ · VM 1 */
-    CTDIPhantomTypeCodeSequence?: NaturalizedDataset[];
+    CTDIPhantomTypeCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189351 · VR FL · VM 1 */
     CalciumScoringMassFactorPatient?: number;
     /** 00189352 · VR FL · VM 3 */
@@ -3873,17 +3873,17 @@ export interface NaturalizedDataset {
     /** 00189353 · VR FL · VM 1 */
     EnergyWeightingFactor?: number;
     /** 00189360 · VR SQ · VM 1 */
-    CTAdditionalXRaySourceSequence?: NaturalizedDataset[];
+    CTAdditionalXRaySourceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189361 · VR CS · VM 1 */
     MultienergyCTAcquisition?: string;
     /** 00189362 · VR SQ · VM 1 */
-    MultienergyCTAcquisitionSequence?: NaturalizedDataset[];
+    MultienergyCTAcquisitionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189363 · VR SQ · VM 1 */
-    MultienergyCTProcessingSequence?: NaturalizedDataset[];
+    MultienergyCTProcessingSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189364 · VR SQ · VM 1 */
-    MultienergyCTCharacteristicsSequence?: NaturalizedDataset[];
+    MultienergyCTCharacteristicsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189365 · VR SQ · VM 1 */
-    MultienergyCTXRaySourceSequence?: NaturalizedDataset[];
+    MultienergyCTXRaySourceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189366 · VR US · VM 1 */
     XRaySourceIndex?: number;
     /** 00189367 · VR UC · VM 1 */
@@ -3903,7 +3903,7 @@ export interface NaturalizedDataset {
     /** 0018936E · VR DS · VM 1 */
     EffectiveBinEnergy?: number;
     /** 0018936F · VR SQ · VM 1 */
-    MultienergyCTXRayDetectorSequence?: NaturalizedDataset[];
+    MultienergyCTXRayDetectorSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189370 · VR US · VM 1 */
     XRayDetectorIndex?: number;
     /** 00189371 · VR UC · VM 1 */
@@ -3923,7 +3923,7 @@ export interface NaturalizedDataset {
     /** 00189378 · VR US · VM 1-n */
     ReferencedPathIndex?: number[];
     /** 00189379 · VR SQ · VM 1 */
-    MultienergyCTPathSequence?: NaturalizedDataset[];
+    MultienergyCTPathSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0018937A · VR US · VM 1 */
     MultienergyCTPathIndex?: number;
     /** 0018937B · VR UT · VM 1 */
@@ -3931,23 +3931,23 @@ export interface NaturalizedDataset {
     /** 0018937C · VR FD · VM 1 */
     MonoenergeticEnergyEquivalent?: number;
     /** 0018937D · VR SQ · VM 1 */
-    MaterialCodeSequence?: NaturalizedDataset[];
+    MaterialCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0018937E · VR CS · VM 1 */
     DecompositionMethod?: string;
     /** 0018937F · VR UT · VM 1 */
     DecompositionDescription?: string;
     /** 00189380 · VR SQ · VM 1 */
-    DecompositionAlgorithmIdentificationSequence?: NaturalizedDataset[];
+    DecompositionAlgorithmIdentificationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189381 · VR SQ · VM 1 */
-    DecompositionMaterialSequence?: NaturalizedDataset[];
+    DecompositionMaterialSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189382 · VR SQ · VM 1 */
-    MaterialAttenuationSequence?: NaturalizedDataset[];
+    MaterialAttenuationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189383 · VR DS · VM 1 */
     PhotonEnergy?: number;
     /** 00189384 · VR DS · VM 1 */
     XRayMassAttenuationCoefficient?: number;
     /** 00189401 · VR SQ · VM 1 */
-    ProjectionPixelCalibrationSequence?: NaturalizedDataset[];
+    ProjectionPixelCalibrationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189402 · VR FL · VM 1 */
     DistanceSourceToIsocenter?: number;
     /** 00189403 · VR FL · VM 1 */
@@ -3955,17 +3955,17 @@ export interface NaturalizedDataset {
     /** 00189404 · VR FL · VM 2 */
     ObjectPixelSpacingInCenterOfBeam?: number[];
     /** 00189405 · VR SQ · VM 1 */
-    PositionerPositionSequence?: NaturalizedDataset[];
+    PositionerPositionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189406 · VR SQ · VM 1 */
-    TablePositionSequence?: NaturalizedDataset[];
+    TablePositionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189407 · VR SQ · VM 1 */
-    CollimatorShapeSequence?: NaturalizedDataset[];
+    CollimatorShapeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189410 · VR CS · VM 1 */
     PlanesInAcquisition?: string;
     /** 00189412 · VR SQ · VM 1 */
-    XAXRFFrameCharacteristicsSequence?: NaturalizedDataset[];
+    XAXRFFrameCharacteristicsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189417 · VR SQ · VM 1 */
-    FrameAcquisitionSequence?: NaturalizedDataset[];
+    FrameAcquisitionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189420 · VR CS · VM 1 */
     XRayReceptorType?: string;
     /** 00189423 · VR LO · VM 1 */
@@ -3985,11 +3985,11 @@ export interface NaturalizedDataset {
     /** 00189430 · VR FL · VM 2 */
     PositionOfIsocenterProjection?: number[];
     /** 00189432 · VR SQ · VM 1 */
-    FieldOfViewSequence?: NaturalizedDataset[];
+    FieldOfViewSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189433 · VR LO · VM 1 */
     FieldOfViewDescription?: string;
     /** 00189434 · VR SQ · VM 1 */
-    ExposureControlSensingRegionsSequence?: NaturalizedDataset[];
+    ExposureControlSensingRegionsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189435 · VR CS · VM 1 */
     ExposureControlSensingRegionShape?: string;
     /** 00189436 · VR SS · VM 1 */
@@ -4011,19 +4011,19 @@ export interface NaturalizedDataset {
     /** 00189449 · VR FL · VM 1 */
     BeamAngle?: number;
     /** 00189451 · VR SQ · VM 1 */
-    FrameDetectorParametersSequence?: NaturalizedDataset[];
+    FrameDetectorParametersSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189452 · VR FL · VM 1 */
     CalculatedAnatomyThickness?: number;
     /** 00189455 · VR SQ · VM 1 */
-    CalibrationSequence?: NaturalizedDataset[];
+    CalibrationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189456 · VR SQ · VM 1 */
-    ObjectThicknessSequence?: NaturalizedDataset[];
+    ObjectThicknessSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189457 · VR CS · VM 1 */
     PlaneIdentification?: string;
     /** 00189461 · VR FL · VM 1-2 */
     FieldOfViewDimensionsInFloat?: number[];
     /** 00189462 · VR SQ · VM 1 */
-    IsocenterReferenceSystemSequence?: NaturalizedDataset[];
+    IsocenterReferenceSystemSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189463 · VR FL · VM 1 */
     PositionerIsocenterPrimaryAngle?: number;
     /** 00189464 · VR FL · VM 1 */
@@ -4043,21 +4043,21 @@ export interface NaturalizedDataset {
     /** 00189471 · VR FL · VM 1 */
     TableCradleTiltAngle?: number;
     /** 00189472 · VR SQ · VM 1 */
-    FrameDisplayShutterSequence?: NaturalizedDataset[];
+    FrameDisplayShutterSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189473 · VR FL · VM 1 */
     AcquiredImageAreaDoseProduct?: number;
     /** 00189474 · VR CS · VM 1 */
     CArmPositionerTabletopRelationship?: string;
     /** 00189476 · VR SQ · VM 1 */
-    XRayGeometrySequence?: NaturalizedDataset[];
+    XRayGeometrySequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189477 · VR SQ · VM 1 */
-    IrradiationEventIdentificationSequence?: NaturalizedDataset[];
+    IrradiationEventIdentificationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189504 · VR SQ · VM 1 */
-    XRay3DFrameTypeSequence?: NaturalizedDataset[];
+    XRay3DFrameTypeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189506 · VR SQ · VM 1 */
-    ContributingSourcesSequence?: NaturalizedDataset[];
+    ContributingSourcesSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189507 · VR SQ · VM 1 */
-    XRay3DAcquisitionSequence?: NaturalizedDataset[];
+    XRay3DAcquisitionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189508 · VR FL · VM 1 */
     PrimaryPositionerScanArc?: number;
     /** 00189509 · VR FL · VM 1 */
@@ -4089,15 +4089,15 @@ export interface NaturalizedDataset {
     /** 00189528 · VR LO · VM 1 */
     AlgorithmDescription?: string;
     /** 00189530 · VR SQ · VM 1 */
-    XRay3DReconstructionSequence?: NaturalizedDataset[];
+    XRay3DReconstructionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189531 · VR LO · VM 1 */
     ReconstructionDescription?: string;
     /** 00189538 · VR SQ · VM 1 */
-    PerProjectionAcquisitionSequence?: NaturalizedDataset[];
+    PerProjectionAcquisitionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189541 · VR SQ · VM 1 */
-    DetectorPositionSequence?: NaturalizedDataset[];
+    DetectorPositionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189542 · VR SQ · VM 1 */
-    XRayAcquisitionDoseSequence?: NaturalizedDataset[];
+    XRayAcquisitionDoseSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189543 · VR FD · VM 1 */
     XRaySourceIsocenterPrimaryAngle?: number;
     /** 00189544 · VR FD · VM 1 */
@@ -4123,9 +4123,9 @@ export interface NaturalizedDataset {
     /** 00189554 · VR FD · VM 1 */
     DetectorZPositionToIsocenter?: number;
     /** 00189555 · VR SQ · VM 1 */
-    XRayGridSequence?: NaturalizedDataset[];
+    XRayGridSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189556 · VR SQ · VM 1 */
-    XRayFilterSequence?: NaturalizedDataset[];
+    XRayFilterSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189557 · VR FD · VM 3 */
     DetectorActiveAreaTLHCPosition?: number[];
     /** 00189558 · VR FD · VM 6 */
@@ -4133,7 +4133,7 @@ export interface NaturalizedDataset {
     /** 00189559 · VR CS · VM 1 */
     PositionerPrimaryAngleDirection?: string;
     /** 00189601 · VR SQ · VM 1 */
-    DiffusionBMatrixSequence?: NaturalizedDataset[];
+    DiffusionBMatrixSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189602 · VR FD · VM 1 */
     DiffusionBValueXX?: number;
     /** 00189603 · VR FD · VM 1 */
@@ -4147,7 +4147,7 @@ export interface NaturalizedDataset {
     /** 00189607 · VR FD · VM 1 */
     DiffusionBValueZZ?: number;
     /** 00189621 · VR SQ · VM 1 */
-    FunctionalMRSequence?: NaturalizedDataset[];
+    FunctionalMRSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189622 · VR CS · VM 1 */
     FunctionalSettlingPhaseFramesPresent?: string;
     /** 00189623 · VR DT · VM 1 */
@@ -4185,17 +4185,17 @@ export interface NaturalizedDataset {
     /** 00189729 · VR US · VM 1 */
     RadiopharmaceuticalAgentNumber?: number;
     /** 00189732 · VR SQ · VM 1 */
-    PETFrameAcquisitionSequence?: NaturalizedDataset[];
+    PETFrameAcquisitionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189733 · VR SQ · VM 1 */
-    PETDetectorMotionDetailsSequence?: NaturalizedDataset[];
+    PETDetectorMotionDetailsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189734 · VR SQ · VM 1 */
-    PETTableDynamicsSequence?: NaturalizedDataset[];
+    PETTableDynamicsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189735 · VR SQ · VM 1 */
-    PETPositionSequence?: NaturalizedDataset[];
+    PETPositionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189736 · VR SQ · VM 1 */
-    PETFrameCorrectionFactorsSequence?: NaturalizedDataset[];
+    PETFrameCorrectionFactorsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189737 · VR SQ · VM 1 */
-    RadiopharmaceuticalUsageSequence?: NaturalizedDataset[];
+    RadiopharmaceuticalUsageSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189738 · VR CS · VM 1 */
     AttenuationCorrectionSource?: string;
     /** 00189739 · VR US · VM 1 */
@@ -4203,9 +4203,9 @@ export interface NaturalizedDataset {
     /** 00189740 · VR US · VM 1 */
     NumberOfSubsets?: number;
     /** 00189749 · VR SQ · VM 1 */
-    PETReconstructionSequence?: NaturalizedDataset[];
+    PETReconstructionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189751 · VR SQ · VM 1 */
-    PETFrameTypeSequence?: NaturalizedDataset[];
+    PETFrameTypeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189755 · VR CS · VM 1 */
     TimeOfFlightInformationUsed?: string;
     /** 00189756 · VR CS · VM 1 */
@@ -4237,39 +4237,39 @@ export interface NaturalizedDataset {
     /** 00189770 · VR CS · VM 1 */
     AttenuationCorrectionTemporalRelationship?: string;
     /** 00189771 · VR SQ · VM 1 */
-    PatientPhysiologicalStateSequence?: NaturalizedDataset[];
+    PatientPhysiologicalStateSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189772 · VR SQ · VM 1 */
-    PatientPhysiologicalStateCodeSequence?: NaturalizedDataset[];
+    PatientPhysiologicalStateCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189801 · VR FD · VM 1-n */
     DepthsOfFocus?: number[];
     /** 00189803 · VR SQ · VM 1 */
-    ExcludedIntervalsSequence?: NaturalizedDataset[];
+    ExcludedIntervalsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189804 · VR DT · VM 1 */
     ExclusionStartDateTime?: string;
     /** 00189805 · VR FD · VM 1 */
     ExclusionDuration?: number;
     /** 00189806 · VR SQ · VM 1 */
-    USImageDescriptionSequence?: NaturalizedDataset[];
+    USImageDescriptionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189807 · VR SQ · VM 1 */
-    ImageDataTypeSequence?: NaturalizedDataset[];
+    ImageDataTypeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189808 · VR CS · VM 1 */
     DataType?: string;
     /** 00189809 · VR SQ · VM 1 */
-    TransducerScanPatternCodeSequence?: NaturalizedDataset[];
+    TransducerScanPatternCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0018980B · VR CS · VM 1 */
     AliasedDataType?: string;
     /** 0018980C · VR CS · VM 1 */
     PositionMeasuringDeviceUsed?: string;
     /** 0018980D · VR SQ · VM 1 */
-    TransducerGeometryCodeSequence?: NaturalizedDataset[];
+    TransducerGeometryCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0018980E · VR SQ · VM 1 */
-    TransducerBeamSteeringCodeSequence?: NaturalizedDataset[];
+    TransducerBeamSteeringCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0018980F · VR SQ · VM 1 */
-    TransducerApplicationCodeSequence?: NaturalizedDataset[];
+    TransducerApplicationCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189810 · VR US/SS · VM 1 */
     ZeroVelocityPixelValue?: number;
     /** 00189821 · VR SQ · VM 1 */
-    PhotoacousticExcitationCharacteristicsSequence?: NaturalizedDataset[];
+    PhotoacousticExcitationCharacteristicsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189822 · VR FD · VM 1 */
     ExcitationSpectralWidth?: number;
     /** 00189823 · VR FD · VM 1 */
@@ -4277,7 +4277,7 @@ export interface NaturalizedDataset {
     /** 00189824 · VR FD · VM 1 */
     ExcitationPulseDuration?: number;
     /** 00189825 · VR SQ · VM 1 */
-    ExcitationWavelengthSequence?: NaturalizedDataset[];
+    ExcitationWavelengthSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189826 · VR FD · VM 1 */
     ExcitationWavelength?: number;
     /** 00189828 · VR CS · VM 1 */
@@ -4285,11 +4285,11 @@ export interface NaturalizedDataset {
     /** 00189829 · VR CS · VM 1 */
     AcousticCouplingMediumFlag?: string;
     /** 0018982A · VR SQ · VM 1 */
-    AcousticCouplingMediumCodeSequence?: NaturalizedDataset[];
+    AcousticCouplingMediumCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0018982B · VR FD · VM 1 */
     AcousticCouplingMediumTemperature?: number;
     /** 0018982C · VR SQ · VM 1 */
-    TransducerResponseSequence?: NaturalizedDataset[];
+    TransducerResponseSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0018982D · VR FD · VM 1 */
     CenterFrequency?: number;
     /** 0018982E · VR FD · VM 1 */
@@ -4299,59 +4299,59 @@ export interface NaturalizedDataset {
     /** 00189830 · VR FD · VM 1 */
     UpperCutoffFrequency?: number;
     /** 00189831 · VR SQ · VM 1 */
-    TransducerTechnologySequence?: NaturalizedDataset[];
+    TransducerTechnologySequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189832 · VR SQ · VM 1 */
-    SoundSpeedCorrectionMechanismCodeSequence?: NaturalizedDataset[];
+    SoundSpeedCorrectionMechanismCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189833 · VR FD · VM 1 */
     ObjectSoundSpeed?: number;
     /** 00189834 · VR FD · VM 1 */
     AcousticCouplingMediumSoundSpeed?: number;
     /** 00189835 · VR SQ · VM 1 */
-    PhotoacousticImageFrameTypeSequence?: NaturalizedDataset[];
+    PhotoacousticImageFrameTypeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189836 · VR SQ · VM 1 */
-    ImageDataTypeCodeSequence?: NaturalizedDataset[];
+    ImageDataTypeCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189900 · VR LO · VM 1 */
     ReferenceLocationLabel?: string;
     /** 00189901 · VR UT · VM 1 */
     ReferenceLocationDescription?: string;
     /** 00189902 · VR SQ · VM 1 */
-    ReferenceBasisCodeSequence?: NaturalizedDataset[];
+    ReferenceBasisCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189903 · VR SQ · VM 1 */
-    ReferenceGeometryCodeSequence?: NaturalizedDataset[];
+    ReferenceGeometryCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189904 · VR DS · VM 1 */
     OffsetDistance?: number;
     /** 00189905 · VR CS · VM 1 */
     OffsetDirection?: string;
     /** 00189906 · VR SQ · VM 1 */
-    PotentialScheduledProtocolCodeSequence?: NaturalizedDataset[];
+    PotentialScheduledProtocolCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189907 · VR SQ · VM 1 */
-    PotentialRequestedProcedureCodeSequence?: NaturalizedDataset[];
+    PotentialRequestedProcedureCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189908 · VR UC · VM 1-n */
     PotentialReasonsForProcedure?: string[];
     /** 00189909 · VR SQ · VM 1 */
-    PotentialReasonsForProcedureCodeSequence?: NaturalizedDataset[];
+    PotentialReasonsForProcedureCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0018990A · VR UC · VM 1-n */
     PotentialDiagnosticTasks?: string[];
     /** 0018990B · VR SQ · VM 1 */
-    ContraindicationsCodeSequence?: NaturalizedDataset[];
+    ContraindicationsCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0018990C · VR SQ · VM 1 */
-    ReferencedDefinedProtocolSequence?: NaturalizedDataset[];
+    ReferencedDefinedProtocolSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0018990D · VR SQ · VM 1 */
-    ReferencedPerformedProtocolSequence?: NaturalizedDataset[];
+    ReferencedPerformedProtocolSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0018990E · VR SQ · VM 1 */
-    PredecessorProtocolSequence?: NaturalizedDataset[];
+    PredecessorProtocolSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0018990F · VR UT · VM 1 */
     ProtocolPlanningInformation?: string;
     /** 00189910 · VR UT · VM 1 */
     ProtocolDesignRationale?: string;
     /** 00189911 · VR SQ · VM 1 */
-    PatientSpecificationSequence?: NaturalizedDataset[];
+    PatientSpecificationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189912 · VR SQ · VM 1 */
-    ModelSpecificationSequence?: NaturalizedDataset[];
+    ModelSpecificationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189913 · VR SQ · VM 1 */
-    ParametersSpecificationSequence?: NaturalizedDataset[];
+    ParametersSpecificationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189914 · VR SQ · VM 1 */
-    InstructionSequence?: NaturalizedDataset[];
+    InstructionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189915 · VR US · VM 1 */
     InstructionIndex?: number;
     /** 00189916 · VR LO · VM 1 */
@@ -4365,17 +4365,17 @@ export interface NaturalizedDataset {
     /** 0018991A · VR UT · VM 1 */
     InstructionPerformanceComment?: string;
     /** 0018991B · VR SQ · VM 1 */
-    PatientPositioningInstructionSequence?: NaturalizedDataset[];
+    PatientPositioningInstructionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0018991C · VR SQ · VM 1 */
-    PositioningMethodCodeSequence?: NaturalizedDataset[];
+    PositioningMethodCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0018991D · VR SQ · VM 1 */
-    PositioningLandmarkSequence?: NaturalizedDataset[];
+    PositioningLandmarkSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0018991E · VR UI · VM 1 */
     TargetFrameOfReferenceUID?: string;
     /** 0018991F · VR SQ · VM 1 */
-    AcquisitionProtocolElementSpecificationSequence?: NaturalizedDataset[];
+    AcquisitionProtocolElementSpecificationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189920 · VR SQ · VM 1 */
-    AcquisitionProtocolElementSequence?: NaturalizedDataset[];
+    AcquisitionProtocolElementSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189921 · VR US · VM 1 */
     ProtocolElementNumber?: number;
     /** 00189922 · VR LO · VM 1 */
@@ -4387,17 +4387,17 @@ export interface NaturalizedDataset {
     /** 00189930 · VR CS · VM 1 */
     AcquisitionMotion?: string;
     /** 00189931 · VR SQ · VM 1 */
-    AcquisitionStartLocationSequence?: NaturalizedDataset[];
+    AcquisitionStartLocationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189932 · VR SQ · VM 1 */
-    AcquisitionEndLocationSequence?: NaturalizedDataset[];
+    AcquisitionEndLocationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189933 · VR SQ · VM 1 */
-    ReconstructionProtocolElementSpecificationSequence?: NaturalizedDataset[];
+    ReconstructionProtocolElementSpecificationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189934 · VR SQ · VM 1 */
-    ReconstructionProtocolElementSequence?: NaturalizedDataset[];
+    ReconstructionProtocolElementSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189935 · VR SQ · VM 1 */
-    StorageProtocolElementSpecificationSequence?: NaturalizedDataset[];
+    StorageProtocolElementSpecificationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189936 · VR SQ · VM 1 */
-    StorageProtocolElementSequence?: NaturalizedDataset[];
+    StorageProtocolElementSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189937 · VR LO · VM 1 */
     RequestedSeriesDescription?: string;
     /** 00189938 · VR US · VM 1-n */
@@ -4407,13 +4407,13 @@ export interface NaturalizedDataset {
     /** 0018993A · VR US · VM 1-n */
     SourceReconstructionProtocolElementNumber?: number[];
     /** 0018993B · VR SQ · VM 1 */
-    ReconstructionStartLocationSequence?: NaturalizedDataset[];
+    ReconstructionStartLocationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0018993C · VR SQ · VM 1 */
-    ReconstructionEndLocationSequence?: NaturalizedDataset[];
+    ReconstructionEndLocationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0018993D · VR SQ · VM 1 */
-    ReconstructionAlgorithmSequence?: NaturalizedDataset[];
+    ReconstructionAlgorithmSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0018993E · VR SQ · VM 1 */
-    ReconstructionTargetCenterLocationSequence?: NaturalizedDataset[];
+    ReconstructionTargetCenterLocationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00189941 · VR UT · VM 1 */
     ImageFilterDescription?: string;
     /** 00189942 · VR FD · VM 1 */
@@ -4429,7 +4429,7 @@ export interface NaturalizedDataset {
     /** 00189947 · VR CS · VM 1 */
     ProtocolDefinedPatientPosition?: string;
     /** 0018A001 · VR SQ · VM 1 */
-    ContributingEquipmentSequence?: NaturalizedDataset[];
+    ContributingEquipmentSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0018A002 · VR DT · VM 1 */
     ContributionDateTime?: string;
     /** 0018A003 · VR ST · VM 1 */
@@ -4557,15 +4557,15 @@ export interface NaturalizedDataset {
     /** 00209057 · VR UL · VM 1 */
     InStackPositionNumber?: number;
     /** 00209071 · VR SQ · VM 1 */
-    FrameAnatomySequence?: NaturalizedDataset[];
+    FrameAnatomySequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00209072 · VR CS · VM 1 */
     FrameLaterality?: string;
     /** 00209111 · VR SQ · VM 1 */
-    FrameContentSequence?: NaturalizedDataset[];
+    FrameContentSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00209113 · VR SQ · VM 1 */
-    PlanePositionSequence?: NaturalizedDataset[];
+    PlanePositionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00209116 · VR SQ · VM 1 */
-    PlaneOrientationSequence?: NaturalizedDataset[];
+    PlaneOrientationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00209128 · VR UL · VM 1 */
     TemporalPositionIndex?: number;
     /** 00209153 · VR FD · VM 1 */
@@ -4593,17 +4593,17 @@ export interface NaturalizedDataset {
     /** 00209167 · VR AT · VM 1 */
     FunctionalGroupPointer?: number;
     /** 00209170 · VR SQ · VM 1 */
-    UnassignedSharedConvertedAttributesSequence?: NaturalizedDataset[];
+    UnassignedSharedConvertedAttributesSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00209171 · VR SQ · VM 1 */
-    UnassignedPerFrameConvertedAttributesSequence?: NaturalizedDataset[];
+    UnassignedPerFrameConvertedAttributesSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00209172 · VR SQ · VM 1 */
-    ConversionSourceAttributesSequence?: NaturalizedDataset[];
+    ConversionSourceAttributesSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00209213 · VR LO · VM 1 */
     DimensionIndexPrivateCreator?: string;
     /** 00209221 · VR SQ · VM 1 */
-    DimensionOrganizationSequence?: NaturalizedDataset[];
+    DimensionOrganizationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00209222 · VR SQ · VM 1 */
-    DimensionIndexSequence?: NaturalizedDataset[];
+    DimensionIndexSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00209228 · VR UL · VM 1 */
     ConcatenationFrameOffsetNumber?: number;
     /** 00209238 · VR LO · VM 1 */
@@ -4627,7 +4627,7 @@ export interface NaturalizedDataset {
     /** 00209252 · VR FD · VM 1 */
     ActualCardiacTriggerDelayTime?: number;
     /** 00209253 · VR SQ · VM 1 */
-    RespiratorySynchronizationSequence?: NaturalizedDataset[];
+    RespiratorySynchronizationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00209254 · VR FD · VM 1 */
     RespiratoryIntervalTime?: number;
     /** 00209255 · VR FD · VM 1 */
@@ -4655,11 +4655,11 @@ export interface NaturalizedDataset {
     /** 0020930D · VR FD · VM 1 */
     TemporalPositionTimeOffset?: number;
     /** 0020930E · VR SQ · VM 1 */
-    PlanePositionVolumeSequence?: NaturalizedDataset[];
+    PlanePositionVolumeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0020930F · VR SQ · VM 1 */
-    PlaneOrientationVolumeSequence?: NaturalizedDataset[];
+    PlaneOrientationVolumeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00209310 · VR SQ · VM 1 */
-    TemporalPositionSequence?: NaturalizedDataset[];
+    TemporalPositionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00209311 · VR CS · VM 1 */
     DimensionOrganizationType?: string;
     /** 00209312 · VR UI · VM 1 */
@@ -4669,13 +4669,13 @@ export interface NaturalizedDataset {
     /** 00209421 · VR LO · VM 1 */
     DimensionDescriptionLabel?: string;
     /** 00209450 · VR SQ · VM 1 */
-    PatientOrientationInFrameSequence?: NaturalizedDataset[];
+    PatientOrientationInFrameSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00209453 · VR LO · VM 1 */
     FrameLabel?: string;
     /** 00209518 · VR US · VM 1-n */
     AcquisitionIndex?: number[];
     /** 00209529 · VR SQ · VM 1 */
-    ContributingSOPInstancesReferenceSequence?: NaturalizedDataset[];
+    ContributingSOPInstancesReferenceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00209536 · VR US · VM 1 */
     ReconstructionIndex?: number;
     /** 00220001 · VR US · VM 1 */
@@ -4689,7 +4689,7 @@ export interface NaturalizedDataset {
     /** 00220005 · VR CS · VM 1 */
     PatientEyeMovementCommanded?: string;
     /** 00220006 · VR SQ · VM 1 */
-    PatientEyeMovementCommandCodeSequence?: NaturalizedDataset[];
+    PatientEyeMovementCommandCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00220007 · VR FL · VM 1 */
     SphericalLensPower?: number;
     /** 00220008 · VR FL · VM 1 */
@@ -4719,37 +4719,37 @@ export interface NaturalizedDataset {
     /** 00220014 · VR FL · VM 1 */
     StereoRotation?: number;
     /** 00220015 · VR SQ · VM 1 */
-    AcquisitionDeviceTypeCodeSequence?: NaturalizedDataset[];
+    AcquisitionDeviceTypeCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00220016 · VR SQ · VM 1 */
-    IlluminationTypeCodeSequence?: NaturalizedDataset[];
+    IlluminationTypeCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00220017 · VR SQ · VM 1 */
-    LightPathFilterTypeStackCodeSequence?: NaturalizedDataset[];
+    LightPathFilterTypeStackCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00220018 · VR SQ · VM 1 */
-    ImagePathFilterTypeStackCodeSequence?: NaturalizedDataset[];
+    ImagePathFilterTypeStackCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00220019 · VR SQ · VM 1 */
-    LensesCodeSequence?: NaturalizedDataset[];
+    LensesCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0022001A · VR SQ · VM 1 */
-    ChannelDescriptionCodeSequence?: NaturalizedDataset[];
+    ChannelDescriptionCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0022001B · VR SQ · VM 1 */
-    RefractiveStateSequence?: NaturalizedDataset[];
+    RefractiveStateSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0022001C · VR SQ · VM 1 */
-    MydriaticAgentCodeSequence?: NaturalizedDataset[];
+    MydriaticAgentCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0022001D · VR SQ · VM 1 */
-    RelativeImagePositionCodeSequence?: NaturalizedDataset[];
+    RelativeImagePositionCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0022001E · VR FL · VM 1 */
     CameraAngleOfView?: number;
     /** 00220020 · VR SQ · VM 1 */
-    StereoPairsSequence?: NaturalizedDataset[];
+    StereoPairsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00220021 · VR SQ · VM 1 */
-    LeftImageSequence?: NaturalizedDataset[];
+    LeftImageSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00220022 · VR SQ · VM 1 */
-    RightImageSequence?: NaturalizedDataset[];
+    RightImageSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00220028 · VR CS · VM 1 */
     StereoPairsPresent?: string;
     /** 00220030 · VR FL · VM 1 */
     AxialLengthOfTheEye?: number;
     /** 00220031 · VR SQ · VM 1 */
-    OphthalmicFrameLocationSequence?: NaturalizedDataset[];
+    OphthalmicFrameLocationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00220032 · VR FL · VM 2-2n */
     ReferenceCoordinates?: number[];
     /** 00220035 · VR FL · VM 1 */
@@ -4765,7 +4765,7 @@ export interface NaturalizedDataset {
     /** 00220041 · VR FL · VM 1 */
     DepthOfTransverseImage?: number;
     /** 00220042 · VR SQ · VM 1 */
-    MydriaticAgentConcentrationUnitsSequence?: NaturalizedDataset[];
+    MydriaticAgentConcentrationUnitsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00220048 · VR FL · VM 1 */
     AcrossScanSpatialResolution?: number;
     /** 00220049 · VR FL · VM 1 */
@@ -4779,57 +4779,57 @@ export interface NaturalizedDataset {
     /** 00220057 · VR FL · VM 1 */
     IlluminationBandwidth?: number;
     /** 00220058 · VR SQ · VM 1 */
-    MydriaticAgentSequence?: NaturalizedDataset[];
+    MydriaticAgentSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221007 · VR SQ · VM 1 */
-    OphthalmicAxialMeasurementsRightEyeSequence?: NaturalizedDataset[];
+    OphthalmicAxialMeasurementsRightEyeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221008 · VR SQ · VM 1 */
-    OphthalmicAxialMeasurementsLeftEyeSequence?: NaturalizedDataset[];
+    OphthalmicAxialMeasurementsLeftEyeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221009 · VR CS · VM 1 */
     OphthalmicAxialMeasurementsDeviceType?: string;
     /** 00221010 · VR CS · VM 1 */
     OphthalmicAxialLengthMeasurementsType?: string;
     /** 00221012 · VR SQ · VM 1 */
-    OphthalmicAxialLengthSequence?: NaturalizedDataset[];
+    OphthalmicAxialLengthSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221019 · VR FL · VM 1 */
     OphthalmicAxialLength?: number;
     /** 00221024 · VR SQ · VM 1 */
-    LensStatusCodeSequence?: NaturalizedDataset[];
+    LensStatusCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221025 · VR SQ · VM 1 */
-    VitreousStatusCodeSequence?: NaturalizedDataset[];
+    VitreousStatusCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221028 · VR SQ · VM 1 */
-    IOLFormulaCodeSequence?: NaturalizedDataset[];
+    IOLFormulaCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221029 · VR LO · VM 1 */
     IOLFormulaDetail?: string;
     /** 00221033 · VR FL · VM 1 */
     KeratometerIndex?: number;
     /** 00221035 · VR SQ · VM 1 */
-    SourceOfOphthalmicAxialLengthCodeSequence?: NaturalizedDataset[];
+    SourceOfOphthalmicAxialLengthCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221036 · VR SQ · VM 1 */
-    SourceOfCornealSizeDataCodeSequence?: NaturalizedDataset[];
+    SourceOfCornealSizeDataCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221037 · VR FL · VM 1 */
     TargetRefraction?: number;
     /** 00221039 · VR CS · VM 1 */
     RefractiveProcedureOccurred?: string;
     /** 00221040 · VR SQ · VM 1 */
-    RefractiveSurgeryTypeCodeSequence?: NaturalizedDataset[];
+    RefractiveSurgeryTypeCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221044 · VR SQ · VM 1 */
-    OphthalmicUltrasoundMethodCodeSequence?: NaturalizedDataset[];
+    OphthalmicUltrasoundMethodCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221045 · VR SQ · VM 1 */
-    SurgicallyInducedAstigmatismSequence?: NaturalizedDataset[];
+    SurgicallyInducedAstigmatismSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221046 · VR CS · VM 1 */
     TypeOfOpticalCorrection?: string;
     /** 00221047 · VR SQ · VM 1 */
-    ToricIOLPowerSequence?: NaturalizedDataset[];
+    ToricIOLPowerSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221048 · VR SQ · VM 1 */
-    PredictedToricErrorSequence?: NaturalizedDataset[];
+    PredictedToricErrorSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221049 · VR CS · VM 1 */
     PreSelectedForImplantation?: string;
     /** 0022104A · VR SQ · VM 1 */
-    ToricIOLPowerForExactEmmetropiaSequence?: NaturalizedDataset[];
+    ToricIOLPowerForExactEmmetropiaSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0022104B · VR SQ · VM 1 */
-    ToricIOLPowerForExactTargetRefractionSequence?: NaturalizedDataset[];
+    ToricIOLPowerForExactTargetRefractionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221050 · VR SQ · VM 1 */
-    OphthalmicAxialLengthMeasurementsSequence?: NaturalizedDataset[];
+    OphthalmicAxialLengthMeasurementsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221053 · VR FL · VM 1 */
     IOLPower?: number;
     /** 00221054 · VR FL · VM 1 */
@@ -4841,9 +4841,9 @@ export interface NaturalizedDataset {
     /** 00221066 · VR LO · VM 1 */
     VitreousStatusDescription?: string;
     /** 00221090 · VR SQ · VM 1 */
-    IOLPowerSequence?: NaturalizedDataset[];
+    IOLPowerSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221092 · VR SQ · VM 1 */
-    LensConstantSequence?: NaturalizedDataset[];
+    LensConstantSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221093 · VR LO · VM 1 */
     IOLManufacturer?: string;
     /** 00221094 · VR LO · VM 1 */
@@ -4851,27 +4851,27 @@ export interface NaturalizedDataset {
     /** 00221095 · VR LO · VM 1 */
     ImplantName?: string;
     /** 00221096 · VR SQ · VM 1 */
-    KeratometryMeasurementTypeCodeSequence?: NaturalizedDataset[];
+    KeratometryMeasurementTypeCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221097 · VR LO · VM 1 */
     ImplantPartNumber?: string;
     /** 00221100 · VR SQ · VM 1 */
-    ReferencedOphthalmicAxialMeasurementsSequence?: NaturalizedDataset[];
+    ReferencedOphthalmicAxialMeasurementsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221101 · VR SQ · VM 1 */
-    OphthalmicAxialLengthMeasurementsSegmentNameCodeSequence?: NaturalizedDataset[];
+    OphthalmicAxialLengthMeasurementsSegmentNameCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221103 · VR SQ · VM 1 */
-    RefractiveErrorBeforeRefractiveSurgeryCodeSequence?: NaturalizedDataset[];
+    RefractiveErrorBeforeRefractiveSurgeryCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221121 · VR FL · VM 1 */
     IOLPowerForExactEmmetropia?: number;
     /** 00221122 · VR FL · VM 1 */
     IOLPowerForExactTargetRefraction?: number;
     /** 00221125 · VR SQ · VM 1 */
-    AnteriorChamberDepthDefinitionCodeSequence?: NaturalizedDataset[];
+    AnteriorChamberDepthDefinitionCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221127 · VR SQ · VM 1 */
-    LensThicknessSequence?: NaturalizedDataset[];
+    LensThicknessSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221128 · VR SQ · VM 1 */
-    AnteriorChamberDepthSequence?: NaturalizedDataset[];
+    AnteriorChamberDepthSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0022112A · VR SQ · VM 1 */
-    CalculationCommentSequence?: NaturalizedDataset[];
+    CalculationCommentSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0022112B · VR CS · VM 1 */
     CalculationCommentType?: string;
     /** 0022112C · VR LT · VM 1 */
@@ -4881,81 +4881,81 @@ export interface NaturalizedDataset {
     /** 00221131 · VR FL · VM 1 */
     AnteriorChamberDepth?: number;
     /** 00221132 · VR SQ · VM 1 */
-    SourceOfLensThicknessDataCodeSequence?: NaturalizedDataset[];
+    SourceOfLensThicknessDataCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221133 · VR SQ · VM 1 */
-    SourceOfAnteriorChamberDepthDataCodeSequence?: NaturalizedDataset[];
+    SourceOfAnteriorChamberDepthDataCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221134 · VR SQ · VM 1 */
-    SourceOfRefractiveMeasurementsSequence?: NaturalizedDataset[];
+    SourceOfRefractiveMeasurementsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221135 · VR SQ · VM 1 */
-    SourceOfRefractiveMeasurementsCodeSequence?: NaturalizedDataset[];
+    SourceOfRefractiveMeasurementsCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221140 · VR CS · VM 1 */
     OphthalmicAxialLengthMeasurementModified?: string;
     /** 00221150 · VR SQ · VM 1 */
-    OphthalmicAxialLengthDataSourceCodeSequence?: NaturalizedDataset[];
+    OphthalmicAxialLengthDataSourceCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221153 · VR SQ · VM 1 */
-    RETIRED_OphthalmicAxialLengthAcquisitionMethodCodeSequence?: NaturalizedDataset[];
+    RETIRED_OphthalmicAxialLengthAcquisitionMethodCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221155 · VR FL · VM 1 */
     SignalToNoiseRatio?: number;
     /** 00221159 · VR LO · VM 1 */
     OphthalmicAxialLengthDataSourceDescription?: string;
     /** 00221210 · VR SQ · VM 1 */
-    OphthalmicAxialLengthMeasurementsTotalLengthSequence?: NaturalizedDataset[];
+    OphthalmicAxialLengthMeasurementsTotalLengthSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221211 · VR SQ · VM 1 */
-    OphthalmicAxialLengthMeasurementsSegmentalLengthSequence?: NaturalizedDataset[];
+    OphthalmicAxialLengthMeasurementsSegmentalLengthSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221212 · VR SQ · VM 1 */
-    OphthalmicAxialLengthMeasurementsLengthSummationSequence?: NaturalizedDataset[];
+    OphthalmicAxialLengthMeasurementsLengthSummationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221220 · VR SQ · VM 1 */
-    UltrasoundOphthalmicAxialLengthMeasurementsSequence?: NaturalizedDataset[];
+    UltrasoundOphthalmicAxialLengthMeasurementsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221225 · VR SQ · VM 1 */
-    OpticalOphthalmicAxialLengthMeasurementsSequence?: NaturalizedDataset[];
+    OpticalOphthalmicAxialLengthMeasurementsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221230 · VR SQ · VM 1 */
-    UltrasoundSelectedOphthalmicAxialLengthSequence?: NaturalizedDataset[];
+    UltrasoundSelectedOphthalmicAxialLengthSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221250 · VR SQ · VM 1 */
-    OphthalmicAxialLengthSelectionMethodCodeSequence?: NaturalizedDataset[];
+    OphthalmicAxialLengthSelectionMethodCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221255 · VR SQ · VM 1 */
-    OpticalSelectedOphthalmicAxialLengthSequence?: NaturalizedDataset[];
+    OpticalSelectedOphthalmicAxialLengthSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221257 · VR SQ · VM 1 */
-    SelectedSegmentalOphthalmicAxialLengthSequence?: NaturalizedDataset[];
+    SelectedSegmentalOphthalmicAxialLengthSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221260 · VR SQ · VM 1 */
-    SelectedTotalOphthalmicAxialLengthSequence?: NaturalizedDataset[];
+    SelectedTotalOphthalmicAxialLengthSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221262 · VR SQ · VM 1 */
-    OphthalmicAxialLengthQualityMetricSequence?: NaturalizedDataset[];
+    OphthalmicAxialLengthQualityMetricSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221265 · VR SQ · VM 1 */
-    RETIRED_OphthalmicAxialLengthQualityMetricTypeCodeSequence?: NaturalizedDataset[];
+    RETIRED_OphthalmicAxialLengthQualityMetricTypeCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221273 · VR LO · VM 1 */
     RETIRED_OphthalmicAxialLengthQualityMetricTypeDescription?: string;
     /** 00221300 · VR SQ · VM 1 */
-    IntraocularLensCalculationsRightEyeSequence?: NaturalizedDataset[];
+    IntraocularLensCalculationsRightEyeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221310 · VR SQ · VM 1 */
-    IntraocularLensCalculationsLeftEyeSequence?: NaturalizedDataset[];
+    IntraocularLensCalculationsLeftEyeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221330 · VR SQ · VM 1 */
-    ReferencedOphthalmicAxialLengthMeasurementQCImageSequence?: NaturalizedDataset[];
+    ReferencedOphthalmicAxialLengthMeasurementQCImageSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221415 · VR CS · VM 1 */
     OphthalmicMappingDeviceType?: string;
     /** 00221420 · VR SQ · VM 1 */
-    AcquisitionMethodCodeSequence?: NaturalizedDataset[];
+    AcquisitionMethodCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221423 · VR SQ · VM 1 */
-    AcquisitionMethodAlgorithmSequence?: NaturalizedDataset[];
+    AcquisitionMethodAlgorithmSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221436 · VR SQ · VM 1 */
-    OphthalmicThicknessMapTypeCodeSequence?: NaturalizedDataset[];
+    OphthalmicThicknessMapTypeCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221443 · VR SQ · VM 1 */
-    OphthalmicThicknessMappingNormalsSequence?: NaturalizedDataset[];
+    OphthalmicThicknessMappingNormalsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221445 · VR SQ · VM 1 */
-    RetinalThicknessDefinitionCodeSequence?: NaturalizedDataset[];
+    RetinalThicknessDefinitionCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221450 · VR SQ · VM 1 */
-    PixelValueMappingToCodedConceptSequence?: NaturalizedDataset[];
+    PixelValueMappingToCodedConceptSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221452 · VR US/SS · VM 1 */
     MappedPixelValue?: number;
     /** 00221454 · VR LO · VM 1 */
     PixelValueMappingExplanation?: string;
     /** 00221458 · VR SQ · VM 1 */
-    OphthalmicThicknessMapQualityThresholdSequence?: NaturalizedDataset[];
+    OphthalmicThicknessMapQualityThresholdSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221460 · VR FL · VM 1 */
     OphthalmicThicknessMapThresholdQualityRating?: number;
     /** 00221463 · VR FL · VM 2 */
     AnatomicStructureReferencePoint?: number[];
     /** 00221465 · VR SQ · VM 1 */
-    RegistrationToLocalizerSequence?: NaturalizedDataset[];
+    RegistrationToLocalizerSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221466 · VR CS · VM 1 */
     RegisteredLocalizerUnits?: string;
     /** 00221467 · VR FL · VM 2 */
@@ -4963,23 +4963,23 @@ export interface NaturalizedDataset {
     /** 00221468 · VR FL · VM 2 */
     RegisteredLocalizerBottomRightHandCorner?: number[];
     /** 00221470 · VR SQ · VM 1 */
-    OphthalmicThicknessMapQualityRatingSequence?: NaturalizedDataset[];
+    OphthalmicThicknessMapQualityRatingSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221472 · VR SQ · VM 1 */
-    RelevantOPTAttributesSequence?: NaturalizedDataset[];
+    RelevantOPTAttributesSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221512 · VR SQ · VM 1 */
-    TransformationMethodCodeSequence?: NaturalizedDataset[];
+    TransformationMethodCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221513 · VR SQ · VM 1 */
-    TransformationAlgorithmSequence?: NaturalizedDataset[];
+    TransformationAlgorithmSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221515 · VR CS · VM 1 */
     OphthalmicAxialLengthMethod?: string;
     /** 00221517 · VR FL · VM 1 */
     OphthalmicFOV?: number;
     /** 00221518 · VR SQ · VM 1 */
-    TwoDimensionalToThreeDimensionalMapSequence?: NaturalizedDataset[];
+    TwoDimensionalToThreeDimensionalMapSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221525 · VR SQ · VM 1 */
-    WideFieldOphthalmicPhotographyQualityRatingSequence?: NaturalizedDataset[];
+    WideFieldOphthalmicPhotographyQualityRatingSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221526 · VR SQ · VM 1 */
-    WideFieldOphthalmicPhotographyQualityThresholdSequence?: NaturalizedDataset[];
+    WideFieldOphthalmicPhotographyQualityThresholdSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221527 · VR FL · VM 1 */
     WideFieldOphthalmicPhotographyThresholdQualityRating?: number;
     /** 00221528 · VR FL · VM 1 */
@@ -4991,15 +4991,15 @@ export interface NaturalizedDataset {
     /** 00221531 · VR OF · VM 1 */
     TwoDimensionalToThreeDimensionalMapData?: BinaryValue[];
     /** 00221612 · VR SQ · VM 1 */
-    DerivationAlgorithmSequence?: NaturalizedDataset[];
+    DerivationAlgorithmSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221615 · VR SQ · VM 1 */
-    OphthalmicImageTypeCodeSequence?: NaturalizedDataset[];
+    OphthalmicImageTypeCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221616 · VR LO · VM 1 */
     OphthalmicImageTypeDescription?: string;
     /** 00221618 · VR SQ · VM 1 */
-    ScanPatternTypeCodeSequence?: NaturalizedDataset[];
+    ScanPatternTypeCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221620 · VR SQ · VM 1 */
-    ReferencedSurfaceMeshIdentificationSequence?: NaturalizedDataset[];
+    ReferencedSurfaceMeshIdentificationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221622 · VR CS · VM 1 */
     OphthalmicVolumetricPropertiesFlag?: string;
     /** 00221624 · VR FL · VM 1 */
@@ -5007,11 +5007,11 @@ export interface NaturalizedDataset {
     /** 00221626 · VR FL · VM 1 */
     OphthalmicAnatomicReferencePointYCoordinate?: number;
     /** 00221628 · VR SQ · VM 1 */
-    OphthalmicEnFaceImageQualityRatingSequence?: NaturalizedDataset[];
+    OphthalmicEnFaceImageQualityRatingSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221630 · VR DS · VM 1 */
     QualityThreshold?: number;
     /** 00221640 · VR SQ · VM 1 */
-    OCTBscanAnalysisAcquisitionParametersSequence?: NaturalizedDataset[];
+    OCTBscanAnalysisAcquisitionParametersSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00221642 · VR UL · VM 1 */
     NumberofBscansPerFrame?: number;
     /** 00221643 · VR FL · VM 1 */
@@ -5035,25 +5035,25 @@ export interface NaturalizedDataset {
     /** 00240012 · VR CS · VM 1 */
     VisualFieldShape?: string;
     /** 00240016 · VR SQ · VM 1 */
-    ScreeningTestModeCodeSequence?: NaturalizedDataset[];
+    ScreeningTestModeCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00240018 · VR FL · VM 1 */
     MaximumStimulusLuminance?: number;
     /** 00240020 · VR FL · VM 1 */
     BackgroundLuminance?: number;
     /** 00240021 · VR SQ · VM 1 */
-    StimulusColorCodeSequence?: NaturalizedDataset[];
+    StimulusColorCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00240024 · VR SQ · VM 1 */
-    BackgroundIlluminationColorCodeSequence?: NaturalizedDataset[];
+    BackgroundIlluminationColorCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00240025 · VR FL · VM 1 */
     StimulusArea?: number;
     /** 00240028 · VR FL · VM 1 */
     StimulusPresentationTime?: number;
     /** 00240032 · VR SQ · VM 1 */
-    FixationSequence?: NaturalizedDataset[];
+    FixationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00240033 · VR SQ · VM 1 */
-    FixationMonitoringCodeSequence?: NaturalizedDataset[];
+    FixationMonitoringCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00240034 · VR SQ · VM 1 */
-    VisualFieldCatchTrialSequence?: NaturalizedDataset[];
+    VisualFieldCatchTrialSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00240035 · VR US · VM 1 */
     FixationCheckedQuantity?: number;
     /** 00240036 · VR US · VM 1 */
@@ -5093,7 +5093,7 @@ export interface NaturalizedDataset {
     /** 00240057 · VR CS · VM 1 */
     TestPointNormalsDataFlag?: string;
     /** 00240058 · VR SQ · VM 1 */
-    TestPointNormalsSequence?: NaturalizedDataset[];
+    TestPointNormalsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00240059 · VR CS · VM 1 */
     GlobalDeviationProbabilityNormalsFlag?: string;
     /** 00240060 · VR US · VM 1 */
@@ -5105,13 +5105,13 @@ export interface NaturalizedDataset {
     /** 00240063 · VR CS · VM 1 */
     VisualFieldTestNormalsFlag?: string;
     /** 00240064 · VR SQ · VM 1 */
-    ResultsNormalsSequence?: NaturalizedDataset[];
+    ResultsNormalsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00240065 · VR SQ · VM 1 */
-    AgeCorrectedSensitivityDeviationAlgorithmSequence?: NaturalizedDataset[];
+    AgeCorrectedSensitivityDeviationAlgorithmSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00240066 · VR FL · VM 1 */
     GlobalDeviationFromNormal?: number;
     /** 00240067 · VR SQ · VM 1 */
-    GeneralizedDefectSensitivityDeviationAlgorithmSequence?: NaturalizedDataset[];
+    GeneralizedDefectSensitivityDeviationAlgorithmSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00240068 · VR FL · VM 1 */
     LocalizedDeviationFromNormal?: number;
     /** 00240069 · VR LO · VM 1 */
@@ -5141,9 +5141,9 @@ export interface NaturalizedDataset {
     /** 00240081 · VR FL · VM 1 */
     CorrectedLocalizedDeviationFromNormalProbability?: number;
     /** 00240083 · VR SQ · VM 1 */
-    GlobalDeviationProbabilitySequence?: NaturalizedDataset[];
+    GlobalDeviationProbabilitySequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00240085 · VR SQ · VM 1 */
-    LocalizedDeviationProbabilitySequence?: NaturalizedDataset[];
+    LocalizedDeviationProbabilitySequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00240086 · VR CS · VM 1 */
     FovealSensitivityMeasured?: string;
     /** 00240087 · VR FL · VM 1 */
@@ -5151,7 +5151,7 @@ export interface NaturalizedDataset {
     /** 00240088 · VR FL · VM 1 */
     VisualFieldTestDuration?: number;
     /** 00240089 · VR SQ · VM 1 */
-    VisualFieldTestPointSequence?: NaturalizedDataset[];
+    VisualFieldTestPointSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00240090 · VR FL · VM 1 */
     VisualFieldTestPointXCoordinate?: number;
     /** 00240091 · VR FL · VM 1 */
@@ -5167,7 +5167,7 @@ export interface NaturalizedDataset {
     /** 00240096 · VR FL · VM 1 */
     RetestSensitivityValue?: number;
     /** 00240097 · VR SQ · VM 1 */
-    VisualFieldTestPointNormalsSequence?: NaturalizedDataset[];
+    VisualFieldTestPointNormalsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00240098 · VR FL · VM 1 */
     QuantifiedDefect?: number;
     /** 00240100 · VR FL · VM 1 */
@@ -5187,15 +5187,15 @@ export interface NaturalizedDataset {
     /** 00240108 · VR FL · VM 1 */
     BlindSpotYCoordinate?: number;
     /** 00240110 · VR SQ · VM 1 */
-    VisualAcuityMeasurementSequence?: NaturalizedDataset[];
+    VisualAcuityMeasurementSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00240112 · VR SQ · VM 1 */
-    RefractiveParametersUsedOnPatientSequence?: NaturalizedDataset[];
+    RefractiveParametersUsedOnPatientSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00240113 · VR CS · VM 1 */
     MeasurementLaterality?: string;
     /** 00240114 · VR SQ · VM 1 */
-    OphthalmicPatientClinicalInformationLeftEyeSequence?: NaturalizedDataset[];
+    OphthalmicPatientClinicalInformationLeftEyeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00240115 · VR SQ · VM 1 */
-    OphthalmicPatientClinicalInformationRightEyeSequence?: NaturalizedDataset[];
+    OphthalmicPatientClinicalInformationRightEyeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00240117 · VR CS · VM 1 */
     FovealPointNormativeDataFlag?: string;
     /** 00240118 · VR FL · VM 1 */
@@ -5203,7 +5203,7 @@ export interface NaturalizedDataset {
     /** 00240120 · VR CS · VM 1 */
     ScreeningBaselineMeasured?: string;
     /** 00240122 · VR SQ · VM 1 */
-    ScreeningBaselineMeasuredSequence?: NaturalizedDataset[];
+    ScreeningBaselineMeasuredSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00240124 · VR CS · VM 1 */
     ScreeningBaselineType?: string;
     /** 00240126 · VR FL · VM 1 */
@@ -5219,17 +5219,17 @@ export interface NaturalizedDataset {
     /** 00240309 · VR LO · VM 1 */
     DataSetDescription?: string;
     /** 00240317 · VR SQ · VM 1 */
-    VisualFieldTestReliabilityGlobalIndexSequence?: NaturalizedDataset[];
+    VisualFieldTestReliabilityGlobalIndexSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00240320 · VR SQ · VM 1 */
-    VisualFieldGlobalResultsIndexSequence?: NaturalizedDataset[];
+    VisualFieldGlobalResultsIndexSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00240325 · VR SQ · VM 1 */
-    DataObservationSequence?: NaturalizedDataset[];
+    DataObservationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00240338 · VR CS · VM 1 */
     IndexNormalsFlag?: string;
     /** 00240341 · VR FL · VM 1 */
     IndexProbability?: number;
     /** 00240344 · VR SQ · VM 1 */
-    IndexProbabilitySequence?: NaturalizedDataset[];
+    IndexProbabilitySequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00280002 · VR US · VM 1 */
     SamplesPerPixel?: number;
     /** 00280003 · VR US · VM 1 */
@@ -5471,7 +5471,7 @@ export interface NaturalizedDataset {
     /** 00281224 · VR OW · VM 1 */
     SegmentedAlphaPaletteColorLookupTableData?: BinaryValue[];
     /** 00281230 · VR SQ · VM 1 */
-    StoredValueColorRangeSequence?: NaturalizedDataset[];
+    StoredValueColorRangeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00281231 · VR FD · VM 1 */
     MinimumStoredValueMapped?: number;
     /** 00281232 · VR FD · VM 1 */
@@ -5483,17 +5483,17 @@ export interface NaturalizedDataset {
     /** 00281351 · VR ST · VM 1 */
     PartialViewDescription?: string;
     /** 00281352 · VR SQ · VM 1 */
-    PartialViewCodeSequence?: NaturalizedDataset[];
+    PartialViewCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0028135A · VR CS · VM 1 */
     SpatialLocationsPreserved?: string;
     /** 00281401 · VR SQ · VM 1 */
-    DataFrameAssignmentSequence?: NaturalizedDataset[];
+    DataFrameAssignmentSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00281402 · VR CS · VM 1 */
     DataPathAssignment?: string;
     /** 00281403 · VR US · VM 1 */
     BitsMappedToColorLookupTable?: number;
     /** 00281404 · VR SQ · VM 1 */
-    BlendingLUT1Sequence?: NaturalizedDataset[];
+    BlendingLUT1Sequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00281405 · VR CS · VM 1 */
     BlendingLUT1TransferFunction?: string;
     /** 00281406 · VR FD · VM 1 */
@@ -5503,9 +5503,9 @@ export interface NaturalizedDataset {
     /** 00281408 · VR OW · VM 1 */
     BlendingLookupTableData?: BinaryValue[];
     /** 0028140B · VR SQ · VM 1 */
-    EnhancedPaletteColorLookupTableSequence?: NaturalizedDataset[];
+    EnhancedPaletteColorLookupTableSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0028140C · VR SQ · VM 1 */
-    BlendingLUT2Sequence?: NaturalizedDataset[];
+    BlendingLUT2Sequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0028140D · VR CS · VM 1 */
     BlendingLUT2TransferFunction?: string;
     /** 0028140E · VR CS · VM 1 */
@@ -5525,9 +5525,9 @@ export interface NaturalizedDataset {
     /** 00282114 · VR CS · VM 1-n */
     LossyImageCompressionMethod?: string[];
     /** 00283000 · VR SQ · VM 1 */
-    ModalityLUTSequence?: NaturalizedDataset[];
+    ModalityLUTSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00283001 · VR SQ · VM 1 */
-    VariableModalityLUTSequence?: NaturalizedDataset[];
+    VariableModalityLUTSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00283002 · VR US/SS · VM 3 */
     LUTDescriptor?: number[];
     /** 00283003 · VR LO · VM 1 */
@@ -5537,13 +5537,13 @@ export interface NaturalizedDataset {
     /** 00283006 · VR OW/US/SS · VM 1-n */
     LUTData?: BinaryValue[] | number[];
     /** 00283010 · VR SQ · VM 1 */
-    VOILUTSequence?: NaturalizedDataset[];
+    VOILUTSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00283110 · VR SQ · VM 1 */
-    SoftcopyVOILUTSequence?: NaturalizedDataset[];
+    SoftcopyVOILUTSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00284000 · VR LT · VM 1 */
     RETIRED_ImagePresentationComments?: string;
     /** 00285000 · VR SQ · VM 1 */
-    RETIRED_BiPlaneAcquisitionSequence?: NaturalizedDataset[];
+    RETIRED_BiPlaneAcquisitionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00286010 · VR US · VM 1 */
     RepresentativeFrameNumber?: number;
     /** 00286020 · VR US · VM 1-n */
@@ -5557,7 +5557,7 @@ export interface NaturalizedDataset {
     /** 00286040 · VR US · VM 1-n */
     RWavePointer?: number[];
     /** 00286100 · VR SQ · VM 1 */
-    MaskSubtractionSequence?: NaturalizedDataset[];
+    MaskSubtractionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00286101 · VR CS · VM 1 */
     MaskOperation?: string;
     /** 00286102 · VR US · VM 2-2n */
@@ -5573,7 +5573,7 @@ export interface NaturalizedDataset {
     /** 00286190 · VR ST · VM 1 */
     MaskOperationExplanation?: string;
     /** 00287000 · VR SQ · VM 1 */
-    EquipmentAdministratorSequence?: NaturalizedDataset[];
+    EquipmentAdministratorSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00287001 · VR US · VM 1 */
     NumberOfDisplaySubsystems?: number;
     /** 00287002 · VR US · VM 1 */
@@ -5589,11 +5589,11 @@ export interface NaturalizedDataset {
     /** 00287007 · VR LO · VM 1 */
     SystemStatusComment?: string;
     /** 00287008 · VR SQ · VM 1 */
-    TargetLuminanceCharacteristicsSequence?: NaturalizedDataset[];
+    TargetLuminanceCharacteristicsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00287009 · VR US · VM 1 */
     LuminanceCharacteristicsID?: number;
     /** 0028700A · VR SQ · VM 1 */
-    DisplaySubsystemConfigurationSequence?: NaturalizedDataset[];
+    DisplaySubsystemConfigurationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0028700B · VR US · VM 1 */
     ConfigurationID?: number;
     /** 0028700C · VR SH · VM 1 */
@@ -5603,21 +5603,21 @@ export interface NaturalizedDataset {
     /** 0028700E · VR US · VM 1 */
     ReferencedTargetLuminanceCharacteristicsID?: number;
     /** 0028700F · VR SQ · VM 1 */
-    QAResultsSequence?: NaturalizedDataset[];
+    QAResultsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00287010 · VR SQ · VM 1 */
-    DisplaySubsystemQAResultsSequence?: NaturalizedDataset[];
+    DisplaySubsystemQAResultsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00287011 · VR SQ · VM 1 */
-    ConfigurationQAResultsSequence?: NaturalizedDataset[];
+    ConfigurationQAResultsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00287012 · VR SQ · VM 1 */
-    MeasurementEquipmentSequence?: NaturalizedDataset[];
+    MeasurementEquipmentSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00287013 · VR CS · VM 1-n */
     MeasurementFunctions?: string[];
     /** 00287014 · VR CS · VM 1 */
     MeasurementEquipmentType?: string;
     /** 00287015 · VR SQ · VM 1 */
-    VisualEvaluationResultSequence?: NaturalizedDataset[];
+    VisualEvaluationResultSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00287016 · VR SQ · VM 1 */
-    DisplayCalibrationResultSequence?: NaturalizedDataset[];
+    DisplayCalibrationResultSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00287017 · VR US · VM 1 */
     DDLValue?: number;
     /** 00287018 · VR FL · VM 2 */
@@ -5629,7 +5629,7 @@ export interface NaturalizedDataset {
     /** 0028701B · VR US · VM 1 */
     NumberOfLuminancePoints?: number;
     /** 0028701C · VR SQ · VM 1 */
-    LuminanceResponseSequence?: NaturalizedDataset[];
+    LuminanceResponseSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0028701D · VR FL · VM 1 */
     TargetMinimumLuminance?: number;
     /** 0028701E · VR FL · VM 1 */
@@ -5641,19 +5641,19 @@ export interface NaturalizedDataset {
     /** 00287021 · VR CS · VM 1 */
     WhitePointFlag?: string;
     /** 00287022 · VR SQ · VM 1 */
-    DisplayDeviceTypeCodeSequence?: NaturalizedDataset[];
+    DisplayDeviceTypeCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00287023 · VR SQ · VM 1 */
-    DisplaySubsystemSequence?: NaturalizedDataset[];
+    DisplaySubsystemSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00287024 · VR SQ · VM 1 */
-    LuminanceResultSequence?: NaturalizedDataset[];
+    LuminanceResultSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00287025 · VR CS · VM 1 */
     AmbientLightValueSource?: string;
     /** 00287026 · VR CS · VM 1-n */
     MeasuredCharacteristics?: string[];
     /** 00287027 · VR SQ · VM 1 */
-    LuminanceUniformityResultSequence?: NaturalizedDataset[];
+    LuminanceUniformityResultSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00287028 · VR SQ · VM 1 */
-    VisualEvaluationTestSequence?: NaturalizedDataset[];
+    VisualEvaluationTestSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00287029 · VR CS · VM 1 */
     TestResult?: string;
     /** 0028702A · VR LO · VM 1 */
@@ -5661,11 +5661,11 @@ export interface NaturalizedDataset {
     /** 0028702B · VR CS · VM 1 */
     TestImageValidation?: string;
     /** 0028702C · VR SQ · VM 1 */
-    TestPatternCodeSequence?: NaturalizedDataset[];
+    TestPatternCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0028702D · VR SQ · VM 1 */
-    MeasurementPatternCodeSequence?: NaturalizedDataset[];
+    MeasurementPatternCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0028702E · VR SQ · VM 1 */
-    VisualEvaluationMethodCodeSequence?: NaturalizedDataset[];
+    VisualEvaluationMethodCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00287FE0 · VR UR · VM 1 */
     PixelDataProviderURL?: string;
     /** 00289001 · VR UL · VM 1 */
@@ -5679,23 +5679,23 @@ export interface NaturalizedDataset {
     /** 00289108 · VR CS · VM 1 */
     DataRepresentation?: string;
     /** 00289110 · VR SQ · VM 1 */
-    PixelMeasuresSequence?: NaturalizedDataset[];
+    PixelMeasuresSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00289132 · VR SQ · VM 1 */
-    FrameVOILUTSequence?: NaturalizedDataset[];
+    FrameVOILUTSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00289145 · VR SQ · VM 1 */
-    PixelValueTransformationSequence?: NaturalizedDataset[];
+    PixelValueTransformationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00289235 · VR CS · VM 1 */
     SignalDomainRows?: string;
     /** 00289411 · VR FL · VM 1 */
     DisplayFilterPercentage?: number;
     /** 00289415 · VR SQ · VM 1 */
-    FramePixelShiftSequence?: NaturalizedDataset[];
+    FramePixelShiftSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00289416 · VR US · VM 1 */
     SubtractionItemID?: number;
     /** 00289422 · VR SQ · VM 1 */
-    PixelIntensityRelationshipLUTSequence?: NaturalizedDataset[];
+    PixelIntensityRelationshipLUTSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00289443 · VR SQ · VM 1 */
-    FramePixelDataPropertiesSequence?: NaturalizedDataset[];
+    FramePixelDataPropertiesSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00289444 · VR CS · VM 1 */
     GeometricalProperties?: string;
     /** 00289445 · VR FL · VM 1 */
@@ -5709,13 +5709,13 @@ export interface NaturalizedDataset {
     /** 00289478 · VR FL · VM 1 */
     MaskVisibilityPercentage?: number;
     /** 00289501 · VR SQ · VM 1 */
-    PixelShiftSequence?: NaturalizedDataset[];
+    PixelShiftSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00289502 · VR SQ · VM 1 */
-    RegionPixelShiftSequence?: NaturalizedDataset[];
+    RegionPixelShiftSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00289503 · VR SS · VM 2-2n */
     VerticesOfTheRegion?: number[];
     /** 00289505 · VR SQ · VM 1 */
-    MultiFramePresentationSequence?: NaturalizedDataset[];
+    MultiFramePresentationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00289506 · VR US · VM 2-2n */
     PixelShiftFrameRange?: number[];
     /** 00289507 · VR US · VM 2-2n */
@@ -5753,13 +5753,13 @@ export interface NaturalizedDataset {
     /** 00321030 · VR LO · VM 1 */
     RETIRED_ReasonForStudy?: string;
     /** 00321031 · VR SQ · VM 1 */
-    RequestingPhysicianIdentificationSequence?: NaturalizedDataset[];
+    RequestingPhysicianIdentificationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00321032 · VR PN · VM 1 */
     RequestingPhysician?: PersonName;
     /** 00321033 · VR LO · VM 1 */
     RequestingService?: string;
     /** 00321034 · VR SQ · VM 1 */
-    RequestingServiceCodeSequence?: NaturalizedDataset[];
+    RequestingServiceCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00321040 · VR DA · VM 1 */
     RETIRED_StudyArrivalDate?: string;
     /** 00321041 · VR TM · VM 1 */
@@ -5773,19 +5773,19 @@ export interface NaturalizedDataset {
     /** 00321060 · VR LO · VM 1 */
     RequestedProcedureDescription?: string;
     /** 00321064 · VR SQ · VM 1 */
-    RequestedProcedureCodeSequence?: NaturalizedDataset[];
+    RequestedProcedureCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00321065 · VR SQ · VM 1 */
-    RequestedLateralityCodeSequence?: NaturalizedDataset[];
+    RequestedLateralityCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00321066 · VR UT · VM 1 */
     ReasonForVisit?: string;
     /** 00321067 · VR SQ · VM 1 */
-    ReasonForVisitCodeSequence?: NaturalizedDataset[];
+    ReasonForVisitCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00321070 · VR LO · VM 1 */
     RequestedContrastAgent?: string;
     /** 00324000 · VR LT · VM 1 */
     RETIRED_StudyComments?: string;
     /** 00340001 · VR SQ · VM 1 */
-    FlowIdentifierSequence?: NaturalizedDataset[];
+    FlowIdentifierSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00340002 · VR OB · VM 1 */
     FlowIdentifier?: BinaryValue[];
     /** 00340003 · VR UI · VM 1 */
@@ -5799,17 +5799,17 @@ export interface NaturalizedDataset {
     /** 00340008 · VR CS · VM 1 */
     IncludesImagingSubject?: string;
     /** 00340009 · VR SQ · VM 1 */
-    FrameUsefulnessGroupSequence?: NaturalizedDataset[];
+    FrameUsefulnessGroupSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0034000A · VR SQ · VM 1 */
-    RealTimeBulkDataFlowSequence?: NaturalizedDataset[];
+    RealTimeBulkDataFlowSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0034000B · VR SQ · VM 1 */
-    CameraPositionGroupSequence?: NaturalizedDataset[];
+    CameraPositionGroupSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0034000C · VR CS · VM 1 */
     IncludesInformation?: string;
     /** 0034000D · VR SQ · VM 1 */
-    TimeOfFrameGroupSequence?: NaturalizedDataset[];
+    TimeOfFrameGroupSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00380004 · VR SQ · VM 1 */
-    ReferencedPatientAliasSequence?: NaturalizedDataset[];
+    ReferencedPatientAliasSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00380008 · VR CS · VM 1 */
     VisitStatusID?: string;
     /** 00380010 · VR LO · VM 1 */
@@ -5817,7 +5817,7 @@ export interface NaturalizedDataset {
     /** 00380011 · VR LO · VM 1 */
     RETIRED_IssuerOfAdmissionID?: string;
     /** 00380014 · VR SQ · VM 1 */
-    IssuerOfAdmissionIDSequence?: NaturalizedDataset[];
+    IssuerOfAdmissionIDSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00380016 · VR LO · VM 1 */
     RouteOfAdmissions?: string;
     /** 0038001A · VR DA · VM 1 */
@@ -5841,7 +5841,7 @@ export interface NaturalizedDataset {
     /** 00380040 · VR LO · VM 1 */
     RETIRED_DischargeDiagnosisDescription?: string;
     /** 00380044 · VR SQ · VM 1 */
-    RETIRED_DischargeDiagnosisCodeSequence?: NaturalizedDataset[];
+    RETIRED_DischargeDiagnosisCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00380050 · VR LO · VM 1 */
     SpecialNeeds?: string;
     /** 00380060 · VR LO · VM 1 */
@@ -5851,11 +5851,11 @@ export interface NaturalizedDataset {
     /** 00380062 · VR LO · VM 1 */
     ServiceEpisodeDescription?: string;
     /** 00380064 · VR SQ · VM 1 */
-    IssuerOfServiceEpisodeIDSequence?: NaturalizedDataset[];
+    IssuerOfServiceEpisodeIDSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00380100 · VR SQ · VM 1 */
-    PertinentDocumentsSequence?: NaturalizedDataset[];
+    PertinentDocumentsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00380101 · VR SQ · VM 1 */
-    PertinentResourcesSequence?: NaturalizedDataset[];
+    PertinentResourcesSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00380102 · VR LO · VM 1 */
     ResourceDescription?: string;
     /** 00380300 · VR LO · VM 1 */
@@ -5865,7 +5865,7 @@ export interface NaturalizedDataset {
     /** 00380500 · VR LO · VM 1 */
     PatientState?: string;
     /** 00380502 · VR SQ · VM 1 */
-    PatientClinicalTrialParticipationSequence?: NaturalizedDataset[];
+    PatientClinicalTrialParticipationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00384000 · VR LT · VM 1 */
     VisitComments?: string;
     /** 003A0004 · VR CS · VM 1 */
@@ -5879,7 +5879,7 @@ export interface NaturalizedDataset {
     /** 003A0020 · VR SH · VM 1 */
     MultiplexGroupLabel?: string;
     /** 003A0200 · VR SQ · VM 1 */
-    ChannelDefinitionSequence?: NaturalizedDataset[];
+    ChannelDefinitionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 003A0202 · VR IS · VM 1 */
     WaveformChannelNumber?: number;
     /** 003A0203 · VR SH · VM 1 */
@@ -5887,17 +5887,17 @@ export interface NaturalizedDataset {
     /** 003A0205 · VR CS · VM 1-n */
     ChannelStatus?: string[];
     /** 003A0208 · VR SQ · VM 1 */
-    ChannelSourceSequence?: NaturalizedDataset[];
+    ChannelSourceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 003A0209 · VR SQ · VM 1 */
-    ChannelSourceModifiersSequence?: NaturalizedDataset[];
+    ChannelSourceModifiersSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 003A020A · VR SQ · VM 1 */
-    SourceWaveformSequence?: NaturalizedDataset[];
+    SourceWaveformSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 003A020C · VR LO · VM 1 */
     ChannelDerivationDescription?: string;
     /** 003A0210 · VR DS · VM 1 */
     ChannelSensitivity?: number;
     /** 003A0211 · VR SQ · VM 1 */
-    ChannelSensitivityUnitsSequence?: NaturalizedDataset[];
+    ChannelSensitivityUnitsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 003A0212 · VR DS · VM 1 */
     ChannelSensitivityCorrectionFactor?: number;
     /** 003A0213 · VR DS · VM 1 */
@@ -5923,11 +5923,11 @@ export interface NaturalizedDataset {
     /** 003A0231 · VR US · VM 3 */
     WaveformDisplayBackgroundCIELabValue?: number[];
     /** 003A0240 · VR SQ · VM 1 */
-    WaveformPresentationGroupSequence?: NaturalizedDataset[];
+    WaveformPresentationGroupSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 003A0241 · VR US · VM 1 */
     PresentationGroupNumber?: number;
     /** 003A0242 · VR SQ · VM 1 */
-    ChannelDisplaySequence?: NaturalizedDataset[];
+    ChannelDisplaySequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 003A0244 · VR US · VM 3 */
     ChannelRecommendedDisplayCIELabValue?: number[];
     /** 003A0245 · VR FL · VM 1 */
@@ -5939,7 +5939,7 @@ export interface NaturalizedDataset {
     /** 003A0248 · VR FL · VM 1 */
     AbsoluteChannelDisplayScale?: number;
     /** 003A0300 · VR SQ · VM 1 */
-    MultiplexedAudioChannelsDescriptionCodeSequence?: NaturalizedDataset[];
+    MultiplexedAudioChannelsDescriptionCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 003A0301 · VR IS · VM 1 */
     ChannelIdentificationCode?: number;
     /** 003A0302 · VR CS · VM 1 */
@@ -5949,7 +5949,7 @@ export interface NaturalizedDataset {
     /** 003A0311 · VR DS · VM 1 */
     PowerlineFrequency?: number;
     /** 003A0312 · VR SQ · VM 1 */
-    ChannelImpedanceSequence?: NaturalizedDataset[];
+    ChannelImpedanceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 003A0313 · VR DS · VM 1 */
     ImpedanceValue?: number;
     /** 003A0314 · VR DT · VM 1 */
@@ -5961,37 +5961,37 @@ export interface NaturalizedDataset {
     /** 003A0317 · VR CS · VM 1 */
     WaveformAmplifierType?: string;
     /** 003A0318 · VR SQ · VM 1 */
-    FilterLowFrequencyCharacteristicsSequence?: NaturalizedDataset[];
+    FilterLowFrequencyCharacteristicsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 003A0319 · VR SQ · VM 1 */
-    FilterHighFrequencyCharacteristicsSequence?: NaturalizedDataset[];
+    FilterHighFrequencyCharacteristicsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 003A0320 · VR SQ · VM 1 */
-    SummarizedFilterLookupTable?: NaturalizedDataset[];
+    SummarizedFilterLookupTable?: NaturalizedDataset | NaturalizedDataset[];
     /** 003A0321 · VR SQ · VM 1 */
-    NotchFilterCharacteristicsSequence?: NaturalizedDataset[];
+    NotchFilterCharacteristicsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 003A0322 · VR CS · VM 1 */
     WaveformFilterType?: string;
     /** 003A0323 · VR SQ · VM 1 */
-    AnalogFilterCharacteristicsSequence?: NaturalizedDataset[];
+    AnalogFilterCharacteristicsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 003A0324 · VR DS · VM 1 */
     AnalogFilterRollOff?: number;
     /** 003A0325 · VR SQ · VM 1 */
-    AnalogFilterType?: NaturalizedDataset[];
+    AnalogFilterType?: NaturalizedDataset | NaturalizedDataset[];
     /** 003A0326 · VR SQ · VM 1 */
-    DigitalFilterCharacteristicsSequence?: NaturalizedDataset[];
+    DigitalFilterCharacteristicsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 003A0327 · VR IS · VM 1 */
     DigitalFilterOrder?: number;
     /** 003A0328 · VR SQ · VM 1 */
-    DigitalFilterTypeCodeSequence?: NaturalizedDataset[];
+    DigitalFilterTypeCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 003A0329 · VR ST · VM 1 */
     WaveformFilterDescription?: string;
     /** 003A032A · VR SQ · VM 1 */
-    FilterLookupTableSequence?: NaturalizedDataset[];
+    FilterLookupTableSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 003A032B · VR ST · VM 1 */
     FilterLookupTableDescription?: string;
     /** 003A032C · VR SQ · VM 1 */
-    FrequencyEncodingCodeSequence?: NaturalizedDataset[];
+    FrequencyEncodingCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 003A032D · VR SQ · VM 1 */
-    MagnitudeEncodingCodeSequence?: NaturalizedDataset[];
+    MagnitudeEncodingCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 003A032E · VR OD · VM 1 */
     FilterLookupTableData?: BinaryValue[];
     /** 00400001 · VR AE · VM 1-n */
@@ -6009,13 +6009,13 @@ export interface NaturalizedDataset {
     /** 00400007 · VR LO · VM 1 */
     ScheduledProcedureStepDescription?: string;
     /** 00400008 · VR SQ · VM 1 */
-    ScheduledProtocolCodeSequence?: NaturalizedDataset[];
+    ScheduledProtocolCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00400009 · VR SH · VM 1 */
     ScheduledProcedureStepID?: string;
     /** 0040000A · VR SQ · VM 1 */
-    StageCodeSequence?: NaturalizedDataset[];
+    StageCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040000B · VR SQ · VM 1 */
-    ScheduledPerformingPhysicianIdentificationSequence?: NaturalizedDataset[];
+    ScheduledPerformingPhysicianIdentificationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00400010 · VR SH · VM 1-n */
     ScheduledStationName?: string[];
     /** 00400011 · VR SH · VM 1 */
@@ -6025,9 +6025,9 @@ export interface NaturalizedDataset {
     /** 00400020 · VR CS · VM 1 */
     ScheduledProcedureStepStatus?: string;
     /** 00400026 · VR SQ · VM 1 */
-    OrderPlacerIdentifierSequence?: NaturalizedDataset[];
+    OrderPlacerIdentifierSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00400027 · VR SQ · VM 1 */
-    OrderFillerIdentifierSequence?: NaturalizedDataset[];
+    OrderFillerIdentifierSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00400031 · VR UT · VM 1 */
     LocalNamespaceEntityID?: string;
     /** 00400032 · VR UT · VM 1 */
@@ -6037,15 +6037,15 @@ export interface NaturalizedDataset {
     /** 00400035 · VR CS · VM 1 */
     IdentifierTypeCode?: string;
     /** 00400036 · VR SQ · VM 1 */
-    AssigningFacilitySequence?: NaturalizedDataset[];
+    AssigningFacilitySequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00400039 · VR SQ · VM 1 */
-    AssigningJurisdictionCodeSequence?: NaturalizedDataset[];
+    AssigningJurisdictionCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040003A · VR SQ · VM 1 */
-    AssigningAgencyOrDepartmentCodeSequence?: NaturalizedDataset[];
+    AssigningAgencyOrDepartmentCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00400100 · VR SQ · VM 1 */
-    ScheduledProcedureStepSequence?: NaturalizedDataset[];
+    ScheduledProcedureStepSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00400220 · VR SQ · VM 1 */
-    ReferencedNonImageCompositeSOPInstanceSequence?: NaturalizedDataset[];
+    ReferencedNonImageCompositeSOPInstanceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00400241 · VR AE · VM 1 */
     PerformedStationAETitle?: string;
     /** 00400242 · VR SH · VM 1 */
@@ -6069,25 +6069,25 @@ export interface NaturalizedDataset {
     /** 00400255 · VR LO · VM 1 */
     PerformedProcedureTypeDescription?: string;
     /** 00400260 · VR SQ · VM 1 */
-    PerformedProtocolCodeSequence?: NaturalizedDataset[];
+    PerformedProtocolCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00400261 · VR CS · VM 1 */
     PerformedProtocolType?: string;
     /** 00400270 · VR SQ · VM 1 */
-    ScheduledStepAttributesSequence?: NaturalizedDataset[];
+    ScheduledStepAttributesSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00400275 · VR SQ · VM 1 */
-    RequestAttributesSequence?: NaturalizedDataset[];
+    RequestAttributesSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00400280 · VR ST · VM 1 */
     CommentsOnThePerformedProcedureStep?: string;
     /** 00400281 · VR SQ · VM 1 */
-    PerformedProcedureStepDiscontinuationReasonCodeSequence?: NaturalizedDataset[];
+    PerformedProcedureStepDiscontinuationReasonCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00400293 · VR SQ · VM 1 */
-    QuantitySequence?: NaturalizedDataset[];
+    QuantitySequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00400294 · VR DS · VM 1 */
     Quantity?: number;
     /** 00400295 · VR SQ · VM 1 */
-    MeasuringUnitsSequence?: NaturalizedDataset[];
+    MeasuringUnitsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00400296 · VR SQ · VM 1 */
-    BillingItemSequence?: NaturalizedDataset[];
+    BillingItemSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00400300 · VR US · VM 1 */
     TotalTimeOfFluoroscopy?: number;
     /** 00400301 · VR US · VM 1 */
@@ -6101,7 +6101,7 @@ export interface NaturalizedDataset {
     /** 00400307 · VR DS · VM 1 */
     RETIRED_DistanceSourceToSupport?: number;
     /** 0040030E · VR SQ · VM 1 */
-    ExposureDoseSequence?: NaturalizedDataset[];
+    ExposureDoseSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00400310 · VR ST · VM 1 */
     CommentsOnRadiationDose?: string;
     /** 00400312 · VR DS · VM 1 */
@@ -6113,73 +6113,73 @@ export interface NaturalizedDataset {
     /** 00400318 · VR CS · VM 1 */
     OrganExposed?: string;
     /** 00400320 · VR SQ · VM 1 */
-    BillingProcedureStepSequence?: NaturalizedDataset[];
+    BillingProcedureStepSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00400321 · VR SQ · VM 1 */
-    FilmConsumptionSequence?: NaturalizedDataset[];
+    FilmConsumptionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00400324 · VR SQ · VM 1 */
-    BillingSuppliesAndDevicesSequence?: NaturalizedDataset[];
+    BillingSuppliesAndDevicesSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00400330 · VR SQ · VM 1 */
-    RETIRED_ReferencedProcedureStepSequence?: NaturalizedDataset[];
+    RETIRED_ReferencedProcedureStepSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00400340 · VR SQ · VM 1 */
-    PerformedSeriesSequence?: NaturalizedDataset[];
+    PerformedSeriesSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00400400 · VR LT · VM 1 */
     CommentsOnTheScheduledProcedureStep?: string;
     /** 00400440 · VR SQ · VM 1 */
-    ProtocolContextSequence?: NaturalizedDataset[];
+    ProtocolContextSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00400441 · VR SQ · VM 1 */
-    ContentItemModifierSequence?: NaturalizedDataset[];
+    ContentItemModifierSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00400500 · VR SQ · VM 1 */
-    ScheduledSpecimenSequence?: NaturalizedDataset[];
+    ScheduledSpecimenSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040050A · VR LO · VM 1 */
     RETIRED_SpecimenAccessionNumber?: string;
     /** 00400512 · VR LO · VM 1 */
     ContainerIdentifier?: string;
     /** 00400513 · VR SQ · VM 1 */
-    IssuerOfTheContainerIdentifierSequence?: NaturalizedDataset[];
+    IssuerOfTheContainerIdentifierSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00400515 · VR SQ · VM 1 */
-    AlternateContainerIdentifierSequence?: NaturalizedDataset[];
+    AlternateContainerIdentifierSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00400518 · VR SQ · VM 1 */
-    ContainerTypeCodeSequence?: NaturalizedDataset[];
+    ContainerTypeCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040051A · VR LO · VM 1 */
     ContainerDescription?: string;
     /** 00400520 · VR SQ · VM 1 */
-    ContainerComponentSequence?: NaturalizedDataset[];
+    ContainerComponentSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00400550 · VR SQ · VM 1 */
-    RETIRED_SpecimenSequence?: NaturalizedDataset[];
+    RETIRED_SpecimenSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00400551 · VR LO · VM 1 */
     SpecimenIdentifier?: string;
     /** 00400552 · VR SQ · VM 1 */
-    RETIRED_SpecimenDescriptionSequenceTrial?: NaturalizedDataset[];
+    RETIRED_SpecimenDescriptionSequenceTrial?: NaturalizedDataset | NaturalizedDataset[];
     /** 00400553 · VR ST · VM 1 */
     RETIRED_SpecimenDescriptionTrial?: string;
     /** 00400554 · VR UI · VM 1 */
     SpecimenUID?: string;
     /** 00400555 · VR SQ · VM 1 */
-    AcquisitionContextSequence?: NaturalizedDataset[];
+    AcquisitionContextSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00400556 · VR ST · VM 1 */
     AcquisitionContextDescription?: string;
     /** 00400560 · VR SQ · VM 1 */
-    SpecimenDescriptionSequence?: NaturalizedDataset[];
+    SpecimenDescriptionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00400562 · VR SQ · VM 1 */
-    IssuerOfTheSpecimenIdentifierSequence?: NaturalizedDataset[];
+    IssuerOfTheSpecimenIdentifierSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040059A · VR SQ · VM 1 */
-    SpecimenTypeCodeSequence?: NaturalizedDataset[];
+    SpecimenTypeCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00400600 · VR LO · VM 1 */
     SpecimenShortDescription?: string;
     /** 00400602 · VR UT · VM 1 */
     SpecimenDetailedDescription?: string;
     /** 00400610 · VR SQ · VM 1 */
-    SpecimenPreparationSequence?: NaturalizedDataset[];
+    SpecimenPreparationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00400612 · VR SQ · VM 1 */
-    SpecimenPreparationStepContentItemSequence?: NaturalizedDataset[];
+    SpecimenPreparationStepContentItemSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00400620 · VR SQ · VM 1 */
-    SpecimenLocalizationContentItemSequence?: NaturalizedDataset[];
+    SpecimenLocalizationContentItemSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 004006FA · VR LO · VM 1 */
     RETIRED_SlideIdentifier?: string;
     /** 00400710 · VR SQ · VM 1 */
-    WholeSlideMicroscopyImageFrameTypeSequence?: NaturalizedDataset[];
+    WholeSlideMicroscopyImageFrameTypeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040071A · VR SQ · VM 1 */
-    ImageCenterPointCoordinatesSequence?: NaturalizedDataset[];
+    ImageCenterPointCoordinatesSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040072A · VR DS · VM 1 */
     XOffsetInSlideCoordinateSystem?: number;
     /** 0040073A · VR DS · VM 1 */
@@ -6187,13 +6187,13 @@ export interface NaturalizedDataset {
     /** 0040074A · VR DS · VM 1 */
     ZOffsetInSlideCoordinateSystem?: number;
     /** 004008D8 · VR SQ · VM 1 */
-    RETIRED_PixelSpacingSequence?: NaturalizedDataset[];
+    RETIRED_PixelSpacingSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 004008DA · VR SQ · VM 1 */
-    RETIRED_CoordinateSystemAxisCodeSequence?: NaturalizedDataset[];
+    RETIRED_CoordinateSystemAxisCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 004008EA · VR SQ · VM 1 */
-    MeasurementUnitsCodeSequence?: NaturalizedDataset[];
+    MeasurementUnitsCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 004009F8 · VR SQ · VM 1 */
-    RETIRED_VitalStainCodeSequenceTrial?: NaturalizedDataset[];
+    RETIRED_VitalStainCodeSequenceTrial?: NaturalizedDataset | NaturalizedDataset[];
     /** 00401001 · VR SH · VM 1 */
     RequestedProcedureID?: string;
     /** 00401002 · VR LO · VM 1 */
@@ -6213,17 +6213,17 @@ export interface NaturalizedDataset {
     /** 00401009 · VR SH · VM 1 */
     ReportingPriority?: string;
     /** 0040100A · VR SQ · VM 1 */
-    ReasonForRequestedProcedureCodeSequence?: NaturalizedDataset[];
+    ReasonForRequestedProcedureCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00401010 · VR PN · VM 1-n */
     NamesOfIntendedRecipientsOfResults?: PersonName[];
     /** 00401011 · VR SQ · VM 1 */
-    IntendedRecipientsOfResultsIdentificationSequence?: NaturalizedDataset[];
+    IntendedRecipientsOfResultsIdentificationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00401012 · VR SQ · VM 1 */
-    ReasonForPerformedProcedureCodeSequence?: NaturalizedDataset[];
+    ReasonForPerformedProcedureCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00401060 · VR LO · VM 1 */
     RETIRED_RequestedProcedureDescriptionTrial?: string;
     /** 00401101 · VR SQ · VM 1 */
-    PersonIdentificationCodeSequence?: NaturalizedDataset[];
+    PersonIdentificationCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00401102 · VR ST · VM 1 */
     PersonAddress?: string;
     /** 00401103 · VR LO · VM 1-n */
@@ -6265,59 +6265,59 @@ export interface NaturalizedDataset {
     /** 00404003 · VR CS · VM 1 */
     RETIRED_GeneralPurposeScheduledProcedureStepPriority?: string;
     /** 00404004 · VR SQ · VM 1 */
-    RETIRED_ScheduledProcessingApplicationsCodeSequence?: NaturalizedDataset[];
+    RETIRED_ScheduledProcessingApplicationsCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00404005 · VR DT · VM 1 */
     ScheduledProcedureStepStartDateTime?: string;
     /** 00404006 · VR CS · VM 1 */
     RETIRED_MultipleCopiesFlag?: string;
     /** 00404007 · VR SQ · VM 1 */
-    PerformedProcessingApplicationsCodeSequence?: NaturalizedDataset[];
+    PerformedProcessingApplicationsCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00404008 · VR DT · VM 1 */
     ScheduledProcedureStepExpirationDateTime?: string;
     /** 00404009 · VR SQ · VM 1 */
-    HumanPerformerCodeSequence?: NaturalizedDataset[];
+    HumanPerformerCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00404010 · VR DT · VM 1 */
     ScheduledProcedureStepModificationDateTime?: string;
     /** 00404011 · VR DT · VM 1 */
     ExpectedCompletionDateTime?: string;
     /** 00404015 · VR SQ · VM 1 */
-    RETIRED_ResultingGeneralPurposePerformedProcedureStepsSequence?: NaturalizedDataset[];
+    RETIRED_ResultingGeneralPurposePerformedProcedureStepsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00404016 · VR SQ · VM 1 */
-    RETIRED_ReferencedGeneralPurposeScheduledProcedureStepSequence?: NaturalizedDataset[];
+    RETIRED_ReferencedGeneralPurposeScheduledProcedureStepSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00404018 · VR SQ · VM 1 */
-    ScheduledWorkitemCodeSequence?: NaturalizedDataset[];
+    ScheduledWorkitemCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00404019 · VR SQ · VM 1 */
-    PerformedWorkitemCodeSequence?: NaturalizedDataset[];
+    PerformedWorkitemCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00404020 · VR CS · VM 1 */
     InputAvailabilityFlag?: string;
     /** 00404021 · VR SQ · VM 1 */
-    InputInformationSequence?: NaturalizedDataset[];
+    InputInformationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00404022 · VR SQ · VM 1 */
-    RETIRED_RelevantInformationSequence?: NaturalizedDataset[];
+    RETIRED_RelevantInformationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00404023 · VR UI · VM 1 */
     RETIRED_ReferencedGeneralPurposeScheduledProcedureStepTransactionUID?: string;
     /** 00404025 · VR SQ · VM 1 */
-    ScheduledStationNameCodeSequence?: NaturalizedDataset[];
+    ScheduledStationNameCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00404026 · VR SQ · VM 1 */
-    ScheduledStationClassCodeSequence?: NaturalizedDataset[];
+    ScheduledStationClassCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00404027 · VR SQ · VM 1 */
-    ScheduledStationGeographicLocationCodeSequence?: NaturalizedDataset[];
+    ScheduledStationGeographicLocationCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00404028 · VR SQ · VM 1 */
-    PerformedStationNameCodeSequence?: NaturalizedDataset[];
+    PerformedStationNameCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00404029 · VR SQ · VM 1 */
-    PerformedStationClassCodeSequence?: NaturalizedDataset[];
+    PerformedStationClassCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00404030 · VR SQ · VM 1 */
-    PerformedStationGeographicLocationCodeSequence?: NaturalizedDataset[];
+    PerformedStationGeographicLocationCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00404031 · VR SQ · VM 1 */
-    RETIRED_RequestedSubsequentWorkitemCodeSequence?: NaturalizedDataset[];
+    RETIRED_RequestedSubsequentWorkitemCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00404032 · VR SQ · VM 1 */
-    RETIRED_NonDICOMOutputCodeSequence?: NaturalizedDataset[];
+    RETIRED_NonDICOMOutputCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00404033 · VR SQ · VM 1 */
-    OutputInformationSequence?: NaturalizedDataset[];
+    OutputInformationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00404034 · VR SQ · VM 1 */
-    ScheduledHumanPerformersSequence?: NaturalizedDataset[];
+    ScheduledHumanPerformersSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00404035 · VR SQ · VM 1 */
-    ActualHumanPerformersSequence?: NaturalizedDataset[];
+    ActualHumanPerformersSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00404036 · VR LO · VM 1 */
     HumanPerformerOrganization?: string;
     /** 00404037 · VR PN · VM 1 */
@@ -6333,27 +6333,27 @@ export interface NaturalizedDataset {
     /** 00404052 · VR DT · VM 1 */
     ProcedureStepCancellationDateTime?: string;
     /** 00404070 · VR SQ · VM 1 */
-    OutputDestinationSequence?: NaturalizedDataset[];
+    OutputDestinationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00404071 · VR SQ · VM 1 */
-    DICOMStorageSequence?: NaturalizedDataset[];
+    DICOMStorageSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00404072 · VR SQ · VM 1 */
-    STOWRSStorageSequence?: NaturalizedDataset[];
+    STOWRSStorageSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00404073 · VR UR · VM 1 */
     StorageURL?: string;
     /** 00404074 · VR SQ · VM 1 */
-    XDSStorageSequence?: NaturalizedDataset[];
+    XDSStorageSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00408302 · VR DS · VM 1 */
     EntranceDoseInmGy?: number;
     /** 00408303 · VR CS · VM 1 */
     EntranceDoseDerivation?: string;
     /** 00409092 · VR SQ · VM 1 */
-    ParametricMapFrameTypeSequence?: NaturalizedDataset[];
+    ParametricMapFrameTypeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00409094 · VR SQ · VM 1 */
-    ReferencedImageRealWorldValueMappingSequence?: NaturalizedDataset[];
+    ReferencedImageRealWorldValueMappingSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00409096 · VR SQ · VM 1 */
-    RealWorldValueMappingSequence?: NaturalizedDataset[];
+    RealWorldValueMappingSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00409098 · VR SQ · VM 1 */
-    PixelValueMappingCodeSequence?: NaturalizedDataset[];
+    PixelValueMappingCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00409210 · VR SH · VM 1 */
     LUTLabel?: string;
     /** 00409211 · VR US/SS · VM 1 */
@@ -6367,7 +6367,7 @@ export interface NaturalizedDataset {
     /** 00409216 · VR US/SS · VM 1 */
     RealWorldValueFirstValueMapped?: number;
     /** 00409220 · VR SQ · VM 1 */
-    QuantityDefinitionSequence?: NaturalizedDataset[];
+    QuantityDefinitionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00409224 · VR FD · VM 1 */
     RealWorldValueIntercept?: number;
     /** 00409225 · VR FD · VM 1 */
@@ -6377,7 +6377,7 @@ export interface NaturalizedDataset {
     /** 0040A010 · VR CS · VM 1 */
     RelationshipType?: string;
     /** 0040A020 · VR SQ · VM 1 */
-    RETIRED_FindingsSequenceTrial?: NaturalizedDataset[];
+    RETIRED_FindingsSequenceTrial?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040A021 · VR UI · VM 1 */
     RETIRED_FindingsGroupUIDTrial?: string;
     /** 0040A022 · VR UI · VM 1 */
@@ -6387,11 +6387,11 @@ export interface NaturalizedDataset {
     /** 0040A024 · VR TM · VM 1 */
     RETIRED_FindingsGroupRecordingTimeTrial?: string;
     /** 0040A026 · VR SQ · VM 1 */
-    RETIRED_FindingsSourceCategoryCodeSequenceTrial?: NaturalizedDataset[];
+    RETIRED_FindingsSourceCategoryCodeSequenceTrial?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040A027 · VR LO · VM 1 */
     VerifyingOrganization?: string;
     /** 0040A028 · VR SQ · VM 1 */
-    RETIRED_DocumentingOrganizationIdentifierCodeSequenceTrial?: NaturalizedDataset[];
+    RETIRED_DocumentingOrganizationIdentifierCodeSequenceTrial?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040A030 · VR DT · VM 1 */
     VerificationDateTime?: string;
     /** 0040A032 · VR DT · VM 1 */
@@ -6401,7 +6401,7 @@ export interface NaturalizedDataset {
     /** 0040A040 · VR CS · VM 1 */
     ValueType?: string;
     /** 0040A043 · VR SQ · VM 1 */
-    ConceptNameCodeSequence?: NaturalizedDataset[];
+    ConceptNameCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040A047 · VR LO · VM 1 */
     RETIRED_MeasurementPrecisionDescriptionTrial?: string;
     /** 0040A050 · VR CS · VM 1 */
@@ -6411,27 +6411,27 @@ export interface NaturalizedDataset {
     /** 0040A060 · VR LO · VM 1 */
     RETIRED_SequencingIndicatorTrial?: string;
     /** 0040A066 · VR SQ · VM 1 */
-    RETIRED_DocumentIdentifierCodeSequenceTrial?: NaturalizedDataset[];
+    RETIRED_DocumentIdentifierCodeSequenceTrial?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040A067 · VR PN · VM 1 */
     RETIRED_DocumentAuthorTrial?: PersonName;
     /** 0040A068 · VR SQ · VM 1 */
-    RETIRED_DocumentAuthorIdentifierCodeSequenceTrial?: NaturalizedDataset[];
+    RETIRED_DocumentAuthorIdentifierCodeSequenceTrial?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040A070 · VR SQ · VM 1 */
-    RETIRED_IdentifierCodeSequenceTrial?: NaturalizedDataset[];
+    RETIRED_IdentifierCodeSequenceTrial?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040A073 · VR SQ · VM 1 */
-    VerifyingObserverSequence?: NaturalizedDataset[];
+    VerifyingObserverSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040A074 · VR OB · VM 1 */
     RETIRED_ObjectBinaryIdentifierTrial?: BinaryValue[];
     /** 0040A075 · VR PN · VM 1 */
     VerifyingObserverName?: PersonName;
     /** 0040A076 · VR SQ · VM 1 */
-    RETIRED_DocumentingObserverIdentifierCodeSequenceTrial?: NaturalizedDataset[];
+    RETIRED_DocumentingObserverIdentifierCodeSequenceTrial?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040A078 · VR SQ · VM 1 */
-    AuthorObserverSequence?: NaturalizedDataset[];
+    AuthorObserverSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040A07A · VR SQ · VM 1 */
-    ParticipantSequence?: NaturalizedDataset[];
+    ParticipantSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040A07C · VR SQ · VM 1 */
-    CustodialOrganizationSequence?: NaturalizedDataset[];
+    CustodialOrganizationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040A080 · VR CS · VM 1 */
     ParticipationType?: string;
     /** 0040A082 · VR DT · VM 1 */
@@ -6439,13 +6439,13 @@ export interface NaturalizedDataset {
     /** 0040A084 · VR CS · VM 1 */
     ObserverType?: string;
     /** 0040A085 · VR SQ · VM 1 */
-    RETIRED_ProcedureIdentifierCodeSequenceTrial?: NaturalizedDataset[];
+    RETIRED_ProcedureIdentifierCodeSequenceTrial?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040A088 · VR SQ · VM 1 */
-    VerifyingObserverIdentificationCodeSequence?: NaturalizedDataset[];
+    VerifyingObserverIdentificationCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040A089 · VR OB · VM 1 */
     RETIRED_ObjectDirectoryBinaryIdentifierTrial?: BinaryValue[];
     /** 0040A090 · VR SQ · VM 1 */
-    RETIRED_EquivalentCDADocumentSequence?: NaturalizedDataset[];
+    RETIRED_EquivalentCDADocumentSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040A0B0 · VR US · VM 2-2n */
     ReferencedWaveformChannels?: number[];
     /** 0040A110 · VR DA · VM 1 */
@@ -6483,13 +6483,13 @@ export interface NaturalizedDataset {
     /** 0040A163 · VR UL · VM 1-n */
     RationalDenominatorValue?: number[];
     /** 0040A167 · VR SQ · VM 1 */
-    RETIRED_ObservationCategoryCodeSequenceTrial?: NaturalizedDataset[];
+    RETIRED_ObservationCategoryCodeSequenceTrial?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040A168 · VR SQ · VM 1 */
-    ConceptCodeSequence?: NaturalizedDataset[];
+    ConceptCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040A16A · VR ST · VM 1 */
     RETIRED_BibliographicCitationTrial?: string;
     /** 0040A170 · VR SQ · VM 1 */
-    PurposeOfReferenceCodeSequence?: NaturalizedDataset[];
+    PurposeOfReferenceCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040A171 · VR UI · VM 1 */
     ObservationUID?: string;
     /** 0040A172 · VR UI · VM 1 */
@@ -6507,31 +6507,31 @@ export interface NaturalizedDataset {
     /** 0040A194 · VR CS · VM 1 */
     RETIRED_MeasurementAutomationTrial?: string;
     /** 0040A195 · VR SQ · VM 1 */
-    ModifierCodeSequence?: NaturalizedDataset[];
+    ModifierCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040A224 · VR ST · VM 1 */
     RETIRED_IdentificationDescriptionTrial?: string;
     /** 0040A290 · VR CS · VM 1 */
     RETIRED_CoordinatesSetGeometricTypeTrial?: string;
     /** 0040A296 · VR SQ · VM 1 */
-    RETIRED_AlgorithmCodeSequenceTrial?: NaturalizedDataset[];
+    RETIRED_AlgorithmCodeSequenceTrial?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040A297 · VR ST · VM 1 */
     RETIRED_AlgorithmDescriptionTrial?: string;
     /** 0040A29A · VR SL · VM 2-2n */
     RETIRED_PixelCoordinatesSetTrial?: number[];
     /** 0040A300 · VR SQ · VM 1 */
-    MeasuredValueSequence?: NaturalizedDataset[];
+    MeasuredValueSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040A301 · VR SQ · VM 1 */
-    NumericValueQualifierCodeSequence?: NaturalizedDataset[];
+    NumericValueQualifierCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040A307 · VR PN · VM 1 */
     RETIRED_CurrentObserverTrial?: PersonName;
     /** 0040A30A · VR DS · VM 1-n */
     NumericValue?: number[];
     /** 0040A313 · VR SQ · VM 1 */
-    RETIRED_ReferencedAccessionSequenceTrial?: NaturalizedDataset[];
+    RETIRED_ReferencedAccessionSequenceTrial?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040A33A · VR ST · VM 1 */
     RETIRED_ReportStatusCommentTrial?: string;
     /** 0040A340 · VR SQ · VM 1 */
-    RETIRED_ProcedureContextSequenceTrial?: NaturalizedDataset[];
+    RETIRED_ProcedureContextSequenceTrial?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040A352 · VR PN · VM 1 */
     RETIRED_VerbalSourceTrial?: PersonName;
     /** 0040A353 · VR ST · VM 1 */
@@ -6539,27 +6539,27 @@ export interface NaturalizedDataset {
     /** 0040A354 · VR LO · VM 1 */
     RETIRED_TelephoneNumberTrial?: string;
     /** 0040A358 · VR SQ · VM 1 */
-    RETIRED_VerbalSourceIdentifierCodeSequenceTrial?: NaturalizedDataset[];
+    RETIRED_VerbalSourceIdentifierCodeSequenceTrial?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040A360 · VR SQ · VM 1 */
-    PredecessorDocumentsSequence?: NaturalizedDataset[];
+    PredecessorDocumentsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040A370 · VR SQ · VM 1 */
-    ReferencedRequestSequence?: NaturalizedDataset[];
+    ReferencedRequestSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040A372 · VR SQ · VM 1 */
-    PerformedProcedureCodeSequence?: NaturalizedDataset[];
+    PerformedProcedureCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040A375 · VR SQ · VM 1 */
-    CurrentRequestedProcedureEvidenceSequence?: NaturalizedDataset[];
+    CurrentRequestedProcedureEvidenceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040A380 · VR SQ · VM 1 */
-    RETIRED_ReportDetailSequenceTrial?: NaturalizedDataset[];
+    RETIRED_ReportDetailSequenceTrial?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040A385 · VR SQ · VM 1 */
-    PertinentOtherEvidenceSequence?: NaturalizedDataset[];
+    PertinentOtherEvidenceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040A390 · VR SQ · VM 1 */
-    HL7StructuredDocumentReferenceSequence?: NaturalizedDataset[];
+    HL7StructuredDocumentReferenceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040A402 · VR UI · VM 1 */
     RETIRED_ObservationSubjectUIDTrial?: string;
     /** 0040A403 · VR CS · VM 1 */
     RETIRED_ObservationSubjectClassTrial?: string;
     /** 0040A404 · VR SQ · VM 1 */
-    RETIRED_ObservationSubjectTypeCodeSequenceTrial?: NaturalizedDataset[];
+    RETIRED_ObservationSubjectTypeCodeSequenceTrial?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040A491 · VR CS · VM 1 */
     CompletionFlag?: string;
     /** 0040A492 · VR LO · VM 1 */
@@ -6571,9 +6571,9 @@ export interface NaturalizedDataset {
     /** 0040A496 · VR CS · VM 1 */
     PreliminaryFlag?: string;
     /** 0040A504 · VR SQ · VM 1 */
-    ContentTemplateSequence?: NaturalizedDataset[];
+    ContentTemplateSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040A525 · VR SQ · VM 1 */
-    IdenticalDocumentsSequence?: NaturalizedDataset[];
+    IdenticalDocumentsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040A600 · VR CS · VM 1 */
     RETIRED_ObservationSubjectContextFlagTrial?: string;
     /** 0040A601 · VR CS · VM 1 */
@@ -6581,15 +6581,15 @@ export interface NaturalizedDataset {
     /** 0040A603 · VR CS · VM 1 */
     RETIRED_ProcedureContextFlagTrial?: string;
     /** 0040A730 · VR SQ · VM 1 */
-    ContentSequence?: NaturalizedDataset[];
+    ContentSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040A731 · VR SQ · VM 1 */
-    RETIRED_RelationshipSequenceTrial?: NaturalizedDataset[];
+    RETIRED_RelationshipSequenceTrial?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040A732 · VR SQ · VM 1 */
-    RETIRED_RelationshipTypeCodeSequenceTrial?: NaturalizedDataset[];
+    RETIRED_RelationshipTypeCodeSequenceTrial?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040A744 · VR SQ · VM 1 */
-    RETIRED_LanguageCodeSequenceTrial?: NaturalizedDataset[];
+    RETIRED_LanguageCodeSequenceTrial?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040A801 · VR SQ · VM 1 */
-    TabulatedValuesSequence?: NaturalizedDataset[];
+    TabulatedValuesSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040A802 · VR UL · VM 1 */
     NumberOfTableRows?: number;
     /** 0040A803 · VR UL · VM 1 */
@@ -6599,15 +6599,15 @@ export interface NaturalizedDataset {
     /** 0040A805 · VR UL · VM 1 */
     TableColumnNumber?: number;
     /** 0040A806 · VR SQ · VM 1 */
-    TableRowDefinitionSequence?: NaturalizedDataset[];
+    TableRowDefinitionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040A807 · VR SQ · VM 1 */
-    TableColumnDefinitionSequence?: NaturalizedDataset[];
+    TableColumnDefinitionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040A808 · VR SQ · VM 1 */
-    CellValuesSequence?: NaturalizedDataset[];
+    CellValuesSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040A992 · VR ST · VM 1 */
     RETIRED_UniformResourceLocatorTrial?: string;
     /** 0040B020 · VR SQ · VM 1 */
-    WaveformAnnotationSequence?: NaturalizedDataset[];
+    WaveformAnnotationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040DB00 · VR CS · VM 1 */
     TemplateIdentifier?: string;
     /** 0040DB06 · VR DT · VM 1 */
@@ -6627,9 +6627,9 @@ export interface NaturalizedDataset {
     /** 0040E004 · VR DT · VM 1 */
     HL7DocumentEffectiveTime?: string;
     /** 0040E006 · VR SQ · VM 1 */
-    HL7DocumentTypeCodeSequence?: NaturalizedDataset[];
+    HL7DocumentTypeCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040E008 · VR SQ · VM 1 */
-    DocumentClassCodeSequence?: NaturalizedDataset[];
+    DocumentClassCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040E010 · VR UR · VM 1 */
     RetrieveURI?: string;
     /** 0040E011 · VR UI · VM 1 */
@@ -6637,15 +6637,15 @@ export interface NaturalizedDataset {
     /** 0040E020 · VR CS · VM 1 */
     TypeOfInstances?: string;
     /** 0040E021 · VR SQ · VM 1 */
-    DICOMRetrievalSequence?: NaturalizedDataset[];
+    DICOMRetrievalSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040E022 · VR SQ · VM 1 */
-    DICOMMediaRetrievalSequence?: NaturalizedDataset[];
+    DICOMMediaRetrievalSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040E023 · VR SQ · VM 1 */
-    WADORetrievalSequence?: NaturalizedDataset[];
+    WADORetrievalSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040E024 · VR SQ · VM 1 */
-    XDSRetrievalSequence?: NaturalizedDataset[];
+    XDSRetrievalSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040E025 · VR SQ · VM 1 */
-    WADORSRetrievalSequence?: NaturalizedDataset[];
+    WADORSRetrievalSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0040E030 · VR UI · VM 1 */
     RepositoryUniqueID?: string;
     /** 0040E031 · VR UI · VM 1 */
@@ -6657,7 +6657,7 @@ export interface NaturalizedDataset {
     /** 00420012 · VR LO · VM 1 */
     MIMETypeOfEncapsulatedDocument?: string;
     /** 00420013 · VR SQ · VM 1 */
-    SourceInstanceSequence?: NaturalizedDataset[];
+    SourceInstanceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00420014 · VR LO · VM 1-n */
     ListOfMIMETypes?: string[];
     /** 00420015 · VR UL · VM 1 */
@@ -6671,7 +6671,7 @@ export interface NaturalizedDataset {
     /** 00440004 · VR DT · VM 1 */
     ApprovalStatusDateTime?: string;
     /** 00440007 · VR SQ · VM 1 */
-    ProductTypeCodeSequence?: NaturalizedDataset[];
+    ProductTypeCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00440008 · VR LO · VM 1-n */
     ProductName?: string[];
     /** 00440009 · VR LT · VM 1 */
@@ -6687,17 +6687,17 @@ export interface NaturalizedDataset {
     /** 00440012 · VR LO · VM 1 */
     SubstanceAdministrationDeviceID?: string;
     /** 00440013 · VR SQ · VM 1 */
-    ProductParameterSequence?: NaturalizedDataset[];
+    ProductParameterSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00440019 · VR SQ · VM 1 */
-    SubstanceAdministrationParameterSequence?: NaturalizedDataset[];
+    SubstanceAdministrationParameterSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00440100 · VR SQ · VM 1 */
-    ApprovalSequence?: NaturalizedDataset[];
+    ApprovalSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00440101 · VR SQ · VM 1 */
-    AssertionCodeSequence?: NaturalizedDataset[];
+    AssertionCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00440102 · VR UI · VM 1 */
     AssertionUID?: string;
     /** 00440103 · VR SQ · VM 1 */
-    AsserterIdentificationSequence?: NaturalizedDataset[];
+    AsserterIdentificationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00440104 · VR DT · VM 1 */
     AssertionDateTime?: string;
     /** 00440105 · VR DT · VM 1 */
@@ -6705,25 +6705,25 @@ export interface NaturalizedDataset {
     /** 00440106 · VR UT · VM 1 */
     AssertionComments?: string;
     /** 00440107 · VR SQ · VM 1 */
-    RelatedAssertionSequence?: NaturalizedDataset[];
+    RelatedAssertionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00440108 · VR UI · VM 1 */
     ReferencedAssertionUID?: string;
     /** 00440109 · VR SQ · VM 1 */
-    ApprovalSubjectSequence?: NaturalizedDataset[];
+    ApprovalSubjectSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0044010A · VR SQ · VM 1 */
-    OrganizationalRoleCodeSequence?: NaturalizedDataset[];
+    OrganizationalRoleCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00460012 · VR LO · VM 1 */
     LensDescription?: string;
     /** 00460014 · VR SQ · VM 1 */
-    RightLensSequence?: NaturalizedDataset[];
+    RightLensSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00460015 · VR SQ · VM 1 */
-    LeftLensSequence?: NaturalizedDataset[];
+    LeftLensSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00460016 · VR SQ · VM 1 */
-    UnspecifiedLateralityLensSequence?: NaturalizedDataset[];
+    UnspecifiedLateralityLensSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00460018 · VR SQ · VM 1 */
-    CylinderSequence?: NaturalizedDataset[];
+    CylinderSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00460028 · VR SQ · VM 1 */
-    PrismSequence?: NaturalizedDataset[];
+    PrismSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00460030 · VR FD · VM 1 */
     HorizontalPrismPower?: number;
     /** 00460032 · VR CS · VM 1 */
@@ -6743,11 +6743,11 @@ export interface NaturalizedDataset {
     /** 00460046 · VR FD · VM 1 */
     CornealSize?: number;
     /** 00460047 · VR SQ · VM 1 */
-    CornealSizeSequence?: NaturalizedDataset[];
+    CornealSizeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00460050 · VR SQ · VM 1 */
-    AutorefractionRightEyeSequence?: NaturalizedDataset[];
+    AutorefractionRightEyeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00460052 · VR SQ · VM 1 */
-    AutorefractionLeftEyeSequence?: NaturalizedDataset[];
+    AutorefractionLeftEyeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00460060 · VR FD · VM 1 */
     DistancePupillaryDistance?: number;
     /** 00460062 · VR FD · VM 1 */
@@ -6757,11 +6757,11 @@ export interface NaturalizedDataset {
     /** 00460064 · VR FD · VM 1 */
     OtherPupillaryDistance?: number;
     /** 00460070 · VR SQ · VM 1 */
-    KeratometryRightEyeSequence?: NaturalizedDataset[];
+    KeratometryRightEyeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00460071 · VR SQ · VM 1 */
-    KeratometryLeftEyeSequence?: NaturalizedDataset[];
+    KeratometryLeftEyeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00460074 · VR SQ · VM 1 */
-    SteepKeratometricAxisSequence?: NaturalizedDataset[];
+    SteepKeratometricAxisSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00460075 · VR FD · VM 1 */
     RadiusOfCurvature?: number;
     /** 00460076 · VR FD · VM 1 */
@@ -6769,7 +6769,7 @@ export interface NaturalizedDataset {
     /** 00460077 · VR FD · VM 1 */
     KeratometricAxis?: number;
     /** 00460080 · VR SQ · VM 1 */
-    FlatKeratometricAxisSequence?: NaturalizedDataset[];
+    FlatKeratometricAxisSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00460092 · VR CS · VM 1 */
     BackgroundColor?: string;
     /** 00460094 · VR CS · VM 1 */
@@ -6777,45 +6777,45 @@ export interface NaturalizedDataset {
     /** 00460095 · VR CS · VM 1 */
     OptotypePresentation?: string;
     /** 00460097 · VR SQ · VM 1 */
-    SubjectiveRefractionRightEyeSequence?: NaturalizedDataset[];
+    SubjectiveRefractionRightEyeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00460098 · VR SQ · VM 1 */
-    SubjectiveRefractionLeftEyeSequence?: NaturalizedDataset[];
+    SubjectiveRefractionLeftEyeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00460100 · VR SQ · VM 1 */
-    AddNearSequence?: NaturalizedDataset[];
+    AddNearSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00460101 · VR SQ · VM 1 */
-    AddIntermediateSequence?: NaturalizedDataset[];
+    AddIntermediateSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00460102 · VR SQ · VM 1 */
-    AddOtherSequence?: NaturalizedDataset[];
+    AddOtherSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00460104 · VR FD · VM 1 */
     AddPower?: number;
     /** 00460106 · VR FD · VM 1 */
     ViewingDistance?: number;
     /** 00460110 · VR SQ · VM 1 */
-    CorneaMeasurementsSequence?: NaturalizedDataset[];
+    CorneaMeasurementsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00460111 · VR SQ · VM 1 */
-    SourceOfCorneaMeasurementDataCodeSequence?: NaturalizedDataset[];
+    SourceOfCorneaMeasurementDataCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00460112 · VR SQ · VM 1 */
-    SteepCornealAxisSequence?: NaturalizedDataset[];
+    SteepCornealAxisSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00460113 · VR SQ · VM 1 */
-    FlatCornealAxisSequence?: NaturalizedDataset[];
+    FlatCornealAxisSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00460114 · VR FD · VM 1 */
     CornealPower?: number;
     /** 00460115 · VR FD · VM 1 */
     CornealAxis?: number;
     /** 00460116 · VR SQ · VM 1 */
-    CorneaMeasurementMethodCodeSequence?: NaturalizedDataset[];
+    CorneaMeasurementMethodCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00460117 · VR FL · VM 1 */
     RefractiveIndexOfCornea?: number;
     /** 00460118 · VR FL · VM 1 */
     RefractiveIndexOfAqueousHumor?: number;
     /** 00460121 · VR SQ · VM 1 */
-    VisualAcuityTypeCodeSequence?: NaturalizedDataset[];
+    VisualAcuityTypeCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00460122 · VR SQ · VM 1 */
-    VisualAcuityRightEyeSequence?: NaturalizedDataset[];
+    VisualAcuityRightEyeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00460123 · VR SQ · VM 1 */
-    VisualAcuityLeftEyeSequence?: NaturalizedDataset[];
+    VisualAcuityLeftEyeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00460124 · VR SQ · VM 1 */
-    VisualAcuityBothEyesOpenSequence?: NaturalizedDataset[];
+    VisualAcuityBothEyesOpenSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00460125 · VR CS · VM 1 */
     ViewingDistanceType?: string;
     /** 00460135 · VR SS · VM 2 */
@@ -6825,7 +6825,7 @@ export interface NaturalizedDataset {
     /** 00460139 · VR LO · VM 1 */
     OptotypeDetailedDefinition?: string;
     /** 00460145 · VR SQ · VM 1 */
-    ReferencedRefractiveMeasurementsSequence?: NaturalizedDataset[];
+    ReferencedRefractiveMeasurementsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00460146 · VR FD · VM 1 */
     SpherePower?: number;
     /** 00460147 · VR FD · VM 1 */
@@ -6841,21 +6841,21 @@ export interface NaturalizedDataset {
     /** 00460205 · VR FL · VM 1 */
     EquivalentPupilRadius?: number;
     /** 00460207 · VR SQ · VM 1 */
-    CornealTopographyMapTypeCodeSequence?: NaturalizedDataset[];
+    CornealTopographyMapTypeCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00460208 · VR IS · VM 2-2n */
     VerticesOfTheOutlineOfPupil?: number[];
     /** 00460210 · VR SQ · VM 1 */
-    CornealTopographyMappingNormalsSequence?: NaturalizedDataset[];
+    CornealTopographyMappingNormalsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00460211 · VR SQ · VM 1 */
-    MaximumCornealCurvatureSequence?: NaturalizedDataset[];
+    MaximumCornealCurvatureSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00460212 · VR FL · VM 1 */
     MaximumCornealCurvature?: number;
     /** 00460213 · VR FL · VM 2 */
     MaximumCornealCurvatureLocation?: number[];
     /** 00460215 · VR SQ · VM 1 */
-    MinimumKeratometricSequence?: NaturalizedDataset[];
+    MinimumKeratometricSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00460218 · VR SQ · VM 1 */
-    SimulatedKeratometricCylinderSequence?: NaturalizedDataset[];
+    SimulatedKeratometricCylinderSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00460220 · VR FL · VM 1 */
     AverageCornealPower?: number;
     /** 00460224 · VR FL · VM 1 */
@@ -6875,7 +6875,7 @@ export interface NaturalizedDataset {
     /** 00460242 · VR CS · VM 1 */
     CornealTopographyMapQualityEvaluation?: string;
     /** 00460244 · VR SQ · VM 1 */
-    SourceImageCornealProcessedDataSequence?: NaturalizedDataset[];
+    SourceImageCornealProcessedDataSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00460247 · VR FL · VM 3 */
     CornealPointLocation?: number[];
     /** 00460248 · VR CS · VM 1 */
@@ -6901,7 +6901,7 @@ export interface NaturalizedDataset {
     /** 00480007 · VR UL · VM 1 */
     TotalPixelMatrixRows?: number;
     /** 00480008 · VR SQ · VM 1 */
-    TotalPixelMatrixOriginSequence?: NaturalizedDataset[];
+    TotalPixelMatrixOriginSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00480010 · VR CS · VM 1 */
     SpecimenLabelInImage?: string;
     /** 00480011 · VR CS · VM 1 */
@@ -6915,19 +6915,19 @@ export interface NaturalizedDataset {
     /** 00480015 · VR US · VM 3 */
     RecommendedAbsentPixelCIELabValue?: number[];
     /** 00480100 · VR SQ · VM 1 */
-    IlluminatorTypeCodeSequence?: NaturalizedDataset[];
+    IlluminatorTypeCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00480102 · VR DS · VM 6 */
     ImageOrientationSlide?: number[];
     /** 00480105 · VR SQ · VM 1 */
-    OpticalPathSequence?: NaturalizedDataset[];
+    OpticalPathSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00480106 · VR SH · VM 1 */
     OpticalPathIdentifier?: string;
     /** 00480107 · VR ST · VM 1 */
     OpticalPathDescription?: string;
     /** 00480108 · VR SQ · VM 1 */
-    IlluminationColorCodeSequence?: NaturalizedDataset[];
+    IlluminationColorCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00480110 · VR SQ · VM 1 */
-    SpecimenReferenceSequence?: NaturalizedDataset[];
+    SpecimenReferenceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00480111 · VR DS · VM 1 */
     CondenserLensPower?: number;
     /** 00480112 · VR DS · VM 1 */
@@ -6939,21 +6939,21 @@ export interface NaturalizedDataset {
     /** 00480115 · VR CS · VM 1 */
     TissueLocation?: string;
     /** 00480116 · VR SQ · VM 1 */
-    ConfocalMicroscopyImageFrameTypeSequence?: NaturalizedDataset[];
+    ConfocalMicroscopyImageFrameTypeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00480117 · VR FD · VM 1 */
     ImageAcquisitionDepth?: number;
     /** 00480120 · VR SQ · VM 1 */
-    PaletteColorLookupTableSequence?: NaturalizedDataset[];
+    PaletteColorLookupTableSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00480200 · VR SQ · VM 1 */
-    ReferencedImageNavigationSequence?: NaturalizedDataset[];
+    ReferencedImageNavigationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00480201 · VR US · VM 2 */
     TopLeftHandCornerOfLocalizerArea?: number[];
     /** 00480202 · VR US · VM 2 */
     BottomRightHandCornerOfLocalizerArea?: number[];
     /** 00480207 · VR SQ · VM 1 */
-    OpticalPathIdentificationSequence?: NaturalizedDataset[];
+    OpticalPathIdentificationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0048021A · VR SQ · VM 1 */
-    PlanePositionSlideSequence?: NaturalizedDataset[];
+    PlanePositionSlideSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0048021E · VR SL · VM 1 */
     ColumnPositionInTotalImagePixelMatrix?: number;
     /** 0048021F · VR SL · VM 1 */
@@ -6967,9 +6967,9 @@ export interface NaturalizedDataset {
     /** 00500004 · VR CS · VM 1 */
     CalibrationImage?: string;
     /** 00500010 · VR SQ · VM 1 */
-    DeviceSequence?: NaturalizedDataset[];
+    DeviceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00500012 · VR SQ · VM 1 */
-    ContainerComponentTypeCodeSequence?: NaturalizedDataset[];
+    ContainerComponentTypeCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00500013 · VR FD · VM 1 */
     ContainerComponentThickness?: number;
     /** 00500014 · VR DS · VM 1 */
@@ -7023,17 +7023,17 @@ export interface NaturalizedDataset {
     /** 00520014 · VR FD · VM 1 */
     ALinePixelSpacing?: number;
     /** 00520016 · VR SQ · VM 1 */
-    ModeOfPercutaneousAccessSequence?: NaturalizedDataset[];
+    ModeOfPercutaneousAccessSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00520025 · VR SQ · VM 1 */
-    IntravascularOCTFrameTypeSequence?: NaturalizedDataset[];
+    IntravascularOCTFrameTypeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00520026 · VR CS · VM 1 */
     OCTZOffsetApplied?: string;
     /** 00520027 · VR SQ · VM 1 */
-    IntravascularFrameContentSequence?: NaturalizedDataset[];
+    IntravascularFrameContentSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00520028 · VR FD · VM 1 */
     IntravascularLongitudinalDistance?: number;
     /** 00520029 · VR SQ · VM 1 */
-    IntravascularOCTFrameContentSequence?: NaturalizedDataset[];
+    IntravascularOCTFrameContentSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00520030 · VR SS · VM 1 */
     OCTZOffsetCorrection?: number;
     /** 00520031 · VR CS · VM 1 */
@@ -7055,15 +7055,15 @@ export interface NaturalizedDataset {
     /** 00540011 · VR US · VM 1 */
     NumberOfEnergyWindows?: number;
     /** 00540012 · VR SQ · VM 1 */
-    EnergyWindowInformationSequence?: NaturalizedDataset[];
+    EnergyWindowInformationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00540013 · VR SQ · VM 1 */
-    EnergyWindowRangeSequence?: NaturalizedDataset[];
+    EnergyWindowRangeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00540014 · VR DS · VM 1 */
     EnergyWindowLowerLimit?: number;
     /** 00540015 · VR DS · VM 1 */
     EnergyWindowUpperLimit?: number;
     /** 00540016 · VR SQ · VM 1 */
-    RadiopharmaceuticalInformationSequence?: NaturalizedDataset[];
+    RadiopharmaceuticalInformationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00540017 · VR IS · VM 1 */
     ResidualSyringeCounts?: number;
     /** 00540018 · VR SH · VM 1 */
@@ -7073,13 +7073,13 @@ export interface NaturalizedDataset {
     /** 00540021 · VR US · VM 1 */
     NumberOfDetectors?: number;
     /** 00540022 · VR SQ · VM 1 */
-    DetectorInformationSequence?: NaturalizedDataset[];
+    DetectorInformationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00540030 · VR US · VM 1-n */
     PhaseVector?: number[];
     /** 00540031 · VR US · VM 1 */
     NumberOfPhases?: number;
     /** 00540032 · VR SQ · VM 1 */
-    PhaseInformationSequence?: NaturalizedDataset[];
+    PhaseInformationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00540033 · VR US · VM 1 */
     NumberOfFramesInPhase?: number;
     /** 00540036 · VR IS · VM 1 */
@@ -7093,7 +7093,7 @@ export interface NaturalizedDataset {
     /** 00540051 · VR US · VM 1 */
     NumberOfRotations?: number;
     /** 00540052 · VR SQ · VM 1 */
-    RotationInformationSequence?: NaturalizedDataset[];
+    RotationInformationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00540053 · VR US · VM 1 */
     NumberOfFramesInRotation?: number;
     /** 00540060 · VR US · VM 1-n */
@@ -7101,15 +7101,15 @@ export interface NaturalizedDataset {
     /** 00540061 · VR US · VM 1 */
     NumberOfRRIntervals?: number;
     /** 00540062 · VR SQ · VM 1 */
-    GatedInformationSequence?: NaturalizedDataset[];
+    GatedInformationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00540063 · VR SQ · VM 1 */
-    DataInformationSequence?: NaturalizedDataset[];
+    DataInformationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00540070 · VR US · VM 1-n */
     TimeSlotVector?: number[];
     /** 00540071 · VR US · VM 1 */
     NumberOfTimeSlots?: number;
     /** 00540072 · VR SQ · VM 1 */
-    TimeSlotInformationSequence?: NaturalizedDataset[];
+    TimeSlotInformationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00540073 · VR DS · VM 1 */
     TimeSlotTime?: number;
     /** 00540080 · VR US · VM 1-n */
@@ -7131,27 +7131,27 @@ export interface NaturalizedDataset {
     /** 00540211 · VR US · VM 1 */
     NumberOfTriggersInPhase?: number;
     /** 00540220 · VR SQ · VM 1 */
-    ViewCodeSequence?: NaturalizedDataset[];
+    ViewCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00540222 · VR SQ · VM 1 */
-    ViewModifierCodeSequence?: NaturalizedDataset[];
+    ViewModifierCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00540300 · VR SQ · VM 1 */
-    RadionuclideCodeSequence?: NaturalizedDataset[];
+    RadionuclideCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00540302 · VR SQ · VM 1 */
-    AdministrationRouteCodeSequence?: NaturalizedDataset[];
+    AdministrationRouteCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00540304 · VR SQ · VM 1 */
-    RadiopharmaceuticalCodeSequence?: NaturalizedDataset[];
+    RadiopharmaceuticalCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00540306 · VR SQ · VM 1 */
-    CalibrationDataSequence?: NaturalizedDataset[];
+    CalibrationDataSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00540308 · VR US · VM 1 */
     EnergyWindowNumber?: number;
     /** 00540400 · VR SH · VM 1 */
     ImageID?: string;
     /** 00540410 · VR SQ · VM 1 */
-    PatientOrientationCodeSequence?: NaturalizedDataset[];
+    PatientOrientationCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00540412 · VR SQ · VM 1 */
-    PatientOrientationModifierCodeSequence?: NaturalizedDataset[];
+    PatientOrientationModifierCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00540414 · VR SQ · VM 1 */
-    PatientGantryRelationshipCodeSequence?: NaturalizedDataset[];
+    PatientGantryRelationshipCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00540500 · VR CS · VM 1 */
     SliceProgressionDirection?: string;
     /** 00540501 · VR CS · VM 1 */
@@ -7213,7 +7213,7 @@ export interface NaturalizedDataset {
     /** 00541401 · VR CS · VM 1 */
     RETIRED_DeadTimeCorrectionFlag?: string;
     /** 00603000 · VR SQ · VM 1 */
-    HistogramSequence?: NaturalizedDataset[];
+    HistogramSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00603002 · VR US · VM 1 */
     HistogramNumberOfBins?: number;
     /** 00603004 · VR US/SS · VM 1 */
@@ -7229,9 +7229,9 @@ export interface NaturalizedDataset {
     /** 00620001 · VR CS · VM 1 */
     SegmentationType?: string;
     /** 00620002 · VR SQ · VM 1 */
-    SegmentSequence?: NaturalizedDataset[];
+    SegmentSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00620003 · VR SQ · VM 1 */
-    SegmentedPropertyCategoryCodeSequence?: NaturalizedDataset[];
+    SegmentedPropertyCategoryCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00620004 · VR US · VM 1 */
     SegmentNumber?: number;
     /** 00620005 · VR LO · VM 1 */
@@ -7239,13 +7239,13 @@ export interface NaturalizedDataset {
     /** 00620006 · VR ST · VM 1 */
     SegmentDescription?: string;
     /** 00620007 · VR SQ · VM 1 */
-    SegmentationAlgorithmIdentificationSequence?: NaturalizedDataset[];
+    SegmentationAlgorithmIdentificationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00620008 · VR CS · VM 1 */
     SegmentAlgorithmType?: string;
     /** 00620009 · VR LO · VM 1 */
     SegmentAlgorithmName?: string;
     /** 0062000A · VR SQ · VM 1 */
-    SegmentIdentificationSequence?: NaturalizedDataset[];
+    SegmentIdentificationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0062000B · VR US · VM 1-n */
     ReferencedSegmentNumber?: number[];
     /** 0062000C · VR US · VM 1 */
@@ -7255,13 +7255,13 @@ export interface NaturalizedDataset {
     /** 0062000E · VR US · VM 1 */
     MaximumFractionalValue?: number;
     /** 0062000F · VR SQ · VM 1 */
-    SegmentedPropertyTypeCodeSequence?: NaturalizedDataset[];
+    SegmentedPropertyTypeCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00620010 · VR CS · VM 1 */
     SegmentationFractionalType?: string;
     /** 00620011 · VR SQ · VM 1 */
-    SegmentedPropertyTypeModifierCodeSequence?: NaturalizedDataset[];
+    SegmentedPropertyTypeModifierCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00620012 · VR SQ · VM 1 */
-    UsedSegmentsSequence?: NaturalizedDataset[];
+    UsedSegmentsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00620013 · VR CS · VM 1 */
     SegmentsOverlap?: string;
     /** 00620020 · VR UT · VM 1 */
@@ -7269,11 +7269,11 @@ export interface NaturalizedDataset {
     /** 00620021 · VR UI · VM 1 */
     TrackingUID?: string;
     /** 00640002 · VR SQ · VM 1 */
-    DeformableRegistrationSequence?: NaturalizedDataset[];
+    DeformableRegistrationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00640003 · VR UI · VM 1 */
     SourceFrameOfReferenceUID?: string;
     /** 00640005 · VR SQ · VM 1 */
-    DeformableRegistrationGridSequence?: NaturalizedDataset[];
+    DeformableRegistrationGridSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00640007 · VR UL · VM 3 */
     GridDimensions?: number[];
     /** 00640008 · VR FD · VM 3 */
@@ -7281,13 +7281,13 @@ export interface NaturalizedDataset {
     /** 00640009 · VR OF · VM 1 */
     VectorGridData?: BinaryValue[];
     /** 0064000F · VR SQ · VM 1 */
-    PreDeformationMatrixRegistrationSequence?: NaturalizedDataset[];
+    PreDeformationMatrixRegistrationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00640010 · VR SQ · VM 1 */
-    PostDeformationMatrixRegistrationSequence?: NaturalizedDataset[];
+    PostDeformationMatrixRegistrationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00660001 · VR UL · VM 1 */
     NumberOfSurfaces?: number;
     /** 00660002 · VR SQ · VM 1 */
-    SurfaceSequence?: NaturalizedDataset[];
+    SurfaceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00660003 · VR UL · VM 1 */
     SurfaceNumber?: number;
     /** 00660004 · VR LT · VM 1 */
@@ -7307,11 +7307,11 @@ export interface NaturalizedDataset {
     /** 00660010 · VR CS · VM 1 */
     Manifold?: string;
     /** 00660011 · VR SQ · VM 1 */
-    SurfacePointsSequence?: NaturalizedDataset[];
+    SurfacePointsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00660012 · VR SQ · VM 1 */
-    SurfacePointsNormalsSequence?: NaturalizedDataset[];
+    SurfacePointsNormalsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00660013 · VR SQ · VM 1 */
-    SurfaceMeshPrimitivesSequence?: NaturalizedDataset[];
+    SurfaceMeshPrimitivesSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00660015 · VR UL · VM 1 */
     NumberOfSurfacePoints?: number;
     /** 00660016 · VR OF · VM 1 */
@@ -7345,35 +7345,35 @@ export interface NaturalizedDataset {
     /** 00660025 · VR OW · VM 1 */
     VertexPointIndexList?: BinaryValue[];
     /** 00660026 · VR SQ · VM 1 */
-    TriangleStripSequence?: NaturalizedDataset[];
+    TriangleStripSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00660027 · VR SQ · VM 1 */
-    TriangleFanSequence?: NaturalizedDataset[];
+    TriangleFanSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00660028 · VR SQ · VM 1 */
-    LineSequence?: NaturalizedDataset[];
+    LineSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00660029 · VR OW · VM 1 */
     PrimitivePointIndexList?: BinaryValue[];
     /** 0066002A · VR UL · VM 1 */
     SurfaceCount?: number;
     /** 0066002B · VR SQ · VM 1 */
-    ReferencedSurfaceSequence?: NaturalizedDataset[];
+    ReferencedSurfaceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0066002C · VR UL · VM 1 */
     ReferencedSurfaceNumber?: number;
     /** 0066002D · VR SQ · VM 1 */
-    SegmentSurfaceGenerationAlgorithmIdentificationSequence?: NaturalizedDataset[];
+    SegmentSurfaceGenerationAlgorithmIdentificationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0066002E · VR SQ · VM 1 */
-    SegmentSurfaceSourceInstanceSequence?: NaturalizedDataset[];
+    SegmentSurfaceSourceInstanceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0066002F · VR SQ · VM 1 */
-    AlgorithmFamilyCodeSequence?: NaturalizedDataset[];
+    AlgorithmFamilyCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00660030 · VR SQ · VM 1 */
-    AlgorithmNameCodeSequence?: NaturalizedDataset[];
+    AlgorithmNameCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00660031 · VR LO · VM 1 */
     AlgorithmVersion?: string;
     /** 00660032 · VR LT · VM 1 */
     AlgorithmParameters?: string;
     /** 00660034 · VR SQ · VM 1 */
-    FacetSequence?: NaturalizedDataset[];
+    FacetSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00660035 · VR SQ · VM 1 */
-    SurfaceProcessingAlgorithmIdentificationSequence?: NaturalizedDataset[];
+    SurfaceProcessingAlgorithmIdentificationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00660036 · VR LO · VM 1 */
     AlgorithmName?: string;
     /** 00660037 · VR FL · VM 1 */
@@ -7389,13 +7389,13 @@ export interface NaturalizedDataset {
     /** 00660043 · VR UL · VM 1-n */
     LongVertexPointIndexList?: number[];
     /** 00660101 · VR SQ · VM 1 */
-    TrackSetSequence?: NaturalizedDataset[];
+    TrackSetSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00660102 · VR SQ · VM 1 */
-    TrackSequence?: NaturalizedDataset[];
+    TrackSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00660103 · VR OW · VM 1 */
     RecommendedDisplayCIELabValueList?: BinaryValue[];
     /** 00660104 · VR SQ · VM 1 */
-    TrackingAlgorithmIdentificationSequence?: NaturalizedDataset[];
+    TrackingAlgorithmIdentificationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00660105 · VR UL · VM 1 */
     TrackSetNumber?: number;
     /** 00660106 · VR LO · VM 1 */
@@ -7403,59 +7403,59 @@ export interface NaturalizedDataset {
     /** 00660107 · VR UT · VM 1 */
     TrackSetDescription?: string;
     /** 00660108 · VR SQ · VM 1 */
-    TrackSetAnatomicalTypeCodeSequence?: NaturalizedDataset[];
+    TrackSetAnatomicalTypeCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00660121 · VR SQ · VM 1 */
-    MeasurementsSequence?: NaturalizedDataset[];
+    MeasurementsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00660124 · VR SQ · VM 1 */
-    TrackSetStatisticsSequence?: NaturalizedDataset[];
+    TrackSetStatisticsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00660125 · VR OF · VM 1 */
     FloatingPointValues?: BinaryValue[];
     /** 00660129 · VR OL · VM 1 */
     TrackPointIndexList?: BinaryValue[];
     /** 00660130 · VR SQ · VM 1 */
-    TrackStatisticsSequence?: NaturalizedDataset[];
+    TrackStatisticsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00660132 · VR SQ · VM 1 */
-    MeasurementValuesSequence?: NaturalizedDataset[];
+    MeasurementValuesSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00660133 · VR SQ · VM 1 */
-    DiffusionAcquisitionCodeSequence?: NaturalizedDataset[];
+    DiffusionAcquisitionCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00660134 · VR SQ · VM 1 */
-    DiffusionModelCodeSequence?: NaturalizedDataset[];
+    DiffusionModelCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00686210 · VR LO · VM 1 */
     ImplantSize?: string;
     /** 00686221 · VR LO · VM 1 */
     ImplantTemplateVersion?: string;
     /** 00686222 · VR SQ · VM 1 */
-    ReplacedImplantTemplateSequence?: NaturalizedDataset[];
+    ReplacedImplantTemplateSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00686223 · VR CS · VM 1 */
     ImplantType?: string;
     /** 00686224 · VR SQ · VM 1 */
-    DerivationImplantTemplateSequence?: NaturalizedDataset[];
+    DerivationImplantTemplateSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00686225 · VR SQ · VM 1 */
-    OriginalImplantTemplateSequence?: NaturalizedDataset[];
+    OriginalImplantTemplateSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00686226 · VR DT · VM 1 */
     EffectiveDateTime?: string;
     /** 00686230 · VR SQ · VM 1 */
-    ImplantTargetAnatomySequence?: NaturalizedDataset[];
+    ImplantTargetAnatomySequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00686260 · VR SQ · VM 1 */
-    InformationFromManufacturerSequence?: NaturalizedDataset[];
+    InformationFromManufacturerSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00686265 · VR SQ · VM 1 */
-    NotificationFromManufacturerSequence?: NaturalizedDataset[];
+    NotificationFromManufacturerSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00686270 · VR DT · VM 1 */
     InformationIssueDateTime?: string;
     /** 00686280 · VR ST · VM 1 */
     InformationSummary?: string;
     /** 006862A0 · VR SQ · VM 1 */
-    ImplantRegulatoryDisapprovalCodeSequence?: NaturalizedDataset[];
+    ImplantRegulatoryDisapprovalCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 006862A5 · VR FD · VM 1 */
     OverallTemplateSpatialTolerance?: number;
     /** 006862C0 · VR SQ · VM 1 */
-    HPGLDocumentSequence?: NaturalizedDataset[];
+    HPGLDocumentSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 006862D0 · VR US · VM 1 */
     HPGLDocumentID?: number;
     /** 006862D5 · VR LO · VM 1 */
     HPGLDocumentLabel?: string;
     /** 006862E0 · VR SQ · VM 1 */
-    ViewOrientationCodeSequence?: NaturalizedDataset[];
+    ViewOrientationCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 006862F0 · VR FD · VM 9 */
     ViewOrientationModifier?: number[];
     /** 006862F2 · VR FD · VM 1 */
@@ -7465,7 +7465,7 @@ export interface NaturalizedDataset {
     /** 00686310 · VR US · VM 1 */
     HPGLContourPenNumber?: number;
     /** 00686320 · VR SQ · VM 1 */
-    HPGLPenSequence?: NaturalizedDataset[];
+    HPGLPenSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00686330 · VR US · VM 1 */
     HPGLPenNumber?: number;
     /** 00686340 · VR LO · VM 1 */
@@ -7479,37 +7479,37 @@ export interface NaturalizedDataset {
     /** 00686350 · VR US · VM 1-n */
     ImplantTemplate3DModelSurfaceNumber?: number[];
     /** 00686360 · VR SQ · VM 1 */
-    SurfaceModelDescriptionSequence?: NaturalizedDataset[];
+    SurfaceModelDescriptionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00686380 · VR LO · VM 1 */
     SurfaceModelLabel?: string;
     /** 00686390 · VR FD · VM 1 */
     SurfaceModelScalingFactor?: number;
     /** 006863A0 · VR SQ · VM 1 */
-    MaterialsCodeSequence?: NaturalizedDataset[];
+    MaterialsCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 006863A4 · VR SQ · VM 1 */
-    CoatingMaterialsCodeSequence?: NaturalizedDataset[];
+    CoatingMaterialsCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 006863A8 · VR SQ · VM 1 */
-    ImplantTypeCodeSequence?: NaturalizedDataset[];
+    ImplantTypeCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 006863AC · VR SQ · VM 1 */
-    FixationMethodCodeSequence?: NaturalizedDataset[];
+    FixationMethodCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 006863B0 · VR SQ · VM 1 */
-    MatingFeatureSetsSequence?: NaturalizedDataset[];
+    MatingFeatureSetsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 006863C0 · VR US · VM 1 */
     MatingFeatureSetID?: number;
     /** 006863D0 · VR LO · VM 1 */
     MatingFeatureSetLabel?: string;
     /** 006863E0 · VR SQ · VM 1 */
-    MatingFeatureSequence?: NaturalizedDataset[];
+    MatingFeatureSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 006863F0 · VR US · VM 1 */
     MatingFeatureID?: number;
     /** 00686400 · VR SQ · VM 1 */
-    MatingFeatureDegreeOfFreedomSequence?: NaturalizedDataset[];
+    MatingFeatureDegreeOfFreedomSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00686410 · VR US · VM 1 */
     DegreeOfFreedomID?: number;
     /** 00686420 · VR CS · VM 1 */
     DegreeOfFreedomType?: string;
     /** 00686430 · VR SQ · VM 1 */
-    TwoDMatingFeatureCoordinatesSequence?: NaturalizedDataset[];
+    TwoDMatingFeatureCoordinatesSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00686440 · VR US · VM 1 */
     ReferencedHPGLDocumentID?: number;
     /** 00686450 · VR FD · VM 2 */
@@ -7517,7 +7517,7 @@ export interface NaturalizedDataset {
     /** 00686460 · VR FD · VM 4 */
     TwoDMatingAxes?: number[];
     /** 00686470 · VR SQ · VM 1 */
-    TwoDDegreeOfFreedomSequence?: NaturalizedDataset[];
+    TwoDDegreeOfFreedomSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00686490 · VR FD · VM 3 */
     ThreeDDegreeOfFreedomAxis?: number[];
     /** 006864A0 · VR FD · VM 2 */
@@ -7529,31 +7529,31 @@ export interface NaturalizedDataset {
     /** 006864F0 · VR FD · VM 3 */
     TwoDDegreeOfFreedomAxis?: number[];
     /** 00686500 · VR SQ · VM 1 */
-    PlanningLandmarkPointSequence?: NaturalizedDataset[];
+    PlanningLandmarkPointSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00686510 · VR SQ · VM 1 */
-    PlanningLandmarkLineSequence?: NaturalizedDataset[];
+    PlanningLandmarkLineSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00686520 · VR SQ · VM 1 */
-    PlanningLandmarkPlaneSequence?: NaturalizedDataset[];
+    PlanningLandmarkPlaneSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00686530 · VR US · VM 1 */
     PlanningLandmarkID?: number;
     /** 00686540 · VR LO · VM 1 */
     PlanningLandmarkDescription?: string;
     /** 00686545 · VR SQ · VM 1 */
-    PlanningLandmarkIdentificationCodeSequence?: NaturalizedDataset[];
+    PlanningLandmarkIdentificationCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00686550 · VR SQ · VM 1 */
-    TwoDPointCoordinatesSequence?: NaturalizedDataset[];
+    TwoDPointCoordinatesSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00686560 · VR FD · VM 2 */
     TwoDPointCoordinates?: number[];
     /** 00686590 · VR FD · VM 3 */
     ThreeDPointCoordinates?: number[];
     /** 006865A0 · VR SQ · VM 1 */
-    TwoDLineCoordinatesSequence?: NaturalizedDataset[];
+    TwoDLineCoordinatesSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 006865B0 · VR FD · VM 4 */
     TwoDLineCoordinates?: number[];
     /** 006865D0 · VR FD · VM 6 */
     ThreeDLineCoordinates?: number[];
     /** 006865E0 · VR SQ · VM 1 */
-    TwoDPlaneCoordinatesSequence?: NaturalizedDataset[];
+    TwoDPlaneCoordinatesSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 006865F0 · VR FD · VM 4 */
     TwoDPlaneIntersection?: number[];
     /** 00686610 · VR FD · VM 3 */
@@ -7565,7 +7565,7 @@ export interface NaturalizedDataset {
     /** 00687002 · VR CS · VM 1 */
     ModelMirroring?: string;
     /** 00687003 · VR SQ · VM 1 */
-    ModelUsageCodeSequence?: NaturalizedDataset[];
+    ModelUsageCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00687004 · VR UI · VM 1 */
     ModelGroupUID?: string;
     /** 00687005 · VR UR · VM 1 */
@@ -7573,7 +7573,7 @@ export interface NaturalizedDataset {
     /** 006A0001 · VR CS · VM 1 */
     AnnotationCoordinateType?: string;
     /** 006A0002 · VR SQ · VM 1 */
-    AnnotationGroupSequence?: NaturalizedDataset[];
+    AnnotationGroupSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 006A0003 · VR UI · VM 1 */
     AnnotationGroupUID?: string;
     /** 006A0005 · VR LO · VM 1 */
@@ -7583,13 +7583,13 @@ export interface NaturalizedDataset {
     /** 006A0007 · VR CS · VM 1 */
     AnnotationGroupGenerationType?: string;
     /** 006A0008 · VR SQ · VM 1 */
-    AnnotationGroupAlgorithmIdentificationSequence?: NaturalizedDataset[];
+    AnnotationGroupAlgorithmIdentificationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 006A0009 · VR SQ · VM 1 */
-    AnnotationPropertyCategoryCodeSequence?: NaturalizedDataset[];
+    AnnotationPropertyCategoryCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 006A000A · VR SQ · VM 1 */
-    AnnotationPropertyTypeCodeSequence?: NaturalizedDataset[];
+    AnnotationPropertyTypeCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 006A000B · VR SQ · VM 1 */
-    AnnotationPropertyTypeModifierCodeSequence?: NaturalizedDataset[];
+    AnnotationPropertyTypeModifierCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 006A000C · VR UL · VM 1 */
     NumberOfAnnotations?: number;
     /** 006A000D · VR CS · VM 1 */
@@ -7603,7 +7603,7 @@ export interface NaturalizedDataset {
     /** 006A0011 · VR OL · VM 1 */
     AnnotationIndexList?: BinaryValue[];
     /** 00700001 · VR SQ · VM 1 */
-    GraphicAnnotationSequence?: NaturalizedDataset[];
+    GraphicAnnotationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00700002 · VR CS · VM 1 */
     GraphicLayer?: string;
     /** 00700003 · VR CS · VM 1 */
@@ -7615,9 +7615,9 @@ export interface NaturalizedDataset {
     /** 00700006 · VR ST · VM 1 */
     UnformattedTextValue?: string;
     /** 00700008 · VR SQ · VM 1 */
-    TextObjectSequence?: NaturalizedDataset[];
+    TextObjectSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00700009 · VR SQ · VM 1 */
-    GraphicObjectSequence?: NaturalizedDataset[];
+    GraphicObjectSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00700010 · VR FL · VM 2 */
     BoundingBoxTopLeftHandCorner?: number[];
     /** 00700011 · VR FL · VM 2 */
@@ -7653,9 +7653,9 @@ export interface NaturalizedDataset {
     /** 00700053 · VR SL · VM 2 */
     DisplayedAreaBottomRightHandCorner?: number[];
     /** 0070005A · VR SQ · VM 1 */
-    DisplayedAreaSelectionSequence?: NaturalizedDataset[];
+    DisplayedAreaSelectionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00700060 · VR SQ · VM 1 */
-    GraphicLayerSequence?: NaturalizedDataset[];
+    GraphicLayerSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00700062 · VR IS · VM 1 */
     GraphicLayerOrder?: number;
     /** 00700066 · VR US · VM 1 */
@@ -7675,9 +7675,9 @@ export interface NaturalizedDataset {
     /** 00700084 · VR PN · VM 1 */
     ContentCreatorName?: PersonName;
     /** 00700086 · VR SQ · VM 1 */
-    ContentCreatorIdentificationCodeSequence?: NaturalizedDataset[];
+    ContentCreatorIdentificationCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00700087 · VR SQ · VM 1 */
-    AlternateContentDescriptionSequence?: NaturalizedDataset[];
+    AlternateContentDescriptionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00700100 · VR CS · VM 1 */
     PresentationSizeMode?: string;
     /** 00700101 · VR DS · VM 2 */
@@ -7691,7 +7691,7 @@ export interface NaturalizedDataset {
     /** 00700208 · VR ST · VM 1 */
     GraphicGroupDescription?: string;
     /** 00700209 · VR SQ · VM 1 */
-    CompoundGraphicSequence?: NaturalizedDataset[];
+    CompoundGraphicSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00700226 · VR UL · VM 1 */
     CompoundGraphicInstanceID?: number;
     /** 00700227 · VR LO · VM 1 */
@@ -7703,13 +7703,13 @@ export interface NaturalizedDataset {
     /** 00700230 · VR FD · VM 1 */
     RotationAngle?: number;
     /** 00700231 · VR SQ · VM 1 */
-    TextStyleSequence?: NaturalizedDataset[];
+    TextStyleSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00700232 · VR SQ · VM 1 */
-    LineStyleSequence?: NaturalizedDataset[];
+    LineStyleSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00700233 · VR SQ · VM 1 */
-    FillStyleSequence?: NaturalizedDataset[];
+    FillStyleSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00700234 · VR SQ · VM 1 */
-    GraphicGroupSequence?: NaturalizedDataset[];
+    GraphicGroupSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00700241 · VR US · VM 3 */
     TextColorCIELabValue?: number[];
     /** 00700242 · VR CS · VM 1 */
@@ -7765,7 +7765,7 @@ export interface NaturalizedDataset {
     /** 00700285 · VR FL · VM 1 */
     PatternOffOpacity?: number;
     /** 00700287 · VR SQ · VM 1 */
-    MajorTicksSequence?: NaturalizedDataset[];
+    MajorTicksSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00700288 · VR FL · VM 1 */
     TickPosition?: number;
     /** 00700289 · VR SH · VM 1 */
@@ -7777,49 +7777,49 @@ export interface NaturalizedDataset {
     /** 00700306 · VR CS · VM 1 */
     ShapeType?: string;
     /** 00700308 · VR SQ · VM 1 */
-    RegistrationSequence?: NaturalizedDataset[];
+    RegistrationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00700309 · VR SQ · VM 1 */
-    MatrixRegistrationSequence?: NaturalizedDataset[];
+    MatrixRegistrationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0070030A · VR SQ · VM 1 */
-    MatrixSequence?: NaturalizedDataset[];
+    MatrixSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0070030B · VR FD · VM 16 */
     FrameOfReferenceToDisplayedCoordinateSystemTransformationMatrix?: number[];
     /** 0070030C · VR CS · VM 1 */
     FrameOfReferenceTransformationMatrixType?: string;
     /** 0070030D · VR SQ · VM 1 */
-    RegistrationTypeCodeSequence?: NaturalizedDataset[];
+    RegistrationTypeCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0070030F · VR ST · VM 1 */
     FiducialDescription?: string;
     /** 00700310 · VR SH · VM 1 */
     FiducialIdentifier?: string;
     /** 00700311 · VR SQ · VM 1 */
-    FiducialIdentifierCodeSequence?: NaturalizedDataset[];
+    FiducialIdentifierCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00700312 · VR FD · VM 1 */
     ContourUncertaintyRadius?: number;
     /** 00700314 · VR SQ · VM 1 */
-    UsedFiducialsSequence?: NaturalizedDataset[];
+    UsedFiducialsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00700315 · VR SQ · VM 1 */
-    UsedRTStructureSetROISequence?: NaturalizedDataset[];
+    UsedRTStructureSetROISequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00700318 · VR SQ · VM 1 */
-    GraphicCoordinatesDataSequence?: NaturalizedDataset[];
+    GraphicCoordinatesDataSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0070031A · VR UI · VM 1 */
     FiducialUID?: string;
     /** 0070031B · VR UI · VM 1 */
     ReferencedFiducialUID?: string;
     /** 0070031C · VR SQ · VM 1 */
-    FiducialSetSequence?: NaturalizedDataset[];
+    FiducialSetSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0070031E · VR SQ · VM 1 */
-    FiducialSequence?: NaturalizedDataset[];
+    FiducialSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0070031F · VR SQ · VM 1 */
-    FiducialsPropertyCategoryCodeSequence?: NaturalizedDataset[];
+    FiducialsPropertyCategoryCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00700401 · VR US · VM 3 */
     GraphicLayerRecommendedDisplayCIELabValue?: number[];
     /** 00700402 · VR SQ · VM 1 */
-    BlendingSequence?: NaturalizedDataset[];
+    BlendingSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00700403 · VR FL · VM 1 */
     RelativeOpacity?: number;
     /** 00700404 · VR SQ · VM 1 */
-    ReferencedSpatialRegistrationSequence?: NaturalizedDataset[];
+    ReferencedSpatialRegistrationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00700405 · VR CS · VM 1 */
     BlendingPosition?: string;
     /** 00701101 · VR UI · VM 1 */
@@ -7829,9 +7829,9 @@ export interface NaturalizedDataset {
     /** 00701103 · VR US · VM 1 */
     PresentationSequencePositionIndex?: number;
     /** 00701104 · VR SQ · VM 1 */
-    RenderedImageReferenceSequence?: NaturalizedDataset[];
+    RenderedImageReferenceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00701201 · VR SQ · VM 1 */
-    VolumetricPresentationStateInputSequence?: NaturalizedDataset[];
+    VolumetricPresentationStateInputSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00701202 · VR CS · VM 1 */
     PresentationInputType?: string;
     /** 00701203 · VR US · VM 1 */
@@ -7849,7 +7849,7 @@ export interface NaturalizedDataset {
     /** 00701209 · VR UI · VM 1 */
     VolumetricPresentationInputSetUID?: string;
     /** 0070120A · VR SQ · VM 1 */
-    VolumetricPresentationInputSetSequence?: NaturalizedDataset[];
+    VolumetricPresentationInputSetSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0070120B · VR CS · VM 1 */
     GlobalCrop?: string;
     /** 0070120C · VR US · VM 1-n */
@@ -7857,13 +7857,13 @@ export interface NaturalizedDataset {
     /** 0070120D · VR CS · VM 1 */
     RenderingMethod?: string;
     /** 00701301 · VR SQ · VM 1 */
-    VolumeCroppingSequence?: NaturalizedDataset[];
+    VolumeCroppingSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00701302 · VR CS · VM 1 */
     VolumeCroppingMethod?: string;
     /** 00701303 · VR FD · VM 6 */
     BoundingBoxCrop?: number[];
     /** 00701304 · VR SQ · VM 1 */
-    ObliqueCroppingPlaneSequence?: NaturalizedDataset[];
+    ObliqueCroppingPlaneSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00701305 · VR FD · VM 4 */
     ObliqueCroppingPlane?: number[];
     /** 00701306 · VR FD · VM 3 */
@@ -7915,29 +7915,29 @@ export interface NaturalizedDataset {
     /** 00701706 · VR FD · VM 1 */
     Shininess?: number;
     /** 00701801 · VR SQ · VM 1 */
-    PresentationStateClassificationComponentSequence?: NaturalizedDataset[];
+    PresentationStateClassificationComponentSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00701802 · VR CS · VM 1 */
     ComponentType?: string;
     /** 00701803 · VR SQ · VM 1 */
-    ComponentInputSequence?: NaturalizedDataset[];
+    ComponentInputSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00701804 · VR US · VM 1 */
     VolumetricPresentationInputIndex?: number;
     /** 00701805 · VR SQ · VM 1 */
-    PresentationStateCompositorComponentSequence?: NaturalizedDataset[];
+    PresentationStateCompositorComponentSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00701806 · VR SQ · VM 1 */
-    WeightingTransferFunctionSequence?: NaturalizedDataset[];
+    WeightingTransferFunctionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00701807 · VR US · VM 3 */
     WeightingLookupTableDescriptor?: number[];
     /** 00701808 · VR OB · VM 1 */
     WeightingLookupTableData?: BinaryValue[];
     /** 00701901 · VR SQ · VM 1 */
-    VolumetricAnnotationSequence?: NaturalizedDataset[];
+    VolumetricAnnotationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00701903 · VR SQ · VM 1 */
-    ReferencedStructuredContextSequence?: NaturalizedDataset[];
+    ReferencedStructuredContextSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00701904 · VR UI · VM 1 */
     ReferencedContentItem?: string;
     /** 00701905 · VR SQ · VM 1 */
-    VolumetricPresentationInputAnnotationSequence?: NaturalizedDataset[];
+    VolumetricPresentationInputAnnotationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00701907 · VR CS · VM 1 */
     AnnotationClipping?: string;
     /** 00701A01 · VR CS · VM 1 */
@@ -7945,7 +7945,7 @@ export interface NaturalizedDataset {
     /** 00701A03 · VR FD · VM 1 */
     RecommendedAnimationRate?: number;
     /** 00701A04 · VR SQ · VM 1 */
-    AnimationCurveSequence?: NaturalizedDataset[];
+    AnimationCurveSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00701A05 · VR FD · VM 1 */
     AnimationStepSize?: number;
     /** 00701A06 · VR FD · VM 1 */
@@ -7953,17 +7953,17 @@ export interface NaturalizedDataset {
     /** 00701A07 · VR OD · VM 1 */
     VolumetricCurveUpDirections?: BinaryValue[];
     /** 00701A08 · VR SQ · VM 1 */
-    VolumeStreamSequence?: NaturalizedDataset[];
+    VolumeStreamSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00701A09 · VR LO · VM 1 */
     RGBATransferFunctionDescription?: string;
     /** 00701B01 · VR SQ · VM 1 */
-    AdvancedBlendingSequence?: NaturalizedDataset[];
+    AdvancedBlendingSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00701B02 · VR US · VM 1 */
     BlendingInputNumber?: number;
     /** 00701B03 · VR SQ · VM 1 */
-    BlendingDisplayInputSequence?: NaturalizedDataset[];
+    BlendingDisplayInputSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00701B04 · VR SQ · VM 1 */
-    BlendingDisplaySequence?: NaturalizedDataset[];
+    BlendingDisplaySequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00701B06 · VR CS · VM 1 */
     BlendingMode?: string;
     /** 00701B07 · VR CS · VM 1 */
@@ -7971,9 +7971,9 @@ export interface NaturalizedDataset {
     /** 00701B08 · VR CS · VM 1 */
     GeometryForDisplay?: string;
     /** 00701B11 · VR SQ · VM 1 */
-    ThresholdSequence?: NaturalizedDataset[];
+    ThresholdSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00701B12 · VR SQ · VM 1 */
-    ThresholdValueSequence?: NaturalizedDataset[];
+    ThresholdValueSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00701B13 · VR CS · VM 1 */
     ThresholdType?: string;
     /** 00701B14 · VR FD · VM 1 */
@@ -7989,19 +7989,19 @@ export interface NaturalizedDataset {
     /** 0072000A · VR DT · VM 1 */
     HangingProtocolCreationDateTime?: string;
     /** 0072000C · VR SQ · VM 1 */
-    HangingProtocolDefinitionSequence?: NaturalizedDataset[];
+    HangingProtocolDefinitionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0072000E · VR SQ · VM 1 */
-    HangingProtocolUserIdentificationCodeSequence?: NaturalizedDataset[];
+    HangingProtocolUserIdentificationCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00720010 · VR LO · VM 1 */
     HangingProtocolUserGroupName?: string;
     /** 00720012 · VR SQ · VM 1 */
-    SourceHangingProtocolSequence?: NaturalizedDataset[];
+    SourceHangingProtocolSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00720014 · VR US · VM 1 */
     NumberOfPriorsReferenced?: number;
     /** 00720020 · VR SQ · VM 1 */
-    ImageSetsSequence?: NaturalizedDataset[];
+    ImageSetsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00720022 · VR SQ · VM 1 */
-    ImageSetSelectorSequence?: NaturalizedDataset[];
+    ImageSetSelectorSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00720024 · VR CS · VM 1 */
     ImageSetSelectorUsageFlag?: string;
     /** 00720026 · VR AT · VM 1 */
@@ -8009,7 +8009,7 @@ export interface NaturalizedDataset {
     /** 00720028 · VR US · VM 1 */
     SelectorValueNumber?: number;
     /** 00720030 · VR SQ · VM 1 */
-    TimeBasedImageSetsSequence?: NaturalizedDataset[];
+    TimeBasedImageSetsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00720032 · VR US · VM 1 */
     ImageSetNumber?: number;
     /** 00720034 · VR CS · VM 1 */
@@ -8021,7 +8021,7 @@ export interface NaturalizedDataset {
     /** 0072003C · VR SS · VM 2 */
     AbstractPriorValue?: number[];
     /** 0072003E · VR SQ · VM 1 */
-    AbstractPriorCodeSequence?: NaturalizedDataset[];
+    AbstractPriorCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00720040 · VR LO · VM 1 */
     ImageSetLabel?: string;
     /** 00720050 · VR CS · VM 1 */
@@ -8093,7 +8093,7 @@ export interface NaturalizedDataset {
     /** 0072007F · VR UI · VM 1-n */
     SelectorUIValue?: string[];
     /** 00720080 · VR SQ · VM 1 */
-    SelectorCodeSequenceValue?: NaturalizedDataset[];
+    SelectorCodeSequenceValue?: NaturalizedDataset | NaturalizedDataset[];
     /** 00720081 · VR OV · VM 1 */
     SelectorOVValue?: BinaryValue[];
     /** 00720082 · VR SV · VM 1-n */
@@ -8103,7 +8103,7 @@ export interface NaturalizedDataset {
     /** 00720100 · VR US · VM 1 */
     NumberOfScreens?: number;
     /** 00720102 · VR SQ · VM 1 */
-    NominalScreenDefinitionSequence?: NaturalizedDataset[];
+    NominalScreenDefinitionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00720104 · VR US · VM 1 */
     NumberOfVerticalPixels?: number;
     /** 00720106 · VR US · VM 1 */
@@ -8117,7 +8117,7 @@ export interface NaturalizedDataset {
     /** 0072010E · VR US · VM 1 */
     ApplicationMaximumRepaintTime?: number;
     /** 00720200 · VR SQ · VM 1 */
-    DisplaySetsSequence?: NaturalizedDataset[];
+    DisplaySetsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00720202 · VR US · VM 1 */
     DisplaySetNumber?: number;
     /** 00720203 · VR LO · VM 1 */
@@ -8129,17 +8129,17 @@ export interface NaturalizedDataset {
     /** 00720208 · VR CS · VM 1 */
     PartialDataDisplayHandling?: string;
     /** 00720210 · VR SQ · VM 1 */
-    SynchronizedScrollingSequence?: NaturalizedDataset[];
+    SynchronizedScrollingSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00720212 · VR US · VM 2-n */
     DisplaySetScrollingGroup?: number[];
     /** 00720214 · VR SQ · VM 1 */
-    NavigationIndicatorSequence?: NaturalizedDataset[];
+    NavigationIndicatorSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00720216 · VR US · VM 1 */
     NavigationDisplaySet?: number;
     /** 00720218 · VR US · VM 1-n */
     ReferenceDisplaySets?: number[];
     /** 00720300 · VR SQ · VM 1 */
-    ImageBoxesSequence?: NaturalizedDataset[];
+    ImageBoxesSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00720302 · VR US · VM 1 */
     ImageBoxNumber?: number;
     /** 00720304 · VR CS · VM 1 */
@@ -8163,7 +8163,7 @@ export interface NaturalizedDataset {
     /** 00720330 · VR FD · VM 1 */
     CineRelativeToRealTime?: number;
     /** 00720400 · VR SQ · VM 1 */
-    FilterOperationsSequence?: NaturalizedDataset[];
+    FilterOperationsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00720402 · VR CS · VM 1 */
     FilterByCategory?: string;
     /** 00720404 · VR CS · VM 1 */
@@ -8175,13 +8175,13 @@ export interface NaturalizedDataset {
     /** 00720421 · VR US · VM 3 */
     EmptyImageBoxCIELabValue?: number[];
     /** 00720422 · VR SQ · VM 1 */
-    StructuredDisplayImageBoxSequence?: NaturalizedDataset[];
+    StructuredDisplayImageBoxSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00720424 · VR SQ · VM 1 */
-    StructuredDisplayTextBoxSequence?: NaturalizedDataset[];
+    StructuredDisplayTextBoxSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00720427 · VR SQ · VM 1 */
-    ReferencedFirstFrameSequence?: NaturalizedDataset[];
+    ReferencedFirstFrameSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00720430 · VR SQ · VM 1 */
-    ImageBoxSynchronizationSequence?: NaturalizedDataset[];
+    ImageBoxSynchronizationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00720432 · VR US · VM 2-n */
     SynchronizedImageBoxList?: number[];
     /** 00720434 · VR CS · VM 1 */
@@ -8199,7 +8199,7 @@ export interface NaturalizedDataset {
     /** 00720520 · VR CS · VM 1-n */
     ThreeDRenderingType?: string[];
     /** 00720600 · VR SQ · VM 1 */
-    SortingOperationsSequence?: NaturalizedDataset[];
+    SortingOperationsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00720602 · VR CS · VM 1 */
     SortByCategory?: string;
     /** 00720604 · VR CS · VM 1 */
@@ -8211,7 +8211,7 @@ export interface NaturalizedDataset {
     /** 00720704 · VR CS · VM 1 */
     PseudoColorType?: string;
     /** 00720705 · VR SQ · VM 1 */
-    PseudoColorPaletteInstanceReferenceSequence?: NaturalizedDataset[];
+    PseudoColorPaletteInstanceReferenceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00720706 · VR CS · VM 1 */
     ShowGrayscaleInverted?: string;
     /** 00720710 · VR CS · VM 1 */
@@ -8233,23 +8233,23 @@ export interface NaturalizedDataset {
     /** 00741000 · VR CS · VM 1 */
     ProcedureStepState?: string;
     /** 00741002 · VR SQ · VM 1 */
-    ProcedureStepProgressInformationSequence?: NaturalizedDataset[];
+    ProcedureStepProgressInformationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00741004 · VR DS · VM 1 */
     ProcedureStepProgress?: number;
     /** 00741006 · VR ST · VM 1 */
     ProcedureStepProgressDescription?: string;
     /** 00741007 · VR SQ · VM 1 */
-    ProcedureStepProgressParametersSequence?: NaturalizedDataset[];
+    ProcedureStepProgressParametersSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00741008 · VR SQ · VM 1 */
-    ProcedureStepCommunicationsURISequence?: NaturalizedDataset[];
+    ProcedureStepCommunicationsURISequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0074100A · VR UR · VM 1 */
     ContactURI?: string;
     /** 0074100C · VR LO · VM 1 */
     ContactDisplayName?: string;
     /** 0074100E · VR SQ · VM 1 */
-    ProcedureStepDiscontinuationReasonCodeSequence?: NaturalizedDataset[];
+    ProcedureStepDiscontinuationReasonCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00741020 · VR SQ · VM 1 */
-    BeamTaskSequence?: NaturalizedDataset[];
+    BeamTaskSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00741022 · VR CS · VM 1 */
     BeamTaskType?: string;
     /** 00741024 · VR IS · VM 1 */
@@ -8271,7 +8271,7 @@ export interface NaturalizedDataset {
     /** 0074102D · VR FD · VM 1 */
     TableTopRollAdjustedAngle?: number;
     /** 00741030 · VR SQ · VM 1 */
-    DeliveryVerificationImageSequence?: NaturalizedDataset[];
+    DeliveryVerificationImageSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00741032 · VR CS · VM 1 */
     VerificationImageTiming?: string;
     /** 00741034 · VR CS · VM 1 */
@@ -8283,23 +8283,23 @@ export interface NaturalizedDataset {
     /** 0074103A · VR DS · VM 4 */
     RETIRED_DoubleExposureFieldDeltaTrial?: number[];
     /** 00741040 · VR SQ · VM 1 */
-    RelatedReferenceRTImageSequence?: NaturalizedDataset[];
+    RelatedReferenceRTImageSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00741042 · VR SQ · VM 1 */
-    GeneralMachineVerificationSequence?: NaturalizedDataset[];
+    GeneralMachineVerificationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00741044 · VR SQ · VM 1 */
-    ConventionalMachineVerificationSequence?: NaturalizedDataset[];
+    ConventionalMachineVerificationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00741046 · VR SQ · VM 1 */
-    IonMachineVerificationSequence?: NaturalizedDataset[];
+    IonMachineVerificationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00741048 · VR SQ · VM 1 */
-    FailedAttributesSequence?: NaturalizedDataset[];
+    FailedAttributesSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0074104A · VR SQ · VM 1 */
-    OverriddenAttributesSequence?: NaturalizedDataset[];
+    OverriddenAttributesSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0074104C · VR SQ · VM 1 */
-    ConventionalControlPointVerificationSequence?: NaturalizedDataset[];
+    ConventionalControlPointVerificationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0074104E · VR SQ · VM 1 */
-    IonControlPointVerificationSequence?: NaturalizedDataset[];
+    IonControlPointVerificationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00741050 · VR SQ · VM 1 */
-    AttributeOccurrenceSequence?: NaturalizedDataset[];
+    AttributeOccurrenceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00741052 · VR AT · VM 1 */
     AttributeOccurrencePointer?: number;
     /** 00741054 · VR UL · VM 1 */
@@ -8315,17 +8315,17 @@ export interface NaturalizedDataset {
     /** 00741204 · VR LO · VM 1 */
     ProcedureStepLabel?: string;
     /** 00741210 · VR SQ · VM 1 */
-    ScheduledProcessingParametersSequence?: NaturalizedDataset[];
+    ScheduledProcessingParametersSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00741212 · VR SQ · VM 1 */
-    PerformedProcessingParametersSequence?: NaturalizedDataset[];
+    PerformedProcessingParametersSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00741216 · VR SQ · VM 1 */
-    UnifiedProcedureStepPerformedProcedureSequence?: NaturalizedDataset[];
+    UnifiedProcedureStepPerformedProcedureSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00741220 · VR SQ · VM 1 */
-    RETIRED_RelatedProcedureStepSequence?: NaturalizedDataset[];
+    RETIRED_RelatedProcedureStepSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00741222 · VR LO · VM 1 */
     RETIRED_ProcedureStepRelationshipType?: string;
     /** 00741224 · VR SQ · VM 1 */
-    ReplacedProcedureStepSequence?: NaturalizedDataset[];
+    ReplacedProcedureStepSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00741230 · VR LO · VM 1 */
     DeletionLock?: string;
     /** 00741234 · VR AE · VM 1 */
@@ -8347,7 +8347,7 @@ export interface NaturalizedDataset {
     /** 0074133A · VR FD · VM 4 */
     DoubleExposureFieldDelta?: number[];
     /** 00741401 · VR SQ · VM 1 */
-    BrachyTaskSequence?: NaturalizedDataset[];
+    BrachyTaskSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00741402 · VR DS · VM 1 */
     ContinuationStartTotalReferenceAirKerma?: number;
     /** 00741403 · VR DS · VM 1 */
@@ -8355,7 +8355,7 @@ export interface NaturalizedDataset {
     /** 00741404 · VR IS · VM 1 */
     ContinuationPulseNumber?: number;
     /** 00741405 · VR SQ · VM 1 */
-    ChannelDeliveryOrderSequence?: NaturalizedDataset[];
+    ChannelDeliveryOrderSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00741406 · VR IS · VM 1 */
     ReferencedChannelNumber?: number;
     /** 00741407 · VR DS · VM 1 */
@@ -8363,7 +8363,7 @@ export interface NaturalizedDataset {
     /** 00741408 · VR DS · VM 1 */
     EndCumulativeTimeWeight?: number;
     /** 00741409 · VR SQ · VM 1 */
-    OmittedChannelSequence?: NaturalizedDataset[];
+    OmittedChannelSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0074140A · VR CS · VM 1 */
     ReasonForChannelOmission?: string;
     /** 0074140B · VR LO · VM 1 */
@@ -8371,9 +8371,9 @@ export interface NaturalizedDataset {
     /** 0074140C · VR IS · VM 1 */
     ChannelDeliveryOrderIndex?: number;
     /** 0074140D · VR SQ · VM 1 */
-    ChannelDeliveryContinuationSequence?: NaturalizedDataset[];
+    ChannelDeliveryContinuationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0074140E · VR SQ · VM 1 */
-    OmittedApplicationSetupSequence?: NaturalizedDataset[];
+    OmittedApplicationSetupSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00760001 · VR LO · VM 1 */
     ImplantAssemblyTemplateName?: string;
     /** 00760003 · VR LO · VM 1 */
@@ -8381,21 +8381,21 @@ export interface NaturalizedDataset {
     /** 00760006 · VR LO · VM 1 */
     ImplantAssemblyTemplateVersion?: string;
     /** 00760008 · VR SQ · VM 1 */
-    ReplacedImplantAssemblyTemplateSequence?: NaturalizedDataset[];
+    ReplacedImplantAssemblyTemplateSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0076000A · VR CS · VM 1 */
     ImplantAssemblyTemplateType?: string;
     /** 0076000C · VR SQ · VM 1 */
-    OriginalImplantAssemblyTemplateSequence?: NaturalizedDataset[];
+    OriginalImplantAssemblyTemplateSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0076000E · VR SQ · VM 1 */
-    DerivationImplantAssemblyTemplateSequence?: NaturalizedDataset[];
+    DerivationImplantAssemblyTemplateSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00760010 · VR SQ · VM 1 */
-    ImplantAssemblyTemplateTargetAnatomySequence?: NaturalizedDataset[];
+    ImplantAssemblyTemplateTargetAnatomySequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00760020 · VR SQ · VM 1 */
-    ProcedureTypeCodeSequence?: NaturalizedDataset[];
+    ProcedureTypeCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00760030 · VR LO · VM 1 */
     SurgicalTechnique?: string;
     /** 00760032 · VR SQ · VM 1 */
-    ComponentTypesSequence?: NaturalizedDataset[];
+    ComponentTypesSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00760034 · VR CS · VM 1 */
     ComponentTypeCodeSequence?: string;
     /** 00760036 · VR CS · VM 1 */
@@ -8403,11 +8403,11 @@ export interface NaturalizedDataset {
     /** 00760038 · VR CS · VM 1 */
     MandatoryComponentType?: string;
     /** 00760040 · VR SQ · VM 1 */
-    ComponentSequence?: NaturalizedDataset[];
+    ComponentSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00760055 · VR US · VM 1 */
     ComponentID?: number;
     /** 00760060 · VR SQ · VM 1 */
-    ComponentAssemblySequence?: NaturalizedDataset[];
+    ComponentAssemblySequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00760070 · VR US · VM 1 */
     Component1ReferencedID?: number;
     /** 00760080 · VR US · VM 1 */
@@ -8429,11 +8429,11 @@ export interface NaturalizedDataset {
     /** 00780024 · VR LO · VM 1 */
     ImplantTemplateGroupVersion?: string;
     /** 00780026 · VR SQ · VM 1 */
-    ReplacedImplantTemplateGroupSequence?: NaturalizedDataset[];
+    ReplacedImplantTemplateGroupSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00780028 · VR SQ · VM 1 */
-    ImplantTemplateGroupTargetAnatomySequence?: NaturalizedDataset[];
+    ImplantTemplateGroupTargetAnatomySequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0078002A · VR SQ · VM 1 */
-    ImplantTemplateGroupMembersSequence?: NaturalizedDataset[];
+    ImplantTemplateGroupMembersSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 0078002E · VR US · VM 1 */
     ImplantTemplateGroupMemberID?: number;
     /** 00780050 · VR FD · VM 3 */
@@ -8441,27 +8441,27 @@ export interface NaturalizedDataset {
     /** 00780060 · VR FD · VM 9 */
     ThreeDImplantTemplateGroupMemberMatchingAxes?: number[];
     /** 00780070 · VR SQ · VM 1 */
-    ImplantTemplateGroupMemberMatching2DCoordinatesSequence?: NaturalizedDataset[];
+    ImplantTemplateGroupMemberMatching2DCoordinatesSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00780090 · VR FD · VM 2 */
     TwoDImplantTemplateGroupMemberMatchingPoint?: number[];
     /** 007800A0 · VR FD · VM 4 */
     TwoDImplantTemplateGroupMemberMatchingAxes?: number[];
     /** 007800B0 · VR SQ · VM 1 */
-    ImplantTemplateGroupVariationDimensionSequence?: NaturalizedDataset[];
+    ImplantTemplateGroupVariationDimensionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 007800B2 · VR LO · VM 1 */
     ImplantTemplateGroupVariationDimensionName?: string;
     /** 007800B4 · VR SQ · VM 1 */
-    ImplantTemplateGroupVariationDimensionRankSequence?: NaturalizedDataset[];
+    ImplantTemplateGroupVariationDimensionRankSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 007800B6 · VR US · VM 1 */
     ReferencedImplantTemplateGroupMemberID?: number;
     /** 007800B8 · VR US · VM 1 */
     ImplantTemplateGroupVariationDimensionRank?: number;
     /** 00800001 · VR SQ · VM 1 */
-    SurfaceScanAcquisitionTypeCodeSequence?: NaturalizedDataset[];
+    SurfaceScanAcquisitionTypeCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00800002 · VR SQ · VM 1 */
-    SurfaceScanModeCodeSequence?: NaturalizedDataset[];
+    SurfaceScanModeCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00800003 · VR SQ · VM 1 */
-    RegistrationMethodCodeSequence?: NaturalizedDataset[];
+    RegistrationMethodCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00800004 · VR FD · VM 1 */
     ShotDurationTime?: number;
     /** 00800005 · VR FD · VM 1 */
@@ -8471,7 +8471,7 @@ export interface NaturalizedDataset {
     /** 00800007 · VR US · VM 3-3n */
     SurfacePointColorCIELabValueData?: number[];
     /** 00800008 · VR SQ · VM 1 */
-    UVMappingSequence?: NaturalizedDataset[];
+    UVMappingSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00800009 · VR SH · VM 1 */
     TextureLabel?: string;
     /** 00800010 · VR OF · VM 1-n */
@@ -8479,41 +8479,41 @@ export interface NaturalizedDataset {
     /** 00800011 · VR OF · VM 1-n */
     VValueData?: BinaryValue[];
     /** 00800012 · VR SQ · VM 1 */
-    ReferencedTextureSequence?: NaturalizedDataset[];
+    ReferencedTextureSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00800013 · VR SQ · VM 1 */
-    ReferencedSurfaceDataSequence?: NaturalizedDataset[];
+    ReferencedSurfaceDataSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00820001 · VR CS · VM 1 */
     AssessmentSummary?: string;
     /** 00820003 · VR UT · VM 1 */
     AssessmentSummaryDescription?: string;
     /** 00820004 · VR SQ · VM 1 */
-    AssessedSOPInstanceSequence?: NaturalizedDataset[];
+    AssessedSOPInstanceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00820005 · VR SQ · VM 1 */
-    ReferencedComparisonSOPInstanceSequence?: NaturalizedDataset[];
+    ReferencedComparisonSOPInstanceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00820006 · VR UL · VM 1 */
     NumberOfAssessmentObservations?: number;
     /** 00820007 · VR SQ · VM 1 */
-    AssessmentObservationsSequence?: NaturalizedDataset[];
+    AssessmentObservationsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00820008 · VR CS · VM 1 */
     ObservationSignificance?: string;
     /** 0082000A · VR UT · VM 1 */
     ObservationDescription?: string;
     /** 0082000C · VR SQ · VM 1 */
-    StructuredConstraintObservationSequence?: NaturalizedDataset[];
+    StructuredConstraintObservationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00820010 · VR SQ · VM 1 */
-    AssessedAttributeValueSequence?: NaturalizedDataset[];
+    AssessedAttributeValueSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00820016 · VR LO · VM 1 */
     AssessmentSetID?: string;
     /** 00820017 · VR SQ · VM 1 */
-    AssessmentRequesterSequence?: NaturalizedDataset[];
+    AssessmentRequesterSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00820018 · VR LO · VM 1 */
     SelectorAttributeName?: string;
     /** 00820019 · VR LO · VM 1 */
     SelectorAttributeKeyword?: string;
     /** 00820021 · VR SQ · VM 1 */
-    AssessmentTypeCodeSequence?: NaturalizedDataset[];
+    AssessmentTypeCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00820022 · VR SQ · VM 1 */
-    ObservationBasisCodeSequence?: NaturalizedDataset[];
+    ObservationBasisCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00820023 · VR LO · VM 1 */
     AssessmentLabel?: string;
     /** 00820032 · VR CS · VM 1 */
@@ -8521,9 +8521,9 @@ export interface NaturalizedDataset {
     /** 00820033 · VR UT · VM 1 */
     SpecificationSelectionGuidance?: string;
     /** 00820034 · VR SQ · VM 1 */
-    ConstraintValueSequence?: NaturalizedDataset[];
+    ConstraintValueSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00820035 · VR SQ · VM 1 */
-    RecommendedDefaultValueSequence?: NaturalizedDataset[];
+    RecommendedDefaultValueSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00820036 · VR CS · VM 1 */
     ConstraintViolationSignificance?: string;
     /** 00820037 · VR UT · VM 1 */
@@ -8535,7 +8535,7 @@ export interface NaturalizedDataset {
     /** 00880140 · VR UI · VM 1 */
     StorageMediaFileSetUID?: string;
     /** 00880200 · VR SQ · VM 1 */
-    IconImageSequence?: NaturalizedDataset[];
+    IconImageSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 00880904 · VR LO · VM 1 */
     RETIRED_TopicTitle?: string;
     /** 00880906 · VR ST · VM 1 */
@@ -8575,27 +8575,27 @@ export interface NaturalizedDataset {
     /** 04000310 · VR OB · VM 1 */
     CertifiedTimestamp?: BinaryValue[];
     /** 04000401 · VR SQ · VM 1 */
-    DigitalSignaturePurposeCodeSequence?: NaturalizedDataset[];
+    DigitalSignaturePurposeCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 04000402 · VR SQ · VM 1 */
-    ReferencedDigitalSignatureSequence?: NaturalizedDataset[];
+    ReferencedDigitalSignatureSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 04000403 · VR SQ · VM 1 */
-    ReferencedSOPInstanceMACSequence?: NaturalizedDataset[];
+    ReferencedSOPInstanceMACSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 04000404 · VR OB · VM 1 */
     MAC?: BinaryValue[];
     /** 04000500 · VR SQ · VM 1 */
-    EncryptedAttributesSequence?: NaturalizedDataset[];
+    EncryptedAttributesSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 04000510 · VR UI · VM 1 */
     EncryptedContentTransferSyntaxUID?: string;
     /** 04000520 · VR OB · VM 1 */
     EncryptedContent?: BinaryValue[];
     /** 04000550 · VR SQ · VM 1 */
-    ModifiedAttributesSequence?: NaturalizedDataset[];
+    ModifiedAttributesSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 04000551 · VR SQ · VM 1 */
-    NonconformingModifiedAttributesSequence?: NaturalizedDataset[];
+    NonconformingModifiedAttributesSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 04000552 · VR OB · VM 1 */
     NonconformingDataElementValue?: BinaryValue[];
     /** 04000561 · VR SQ · VM 1 */
-    OriginalAttributesSequence?: NaturalizedDataset[];
+    OriginalAttributesSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 04000562 · VR DT · VM 1 */
     AttributeModificationDateTime?: string;
     /** 04000563 · VR LO · VM 1 */
@@ -8607,7 +8607,7 @@ export interface NaturalizedDataset {
     /** 04000600 · VR CS · VM 1 */
     InstanceOriginStatus?: string;
     /** 2000001E · VR SQ · VM 1 */
-    PrinterConfigurationSequence?: NaturalizedDataset[];
+    PrinterConfigurationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 2000006A · VR CS · VM 1 */
     RETIRED_ImageBoxPresentationLUTFlag?: string;
     /** 200000A0 · VR US · VM 1 */
@@ -8615,11 +8615,11 @@ export interface NaturalizedDataset {
     /** 200000A1 · VR US · VM 1 */
     PrintingBitDepth?: number;
     /** 200000A2 · VR SQ · VM 1 */
-    MediaInstalledSequence?: NaturalizedDataset[];
+    MediaInstalledSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 200000A4 · VR SQ · VM 1 */
-    OtherMediaAvailableSequence?: NaturalizedDataset[];
+    OtherMediaAvailableSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 200000A8 · VR SQ · VM 1 */
-    SupportedImageDisplayFormatsSequence?: NaturalizedDataset[];
+    SupportedImageDisplayFormatsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 201000A6 · VR CS · VM 1 */
     DefaultMagnificationType?: string;
     /** 201000A7 · VR CS · VM 1-n */
@@ -8635,9 +8635,9 @@ export interface NaturalizedDataset {
     /** 202000A2 · VR CS · VM 1 */
     DecimateCropResult?: string;
     /** 213000A0 · VR SQ · VM 1 */
-    RETIRED_ProposedStudySequence?: NaturalizedDataset[];
+    RETIRED_ProposedStudySequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 213000C0 · VR SQ · VM 1 */
-    RETIRED_OriginalImageSequence?: NaturalizedDataset[];
+    RETIRED_OriginalImageSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 2200000A · VR CS · VM 1 */
     PreserveCompositeInstancesAfterMediaCreation?: string;
     /** 2200000B · VR US · VM 1 */
@@ -8645,7 +8645,7 @@ export interface NaturalizedDataset {
     /** 2200000C · VR LO · VM 1 */
     RequestedMediaApplicationProfile?: string;
     /** 2200000D · VR SQ · VM 1 */
-    ReferencedStorageMediaSequence?: NaturalizedDataset[];
+    ReferencedStorageMediaSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 2200000E · VR AT · VM 1-n */
     FailureAttributes?: number[];
     /** 2200000F · VR CS · VM 1 */
@@ -8659,35 +8659,35 @@ export interface NaturalizedDataset {
     /** 3002000E · VR DS · VM 1 */
     XRayImageReceptorAngle?: number;
     /** 3002010A · VR SQ · VM 1 */
-    RTImageFramekVRadiationAcquisitionSequence?: NaturalizedDataset[];
+    RTImageFramekVRadiationAcquisitionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 3002010B · VR SQ · VM 1 */
-    RTImageFrameMVRadiationAcquisitionSequence?: NaturalizedDataset[];
+    RTImageFrameMVRadiationAcquisitionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 3002010C · VR SQ · VM 1 */
-    RTImageFrameRadiationAcquisitionSequence?: NaturalizedDataset[];
+    RTImageFrameRadiationAcquisitionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 3002010D · VR SQ · VM 1 */
-    ImagingSourcePositionSequence?: NaturalizedDataset[];
+    ImagingSourcePositionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 3002010E · VR SQ · VM 1 */
-    ImageReceptorPositionSequence?: NaturalizedDataset[];
+    ImageReceptorPositionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 3002010F · VR FD · VM 16 */
     DevicePositionToEquipmentMappingMatrix?: number[];
     /** 3002011A · VR SQ · VM 1 */
-    AcquisitionSubtaskSequence?: NaturalizedDataset[];
+    AcquisitionSubtaskSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 3002011B · VR SQ · VM 1 */
-    SubtaskWorkitemCodeSequence?: NaturalizedDataset[];
+    SubtaskWorkitemCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 3002011C · VR US · VM 1 */
     AcquisitionTaskIndex?: number;
     /** 3002011D · VR US · VM 1 */
     AcquisitionSubtaskIndex?: number;
     /** 3002011E · VR SQ · VM 1 */
-    ReferencedBaselineParametersRTRadiationInstanceSequence?: NaturalizedDataset[];
+    ReferencedBaselineParametersRTRadiationInstanceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 3002011F · VR SQ · VM 1 */
-    PositionAcquisitionTemplateIdentificationSequence?: NaturalizedDataset[];
+    PositionAcquisitionTemplateIdentificationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 3002012A · VR CS · VM 1 */
     AcquisitionMethod?: string;
     /** 3002012B · VR SQ · VM 1 */
-    ScanStartPositionSequence?: NaturalizedDataset[];
+    ScanStartPositionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 3002012C · VR SQ · VM 1 */
-    ScanStopPositionSequence?: NaturalizedDataset[];
+    ScanStopPositionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 3002012D · VR FD · VM 1 */
     ImagingSourceToBeamModifierDefinitionPlaneDistance?: number;
     /** 3002012E · VR CS · VM 1 */
@@ -8709,39 +8709,39 @@ export interface NaturalizedDataset {
     /** 3006002E · VR DT · VM 1 */
     ROIObservationDateTime?: string;
     /** 3006004A · VR SQ · VM 1 */
-    SourcePixelPlanesCharacteristicsSequence?: NaturalizedDataset[];
+    SourcePixelPlanesCharacteristicsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 3006004B · VR SQ · VM 1 */
-    SourceSeriesSequence?: NaturalizedDataset[];
+    SourceSeriesSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 3006004C · VR SQ · VM 1 */
-    SourceSeriesInformationSequence?: NaturalizedDataset[];
+    SourceSeriesInformationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 3006004D · VR SQ · VM 1 */
-    ROICreatorSequence?: NaturalizedDataset[];
+    ROICreatorSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 3006004E · VR SQ · VM 1 */
-    ROIInterpreterSequence?: NaturalizedDataset[];
+    ROIInterpreterSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 3006004F · VR SQ · VM 1 */
-    ROIObservationContextCodeSequence?: NaturalizedDataset[];
+    ROIObservationContextCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300600A0 · VR SQ · VM 1 */
-    RelatedRTROIObservationsSequence?: NaturalizedDataset[];
+    RelatedRTROIObservationsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300600A4 · VR CS · VM 1 */
     RTROIInterpretedType?: string;
     /** 300600A6 · VR PN · VM 1 */
     ROIInterpreter?: PersonName;
     /** 300600B0 · VR SQ · VM 1 */
-    ROIPhysicalPropertiesSequence?: NaturalizedDataset[];
+    ROIPhysicalPropertiesSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300600B2 · VR CS · VM 1 */
     ROIPhysicalProperty?: string;
     /** 300600B4 · VR DS · VM 1 */
     ROIPhysicalPropertyValue?: number;
     /** 300600B6 · VR SQ · VM 1 */
-    ROIElementalCompositionSequence?: NaturalizedDataset[];
+    ROIElementalCompositionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300600B7 · VR US · VM 1 */
     ROIElementalCompositionAtomicNumber?: number;
     /** 300600B8 · VR FL · VM 1 */
     ROIElementalCompositionAtomicMassFraction?: number;
     /** 300600B9 · VR SQ · VM 1 */
-    AdditionalRTROIIdentificationCodeSequence?: NaturalizedDataset[];
+    AdditionalRTROIIdentificationCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300600C0 · VR SQ · VM 1 */
-    RETIRED_FrameOfReferenceRelationshipSequence?: NaturalizedDataset[];
+    RETIRED_FrameOfReferenceRelationshipSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300600C2 · VR UI · VM 1 */
     RETIRED_RelatedFrameOfReferenceUID?: string;
     /** 300600C4 · VR CS · VM 1 */
@@ -8751,11 +8751,11 @@ export interface NaturalizedDataset {
     /** 300600C8 · VR LO · VM 1 */
     FrameOfReferenceTransformationComment?: string;
     /** 300600C9 · VR SQ · VM 1 */
-    PatientLocationCoordinatesSequence?: NaturalizedDataset[];
+    PatientLocationCoordinatesSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300600CA · VR SQ · VM 1 */
-    PatientLocationCoordinatesCodeSequence?: NaturalizedDataset[];
+    PatientLocationCoordinatesCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300600CB · VR SQ · VM 1 */
-    PatientSupportPositionSequence?: NaturalizedDataset[];
+    PatientSupportPositionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 3008002A · VR CS · VM 1 */
     TreatmentTerminationStatus?: string;
     /** 3008002B · VR SH · VM 1 */
@@ -8773,33 +8773,33 @@ export interface NaturalizedDataset {
     /** 3008007A · VR DS · VM 1 */
     EndMeterset?: number;
     /** 300800A0 · VR SQ · VM 1 */
-    BeamLimitingDeviceLeafPairsSequence?: NaturalizedDataset[];
+    BeamLimitingDeviceLeafPairsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300800A1 · VR SQ · VM 1 */
-    EnhancedRTBeamLimitingDeviceSequence?: NaturalizedDataset[];
+    EnhancedRTBeamLimitingDeviceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300800A2 · VR SQ · VM 1 */
-    EnhancedRTBeamLimitingOpeningSequence?: NaturalizedDataset[];
+    EnhancedRTBeamLimitingOpeningSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300800A3 · VR CS · VM 1 */
     EnhancedRTBeamLimitingDeviceDefinitionFlag?: string;
     /** 300800A4 · VR FD · VM 2-2n */
     ParallelRTBeamDelimiterOpeningExtents?: number[];
     /** 300800B0 · VR SQ · VM 1 */
-    RecordedWedgeSequence?: NaturalizedDataset[];
+    RecordedWedgeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300800C0 · VR SQ · VM 1 */
-    RecordedCompensatorSequence?: NaturalizedDataset[];
+    RecordedCompensatorSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300800D0 · VR SQ · VM 1 */
-    RecordedBlockSequence?: NaturalizedDataset[];
+    RecordedBlockSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300800D1 · VR SQ · VM 1 */
-    RecordedBlockSlabSequence?: NaturalizedDataset[];
+    RecordedBlockSlabSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300800E0 · VR SQ · VM 1 */
-    TreatmentSummaryMeasuredDoseReferenceSequence?: NaturalizedDataset[];
+    TreatmentSummaryMeasuredDoseReferenceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300800F0 · VR SQ · VM 1 */
-    RecordedSnoutSequence?: NaturalizedDataset[];
+    RecordedSnoutSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300800F2 · VR SQ · VM 1 */
-    RecordedRangeShifterSequence?: NaturalizedDataset[];
+    RecordedRangeShifterSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300800F4 · VR SQ · VM 1 */
-    RecordedLateralSpreadingDeviceSequence?: NaturalizedDataset[];
+    RecordedLateralSpreadingDeviceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300800F6 · VR SQ · VM 1 */
-    RecordedRangeModulatorSequence?: NaturalizedDataset[];
+    RecordedRangeModulatorSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 3008013A · VR DS · VM 1 */
     SpecifiedPulseRepetitionInterval?: number;
     /** 3008013C · VR DS · VM 1 */
@@ -8825,7 +8825,7 @@ export interface NaturalizedDataset {
     /** 300A000E · VR ST · VM 1 */
     PrescriptionDescription?: string;
     /** 300A0010 · VR SQ · VM 1 */
-    DoseReferenceSequence?: NaturalizedDataset[];
+    DoseReferenceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0012 · VR IS · VM 1 */
     DoseReferenceNumber?: number;
     /** 300A0013 · VR UI · VM 1 */
@@ -8865,7 +8865,7 @@ export interface NaturalizedDataset {
     /** 300A002D · VR DS · VM 1 */
     OrganAtRiskOverdoseVolumeFraction?: number;
     /** 300A0040 · VR SQ · VM 1 */
-    ToleranceTableSequence?: NaturalizedDataset[];
+    ToleranceTableSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0042 · VR IS · VM 1 */
     ToleranceTableNumber?: number;
     /** 300A0043 · VR SH · VM 1 */
@@ -8875,7 +8875,7 @@ export interface NaturalizedDataset {
     /** 300A0046 · VR DS · VM 1 */
     BeamLimitingDeviceAngleTolerance?: number;
     /** 300A0048 · VR SQ · VM 1 */
-    BeamLimitingDeviceToleranceSequence?: NaturalizedDataset[];
+    BeamLimitingDeviceToleranceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A004A · VR DS · VM 1 */
     BeamLimitingDevicePositionTolerance?: number;
     /** 300A004B · VR FL · VM 1 */
@@ -8899,7 +8899,7 @@ export interface NaturalizedDataset {
     /** 300A0055 · VR CS · VM 1 */
     RTPlanRelationship?: string;
     /** 300A0070 · VR SQ · VM 1 */
-    FractionGroupSequence?: NaturalizedDataset[];
+    FractionGroupSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0071 · VR IS · VM 1 */
     FractionGroupNumber?: number;
     /** 300A0072 · VR LO · VM 1 */
@@ -8931,7 +8931,7 @@ export interface NaturalizedDataset {
     /** 300A008B · VR CS · VM 1 */
     BeamDoseMeaning?: string;
     /** 300A008C · VR SQ · VM 1 */
-    BeamDoseVerificationControlPointSequence?: NaturalizedDataset[];
+    BeamDoseVerificationControlPointSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A008D · VR FL · VM 1 */
     AverageBeamDosePointDepth?: number;
     /** 300A008E · VR FL · VM 1 */
@@ -8955,7 +8955,7 @@ export interface NaturalizedDataset {
     /** 300A00A4 · VR DS · VM 1 */
     BrachyApplicationSetupDose?: number;
     /** 300A00B0 · VR SQ · VM 1 */
-    BeamSequence?: NaturalizedDataset[];
+    BeamSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A00B2 · VR SH · VM 1 */
     TreatmentMachineName?: string;
     /** 300A00B3 · VR CS · VM 1 */
@@ -8963,7 +8963,7 @@ export interface NaturalizedDataset {
     /** 300A00B4 · VR DS · VM 1 */
     SourceAxisDistance?: number;
     /** 300A00B6 · VR SQ · VM 1 */
-    BeamLimitingDeviceSequence?: NaturalizedDataset[];
+    BeamLimitingDeviceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A00B8 · VR CS · VM 1 */
     RTBeamLimitingDeviceType?: string;
     /** 300A00BA · VR DS · VM 1 */
@@ -8991,7 +8991,7 @@ export interface NaturalizedDataset {
     /** 300A00C8 · VR IS · VM 1 */
     ReferenceImageNumber?: number;
     /** 300A00CA · VR SQ · VM 1 */
-    PlannedVerificationImageSequence?: NaturalizedDataset[];
+    PlannedVerificationImageSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A00CC · VR LO · VM 1-n */
     ImagingDeviceSpecificAcquisitionParameters?: string[];
     /** 300A00CE · VR CS · VM 1 */
@@ -8999,7 +8999,7 @@ export interface NaturalizedDataset {
     /** 300A00D0 · VR IS · VM 1 */
     NumberOfWedges?: number;
     /** 300A00D1 · VR SQ · VM 1 */
-    WedgeSequence?: NaturalizedDataset[];
+    WedgeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A00D2 · VR IS · VM 1 */
     WedgeNumber?: number;
     /** 300A00D3 · VR CS · VM 1 */
@@ -9033,7 +9033,7 @@ export interface NaturalizedDataset {
     /** 300A00E2 · VR DS · VM 1 */
     TotalCompensatorTrayFactor?: number;
     /** 300A00E3 · VR SQ · VM 1 */
-    CompensatorSequence?: NaturalizedDataset[];
+    CompensatorSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A00E4 · VR IS · VM 1 */
     CompensatorNumber?: number;
     /** 300A00E5 · VR SH · VM 1 */
@@ -9065,7 +9065,7 @@ export interface NaturalizedDataset {
     /** 300A00F3 · VR FL · VM 1 */
     TotalBlockTrayWaterEquivalentThickness?: number;
     /** 300A00F4 · VR SQ · VM 1 */
-    BlockSequence?: NaturalizedDataset[];
+    BlockSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A00F5 · VR SH · VM 1 */
     BlockTrayID?: string;
     /** 300A00F6 · VR DS · VM 1 */
@@ -9093,7 +9093,7 @@ export interface NaturalizedDataset {
     /** 300A0106 · VR DS · VM 2-2n */
     BlockData?: number[];
     /** 300A0107 · VR SQ · VM 1 */
-    ApplicatorSequence?: NaturalizedDataset[];
+    ApplicatorSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0108 · VR SH · VM 1 */
     ApplicatorID?: string;
     /** 300A0109 · VR CS · VM 1 */
@@ -9107,7 +9107,7 @@ export interface NaturalizedDataset {
     /** 300A0110 · VR IS · VM 1 */
     NumberOfControlPoints?: number;
     /** 300A0111 · VR SQ · VM 1 */
-    ControlPointSequence?: NaturalizedDataset[];
+    ControlPointSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0112 · VR IS · VM 1 */
     ControlPointIndex?: number;
     /** 300A0114 · VR DS · VM 1 */
@@ -9115,11 +9115,11 @@ export interface NaturalizedDataset {
     /** 300A0115 · VR DS · VM 1 */
     DoseRateSet?: number;
     /** 300A0116 · VR SQ · VM 1 */
-    WedgePositionSequence?: NaturalizedDataset[];
+    WedgePositionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0118 · VR CS · VM 1 */
     WedgePosition?: string;
     /** 300A011A · VR SQ · VM 1 */
-    BeamLimitingDevicePositionSequence?: NaturalizedDataset[];
+    BeamLimitingDevicePositionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A011C · VR DS · VM 2-2n */
     LeafJawPositions?: number[];
     /** 300A011E · VR DS · VM 1 */
@@ -9189,7 +9189,7 @@ export interface NaturalizedDataset {
     /** 300A0155 · VR DS · VM 1 */
     FixationLightPolarAngleTolerance?: number;
     /** 300A0180 · VR SQ · VM 1 */
-    PatientSetupSequence?: NaturalizedDataset[];
+    PatientSetupSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0182 · VR IS · VM 1 */
     PatientSetupNumber?: number;
     /** 300A0183 · VR LO · VM 1 */
@@ -9197,7 +9197,7 @@ export interface NaturalizedDataset {
     /** 300A0184 · VR LO · VM 1 */
     PatientAdditionalPosition?: string;
     /** 300A0190 · VR SQ · VM 1 */
-    FixationDeviceSequence?: NaturalizedDataset[];
+    FixationDeviceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0192 · VR CS · VM 1 */
     FixationDeviceType?: string;
     /** 300A0194 · VR SH · VM 1 */
@@ -9211,7 +9211,7 @@ export interface NaturalizedDataset {
     /** 300A019A · VR FL · VM 1 */
     FixationDeviceRollAngle?: number;
     /** 300A01A0 · VR SQ · VM 1 */
-    ShieldingDeviceSequence?: NaturalizedDataset[];
+    ShieldingDeviceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A01A2 · VR CS · VM 1 */
     ShieldingDeviceType?: string;
     /** 300A01A4 · VR SH · VM 1 */
@@ -9225,7 +9225,7 @@ export interface NaturalizedDataset {
     /** 300A01B2 · VR ST · VM 1 */
     SetupTechniqueDescription?: string;
     /** 300A01B4 · VR SQ · VM 1 */
-    SetupDeviceSequence?: NaturalizedDataset[];
+    SetupDeviceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A01B6 · VR CS · VM 1 */
     SetupDeviceType?: string;
     /** 300A01B8 · VR SH · VM 1 */
@@ -9247,9 +9247,9 @@ export interface NaturalizedDataset {
     /** 300A0202 · VR CS · VM 1 */
     BrachyTreatmentType?: string;
     /** 300A0206 · VR SQ · VM 1 */
-    TreatmentMachineSequence?: NaturalizedDataset[];
+    TreatmentMachineSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0210 · VR SQ · VM 1 */
-    SourceSequence?: NaturalizedDataset[];
+    SourceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0212 · VR IS · VM 1 */
     SourceNumber?: number;
     /** 300A0214 · VR CS · VM 1 */
@@ -9283,7 +9283,7 @@ export interface NaturalizedDataset {
     /** 300A022E · VR TM · VM 1 */
     SourceStrengthReferenceTime?: string;
     /** 300A0230 · VR SQ · VM 1 */
-    ApplicationSetupSequence?: NaturalizedDataset[];
+    ApplicationSetupSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0232 · VR CS · VM 1 */
     ApplicationSetupType?: string;
     /** 300A0234 · VR IS · VM 1 */
@@ -9301,7 +9301,7 @@ export interface NaturalizedDataset {
     /** 300A0250 · VR DS · VM 1 */
     TotalReferenceAirKerma?: number;
     /** 300A0260 · VR SQ · VM 1 */
-    BrachyAccessoryDeviceSequence?: NaturalizedDataset[];
+    BrachyAccessoryDeviceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0262 · VR IS · VM 1 */
     BrachyAccessoryDeviceNumber?: number;
     /** 300A0263 · VR SH · VM 1 */
@@ -9323,7 +9323,7 @@ export interface NaturalizedDataset {
     /** 300A0274 · VR DS · VM 1 */
     SourceApplicatorTipLength?: number;
     /** 300A0280 · VR SQ · VM 1 */
-    ChannelSequence?: NaturalizedDataset[];
+    ChannelSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0282 · VR IS · VM 1 */
     ChannelNumber?: number;
     /** 300A0284 · VR DS · VM 1 */
@@ -9361,7 +9361,7 @@ export interface NaturalizedDataset {
     /** 300A02A4 · VR DS · VM 1 */
     TransferTubeLength?: number;
     /** 300A02B0 · VR SQ · VM 1 */
-    ChannelShieldSequence?: NaturalizedDataset[];
+    ChannelShieldSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A02B2 · VR IS · VM 1 */
     ChannelShieldNumber?: number;
     /** 300A02B3 · VR SH · VM 1 */
@@ -9375,7 +9375,7 @@ export interface NaturalizedDataset {
     /** 300A02C8 · VR DS · VM 1 */
     FinalCumulativeTimeWeight?: number;
     /** 300A02D0 · VR SQ · VM 1 */
-    BrachyControlPointSequence?: NaturalizedDataset[];
+    BrachyControlPointSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A02D2 · VR DS · VM 1 */
     ControlPointRelativePosition?: number;
     /** 300A02D4 · VR DS · VM 3 */
@@ -9401,7 +9401,7 @@ export interface NaturalizedDataset {
     /** 300A02E8 · VR FL · VM 1 */
     CompensatorMillingToolDiameter?: number;
     /** 300A02EA · VR SQ · VM 1 */
-    IonRangeCompensatorSequence?: NaturalizedDataset[];
+    IonRangeCompensatorSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A02EB · VR LT · VM 1 */
     CompensatorDescription?: string;
     /** 300A0302 · VR IS · VM 1 */
@@ -9417,7 +9417,7 @@ export interface NaturalizedDataset {
     /** 300A030A · VR FL · VM 2 */
     VirtualSourceAxisDistances?: number[];
     /** 300A030C · VR SQ · VM 1 */
-    SnoutSequence?: NaturalizedDataset[];
+    SnoutSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A030D · VR FL · VM 1 */
     SnoutPosition?: number;
     /** 300A030F · VR SH · VM 1 */
@@ -9425,7 +9425,7 @@ export interface NaturalizedDataset {
     /** 300A0312 · VR IS · VM 1 */
     NumberOfRangeShifters?: number;
     /** 300A0314 · VR SQ · VM 1 */
-    RangeShifterSequence?: NaturalizedDataset[];
+    RangeShifterSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0316 · VR IS · VM 1 */
     RangeShifterNumber?: number;
     /** 300A0318 · VR SH · VM 1 */
@@ -9437,7 +9437,7 @@ export interface NaturalizedDataset {
     /** 300A0330 · VR IS · VM 1 */
     NumberOfLateralSpreadingDevices?: number;
     /** 300A0332 · VR SQ · VM 1 */
-    LateralSpreadingDeviceSequence?: NaturalizedDataset[];
+    LateralSpreadingDeviceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0334 · VR IS · VM 1 */
     LateralSpreadingDeviceNumber?: number;
     /** 300A0336 · VR SH · VM 1 */
@@ -9451,7 +9451,7 @@ export interface NaturalizedDataset {
     /** 300A0340 · VR IS · VM 1 */
     NumberOfRangeModulators?: number;
     /** 300A0342 · VR SQ · VM 1 */
-    RangeModulatorSequence?: NaturalizedDataset[];
+    RangeModulatorSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0344 · VR IS · VM 1 */
     RangeModulatorNumber?: number;
     /** 300A0346 · VR SH · VM 1 */
@@ -9477,7 +9477,7 @@ export interface NaturalizedDataset {
     /** 300A035A · VR FL · VM 1 */
     MetersetRate?: number;
     /** 300A0360 · VR SQ · VM 1 */
-    RangeShifterSettingsSequence?: NaturalizedDataset[];
+    RangeShifterSettingsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0362 · VR LO · VM 1 */
     RangeShifterSetting?: string;
     /** 300A0364 · VR FL · VM 1 */
@@ -9485,13 +9485,13 @@ export interface NaturalizedDataset {
     /** 300A0366 · VR FL · VM 1 */
     RangeShifterWaterEquivalentThickness?: number;
     /** 300A0370 · VR SQ · VM 1 */
-    LateralSpreadingDeviceSettingsSequence?: NaturalizedDataset[];
+    LateralSpreadingDeviceSettingsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0372 · VR LO · VM 1 */
     LateralSpreadingDeviceSetting?: string;
     /** 300A0374 · VR FL · VM 1 */
     IsocenterToLateralSpreadingDeviceDistance?: number;
     /** 300A0380 · VR SQ · VM 1 */
-    RangeModulatorSettingsSequence?: NaturalizedDataset[];
+    RangeModulatorSettingsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0382 · VR FL · VM 1 */
     RangeModulatorGatingStartValue?: number;
     /** 300A0384 · VR FL · VM 1 */
@@ -9525,29 +9525,29 @@ export interface NaturalizedDataset {
     /** 300A039A · VR IS · VM 1 */
     NumberOfPaintings?: number;
     /** 300A03A0 · VR SQ · VM 1 */
-    IonToleranceTableSequence?: NaturalizedDataset[];
+    IonToleranceTableSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A03A2 · VR SQ · VM 1 */
-    IonBeamSequence?: NaturalizedDataset[];
+    IonBeamSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A03A4 · VR SQ · VM 1 */
-    IonBeamLimitingDeviceSequence?: NaturalizedDataset[];
+    IonBeamLimitingDeviceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A03A6 · VR SQ · VM 1 */
-    IonBlockSequence?: NaturalizedDataset[];
+    IonBlockSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A03A8 · VR SQ · VM 1 */
-    IonControlPointSequence?: NaturalizedDataset[];
+    IonControlPointSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A03AA · VR SQ · VM 1 */
-    IonWedgeSequence?: NaturalizedDataset[];
+    IonWedgeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A03AC · VR SQ · VM 1 */
-    IonWedgePositionSequence?: NaturalizedDataset[];
+    IonWedgePositionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0401 · VR SQ · VM 1 */
-    ReferencedSetupImageSequence?: NaturalizedDataset[];
+    ReferencedSetupImageSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0402 · VR ST · VM 1 */
     SetupImageComment?: string;
     /** 300A0410 · VR SQ · VM 1 */
-    MotionSynchronizationSequence?: NaturalizedDataset[];
+    MotionSynchronizationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0412 · VR FL · VM 3 */
     ControlPointOrientation?: number[];
     /** 300A0420 · VR SQ · VM 1 */
-    GeneralAccessorySequence?: NaturalizedDataset[];
+    GeneralAccessorySequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0421 · VR SH · VM 1 */
     GeneralAccessoryID?: string;
     /** 300A0422 · VR ST · VM 1 */
@@ -9561,7 +9561,7 @@ export interface NaturalizedDataset {
     /** 300A0426 · VR DS · VM 1 */
     IsocenterToGeneralAccessoryDistance?: number;
     /** 300A0431 · VR SQ · VM 1 */
-    ApplicatorGeometrySequence?: NaturalizedDataset[];
+    ApplicatorGeometrySequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0432 · VR CS · VM 1 */
     ApplicatorApertureShape?: string;
     /** 300A0433 · VR FL · VM 1 */
@@ -9575,19 +9575,19 @@ export interface NaturalizedDataset {
     /** 300A0440 · VR IS · VM 1 */
     NumberOfBlockSlabItems?: number;
     /** 300A0441 · VR SQ · VM 1 */
-    BlockSlabSequence?: NaturalizedDataset[];
+    BlockSlabSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0442 · VR DS · VM 1 */
     BlockSlabThickness?: number;
     /** 300A0443 · VR US · VM 1 */
     BlockSlabNumber?: number;
     /** 300A0450 · VR SQ · VM 1 */
-    DeviceMotionControlSequence?: NaturalizedDataset[];
+    DeviceMotionControlSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0451 · VR CS · VM 1 */
     DeviceMotionExecutionMode?: string;
     /** 300A0452 · VR CS · VM 1 */
     DeviceMotionObservationMode?: string;
     /** 300A0453 · VR SQ · VM 1 */
-    DeviceMotionParameterCodeSequence?: NaturalizedDataset[];
+    DeviceMotionParameterCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0501 · VR FL · VM 1 */
     DistalDepthFraction?: number;
     /** 300A0502 · VR FL · VM 1 */
@@ -9597,9 +9597,9 @@ export interface NaturalizedDataset {
     /** 300A0504 · VR FL · VM 2 */
     NominalRangeModulatedRegionDepths?: number[];
     /** 300A0505 · VR SQ · VM 1 */
-    DepthDoseParametersSequence?: NaturalizedDataset[];
+    DepthDoseParametersSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0506 · VR SQ · VM 1 */
-    DeliveredDepthDoseParametersSequence?: NaturalizedDataset[];
+    DeliveredDepthDoseParametersSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0507 · VR FL · VM 1 */
     DeliveredDistalDepthFraction?: number;
     /** 300A0508 · VR FL · VM 1 */
@@ -9633,7 +9633,7 @@ export interface NaturalizedDataset {
     /** 300A0609 · VR UI · VM 1 */
     TreatmentPositionGroupUID?: string;
     /** 300A060A · VR SQ · VM 1 */
-    TreatmentPositionGroupSequence?: NaturalizedDataset[];
+    TreatmentPositionGroupSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A060B · VR US · VM 1 */
     ReferencedTreatmentPositionIndex?: number;
     /** 300A060C · VR US · VM 1 */
@@ -9645,7 +9645,7 @@ export interface NaturalizedDataset {
     /** 300A060F · VR CS · VM 1 */
     RTAccessoryHolderSlotExistenceFlag?: string;
     /** 300A0610 · VR SQ · VM 1 */
-    RTAccessoryHolderSlotSequence?: NaturalizedDataset[];
+    RTAccessoryHolderSlotSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0611 · VR LO · VM 1 */
     RTAccessoryHolderSlotID?: string;
     /** 300A0612 · VR FD · VM 1 */
@@ -9653,15 +9653,15 @@ export interface NaturalizedDataset {
     /** 300A0613 · VR FD · VM 1 */
     RTAccessorySlotDistance?: number;
     /** 300A0614 · VR SQ · VM 1 */
-    RTAccessoryHolderDefinitionSequence?: NaturalizedDataset[];
+    RTAccessoryHolderDefinitionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0615 · VR LO · VM 1 */
     RTAccessoryDeviceSlotID?: string;
     /** 300A0616 · VR SQ · VM 1 */
-    RTRadiationSequence?: NaturalizedDataset[];
+    RTRadiationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0617 · VR SQ · VM 1 */
-    RadiationDoseSequence?: NaturalizedDataset[];
+    RadiationDoseSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0618 · VR SQ · VM 1 */
-    RadiationDoseIdentificationSequence?: NaturalizedDataset[];
+    RadiationDoseIdentificationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0619 · VR LO · VM 1 */
     RadiationDoseIdentificationLabel?: string;
     /** 300A061A · VR CS · VM 1 */
@@ -9669,17 +9669,17 @@ export interface NaturalizedDataset {
     /** 300A061B · VR CS · VM 1 */
     PrimaryDoseValueIndicator?: string;
     /** 300A061C · VR SQ · VM 1 */
-    DoseValuesSequence?: NaturalizedDataset[];
+    DoseValuesSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A061D · VR CS · VM 1-n */
     DoseValuePurpose?: string[];
     /** 300A061E · VR FD · VM 3 */
     ReferenceDosePointCoordinates?: number[];
     /** 300A061F · VR SQ · VM 1 */
-    RadiationDoseValuesParametersSequence?: NaturalizedDataset[];
+    RadiationDoseValuesParametersSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0620 · VR SQ · VM 1 */
-    MetersetToDoseMappingSequence?: NaturalizedDataset[];
+    MetersetToDoseMappingSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0621 · VR SQ · VM 1 */
-    ExpectedInVivoMeasurementValuesSequence?: NaturalizedDataset[];
+    ExpectedInVivoMeasurementValuesSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0622 · VR US · VM 1 */
     ExpectedInVivoMeasurementValueIndex?: number;
     /** 300A0623 · VR LO · VM 1 */
@@ -9695,29 +9695,29 @@ export interface NaturalizedDataset {
     /** 300A0628 · VR FD · VM 1 */
     RadiationDoseSourceToExternalContourDistance?: number;
     /** 300A0629 · VR SQ · VM 1 */
-    RTToleranceSetSequence?: NaturalizedDataset[];
+    RTToleranceSetSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A062A · VR LO · VM 1 */
     RTToleranceSetLabel?: string;
     /** 300A062B · VR SQ · VM 1 */
-    AttributeToleranceValuesSequence?: NaturalizedDataset[];
+    AttributeToleranceValuesSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A062C · VR FD · VM 1 */
     ToleranceValue?: number;
     /** 300A062D · VR SQ · VM 1 */
-    PatientSupportPositionToleranceSequence?: NaturalizedDataset[];
+    PatientSupportPositionToleranceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A062E · VR FD · VM 1 */
     TreatmentTimeLimit?: number;
     /** 300A062F · VR SQ · VM 1 */
-    CArmPhotonElectronControlPointSequence?: NaturalizedDataset[];
+    CArmPhotonElectronControlPointSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0630 · VR SQ · VM 1 */
-    ReferencedRTRadiationSequence?: NaturalizedDataset[];
+    ReferencedRTRadiationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0631 · VR SQ · VM 1 */
-    ReferencedRTInstanceSequence?: NaturalizedDataset[];
+    ReferencedRTInstanceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0632 · VR SQ · VM 1 */
-    ReferencedRTPatientSetupSequence?: NaturalizedDataset[];
+    ReferencedRTPatientSetupSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0634 · VR FD · VM 1 */
     SourceToPatientSurfaceDistance?: number;
     /** 300A0635 · VR SQ · VM 1 */
-    TreatmentMachineSpecialModeCodeSequence?: NaturalizedDataset[];
+    TreatmentMachineSpecialModeCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0636 · VR US · VM 1 */
     IntendedNumberOfFractions?: number;
     /** 300A0637 · VR CS · VM 1 */
@@ -9727,17 +9727,17 @@ export interface NaturalizedDataset {
     /** 300A0639 · VR CS · VM 1 */
     RTRecordFlag?: string;
     /** 300A063A · VR SQ · VM 1 */
-    TreatmentDeviceIdentificationSequence?: NaturalizedDataset[];
+    TreatmentDeviceIdentificationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A063B · VR SQ · VM 1 */
-    ReferencedRTPhysicianIntentSequence?: NaturalizedDataset[];
+    ReferencedRTPhysicianIntentSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A063C · VR FD · VM 1 */
     CumulativeMeterset?: number;
     /** 300A063D · VR FD · VM 1 */
     DeliveryRate?: number;
     /** 300A063E · VR SQ · VM 1 */
-    DeliveryRateUnitSequence?: NaturalizedDataset[];
+    DeliveryRateUnitSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A063F · VR SQ · VM 1 */
-    TreatmentPositionSequence?: NaturalizedDataset[];
+    TreatmentPositionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0640 · VR FD · VM 1 */
     RadiationSourceAxisDistance?: number;
     /** 300A0641 · VR US · VM 1 */
@@ -9747,13 +9747,13 @@ export interface NaturalizedDataset {
     /** 300A0643 · VR FD · VM 1 */
     RTBeamLimitingDeviceDistalDistance?: number;
     /** 300A0644 · VR SQ · VM 1 */
-    ParallelRTBeamDelimiterDeviceOrientationLabelCodeSequence?: NaturalizedDataset[];
+    ParallelRTBeamDelimiterDeviceOrientationLabelCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0645 · VR FD · VM 1 */
     BeamModifierOrientationAngle?: number;
     /** 300A0646 · VR SQ · VM 1 */
-    FixedRTBeamDelimiterDeviceSequence?: NaturalizedDataset[];
+    FixedRTBeamDelimiterDeviceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0647 · VR SQ · VM 1 */
-    ParallelRTBeamDelimiterDeviceSequence?: NaturalizedDataset[];
+    ParallelRTBeamDelimiterDeviceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0648 · VR US · VM 1 */
     NumberOfParallelRTBeamDelimiters?: number;
     /** 300A0649 · VR FD · VM 2-n */
@@ -9763,9 +9763,9 @@ export interface NaturalizedDataset {
     /** 300A064B · VR FD · VM 2 */
     RTBeamLimitingDeviceOffset?: number[];
     /** 300A064C · VR SQ · VM 1 */
-    RTBeamDelimiterGeometrySequence?: NaturalizedDataset[];
+    RTBeamDelimiterGeometrySequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A064D · VR SQ · VM 1 */
-    RTBeamLimitingDeviceDefinitionSequence?: NaturalizedDataset[];
+    RTBeamLimitingDeviceDefinitionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A064E · VR CS · VM 1 */
     ParallelRTBeamDelimiterOpeningMode?: string;
     /** 300A064F · VR CS · VM 1-n */
@@ -9773,7 +9773,7 @@ export interface NaturalizedDataset {
     /** 300A0650 · VR UI · VM 1 */
     PatientSetupUID?: string;
     /** 300A0651 · VR SQ · VM 1 */
-    WedgeDefinitionSequence?: NaturalizedDataset[];
+    WedgeDefinitionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0652 · VR FD · VM 1 */
     RadiationBeamWedgeAngle?: number;
     /** 300A0653 · VR FD · VM 1 */
@@ -9783,31 +9783,31 @@ export interface NaturalizedDataset {
     /** 300A0655 · VR US · VM 1 */
     NumberOfWedgePositions?: number;
     /** 300A0656 · VR SQ · VM 1 */
-    RTBeamLimitingDeviceOpeningSequence?: NaturalizedDataset[];
+    RTBeamLimitingDeviceOpeningSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0657 · VR US · VM 1 */
     NumberOfRTBeamLimitingDeviceOpenings?: number;
     /** 300A0658 · VR SQ · VM 1 */
-    RadiationDosimeterUnitSequence?: NaturalizedDataset[];
+    RadiationDosimeterUnitSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0659 · VR SQ · VM 1 */
-    RTDeviceDistanceReferenceLocationCodeSequence?: NaturalizedDataset[];
+    RTDeviceDistanceReferenceLocationCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A065A · VR SQ · VM 1 */
-    RadiationDeviceConfigurationAndCommissioningKeySequence?: NaturalizedDataset[];
+    RadiationDeviceConfigurationAndCommissioningKeySequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A065B · VR SQ · VM 1 */
-    PatientSupportPositionParameterSequence?: NaturalizedDataset[];
+    PatientSupportPositionParameterSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A065C · VR CS · VM 1 */
     PatientSupportPositionSpecificationMethod?: string;
     /** 300A065D · VR SQ · VM 1 */
-    PatientSupportPositionDeviceParameterSequence?: NaturalizedDataset[];
+    PatientSupportPositionDeviceParameterSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A065E · VR US · VM 1 */
     DeviceOrderIndex?: number;
     /** 300A065F · VR US · VM 1 */
     PatientSupportPositionParameterOrderIndex?: number;
     /** 300A0660 · VR SQ · VM 1 */
-    PatientSupportPositionDeviceToleranceSequence?: NaturalizedDataset[];
+    PatientSupportPositionDeviceToleranceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0661 · VR US · VM 1 */
     PatientSupportPositionToleranceOrderIndex?: number;
     /** 300A0662 · VR SQ · VM 1 */
-    CompensatorDefinitionSequence?: NaturalizedDataset[];
+    CompensatorDefinitionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0663 · VR CS · VM 1 */
     CompensatorMapOrientation?: string;
     /** 300A0664 · VR OF · VM 1 */
@@ -9817,13 +9817,13 @@ export interface NaturalizedDataset {
     /** 300A0666 · VR FD · VM 1 */
     CompensatorBasePlaneOffset?: number;
     /** 300A0667 · VR SQ · VM 1 */
-    CompensatorShapeFabricationCodeSequence?: NaturalizedDataset[];
+    CompensatorShapeFabricationCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0668 · VR SQ · VM 1 */
-    CompensatorShapeSequence?: NaturalizedDataset[];
+    CompensatorShapeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0669 · VR FD · VM 1 */
     RadiationBeamCompensatorMillingToolDiameter?: number;
     /** 300A066A · VR SQ · VM 1 */
-    BlockDefinitionSequence?: NaturalizedDataset[];
+    BlockDefinitionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A066B · VR OF · VM 1 */
     BlockEdgeData?: BinaryValue[];
     /** 300A066C · VR CS · VM 1 */
@@ -9833,15 +9833,15 @@ export interface NaturalizedDataset {
     /** 300A066E · VR FD · VM 1 */
     RadiationBeamBlockSlabThickness?: number;
     /** 300A066F · VR SQ · VM 1 */
-    BlockEdgeDataSequence?: NaturalizedDataset[];
+    BlockEdgeDataSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0670 · VR US · VM 1 */
     NumberOfRTAccessoryHolders?: number;
     /** 300A0671 · VR SQ · VM 1 */
-    GeneralAccessoryDefinitionSequence?: NaturalizedDataset[];
+    GeneralAccessoryDefinitionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0672 · VR US · VM 1 */
     NumberOfGeneralAccessories?: number;
     /** 300A0673 · VR SQ · VM 1 */
-    BolusDefinitionSequence?: NaturalizedDataset[];
+    BolusDefinitionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0674 · VR US · VM 1 */
     NumberOfBoluses?: number;
     /** 300A0675 · VR UI · VM 1 */
@@ -9849,23 +9849,23 @@ export interface NaturalizedDataset {
     /** 300A0676 · VR ST · VM 1 */
     EquipmentFrameOfReferenceDescription?: string;
     /** 300A0677 · VR SQ · VM 1 */
-    EquipmentReferencePointCoordinatesSequence?: NaturalizedDataset[];
+    EquipmentReferencePointCoordinatesSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0678 · VR SQ · VM 1 */
-    EquipmentReferencePointCodeSequence?: NaturalizedDataset[];
+    EquipmentReferencePointCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0679 · VR FD · VM 1 */
     RTBeamLimitingDeviceAngle?: number;
     /** 300A067A · VR FD · VM 1 */
     SourceRollAngle?: number;
     /** 300A067B · VR SQ · VM 1 */
-    RadiationGenerationModeSequence?: NaturalizedDataset[];
+    RadiationGenerationModeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A067C · VR SH · VM 1 */
     RadiationGenerationModeLabel?: string;
     /** 300A067D · VR ST · VM 1 */
     RadiationGenerationModeDescription?: string;
     /** 300A067E · VR SQ · VM 1 */
-    RadiationGenerationModeMachineCodeSequence?: NaturalizedDataset[];
+    RadiationGenerationModeMachineCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A067F · VR SQ · VM 1 */
-    RadiationTypeCodeSequence?: NaturalizedDataset[];
+    RadiationTypeCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0680 · VR DS · VM 1 */
     NominalEnergy?: number;
     /** 300A0681 · VR DS · VM 1 */
@@ -9873,21 +9873,21 @@ export interface NaturalizedDataset {
     /** 300A0682 · VR DS · VM 1 */
     MaximumNominalEnergy?: number;
     /** 300A0683 · VR SQ · VM 1 */
-    RadiationFluenceModifierCodeSequence?: NaturalizedDataset[];
+    RadiationFluenceModifierCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0684 · VR SQ · VM 1 */
-    EnergyUnitCodeSequence?: NaturalizedDataset[];
+    EnergyUnitCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0685 · VR US · VM 1 */
     NumberOfRadiationGenerationModes?: number;
     /** 300A0686 · VR SQ · VM 1 */
-    PatientSupportDevicesSequence?: NaturalizedDataset[];
+    PatientSupportDevicesSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0687 · VR US · VM 1 */
     NumberOfPatientSupportDevices?: number;
     /** 300A0688 · VR FD · VM 1 */
     RTBeamModifierDefinitionDistance?: number;
     /** 300A0689 · VR SQ · VM 1 */
-    BeamAreaLimitSequence?: NaturalizedDataset[];
+    BeamAreaLimitSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A068A · VR SQ · VM 1 */
-    ReferencedRTPrescriptionSequence?: NaturalizedDataset[];
+    ReferencedRTPrescriptionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A068B · VR CS · VM 1 */
     DoseValueInterpretation?: string;
     /** 300A0700 · VR UI · VM 1 */
@@ -9895,9 +9895,9 @@ export interface NaturalizedDataset {
     /** 300A0701 · VR CS · VM 1 */
     RTRadiationUsage?: string;
     /** 300A0702 · VR SQ · VM 1 */
-    ReferencedRTRadiationSetSequence?: NaturalizedDataset[];
+    ReferencedRTRadiationSetSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0703 · VR SQ · VM 1 */
-    ReferencedRTRadiationRecordSequence?: NaturalizedDataset[];
+    ReferencedRTRadiationRecordSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0704 · VR US · VM 1 */
     RTRadiationSetDeliveryNumber?: number;
     /** 300A0705 · VR US · VM 1 */
@@ -9913,21 +9913,21 @@ export interface NaturalizedDataset {
     /** 300A0714 · VR CS · VM 1 */
     RTTreatmentTerminationStatus?: string;
     /** 300A0715 · VR SQ · VM 1 */
-    RTTreatmentTerminationReasonCodeSequence?: NaturalizedDataset[];
+    RTTreatmentTerminationReasonCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0716 · VR SQ · VM 1 */
-    MachineSpecificTreatmentTerminationCodeSequence?: NaturalizedDataset[];
+    MachineSpecificTreatmentTerminationCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0722 · VR SQ · VM 1 */
-    RTRadiationSalvageRecordControlPointSequence?: NaturalizedDataset[];
+    RTRadiationSalvageRecordControlPointSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0723 · VR CS · VM 1 */
     StartingMetersetValueKnownFlag?: string;
     /** 300A0730 · VR ST · VM 1 */
     TreatmentTerminationDescription?: string;
     /** 300A0731 · VR SQ · VM 1 */
-    TreatmentToleranceViolationSequence?: NaturalizedDataset[];
+    TreatmentToleranceViolationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0732 · VR CS · VM 1 */
     TreatmentToleranceViolationCategory?: string;
     /** 300A0733 · VR SQ · VM 1 */
-    TreatmentToleranceViolationAttributeSequence?: NaturalizedDataset[];
+    TreatmentToleranceViolationAttributeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0734 · VR ST · VM 1 */
     TreatmentToleranceViolationDescription?: string;
     /** 300A0735 · VR ST · VM 1 */
@@ -9939,71 +9939,71 @@ export interface NaturalizedDataset {
     /** 300A073B · VR US · VM 1 */
     ReferencedRadiationRTControlPointIndex?: number;
     /** 300A073E · VR SQ · VM 1 */
-    AlternateValueSequence?: NaturalizedDataset[];
+    AlternateValueSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A073F · VR SQ · VM 1 */
-    ConfirmationSequence?: NaturalizedDataset[];
+    ConfirmationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0740 · VR SQ · VM 1 */
-    InterlockSequence?: NaturalizedDataset[];
+    InterlockSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0741 · VR DT · VM 1 */
     InterlockDateTime?: string;
     /** 300A0742 · VR ST · VM 1 */
     InterlockDescription?: string;
     /** 300A0743 · VR SQ · VM 1 */
-    InterlockOriginatingDeviceSequence?: NaturalizedDataset[];
+    InterlockOriginatingDeviceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0744 · VR SQ · VM 1 */
-    InterlockCodeSequence?: NaturalizedDataset[];
+    InterlockCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0745 · VR SQ · VM 1 */
-    InterlockResolutionCodeSequence?: NaturalizedDataset[];
+    InterlockResolutionCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0746 · VR SQ · VM 1 */
-    InterlockResolutionUserSequence?: NaturalizedDataset[];
+    InterlockResolutionUserSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0760 · VR DT · VM 1 */
     OverrideDateTime?: string;
     /** 300A0761 · VR SQ · VM 1 */
-    TreatmentToleranceViolationTypeCodeSequence?: NaturalizedDataset[];
+    TreatmentToleranceViolationTypeCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0762 · VR SQ · VM 1 */
-    TreatmentToleranceViolationCauseCodeSequence?: NaturalizedDataset[];
+    TreatmentToleranceViolationCauseCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0772 · VR SQ · VM 1 */
-    MeasuredMetersetToDoseMappingSequence?: NaturalizedDataset[];
+    MeasuredMetersetToDoseMappingSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0773 · VR US · VM 1 */
     ReferencedExpectedInVivoMeasurementValueIndex?: number;
     /** 300A0774 · VR SQ · VM 1 */
-    DoseMeasurementDeviceCodeSequence?: NaturalizedDataset[];
+    DoseMeasurementDeviceCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0780 · VR SQ · VM 1 */
-    AdditionalParameterRecordingInstanceSequence?: NaturalizedDataset[];
+    AdditionalParameterRecordingInstanceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0783 · VR ST · VM 1 */
     InterlockOriginDescription?: string;
     /** 300A0784 · VR SQ · VM 1 */
-    RTPatientPositionScopeSequence?: NaturalizedDataset[];
+    RTPatientPositionScopeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0785 · VR UI · VM 1 */
     ReferencedTreatmentPositionGroupUID?: string;
     /** 300A0786 · VR US · VM 1 */
     RadiationOrderIndex?: number;
     /** 300A0787 · VR SQ · VM 1 */
-    OmittedRadiationSequence?: NaturalizedDataset[];
+    OmittedRadiationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0788 · VR SQ · VM 1 */
-    ReasonForOmissionCodeSequence?: NaturalizedDataset[];
+    ReasonForOmissionCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0789 · VR SQ · VM 1 */
-    RTDeliveryStartPatientPositionSequence?: NaturalizedDataset[];
+    RTDeliveryStartPatientPositionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A078A · VR SQ · VM 1 */
-    RTTreatmentPreparationPatientPositionSequence?: NaturalizedDataset[];
+    RTTreatmentPreparationPatientPositionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A078B · VR SQ · VM 1 */
-    ReferencedRTTreatmentPreparationSequence?: NaturalizedDataset[];
+    ReferencedRTTreatmentPreparationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A078C · VR SQ · VM 1 */
-    ReferencedPatientSetupPhotoSequence?: NaturalizedDataset[];
+    ReferencedPatientSetupPhotoSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A078D · VR SQ · VM 1 */
-    PatientTreatmentPreparationMethodCodeSequence?: NaturalizedDataset[];
+    PatientTreatmentPreparationMethodCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A078E · VR LT · VM 1 */
     PatientTreatmentPreparationProcedureParameterDescription?: string;
     /** 300A078F · VR SQ · VM 1 */
-    PatientTreatmentPreparationDeviceSequence?: NaturalizedDataset[];
+    PatientTreatmentPreparationDeviceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0790 · VR SQ · VM 1 */
-    PatientTreatmentPreparationProcedureSequence?: NaturalizedDataset[];
+    PatientTreatmentPreparationProcedureSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0791 · VR SQ · VM 1 */
-    PatientTreatmentPreparationProcedureCodeSequence?: NaturalizedDataset[];
+    PatientTreatmentPreparationProcedureCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0792 · VR LT · VM 1 */
     PatientTreatmentPreparationMethodDescription?: string;
     /** 300A0793 · VR SQ · VM 1 */
-    PatientTreatmentPreparationProcedureParameterSequence?: NaturalizedDataset[];
+    PatientTreatmentPreparationProcedureParameterSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0794 · VR LT · VM 1 */
     PatientSetupPhotoDescription?: string;
     /** 300A0795 · VR US · VM 1 */
@@ -10011,31 +10011,31 @@ export interface NaturalizedDataset {
     /** 300A0796 · VR US · VM 1 */
     ReferencedPatientSetupProcedureIndex?: number;
     /** 300A0797 · VR SQ · VM 1 */
-    RTRadiationTaskSequence?: NaturalizedDataset[];
+    RTRadiationTaskSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0798 · VR SQ · VM 1 */
-    RTPatientPositionDisplacementSequence?: NaturalizedDataset[];
+    RTPatientPositionDisplacementSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A0799 · VR SQ · VM 1 */
-    RTPatientPositionSequence?: NaturalizedDataset[];
+    RTPatientPositionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A079A · VR LO · VM 1 */
     DisplacementReferenceLabel?: string;
     /** 300A079B · VR FD · VM 16 */
     DisplacementMatrix?: number[];
     /** 300A079C · VR SQ · VM 1 */
-    PatientSupportDisplacementSequence?: NaturalizedDataset[];
+    PatientSupportDisplacementSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A079D · VR SQ · VM 1 */
-    DisplacementReferenceLocationCodeSequence?: NaturalizedDataset[];
+    DisplacementReferenceLocationCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A079E · VR CS · VM 1 */
     RTRadiationSetDeliveryUsage?: string;
     /** 300A079F · VR SQ · VM 1 */
-    PatientTreatmentPreparationSequence?: NaturalizedDataset[];
+    PatientTreatmentPreparationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A07A0 · VR SQ · VM 1 */
-    PatientToEquipmentRelationshipSequence?: NaturalizedDataset[];
+    PatientToEquipmentRelationshipSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300A07A1 · VR SQ · VM 1 */
-    ImagingEquipmentToTreatmentDeliveryDeviceRelationshipSequence?: NaturalizedDataset[];
+    ImagingEquipmentToTreatmentDeliveryDeviceRelationshipSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300C0002 · VR SQ · VM 1 */
-    ReferencedRTPlanSequence?: NaturalizedDataset[];
+    ReferencedRTPlanSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300C0004 · VR SQ · VM 1 */
-    ReferencedBeamSequence?: NaturalizedDataset[];
+    ReferencedBeamSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300C0006 · VR IS · VM 1 */
     ReferencedBeamNumber?: number;
     /** 300C0007 · VR IS · VM 1 */
@@ -10045,35 +10045,35 @@ export interface NaturalizedDataset {
     /** 300C0009 · VR DS · VM 1 */
     EndCumulativeMetersetWeight?: number;
     /** 300C000A · VR SQ · VM 1 */
-    ReferencedBrachyApplicationSetupSequence?: NaturalizedDataset[];
+    ReferencedBrachyApplicationSetupSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300C000C · VR IS · VM 1 */
     ReferencedBrachyApplicationSetupNumber?: number;
     /** 300C000E · VR IS · VM 1 */
     ReferencedSourceNumber?: number;
     /** 300C0020 · VR SQ · VM 1 */
-    ReferencedFractionGroupSequence?: NaturalizedDataset[];
+    ReferencedFractionGroupSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300C0022 · VR IS · VM 1 */
     ReferencedFractionGroupNumber?: number;
     /** 300C0040 · VR SQ · VM 1 */
-    ReferencedVerificationImageSequence?: NaturalizedDataset[];
+    ReferencedVerificationImageSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300C0042 · VR SQ · VM 1 */
-    ReferencedReferenceImageSequence?: NaturalizedDataset[];
+    ReferencedReferenceImageSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300C0050 · VR SQ · VM 1 */
-    ReferencedDoseReferenceSequence?: NaturalizedDataset[];
+    ReferencedDoseReferenceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300C0051 · VR IS · VM 1 */
     ReferencedDoseReferenceNumber?: number;
     /** 300C0055 · VR SQ · VM 1 */
-    BrachyReferencedDoseReferenceSequence?: NaturalizedDataset[];
+    BrachyReferencedDoseReferenceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300C0060 · VR SQ · VM 1 */
-    ReferencedStructureSetSequence?: NaturalizedDataset[];
+    ReferencedStructureSetSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300C006A · VR IS · VM 1 */
     ReferencedPatientSetupNumber?: number;
     /** 300C0080 · VR SQ · VM 1 */
-    ReferencedDoseSequence?: NaturalizedDataset[];
+    ReferencedDoseSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300C00A0 · VR IS · VM 1 */
     ReferencedToleranceTableNumber?: number;
     /** 300C00B0 · VR SQ · VM 1 */
-    ReferencedBolusSequence?: NaturalizedDataset[];
+    ReferencedBolusSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300C00C0 · VR IS · VM 1 */
     ReferencedWedgeNumber?: number;
     /** 300C00D0 · VR IS · VM 1 */
@@ -10083,7 +10083,7 @@ export interface NaturalizedDataset {
     /** 300C00F0 · VR IS · VM 1 */
     ReferencedControlPointIndex?: number;
     /** 300C00F2 · VR SQ · VM 1 */
-    ReferencedControlPointSequence?: NaturalizedDataset[];
+    ReferencedControlPointSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300C00F4 · VR IS · VM 1 */
     ReferencedStartControlPointIndex?: number;
     /** 300C00F6 · VR IS · VM 1 */
@@ -10095,17 +10095,17 @@ export interface NaturalizedDataset {
     /** 300C0104 · VR IS · VM 1 */
     ReferencedRangeModulatorNumber?: number;
     /** 300C0111 · VR SQ · VM 1 */
-    OmittedBeamTaskSequence?: NaturalizedDataset[];
+    OmittedBeamTaskSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300C0112 · VR CS · VM 1 */
     ReasonForOmission?: string;
     /** 300C0113 · VR LO · VM 1 */
     ReasonForOmissionDescription?: string;
     /** 300C0114 · VR SQ · VM 1 */
-    PrescriptionOverviewSequence?: NaturalizedDataset[];
+    PrescriptionOverviewSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300C0115 · VR FL · VM 1 */
     TotalPrescriptionDose?: number;
     /** 300C0116 · VR SQ · VM 1 */
-    PlanOverviewSequence?: NaturalizedDataset[];
+    PlanOverviewSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300C0117 · VR US · VM 1 */
     PlanOverviewIndex?: number;
     /** 300C0118 · VR US · VM 1 */
@@ -10113,7 +10113,7 @@ export interface NaturalizedDataset {
     /** 300C0119 · VR US · VM 1 */
     NumberOfFractionsIncluded?: number;
     /** 300C0120 · VR SQ · VM 1 */
-    DoseCalibrationConditionsSequence?: NaturalizedDataset[];
+    DoseCalibrationConditionsSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300C0121 · VR FD · VM 1 */
     AbsorbedDoseToMetersetRatio?: number;
     /** 300C0122 · VR FD · VM 2 */
@@ -10123,13 +10123,13 @@ export interface NaturalizedDataset {
     /** 300C0124 · VR FD · VM 1 */
     CalibrationReferencePointDepth?: number;
     /** 300C0125 · VR SQ · VM 1 */
-    GatingBeamHoldTransitionSequence?: NaturalizedDataset[];
+    GatingBeamHoldTransitionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300C0126 · VR CS · VM 1 */
     BeamHoldTransition?: string;
     /** 300C0127 · VR DT · VM 1 */
     BeamHoldTransitionDateTime?: string;
     /** 300C0128 · VR SQ · VM 1 */
-    BeamHoldOriginatingDeviceSequence?: NaturalizedDataset[];
+    BeamHoldOriginatingDeviceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 300C0129 · VR CS · VM 1 */
     BeamHoldTransitionTriggerSource?: string;
     /** 300E0002 · VR CS · VM 1 */
@@ -10141,7 +10141,7 @@ export interface NaturalizedDataset {
     /** 300E0008 · VR PN · VM 1 */
     ReviewerName?: PersonName;
     /** 3010000A · VR SQ · VM 1 */
-    EquivalentConceptualVolumesSequence?: NaturalizedDataset[];
+    EquivalentConceptualVolumesSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 3010000B · VR UI · VM 1 */
     ReferencedConceptualVolumeUID?: string;
     /** 3010000C · VR UT · VM 1 */
@@ -10165,17 +10165,17 @@ export interface NaturalizedDataset {
     /** 3010001F · VR UI · VM 1 */
     SegmentationTemplateUID?: string;
     /** 3010002A · VR SQ · VM 1 */
-    RTSegmentAnnotationSequence?: NaturalizedDataset[];
+    RTSegmentAnnotationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 3010002B · VR SQ · VM 1 */
-    SegmentAnnotationCategoryCodeSequence?: NaturalizedDataset[];
+    SegmentAnnotationCategoryCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 3010002C · VR SQ · VM 1 */
-    SegmentAnnotationTypeCodeSequence?: NaturalizedDataset[];
+    SegmentAnnotationTypeCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 3010002D · VR LO · VM 1 */
     DeviceLabel?: string;
     /** 3010002E · VR SQ · VM 1 */
-    DeviceTypeCodeSequence?: NaturalizedDataset[];
+    DeviceTypeCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 3010002F · VR SQ · VM 1 */
-    SegmentAnnotationTypeModifierCodeSequence?: NaturalizedDataset[];
+    SegmentAnnotationTypeModifierCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 3010003A · VR US · VM 1 */
     RTTreatmentPhaseIndex?: number;
     /** 3010003B · VR UI · VM 1 */
@@ -10189,37 +10189,37 @@ export interface NaturalizedDataset {
     /** 3010003F · VR US · VM 1 */
     RelatedRTTreatmentPhaseIndex?: number;
     /** 3010004A · VR SQ · VM 1 */
-    ReferencedDirectSegmentInstanceSequence?: NaturalizedDataset[];
+    ReferencedDirectSegmentInstanceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 3010004B · VR SQ · VM 1 */
-    IntendedRTTreatmentPhaseSequence?: NaturalizedDataset[];
+    IntendedRTTreatmentPhaseSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 3010004C · VR DA · VM 1 */
     IntendedPhaseStartDate?: string;
     /** 3010004D · VR DA · VM 1 */
     IntendedPhaseEndDate?: string;
     /** 3010004E · VR SQ · VM 1 */
-    RTTreatmentPhaseIntervalSequence?: NaturalizedDataset[];
+    RTTreatmentPhaseIntervalSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 3010004F · VR CS · VM 1 */
     TemporalRelationshipIntervalAnchor?: string;
     /** 3010005A · VR UT · VM 1 */
     RTPhysicianIntentNarrative?: string;
     /** 3010005B · VR SQ · VM 1 */
-    RTProtocolCodeSequence?: NaturalizedDataset[];
+    RTProtocolCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 3010005C · VR ST · VM 1 */
     ReasonForSuperseding?: string;
     /** 3010005D · VR SQ · VM 1 */
-    RTDiagnosisCodeSequence?: NaturalizedDataset[];
+    RTDiagnosisCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 3010005E · VR US · VM 1 */
     ReferencedRTPhysicianIntentIndex?: number;
     /** 3010005F · VR SQ · VM 1 */
-    RTPhysicianIntentInputInstanceSequence?: NaturalizedDataset[];
+    RTPhysicianIntentInputInstanceSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 3010006A · VR SQ · VM 1 */
-    ConceptualVolumeTypeModifierCodeSequence?: NaturalizedDataset[];
+    ConceptualVolumeTypeModifierCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 3010006B · VR SQ · VM 1 */
-    RTPrescriptionSequence?: NaturalizedDataset[];
+    RTPrescriptionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 3010006C · VR SQ · VM 1 */
-    DosimetricObjectiveSequence?: NaturalizedDataset[];
+    DosimetricObjectiveSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 3010006D · VR SQ · VM 1 */
-    DosimetricObjectiveTypeCodeSequence?: NaturalizedDataset[];
+    DosimetricObjectiveTypeCodeSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 3010006E · VR UI · VM 1 */
     DosimetricObjectiveUID?: string;
     /** 3010006F · VR UI · VM 1 */
@@ -10239,7 +10239,7 @@ export interface NaturalizedDataset {
     /** 3010009A · VR FD · VM 1-n */
     TomotherapeuticLeafInitialClosedDurations?: number[];
     /** 301000A0 · VR SQ · VM 1 */
-    ConceptualVolumeIdentificationSequence?: NaturalizedDataset[];
+    ConceptualVolumeIdentificationSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 400800FF · VR CS · VM 1 */
     RETIRED_ReportProductionStatusTrial?: string;
     /** 4008010A · VR PN · VM 1 */
@@ -10251,7 +10251,7 @@ export interface NaturalizedDataset {
     /** 4008011A · VR LO · VM 1 */
     RETIRED_DistributionAddress?: string;
     /** 4010100A · VR SQ · VM 1 */
-    RouteSegmentSequence?: NaturalizedDataset[];
+    RouteSegmentSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 4010101A · VR SH · VM 1 */
     BoardingPassID?: string;
     /** 4010101B · VR FL · VM 3 */
@@ -10277,19 +10277,19 @@ export interface NaturalizedDataset {
     /** 4010106E · VR CS · VM 1 */
     AdditionalInspectionSelectionCriteria?: string;
     /** 4010106F · VR SQ · VM 1 */
-    AdditionalInspectionMethodSequence?: NaturalizedDataset[];
+    AdditionalInspectionMethodSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 4010107A · VR FL · VM 3 */
     AnomalyLocatorIndicator?: number[];
     /** 4010107B · VR SQ · VM 1 */
-    PTORegionSequence?: NaturalizedDataset[];
+    PTORegionSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 4010107C · VR CS · VM 1 */
     InspectionSelectionCriteria?: string;
     /** 4010107D · VR SQ · VM 1 */
-    SecondaryInspectionMethodSequence?: NaturalizedDataset[];
+    SecondaryInspectionMethodSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 4010107E · VR DS · VM 6 */
     PRCSToRCSOrientation?: number[];
     /** 4FFE0001 · VR SQ · VM 1 */
-    MACParametersSequence?: NaturalizedDataset[];
+    MACParametersSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** 5000200A · VR UL · VM 1 */
     RETIRED_TotalTime?: number;
     /** 5000200C · VR OB/OW · VM 1 */
@@ -10327,7 +10327,7 @@ export interface NaturalizedDataset {
     /** 7FE00040 · VR OW · VM 1 */
     RETIRED_CoefficientsSDDN?: BinaryValue[];
     /** FFFAFFFA · VR SQ · VM 1 */
-    DigitalSignaturesSequence?: NaturalizedDataset[];
+    DigitalSignaturesSequence?: NaturalizedDataset | NaturalizedDataset[];
     /** FFFCFFFC · VR OB · VM 1 */
     DataSetTrailingPadding?: BinaryValue[];
     /** Private ('<slot>:<creator>') and unknown-tag keys (spec 12.3) */

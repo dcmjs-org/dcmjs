@@ -25867,7 +25867,7 @@ export const naturalizedRules = {
     envelope: {
         cardinality: "vm-based",
         personName: "componentObject",
-        sequences: "datasetArray",
+        sequences: "datasetArrayOrItem",
         privateTags: "creatorGrouped",
         unknownTags: "preserved",
         rawRetention: "inexactOnly",

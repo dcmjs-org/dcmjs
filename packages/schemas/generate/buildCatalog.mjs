@@ -69,7 +69,7 @@ export function buildCatalog() {
         envelope: {
             cardinality: "vm-based", // VM multi -> array, VM 1 -> scalar (D1)
             personName: "componentObject", // {Alphabetic,Ideographic,Phonetic} (D13)
-            sequences: "datasetArray", // SQ -> NaturalizedDataset[]
+            sequences: "datasetArrayOrItem", // SQ -> dataset[] | single item (1.0 VM rule)
             privateTags: "creatorGrouped", // '<slot>:<creator>' keys (D2b, spec 12.3)
             unknownTags: "preserved", // { vr, Value, rawValue } (spec 12.3)
             rawRetention: "inexactOnly", // raw kept when round-trip inexact (D14)
@@ -87,7 +87,9 @@ export function tsTypeFor(entry) {
         vrs.map(vr => {
             const scalar = VR_SCALAR[vr];
             if (scalar === "NaturalizedDataset[]") {
-                return scalar;
+                // A single-item sequence naturalizes as the item itself
+                // (with a hidden [0], length, and iterator), not an array.
+                return "NaturalizedDataset | NaturalizedDataset[]";
             }
             if (scalar === "BinaryValue") {
                 return "BinaryValue[]";
@@ -168,12 +170,16 @@ export function jsonSchemaFor(entry, catalog) {
     // VM does not bound the frame count.
     const isBinary = scalarTs.length === 1 && scalarTs[0] === "BinaryValue";
     let prop;
-    if (isSq || isBinary || vm.multi) {
+    if (isSq) {
+        // A single-item sequence naturalizes as the item itself, not an
+        // array, so a sequence value is a dataset or a dataset array.
+        prop = { oneOf: [{ type: "array", items: item }, item] };
+    } else if (isBinary || vm.multi) {
         prop = { type: "array", items: item };
-        if (!isSq && !isBinary && vm.min > 1) {
+        if (!isBinary && vm.min > 1) {
             prop.minItems = vm.min;
         }
-        if (!isSq && !isBinary && vm.max !== null) {
+        if (!isBinary && vm.max !== null) {
             prop.maxItems = vm.max;
         }
     } else {

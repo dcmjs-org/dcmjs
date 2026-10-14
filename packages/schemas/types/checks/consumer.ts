@@ -22,8 +22,8 @@ const spacing: number[] | undefined = ds.PixelSpacing;
 const pn: PersonName | undefined = ds.PatientName;
 const alpha: string | undefined = ds.PatientName?.Alphabetic;
 
-// SQ -> dataset array
-const shared: NaturalizedDataset[] | undefined =
+// SQ -> dataset array, or the item itself when the sequence has one item
+const shared: NaturalizedDataset | NaturalizedDataset[] | undefined =
     ds.SharedFunctionalGroupsSequence;
 
 // Binary: a frame list, even for a single frame
