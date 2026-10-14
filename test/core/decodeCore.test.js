@@ -1,5 +1,5 @@
 // dcmjs must be imported first to initialise circular-dependency bindings
-// (ValueRepresentation.setDicomMessageClass etc.) before any direct module
+// (ValueRepresentation.setTagClass etc.) before any direct module
 // imports fire their top-level evaluation.
 import "../../src/index.js";
 

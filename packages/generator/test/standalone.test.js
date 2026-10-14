@@ -4,16 +4,22 @@
  * package name and exercise Part10Writer end to end — events → Part 10 bytes
  * → fromPart10Stream readback.
  *
- * The generator itself must not depend on @dcmjs-org/legacy (Part10Writer
- * did while the Part 10 envelope lived in legacy DicomDict.write). The parser
- * has a temporary legacy dependency for its eager-reader fallbacks (see
- * beta-1-release-notes.md), so the tripwire checks the generator's own
- * manifest and sources instead of the whole module graph. When the parser
- * drops legacy, restore the virtual jest.mock tripwire on "@dcmjs-org/legacy".
+ * Neither the generator nor the parser may depend on @dcmjs-org/legacy
+ * (Part10Writer did while the Part 10 envelope lived in legacy
+ * DicomDict.write). The virtual jest.mock below is the tripwire: any load of
+ * "@dcmjs-org/legacy" in this module graph fails the suite.
  *
  * The deflated case matters most: the deflate branch of the envelope must
  * work legacy-free now that writePart10 lives in core/writeCore.js.
  */
+jest.mock(
+    "@dcmjs-org/legacy",
+    () => {
+        throw new Error("@dcmjs-org/legacy must not load here");
+    },
+    { virtual: true }
+);
+
 import fs from "fs";
 import path from "path";
 import {
@@ -73,21 +79,24 @@ function sourceFiles(dir) {
     });
 }
 
-describe("Part10Writer standalone (generator does not depend on @dcmjs-org/legacy)", () => {
-    test("the generator manifest and sources do not reference @dcmjs-org/legacy", () => {
-        const packageDir = path.join(__dirname, "..");
-        const manifest = JSON.parse(
-            fs.readFileSync(path.join(packageDir, "package.json"), "utf8")
-        );
-        expect(Object.keys(manifest.dependencies || {})).not.toContain(
-            "@dcmjs-org/legacy"
-        );
-        for (const file of sourceFiles(path.join(packageDir, "src"))) {
-            expect(fs.readFileSync(file, "utf8")).not.toMatch(
-                /["']@dcmjs-org\/legacy["']/
+describe("Part10Writer standalone (generator and parser do not depend on @dcmjs-org/legacy)", () => {
+    test.each(["generator", "parser"])(
+        "the %s manifest and sources do not reference @dcmjs-org/legacy",
+        name => {
+            const packageDir = path.join(__dirname, "..", "..", name);
+            const manifest = JSON.parse(
+                fs.readFileSync(path.join(packageDir, "package.json"), "utf8")
             );
+            expect(Object.keys(manifest.dependencies || {})).not.toContain(
+                "@dcmjs-org/legacy"
+            );
+            for (const file of sourceFiles(path.join(packageDir, "src"))) {
+                expect(fs.readFileSync(file, "utf8")).not.toMatch(
+                    /["']@dcmjs-org\/legacy["']/
+                );
+            }
         }
-    });
+    );
 
     test("round-trips events to Part 10 bytes and back (explicit little endian)", async () => {
         const { buffer, back } = await roundTrip(EXPLICIT_LITTLE_ENDIAN);
@@ -97,6 +106,19 @@ describe("Part10Writer standalone (generator does not depend on @dcmjs-org/legac
         expect(String.fromCharCode(...magic)).toBe("DICM");
 
         expectRoundTrippedValues(back, EXPLICIT_LITTLE_ENDIAN);
+    });
+
+    test("reads a bare dataset (no preamble, no File Meta) with allowMissingHeader", async () => {
+        const { buffer } = await roundTrip(EXPLICIT_LITTLE_ENDIAN);
+        // (0002,0000) value at 140 gives the File Meta length after byte 144.
+        const metaEnd = 144 + new DataView(buffer).getUint32(140, true);
+        const collector = new CollectorListener();
+        await fromPart10Stream(buffer.slice(metaEnd), collector, {
+            allowMissingHeader: true
+        });
+        const { dict } = collector.result;
+        expect(dict["00080008"].Value).toEqual(["ORIGINAL", "PRIMARY"]);
+        expect(dict["00081110"].Value[0]["00081150"].Value).toEqual(["1.2.3"]);
     });
 
     test("round-trips a DEFLATED transfer syntax (the relocated deflate branch, legacy-free)", async () => {

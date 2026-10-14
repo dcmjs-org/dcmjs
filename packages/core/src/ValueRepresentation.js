@@ -72,7 +72,7 @@ function toWindows(inputArray, size) {
     );
 }
 
-let DicomMessage, Tag, DicomMetaDictionary, writeDataSet;
+let Tag, DicomMetaDictionary, writeDataSet;
 
 var binaryVRs = ["FL", "FD", "SL", "SS", "UL", "US", "AT", "UV"],
     length32VRs = ["OB", "OW", "OF", "SQ", "UC", "UR", "UT", "UN", "OD", "UV"],
@@ -93,30 +93,12 @@ class ValueRepresentation {
         this._storeRaw = true;
     }
 
-    static setDicomMessageClass(dicomMessageClass) {
-        DicomMessage = dicomMessageClass;
-    }
-
-    /**
-     * The other side of the late-binding seam: the eager-reader class, when
-     * one has been wired (loading @dcmjs-org/legacy's DicomMessage module, or
-     * the dcmjs wrapper, does so). The streaming reader's narrow
-     * eager-delegation fallbacks resolve it here at call time instead of
-     * importing @dcmjs-org/legacy, so the parser package carries no static edge
-     * to the deprecable sync engines. Undefined when no eager reader is
-     * loaded; callers own the error message for that case.
-     */
-    static getDicomMessageClass() {
-        return DicomMessage;
-    }
-
     static setDicomMetaDictionary(metaDictionary) {
         DicomMetaDictionary = metaDictionary;
     }
 
     /**
-     * The write-side counterpart of the DicomMessage seam, but wired by core
-     * itself: core/writeCore.js registers its writeDataSet here at module
+     * Wired by core itself: core/writeCore.js registers its writeDataSet here at module
      * load (a module-level cycle between the two files trips CJS evaluation
      * order, hence registration instead of an import). The sequence writer
      * calls it for its items, so writing works with no eager engine loaded —
@@ -245,7 +227,7 @@ class ValueRepresentation {
                         length
                 );
         }
-        let rawValue = this.readBytes(stream, length, syntax);
+        let rawValue = this.readBytes(stream, length, syntax, readOptions);
         const value = this.applyFormatting(rawValue);
 
         // avoid duplicating large binary data structures like pixel data which are unlikely to be formatted or directly manipulated
@@ -1148,7 +1130,13 @@ class SequenceOfItems extends ValueRepresentation {
         this._storeRaw = false;
     }
 
-    readBytes(stream, sqlength, syntax) {
+    /**
+     * Splits the sequence into items. Core has no dataset reader, so the
+     * caller gives one: `readOptions.readItem(itemStream, syntax)` parses the
+     * bytes of one item and returns the item dataset. The legacy
+     * DicomMessage._readTag gives DicomMessage._read.
+     */
+    readBytes(stream, sqlength, syntax, readOptions) {
         if (sqlength == 0x0) {
             return []; //contains no dataset
         } else {
@@ -1231,8 +1219,12 @@ class SequenceOfItems extends ValueRepresentation {
                         read += toRead;
                         if (undef) stream.increment(8);
 
-                        var items = DicomMessage._read(itemStream, syntax);
-                        elements.push(items);
+                        if (!readOptions?.readItem) {
+                            throw new Error(
+                                "SequenceOfItems.read needs readOptions.readItem to parse the items"
+                            );
+                        }
+                        elements.push(readOptions.readItem(itemStream, syntax));
                     }
                     if (!undefLength && read == sqlength) {
                         break;

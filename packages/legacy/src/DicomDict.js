@@ -1,7 +1,7 @@
 import { ValueRepresentation, writePart10 } from "@dcmjs-org/core";
 
-// Kept for API compatibility, same pattern as Tag.setDicomMessageClass: the
-// wrapper index, legacy's DicomMessage module, and existing callers still
+// Kept for API compatibility: the wrapper index, legacy's DicomMessage
+// module, and existing callers still
 // wire the slot, but write() no longer reaches the eager engine — it
 // delegates to core's writePart10 — so nothing here reads it anymore.
 // eslint-disable-next-line no-unused-vars

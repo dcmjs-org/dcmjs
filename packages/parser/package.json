@@ -29,7 +29,6 @@
     },
     "dependencies": {
         "@dcmjs-org/core": "workspace:*",
-        "@dcmjs-org/legacy": "workspace:*",
         "pako": "2.1.0"
     }
 }

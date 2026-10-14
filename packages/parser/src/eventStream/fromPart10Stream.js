@@ -18,8 +18,8 @@
  *
  * Both streams use clearBuffers=true with per-top-level-element consume() so that
  * chunk memory is released as the parse advances (bounded-memory streaming). A
- * bare (meta-less) dataset is force-read via the eager reader's
- * allowMissingHeader opt-in and replayed through fromDataSet.
+ * bare (meta-less) dataset streams through the same body loop, behind the
+ * allowMissingHeader opt-in.
  *
  * Decision D-E: noCopy is intentionally unsupported (see JSDoc above).
  */
@@ -31,18 +31,17 @@ import {
     EXPLICIT_BIG_ENDIAN,
     IMPLICIT_LITTLE_ENDIAN,
     DEFLATED_EXPLICIT_LITTLE_ENDIAN,
+    VALID_VRS,
     normalizeSyntax,
     ValueRepresentation
 } from "@dcmjs-org/core";
 import { emitValues, emitDecodedLeaf } from "./emit.js";
-import { fromDataSet } from "./fromDataSet.js";
 import {
     resolveVrInstance,
     decodeElementValues,
-    decodeWithEagerReadTag,
+    decodeUndefinedLengthValues,
     isParsedUnknownVr,
-    resolveCharacterSet,
-    requireEagerReader
+    resolveCharacterSet
 } from "../core/decodeCore.js";
 
 // ---------------------------------------------------------------------------
@@ -144,17 +143,16 @@ export function fromPart10Stream(input, listener, options = {}) {
 /**
  * The parse behind {@link fromPart10Stream}. It runs in four phases:
  *
- * 1. Preamble detection ({@link detectPreamble}); a bare dataset goes to
- *    {@link replayBareDataset} instead.
+ * 1. Preamble detection ({@link detectPreamble}); a bare dataset gets its
+ *    body syntax from {@link detectBareSyntax} and skips phase 2.
  * 2. Incremental FMI parse ({@link readFileMetaInformation}).
  * 3. Emission of the collected FMI events, after startDataSet.
  * 4. The body phase (K4 — fully incremental element loop).
  *
  * K4: the raw `stream` uses clearBuffers:true — the incremental body loop
  * consume()s each completed top-level element, so chunk memory is released
- * as the parse advances (bounded-memory streaming). The deflate and
- * raw-dataset fallbacks run BEFORE any consume() and slice the full retained
- * buffer, so they are unaffected by the flag.
+ * as the parse advances (bounded-memory streaming). The deflate relay
+ * consumes the raw stream itself as it advances.
  *
  * Body phase: every structure now streams natively, in source order, bounded
  * only by the element currently being decoded:
@@ -166,9 +164,9 @@ export function fromPart10Stream(input, listener, options = {}) {
  *     FFFE,E0DD / FFFE,E00D is reached), then flushed.
  *   - Encapsulated pixel data: fragments streamed one at a time (the Basic
  *     Offset Table item is skipped, matching buffered fromPart10).
- *   - Undefined-length non-SQ leaves ("eagerWindow"): the element window is
- *     bounded by an item-delimiter scan (mirroring the parser's
- *     findItemDelimitationItem) and decoded via decodeWithEagerReadTag.
+ *   - Undefined-length non-SQ leaves ("eagerWindow"): the value is bounded
+ *     by a delimiter scan ({@link skipUndefinedSequence}) and decoded via
+ *     decodeUndefinedLengthValues.
  *
  * The K3 tail-fallback (walkBodyTail / TailFallbackSignal / EventBuffer-for-
  * atomicity) is deleted: nothing can fall back mid-subtree anymore because
@@ -246,17 +244,18 @@ async function fromPart10StreamImpl(input, listener, options, parseState) {
     };
 
     // ---- Phase 1: Preamble detection (incremental) ----
+    let fmiElements = [];
+    let transferSyntaxUID;
+    let rawTransferSyntaxUID;
     if (await detectPreamble(stream)) {
-        await feedPromise;
-        if (feedError) throw feedError;
-        const byteArray = new Uint8Array(stream.slice(0, stream.size));
-        await replayBareDataset(byteArray, listener, options);
-        return;
+        // A bare dataset has no FMI; its body starts at byte 0.
+        transferSyntaxUID = await detectBareSyntax(stream, options);
+        rawTransferSyntaxUID = transferSyntaxUID;
+    } else {
+        // ---- Phase 2: Incremental FMI parse ----
+        ({ fmiElements, transferSyntaxUID, rawTransferSyntaxUID } =
+            await readFileMetaInformation(stream, policy));
     }
-
-    // ---- Phase 2: Incremental FMI parse ----
-    const { fmiElements, transferSyntaxUID, rawTransferSyntaxUID } =
-        await readFileMetaInformation(stream, policy);
 
     // ---- Phase 3: Emit collected FMI events ----
     //
@@ -530,8 +529,8 @@ async function fromPart10StreamImpl(input, listener, options, parseState) {
      *
      * DICOM PS3.5 permits undefined length (0xFFFFFFFF) ONLY for SQ elements,
      * items, and encapsulated pixel data. The only non-SQ undefined-length
-     * element dcmjs decodes cleanly via the eager reader (classifyElement
-     * "eagerWindow") is explicit-VR UN of undefined length (and private
+     * element dcmjs decodes cleanly (classifyElement "eagerWindow", via
+     * decodeUndefinedLengthValues) is explicit-VR UN of undefined length (and private
      * implicit undefined-length elements), which the offsets parser routes
      * through readSequenceItemsImplicit. These end at the SEQUENCE delimiter
      * FFFE,E0DD, NOT at an item delimiter.
@@ -753,7 +752,6 @@ async function fromPart10StreamImpl(input, listener, options, parseState) {
         await emitUndefinedLeaf(
             target,
             tagStr,
-            elemStartAbs,
             valueStartAbs,
             elLike,
             vrInstance,
@@ -998,46 +996,43 @@ async function fromPart10StreamImpl(input, listener, options, parseState) {
     }
 
     /**
-     * Undefined-length non-SQ leaf ("eagerWindow"): bound the element window by
-     * walking the structure to its closing sequence delimiter, copy the whole
-     * element span, and decode via decodeWithEagerReadTag — the same narrow
-     * eager fallback buffered fromPart10 uses. The emitted length payload is the
-     * parser's computed content span (delimiter offset minus the data offset),
+     * Undefined-length non-SQ leaf ("eagerWindow"): bound the value by
+     * walking the structure to its closing sequence delimiter, copy the value
+     * bytes, and decode via decodeUndefinedLengthValues. The emitted length
+     * payload is the content span (delimiter offset minus the data offset),
      * for parity with buffered. See {@link skipUndefinedSequence} for the
      * deliberate divergence on non-conformant undefined-length UT/UC/UR.
      */
     async function emitUndefinedLeaf(
         target,
         tagStr,
-        elemStartAbs,
         valueStartAbs,
         elLike,
         vrInstance,
         decoder
     ) {
         const { contentEnd, end } = await skipUndefinedSequence(valueStartAbs);
-        const windowAB = bsrc.slice(elemStartAbs, end);
         const win = {
-            arrayBuffer: windowAB,
+            arrayBuffer: bsrc.slice(valueStartAbs, end),
             baseOffset: 0,
             syntax: transferSyntaxUID,
             littleEndian: bodyLittleEndian,
             implicit: bodyImplicit,
             decoder
         };
-        const eagerEl = {
+        const valueEl = {
             ...elLike,
-            startOffset: 0,
-            endOffset: end - elemStartAbs,
-            dataOffset: valueStartAbs - elemStartAbs,
+            dataOffset: 0,
+            endOffset: end - valueStartAbs,
             length: contentEnd - valueStartAbs
         };
-        const { values, rawValues } = decodeWithEagerReadTag(
+        const { values, rawValues } = decodeUndefinedLengthValues(
             win,
-            eagerEl,
+            valueEl,
+            vrInstance,
             policy
         );
-        emitDecodedLeaf(target, tagStr, vrInstance, eagerEl, values, rawValues);
+        emitDecodedLeaf(target, tagStr, vrInstance, valueEl, values, rawValues);
         bsrc.offset = end;
     }
 
@@ -1210,18 +1205,15 @@ async function fromPart10StreamImpl(input, listener, options, parseState) {
 /**
  * Phase 1: preamble detection (incremental). Sets `stream.offset` to the
  * start of the FMI and returns false, or returns true when the input is a
- * bare dataset that must take the raw-dataset fallback.
+ * bare dataset.
  *
- * Mirrors AsyncDicomReader.readPreamble() semantics:
  *   - "DICM" at bytes 128-131 → normal Part 10, advance to offset 132
  *   - First 2 bytes are group 0x0002 → PART10_NO_PREAMBLE, stay at 0
- *   - Neither → raw dataset / non-DICOM → force-read via the eager
- *     reader's allowMissingHeader opt-in (replayed through fromDataSet),
- *     or refuse with a clear error when the opt-in is absent
- *     (see {@link replayBareDataset}).
+ *   - Neither → bare dataset or non-DICOM input
+ *     (see {@link detectBareSyntax}).
  *
  * @param {ReadBufferStream} stream the raw input stream
- * @returns {Promise<boolean>} true for the raw-dataset fallback
+ * @returns {Promise<boolean>} true for a bare dataset
  */
 async function detectPreamble(stream) {
     let rawDatasetFallback = false;
@@ -1271,45 +1263,42 @@ async function detectPreamble(stream) {
 }
 
 /**
- * Raw-dataset fallback: replay a bare (meta-less, DIMSE-style) dataset as
- * events, or refuse it.
+ * Bare (meta-less, DIMSE-style) dataset: returns the transfer syntax of the
+ * body, or refuses the input (issue #93).
  *
- * Fixed in this arc (issue #93): with an explicit opt-in
- * (allowMissingHeader, or the tolerant ignoreErrors mode) a bare dataset is
- * force-read: the eager reader parses it via
- * readFile({ allowMissingHeader: true }) — Explicit Little Endian assumed
- * unless implicit VR is detected — and the resulting dict is replayed as
- * events through fromDataSet. The eager reader is resolved at call time
- * through decodeCore.requireEagerReader.
+ * The input needs an explicit opt-in: allowMissingHeader, or the tolerant
+ * ignoreErrors mode. The body is Explicit Little Endian when bytes 4-5 of the
+ * first element header are a valid VR code, and Implicit Little Endian
+ * otherwise (the same rule as DicomMessage._detectBareSyntax). The body then
+ * streams through the standard body loop from byte 0.
  *
- * Without the opt-in, input that is neither Part 10 nor an FMI group is
- * refused with the streaming reader's own error. (The vendored tokenizer
- * this path once delegated to for error parity is removed from 1.0; this
- * error text is now the canonical one.)
+ * Without the opt-in, the reader refuses input that is neither Part 10 nor
+ * an FMI group, with the streaming reader's own error text.
  *
- * @param {Uint8Array} byteArray the complete input bytes
- * @param {import("./EventStreamListener").EventStreamListener} listener
+ * @param {ReadBufferStream} stream the raw input stream, at offset 0
  * @param {Object} options the fromPart10Stream options
- * @returns {Promise<void>}
+ * @returns {Promise<string>} the body transfer syntax UID
  */
-async function replayBareDataset(byteArray, listener, options) {
-    if (options.allowMissingHeader || options.ignoreErrors) {
-        const DicomMessage = requireEagerReader(
-            "fromPart10Stream (bare-dataset fallback)"
+async function detectBareSyntax(stream, options) {
+    if (!options.allowMissingHeader && !options.ignoreErrors) {
+        throw new Error(
+            "fromPart10Stream: input has no DICM marker and does not start " +
+                "with a File Meta Information group; pass " +
+                "allowMissingHeader: true (or ignoreErrors: true) to " +
+                "force-read a bare dataset"
         );
-        const bareDict = DicomMessage.readFile(byteArray.buffer, {
-            ...options,
-            allowMissingHeader: true
-        });
-        await fromDataSet(bareDict, listener);
-        return;
     }
-    throw new Error(
-        "fromPart10Stream: input has no DICM marker and does not start " +
-            "with a File Meta Information group; pass " +
-            "allowMissingHeader: true (or ignoreErrors: true) to " +
-            "force-read a bare dataset"
-    );
+    stream.offset = 0;
+    await stream.ensureAvailable(8);
+    if (!stream.isAvailable(8, false)) {
+        return EXPLICIT_LITTLE_ENDIAN;
+    }
+    const vrStr =
+        String.fromCharCode(stream.view.getUint8(4)) +
+        String.fromCharCode(stream.view.getUint8(5));
+    return VALID_VRS.has(vrStr)
+        ? EXPLICIT_LITTLE_ENDIAN
+        : IMPLICIT_LITTLE_ENDIAN;
 }
 
 /**

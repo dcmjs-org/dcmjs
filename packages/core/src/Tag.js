@@ -14,20 +14,9 @@ function paddingLeft(paddingValue, string) {
     return String(paddingValue + string).slice(-paddingValue.length);
 }
 
-// Kept for API compatibility: the wrapper index and legacy's DicomMessage
-// module still call setDicomMessageClass, but Tag's two former uses of the
-// slot (_normalizeSyntax, isEncapsulated) now resolve through core helpers.
-// eslint-disable-next-line no-unused-vars
-let DicomMessage;
-
 class Tag {
     constructor(value) {
         this.value = value;
-    }
-
-    /** Helper method to avoid circular dependencies */
-    static setDicomMessageClass(dicomMessageClass) {
-        DicomMessage = dicomMessageClass;
     }
 
     toString() {

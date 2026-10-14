@@ -34,6 +34,15 @@ when a better approach appears.
   Before, the reader put the start of the body at the wrong offset.
 - `DicomMessage.readFile(buffer, { allowMissingHeader: true })` reads input
   that has no Part 10 header (issue #93).
+- `fromPart10Stream` streams a bare dataset (no Part 10 header) through its
+  normal body loop. `startDataSet` now gives the detected transfer syntax.
+  With `ignoreErrors: true`, a malformed bare dataset now throws, as other
+  input does. Before, the eager reader returned the elements before the error.
+- `ValueRepresentation.setDicomMessageClass`,
+  `ValueRepresentation.getDicomMessageClass` and `Tag.setDicomMessageClass`
+  are removed. `@dcmjs-org/core` no longer calls the eager reader. A direct
+  call of the SQ `read` must give `readOptions.readItem(itemStream, syntax)`.
+- `@dcmjs-org/parser` no longer depends on `@dcmjs-org/legacy`.
 - 2.25 UIDs come from RFC 4122 UUIDs (issue #61).
 - The eager reader and the async reader decode a multi-valued ISO 2022
   SpecificCharacterSet (0008,0005). Before, they threw "Using multiple
@@ -64,20 +73,22 @@ when a better approach appears.
   `ISO_IR 192`. Bulk data decoding needs the original value. The readers must
   keep the original value (see the TODO in
   `packages/legacy/src/AsyncDicomReader.js`).
+- **Replace `AsyncDicomReader`.** Two async Part 10 readers exist:
+  `AsyncDicomReader` in legacy and `fromPart10Stream` in the parser. Beta 1
+  keeps the old `AsyncDicomReader` class without a change. A later 1.0 beta
+  replaces the class:
+  - Add a small reader class in the parser that runs `fromPart10Stream` and
+    sends its events to a listener.
+  - Make legacy re-export that class, and remove the old class.
+  - Update the tests and the docs that use the old API, for example
+    `docs/AsyncDicomReader-skill.md`.
+
+  This change breaks the API of `AsyncDicomReader` and of its listener
+  (`addTag`, `startObject`, `pop`). Record the break in
+  `docs/BREAKING_CHANGES.md`.
 
 ## Open items: implementation
 
-- **Temporary dependency of the parser on legacy.** `@dcmjs-org/parser`
-  depends on `@dcmjs-org/legacy` for two fallbacks:
-  - undefined-length elements that are not SQ
-    (`decodeCore.decodeWithEagerReadTag`);
-  - the bare (meta-less) dataset fallback in `fromPart10Stream`.
-
-  Move both fallbacks to the standard async handling. Then remove the import
-  in `packages/parser/src/index.js`, the dependency in
-  `packages/parser/package.json` and `decodeCore.requireEagerReader`. Also
-  restore the virtual `jest.mock("@dcmjs-org/legacy")` tripwire in
-  `packages/generator/test/standalone.test.js`.
 - **Size of the test suites.** `test/eventStream/fromPart10Stream.test.js`
   (about 2,600 lines) and `test/eventStream/streamEquivalence.test.js` (about
   1,500 lines) are large. When the current work stops, keep the tests that

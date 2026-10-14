@@ -432,8 +432,11 @@ export class DicomMessage {
                 values.push(value);
             }
         } else {
+            // core's SQ reader parses each item with options.readItem
+            const readOptions =
+                vr.type === "SQ" ? { ...options, readItem: readItem } : options;
             const { rawValue, value } =
-                vr.read(stream, length, syntax, options) || {};
+                vr.read(stream, length, syntax, readOptions) || {};
             if (!vr.isBinary() && singleVRs.indexOf(vr.type) == -1) {
                 rawValues = rawValue;
                 values = value;
@@ -473,13 +476,12 @@ export class DicomMessage {
     }
 }
 
-// Wire the late-binding seams whenever this module loads, not only when the
-// dcmjs wrapper's index does it: the sequence read/write paths inside
-// ValueRepresentation and Tag, DicomDict's upserts, and the streaming
-// reader's narrow eager-delegation fallbacks (which resolve the class
-// through ValueRepresentation.getDicomMessageClass) all reach the eager
-// engine through these slots. The wrapper's identical calls stay and are
-// idempotent.
-ValueRepresentation.setDicomMessageClass(DicomMessage);
-Tag.setDicomMessageClass(DicomMessage);
+/**
+ * The item reader that _readTag gives to core's SQ reader: parses the bytes
+ * of one sequence item into a dict, with the default _read options.
+ */
+function readItem(itemStream, syntax) {
+    return DicomMessage._read(itemStream, syntax);
+}
+
 DicomDict.setDicomMessageClass(DicomMessage);
