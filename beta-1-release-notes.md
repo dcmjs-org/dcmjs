@@ -94,6 +94,10 @@ when a better approach appears.
   This change breaks the API of `AsyncDicomReader` and of its listener
   (`addTag`, `startObject`, `pop`). Record the break in
   `docs/BREAKING_CHANGES.md`.
+- **The npm name of the beta.** `RELEASE_PLAN.md` gives two names. Section 3
+  says that the beta publishes as `@dcmjs-org/dcmjs`. Section 4 says that a
+  user installs the beta with `npm install dcmjs@beta`. Select one name, and
+  correct the other section.
 
 ## Open items: implementation
 
@@ -102,5 +106,20 @@ when a better approach appears.
   1,500 lines) are large. When the current work stops, keep the tests that
   check the API contract or the user experience, and remove the tests that
   only repeat internal branches.
+- **Move the root `src/` into `packages/dcmjs/`.** The root `package.json` is
+  the workspace root and also the `dcmjs` package. Only `"private": true` stops
+  `pnpm -r publish` from a publish of the workspace root. Move the package to
+  `packages/dcmjs/`, and make the root a private workspace package. The npm name
+  comes from the `name` field, so the package still publishes as `dcmjs` (or as
+  `@dcmjs-org/dcmjs` during the beta). The release scripts already find a
+  package in `packages/*`. Do the move in the wrapper pull request (step 7 of
+  `RELEASE_PLAN.md`):
+  - Replace the 38 shim files that import `../packages/*/src` with imports of
+    `@dcmjs-org/*`.
+  - Keep the UMD build (`build/dcmjs.js`, `build/dcmjs.min.js`).
+  - Move or copy `generate/dictionary.mjs`, `README.md` and `License.txt` into
+    the package, because npm cannot publish a file outside the package folder.
+  - Update the 79 test files that import `../src`, and the `src/**` globs of
+    `format`, `lint` and `lint-staged`.
 - **Files that leave the tree before the release.** `test/issues/catalog.json`
   (the issue-triage catalog).
