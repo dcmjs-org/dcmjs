@@ -3,7 +3,7 @@
   "$id": "https://dcmjs.org/schema/naturalized.schema.json",
   "title": "dcmjs naturalized dataset",
   "x-dicom-schema-version": "1.0.0",
-  "x-dicom-dictionary-hash": "75e18bde97ecdef7",
+  "x-dicom-dictionary-hash": "f88c516b0acc3c7f",
   "type": "object",
   "properties": {
     "RETIRED_EscapeTriplet": {
@@ -10311,12 +10311,6 @@
       "x-dicom-vr": "DS",
       "x-dicom-vm": "1",
       "x-dicom-tag": "00180060"
-    },
-    "RETIRED_undefined": {
-      "type": "number",
-      "x-dicom-vr": "DS",
-      "x-dicom-vm": "1",
-      "x-dicom-tag": "00180061"
     },
     "CountsAccumulated": {
       "type": "number",

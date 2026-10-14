@@ -7,7 +7,8 @@ import {
     VR_SCALAR,
     MULTI_VR,
     VR_FORMATS,
-    EXCLUDED_TAGS
+    EXCLUDED_TAGS,
+    KEYWORDLESS_TAGS
 } from "./schemaRules.mjs";
 
 const SCHEMA_VERSION = "1.0.0";
@@ -24,12 +25,25 @@ function bareTag(paren) {
 export function buildCatalog() {
     const entries = getAllStandardTagEntries();
     const attributes = {};
+    const tagByKeyword = new Map();
     for (const e of entries) {
         const tag = bareTag(e.tag);
-        if (EXCLUDED_TAGS.has(tag)) {
+        if (EXCLUDED_TAGS.has(tag) || KEYWORDLESS_TAGS.has(tag)) {
             continue;
         }
         parseVm(e.vm); // throws on unclassifiable VM — loud failure
+        if (!e.name || e.name === "RETIRED_undefined") {
+            throw new Error(
+                `${tag}: missing keyword — add the tag to KEYWORDLESS_TAGS or fix the dictionary`
+            );
+        }
+        const holder = tagByKeyword.get(e.name);
+        if (holder) {
+            throw new Error(
+                `${tag}: keyword "${e.name}" already used by ${holder} — keywords must be unique property names`
+            );
+        }
+        tagByKeyword.set(e.name, tag);
         let vr;
         if (VR_SCALAR[e.vr]) {
             vr = e.vr;
@@ -110,33 +124,14 @@ export function typesSource(catalog) {
         "",
         "export interface NaturalizedDataset {"
     ];
-    // Duplicate keywords (rare) collapse to one property; widen the type
-    // to the union of every duplicate's computed type.
-    const seen = new Map(); // keyword -> {tags: [], types: Set}
+    // buildCatalog guarantees unique keywords, so each entry is one property.
     for (const [tag, entry] of Object.entries(catalog.attributes)) {
         const type = tsTypeFor(entry);
         const vrLabel = Array.isArray(entry.vr)
             ? entry.vr.join("/")
             : entry.vr;
-        const prev = seen.get(entry.keyword);
-        if (prev) {
-            prev.tags.push(tag);
-            prev.types.add(type);
-        } else {
-            seen.set(entry.keyword, {
-                tags: [tag],
-                types: new Set([type]),
-                vrLabel,
-                vm: entry.vm
-            });
-        }
-    }
-    for (const [keyword, info] of seen) {
-        const type = [...info.types].join(" | ");
-        lines.push(
-            `    /** ${info.tags.join(", ")} · VR ${info.vrLabel} · VM ${info.vm} */`
-        );
-        lines.push(`    ${tsPropName(keyword)}?: ${type};`);
+        lines.push(`    /** ${tag} · VR ${vrLabel} · VM ${entry.vm} */`);
+        lines.push(`    ${tsPropName(entry.keyword)}?: ${type};`);
     }
     lines.push(
         "    /** Private ('<slot>:<creator>') and unknown-tag keys (spec 12.3) */"
@@ -193,12 +188,7 @@ export function jsonSchemaFor(entry, catalog) {
 
 export function jsonSchemaSource(catalog) {
     const properties = {};
-    const seen = new Set();
     for (const [tag, entry] of Object.entries(catalog.attributes)) {
-        if (seen.has(entry.keyword)) {
-            continue; // keep first per keyword, matching the d.ts dedup
-        }
-        seen.add(entry.keyword);
         properties[entry.keyword] = {
             ...jsonSchemaFor(entry, catalog),
             "x-dicom-tag": tag

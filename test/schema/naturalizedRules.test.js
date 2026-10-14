@@ -8,9 +8,19 @@ describe("naturalizedRules catalog", () => {
     });
 
     test("covers the full standard dictionary minus structural exclusions", () => {
-        // 5165 entries in the packed dictionary, 3 FFFE structural items excluded
-        expect(Object.keys(naturalizedRules.attributes).length).toBe(5162);
+        // 5165 entries in the packed dictionary, minus 3 FFFE structural
+        // items and 3 keywordless retired tags
+        expect(Object.keys(naturalizedRules.attributes).length).toBe(5159);
         expect(naturalizedRules.attributes.FFFEE000).toBeUndefined();
+        expect(naturalizedRules.attributes["00180061"]).toBeUndefined();
+    });
+
+    test("keywords are unique property names", () => {
+        const seen = new Set();
+        for (const entry of Object.values(naturalizedRules.attributes)) {
+            expect(seen.has(entry.keyword)).toBe(false);
+            seen.add(entry.keyword);
+        }
     });
 
     test("spot-checks known attributes", () => {

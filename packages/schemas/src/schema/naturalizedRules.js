@@ -2,7 +2,7 @@
 // Normative rule catalog for the naturalized representation.
 export const naturalizedRules = {
     version: "1.0.0",
-    dictionaryHash: "75e18bde97ecdef7",
+    dictionaryHash: "f88c516b0acc3c7f",
     vrFormats: {
         AE: {
             maxLength: 16
@@ -6786,11 +6786,6 @@ export const naturalizedRules = {
         },
         "00180060": {
             keyword: "KVP",
-            vr: "DS",
-            vm: "1"
-        },
-        "00180061": {
-            keyword: "RETIRED_undefined",
             vr: "DS",
             vm: "1"
         },
@@ -21475,11 +21470,6 @@ export const naturalizedRules = {
             vr: "OB",
             vm: "1"
         },
-        "04000315": {
-            keyword: "RETIRED_undefined",
-            vr: "FL",
-            vm: "1"
-        },
         "04000401": {
             keyword: "DigitalSignaturePurposeCodeSequence",
             vr: "SQ",
@@ -24970,11 +24960,6 @@ export const naturalizedRules = {
         "300A0780": {
             keyword: "AdditionalParameterRecordingInstanceSequence",
             vr: "SQ",
-            vm: "1"
-        },
-        "300A0782": {
-            keyword: "RETIRED_undefined",
-            vr: "US",
             vm: "1"
         },
         "300A0783": {

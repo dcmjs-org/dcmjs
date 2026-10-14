@@ -81,3 +81,9 @@ export const VR_FORMATS = {
 
 // Group FFFE items are stream structure, not data elements (VR "na").
 export const EXCLUDED_TAGS = new Set(["FFFEE000", "FFFEE00D", "FFFEE0DD"]);
+
+// Retired tags the dictionary carries without a keyword (it gives all of
+// them the placeholder "RETIRED_undefined", which cannot be a property
+// name shared by unrelated tags). The generator throws on any other tag
+// whose keyword is missing or duplicated.
+export const KEYWORDLESS_TAGS = new Set(["00180061", "04000315", "300A0782"]);
