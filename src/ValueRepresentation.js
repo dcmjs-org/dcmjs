@@ -1190,6 +1190,8 @@ class SequenceOfItems extends ValueRepresentation {
 
                         var items = DicomMessage._read(itemStream, syntax);
                         elements.push(items);
+                    } else {
+                        elements.push({});
                     }
                     if (!undefLength && read == sqlength) {
                         break;
