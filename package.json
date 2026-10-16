@@ -77,7 +77,7 @@
     },
     "dependencies": {
         "@babel/runtime-corejs3": "7.29.2",
-        "adm-zip": "0.5.17",
+        "adm-zip": "0.6.0",
         "gl-matrix": "3.4.4",
         "lodash.clonedeep": "4.5.0",
         "loglevel": "1.9.2",
