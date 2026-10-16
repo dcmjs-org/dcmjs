@@ -36,7 +36,8 @@ export const VR_SCALAR = Object.fromEntries([
     ...BINARY_VRS.map(vr => [vr, "BinaryValue"]),
     ["PN", "PersonName"],
     ["SQ", "NaturalizedDataset[]"],
-    // 64-bit: out-of-safe-range integers retain string form
-    ["UV", "number | string"],
-    ["SV", "number | string"]
+    // The readers store BigInt (readBigUint64 / readBigInt64). Note that
+    // JSON.stringify throws on a BigInt value.
+    ["UV", "bigint"],
+    ["SV", "bigint"]
 ]);

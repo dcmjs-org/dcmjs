@@ -32,8 +32,10 @@ function scalarFor(vr) {
 
 export function tsTypeFor(entry) {
     const vrs = Array.isArray(entry.vr) ? entry.vr : [entry.vr];
-    // Per-VR: sequences and binary VRs are arrays regardless of VM (a binary
-    // Value lists frames); everything else follows the VM rule.
+    // Per-VR: sequences and binary VRs ignore the VM (a binary Value lists
+    // frames, or is one bulk reference); everything else follows the VM
+    // rule. Every value can be null: a present-but-empty element
+    // naturalizes as null, and a list can hold null entries.
     const parts = new Set(
         vrs.map(vr => {
             const scalar = scalarFor(vr);
@@ -43,15 +45,15 @@ export function tsTypeFor(entry) {
                 return "NaturalizedDataset | NaturalizedDataset[]";
             }
             if (scalar === "BinaryValue") {
-                return "BinaryValue[]";
+                return "BinaryValue | BinaryValue[]";
             }
             if (!entry.multi) {
                 return scalar;
             }
-            return scalar.includes("|") ? `(${scalar})[]` : `${scalar}[]`;
+            return `(${scalar} | null)[]`;
         })
     );
-    return [...parts].join(" | ");
+    return `${[...parts].join(" | ")} | null`;
 }
 
 function tsPropName(keyword) {
@@ -98,43 +100,45 @@ export function typesSource(catalog) {
 export function jsonSchemaFor(entry, catalog) {
     const vrs = Array.isArray(entry.vr) ? entry.vr : [entry.vr];
     const scalarTs = [...new Set(vrs.map(scalarFor))];
-    let item;
-    if (scalarTs.length === 1 && scalarTs[0] === "NaturalizedDataset[]") {
-        item = { $ref: "#" };
-    } else if (scalarTs.length === 1 && scalarTs[0] === "string") {
-        item = { type: "string" };
-        const fmt = vrs.length === 1 ? catalog.vrFormats[vrs[0]] : undefined;
-        if (fmt && fmt.maxLength) {
-            item.maxLength = fmt.maxLength;
-        }
-        if (fmt && fmt.pattern) {
-            item.pattern = fmt.pattern;
-        }
-    } else if (scalarTs.length === 1 && scalarTs[0] === "number") {
-        item = { type: "number" };
-    } else {
-        item = {}; // PersonName, BinaryValue, unions: annotation-only
-    }
-    const isSq = scalarTs[0] === "NaturalizedDataset[]";
-    // A binary Value lists frames, so it is an array regardless of VM; its
-    // VM does not bound the frame count.
+    const isSq = scalarTs.length === 1 && scalarTs[0] === "NaturalizedDataset[]";
     const isBinary = scalarTs.length === 1 && scalarTs[0] === "BinaryValue";
+    const isPn = scalarTs.length === 1 && scalarTs[0] === "PersonName";
+    // Value space follows envelope.values: "asReturned" — every value can
+    // be null (a present-but-empty element naturalizes as null, and a list
+    // can hold null entries). The Part 5 formats are the x-dicom-format
+    // annotation, not validation keywords.
+    let item;
+    if (isPn) {
+        item = { $ref: "#/$defs/personName" };
+    } else if (scalarTs.length === 1 && scalarTs[0] === "string") {
+        item = { type: ["string", "null"] };
+    } else if (scalarTs.length === 1 && scalarTs[0] === "number") {
+        item = { type: ["number", "null"] };
+    } else {
+        item = {}; // bigint, VR unions: annotation-only
+    }
     let prop;
     if (isSq) {
-        // One shared $defs entry: inlining the two-branch sequence shape
-        // into every SQ property overflows ajv's codegen on this schema.
+        // Shared $defs entries: inlining a multi-branch shape into every
+        // property overflows ajv's codegen on this schema.
         prop = { $ref: "#/$defs/sequenceValue" };
-    } else if (isBinary || entry.multi) {
-        prop = { type: "array", items: item };
+    } else if (isBinary) {
+        prop = { $ref: "#/$defs/binaryValue" };
+    } else if (entry.multi) {
+        prop = { type: ["array", "null"], items: item };
         const vm = parseVm(entry.vm);
-        if (!isBinary && vm.min > 1) {
+        if (vm.min > 1) {
             prop.minItems = vm.min;
         }
-        if (!isBinary && vm.max !== null) {
+        if (vm.max !== null) {
             prop.maxItems = vm.max;
         }
     } else {
         prop = { ...item };
+    }
+    const fmt = vrs.length === 1 ? catalog.vrFormats[vrs[0]] : undefined;
+    if (fmt) {
+        prop["x-dicom-format"] = fmt;
     }
     prop["x-dicom-vr"] = Array.isArray(entry.vr)
         ? entry.vr.join("/")
@@ -162,9 +166,39 @@ export function jsonSchemaSource(catalog) {
         additionalProperties: true,
         $defs: {
             // A single-item sequence naturalizes as the item itself, not
-            // an array, so a sequence value is a dataset or a dataset array.
+            // an array, so a sequence value is a dataset or a dataset array
+            // (or null when the element is present but empty).
             sequenceValue: {
-                anyOf: [{ type: "array", items: { $ref: "#" } }, { $ref: "#" }]
+                anyOf: [
+                    { type: "null" },
+                    { type: "array", items: { $ref: "#" } },
+                    { $ref: "#" }
+                ]
+            },
+            // A binary value is a frame list, or one bulk reference object
+            // ({BulkDataURI} | {InlineBinary}) when the bytes are not inline.
+            binaryValue: {
+                anyOf: [
+                    { type: "null" },
+                    { type: "array", items: {} },
+                    { type: "object" }
+                ]
+            },
+            // The PN component object. Additional properties stay open: a
+            // caller-assigned plain string keeps its boxed-String shape
+            // until denaturalization.
+            personName: {
+                anyOf: [
+                    { type: "null" },
+                    {
+                        type: "object",
+                        properties: {
+                            Alphabetic: { type: ["string", "null"] },
+                            Ideographic: { type: ["string", "null"] },
+                            Phonetic: { type: ["string", "null"] }
+                        }
+                    }
+                ]
             }
         }
     };

@@ -19,39 +19,61 @@ const schema = JSON.parse(
 const ajv = new Ajv2020({ strictSchema: false, allErrors: true });
 const validate = ajv.compile(schema);
 
-// Known value-space divergences between what these files hold and the Part 5
-// value formats in the schema. The structural contract (scalar vs list,
-// sequences, binary frames) must hold with no exceptions; these entries pin
-// the open value-format questions until a maintainer decides the contract
-// (pass-through values vs schema-valid values).
-const KNOWN_DIVERGENCES = {
-    "sample-dicom.dcm": [],
-    // zero-length DA naturalizes as "" — the DA pattern has no empty branch
-    "sample-sr.dcm": ['/PatientBirthDate must match pattern "^\\d{8}$"'],
-    "sample-op.dcm": [
-        // the file holds the noncompliant age "24" and the schema passes
-        // Part 5 judgement on it
-        '/PatientAge must match pattern "^\\d{3}[DWMY]$"',
-        // a zero-length DS inside a list naturalizes as a null element
-        "/LossyImageCompressionRatio/0 must be number"
-    ]
-};
+function expectValid(dataset) {
+    validate(dataset);
+    const errors = (validate.errors || []).map(
+        e => `${e.instancePath || "(root)"} ${e.message}`
+    );
+    expect(errors).toEqual([]);
+}
 
 describe("naturalized datasets validate against the published schema", () => {
-    test.each(Object.keys(KNOWN_DIVERGENCES))("%s", fileName => {
-        const buffer = readFileSync(
-            join(__dirname, "../../packages/fixtures/dicom", fileName)
-        );
-        const arrayBuffer = buffer.buffer.slice(
-            buffer.byteOffset,
-            buffer.byteOffset + buffer.byteLength
-        );
-        const dicomDict = DicomMessage.readFile(arrayBuffer);
-        const dataset = DicomMetaDictionary.naturalizeDataset(dicomDict.dict);
-        validate(dataset);
-        const errors = (validate.errors || []).map(
-            e => `${e.instancePath || "(root)"} ${e.message}`
-        );
-        expect(errors.sort()).toEqual(KNOWN_DIVERGENCES[fileName].sort());
+    // The schema describes what dcmjs returns (envelope.values:
+    // "asReturned"), so a real file validates with no exceptions — also
+    // when it holds an empty date or a Part 5 violation like an age of
+    // "24"; vrFormats documents those formats without enforcing them.
+    test.each(["sample-dicom.dcm", "sample-sr.dcm", "sample-op.dcm"])(
+        "%s",
+        fileName => {
+            const buffer = readFileSync(
+                join(__dirname, "../../packages/fixtures/dicom", fileName)
+            );
+            const arrayBuffer = buffer.buffer.slice(
+                buffer.byteOffset,
+                buffer.byteOffset + buffer.byteLength
+            );
+            const dicomDict = DicomMessage.readFile(arrayBuffer);
+            expectValid(DicomMetaDictionary.naturalizeDataset(dicomDict.dict));
+        }
+    );
+
+    test("a present-but-empty element naturalizes as null and validates", () => {
+        const dataset = DicomMetaDictionary.naturalizeDataset({
+            "00100020": { vr: "LO" }
+        });
+        expect(dataset.PatientID).toBeNull();
+        expectValid(dataset);
+    });
+
+    test("a bulk-data reference naturalizes as one object and validates", () => {
+        const byUri = DicomMetaDictionary.naturalizeDataset({
+            "7FE00010": { vr: "OB", BulkDataURI: "http://host/bulk/1" }
+        });
+        expect(byUri.PixelData).toEqual({ BulkDataURI: "http://host/bulk/1" });
+        expectValid(byUri);
+
+        const inline = DicomMetaDictionary.naturalizeDataset({
+            "7FE00010": { vr: "OB", InlineBinary: "AAAA" }
+        });
+        expect(inline.PixelData).toEqual({ InlineBinary: "AAAA" });
+        expectValid(inline);
+    });
+
+    test("a null entry inside a list validates", () => {
+        const dataset = DicomMetaDictionary.naturalizeDataset({
+            "00282112": { vr: "DS", Value: [1.5, null] }
+        });
+        expect(dataset.LossyImageCompressionRatio).toEqual([1.5, null]);
+        expectValid(dataset);
     });
 });
