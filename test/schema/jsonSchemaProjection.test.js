@@ -82,9 +82,9 @@ describe("JSON-Schema projection", () => {
             "x-dicom-vm": "1",
             "x-dicom-tag": "00100010"
         });
-        expect(schema.$defs.personName.anyOf[1].properties.Alphabetic).toEqual(
-            { type: ["string", "null"] }
-        );
+        expect(schema.$defs.personName.anyOf[1].properties.Alphabetic).toEqual({
+            type: ["string", "null"]
+        });
     });
 
     test("additionalProperties stays open for private/unknown keys", () => {
