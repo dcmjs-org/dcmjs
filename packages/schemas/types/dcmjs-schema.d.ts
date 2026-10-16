@@ -10333,3 +10333,42 @@ export interface NaturalizedDataset {
     /** Private ('<slot>:<creator>') and unknown-tag keys */
     [privateOrUnknown: string]: unknown;
 }
+
+export interface AttributeRule {
+    keyword: string;
+    vr: string | string[];
+    vm: string;
+    multi: boolean;
+}
+export interface VrFormat {
+    maxLength?: number;
+    pattern?: string;
+}
+export interface NaturalizedEnvelope {
+    cardinality: string;
+    values: string;
+    personName: string;
+    sequences: string;
+    privateTags: string;
+    unknownTags: string;
+    rawRetention: string;
+    bulk: string;
+}
+export declare const SCHEMA_VERSION: string;
+export declare const KNOWN_VRS: Set<string>;
+export declare const BINARY_VRS: Set<string>;
+export declare const MULTI_VR: Record<string, string[]>;
+export declare const vrFormats: Record<string, VrFormat>;
+export declare const EXCLUDED_TAGS: Set<string>;
+export declare const KEYWORDLESS_TAGS: Set<string>;
+export declare const envelope: NaturalizedEnvelope;
+export declare function buildAttributeRules(): Record<string, AttributeRule>;
+export declare function getAttributeRule(
+    tag: string
+): AttributeRule | undefined;
+export declare const naturalizedRules: {
+    version: string;
+    envelope: NaturalizedEnvelope;
+    vrFormats: Record<string, VrFormat>;
+    readonly attributes: Record<string, AttributeRule>;
+};

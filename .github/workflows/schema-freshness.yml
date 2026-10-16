@@ -4,11 +4,19 @@ on:
   push:
     paths:
       - "packages/schemas/**"
+      - "packages/core/src/dicom.*.js"
+      - "packages/core/src/dictionary.*.js"
+      - "packages/core/src/utilities/isMultiVM.js"
+      - "packages/core/src/utilities/binaryVRs.js"
       - "src/dicom.packed.js"
       - "src/dictionary.*.data.js"
   pull_request:
     paths:
       - "packages/schemas/**"
+      - "packages/core/src/dicom.*.js"
+      - "packages/core/src/dictionary.*.js"
+      - "packages/core/src/utilities/isMultiVM.js"
+      - "packages/core/src/utilities/binaryVRs.js"
       - "src/dicom.packed.js"
       - "src/dictionary.*.data.js"
 

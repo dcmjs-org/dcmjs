@@ -8,7 +8,8 @@
     "exports": {
         ".": {
             "types": "./types/dcmjs-schema.d.ts",
-            "import": "./src/schema/naturalizedRules.js"
+            "import": "./src/schema/naturalizedRules.js",
+            "default": "./src/schema/naturalizedRules.js"
         },
         "./schema/naturalized.schema.json": "./schema/naturalized.schema.json",
         "./package.json": "./package.json"

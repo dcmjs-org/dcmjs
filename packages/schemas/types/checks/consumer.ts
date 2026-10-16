@@ -3,10 +3,17 @@
 import type {
     NaturalizedDataset,
     PersonName,
-    BinaryValue
+    BinaryValue,
+    AttributeRule
 } from "../dcmjs-schema";
+import { getAttributeRule, naturalizedRules } from "../dcmjs-schema";
 
 declare const ds: NaturalizedDataset;
+
+// The module exports type-check (no TS2305)
+const rule: AttributeRule | undefined = getAttributeRule("00100020");
+const ruleKeyword: string | undefined = rule?.keyword;
+const envelopeValues: string = naturalizedRules.envelope.values;
 
 // VM 1 -> scalar; a present-but-empty element is null
 const patientId: string | null | undefined = ds.PatientID;
@@ -43,6 +50,9 @@ const missedNull: string | undefined = ds.PatientID;
 const wrongElem: string = ds.PixelSpacing![0];
 
 export {
+    rule,
+    ruleKeyword,
+    envelopeValues,
     patientId,
     imageType,
     firstType,
