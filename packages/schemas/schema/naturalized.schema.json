@@ -3,7 +3,7 @@
   "$id": "https://dcmjs.org/schema/naturalized.schema.json",
   "title": "dcmjs naturalized dataset",
   "x-dicom-schema-version": "1.0.0",
-  "x-dicom-dictionary-hash": "f88c516b0acc3c7f",
+  "x-dicom-dictionary-hash": "ee8fe7d302cf7594",
   "type": "object",
   "properties": {
     "RETIRED_EscapeTriplet": {

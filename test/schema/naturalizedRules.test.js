@@ -1,10 +1,26 @@
-import { naturalizedRules } from "../../packages/schemas/src/schema/naturalizedRules.js";
+import {
+    naturalizedRules,
+    getAttributeRule,
+    buildAttributeRules,
+    KNOWN_VRS
+} from "../../packages/schemas/src/schema/naturalizedRules.js";
 import { parseVm } from "../../packages/schemas/generate/schemaRules.mjs";
+import { readFileSync } from "fs";
+import { join } from "path";
 
-describe("naturalizedRules catalog", () => {
-    test("carries version and dictionary hash", () => {
+describe("naturalizedRules", () => {
+    test("carries the schema version and the envelope", () => {
         expect(naturalizedRules.version).toMatch(/^\d+\.\d+\.\d+$/);
-        expect(naturalizedRules.dictionaryHash).toMatch(/^[0-9a-f]{16}$/);
+        expect(naturalizedRules.envelope).toEqual({
+            cardinality: "vm-based",
+            values: "asReturned",
+            personName: "componentObject",
+            sequences: "datasetArrayOrItem",
+            privateTags: "creatorGrouped",
+            unknownTags: "preserved",
+            rawRetention: "inexactOnly",
+            bulk: "referenceOrBinary"
+        });
     });
 
     test("covers the full standard dictionary minus structural exclusions", () => {
@@ -15,6 +31,42 @@ describe("naturalizedRules catalog", () => {
         expect(naturalizedRules.attributes["00180061"]).toBeUndefined();
     });
 
+    test("spot-checks derived rules", () => {
+        expect(getAttributeRule("00080008")).toEqual({
+            keyword: "ImageType",
+            vr: "CS",
+            vm: "2-n",
+            multi: true
+        });
+        expect(getAttributeRule("00100020")).toEqual({
+            keyword: "PatientID",
+            vr: "LO",
+            vm: "1",
+            multi: false
+        });
+        // multi-VR code resolved to an explicit union
+        expect(getAttributeRule("00189810")).toEqual({
+            keyword: "ZeroVelocityPixelValue",
+            vr: ["US", "SS"],
+            vm: "1",
+            multi: false
+        });
+    });
+
+    test("every attribute has a parseable VM and a known VR", () => {
+        for (const [tag, entry] of Object.entries(
+            naturalizedRules.attributes
+        )) {
+            expect(() => parseVm(entry.vm)).not.toThrow();
+            const vrs = Array.isArray(entry.vr) ? entry.vr : [entry.vr];
+            for (const vr of vrs) {
+                if (!KNOWN_VRS.has(vr)) {
+                    throw new Error(`${tag}: unknown VR ${vr}`);
+                }
+            }
+        }
+    });
+
     test("keywords are unique property names", () => {
         const seen = new Set();
         for (const entry of Object.values(naturalizedRules.attributes)) {
@@ -23,71 +75,31 @@ describe("naturalizedRules catalog", () => {
         }
     });
 
-    test("spot-checks known attributes", () => {
-        expect(naturalizedRules.attributes["00080008"]).toEqual({
-            keyword: "ImageType",
-            vr: "CS",
-            vm: "2-n"
-        });
-        expect(naturalizedRules.attributes["00100020"]).toEqual({
-            keyword: "PatientID",
-            vr: "LO",
-            vm: "1"
-        });
-        // multi-VR code resolved to an explicit union
-        expect(naturalizedRules.attributes["00189810"]).toEqual({
-            keyword: "ZeroVelocityPixelValue",
-            vr: ["US", "SS"],
-            vm: "1"
-        });
-    });
-
-    test("every attribute has a parseable VM and known VR", () => {
-        const knownScalar = new Set(
-            (
-                "AE AS AT CS DA DT LO LT SH ST TM UC UI UR UT " +
-                "DS FL FD IS SL SS UL US " +
-                "OB OD OF OL OV OW UN PN SQ UV SV"
-            ).split(" ")
-        );
-        for (const [tag, entry] of Object.entries(
-            naturalizedRules.attributes
-        )) {
-            expect(() => parseVm(entry.vm)).not.toThrow();
-            const vrs = Array.isArray(entry.vr) ? entry.vr : [entry.vr];
-            for (const vr of vrs) {
-                if (!knownScalar.has(vr)) {
-                    throw new Error(`${tag}: unknown VR ${vr}`);
-                }
-            }
-        }
-    });
-
-    test("envelope freezes the decided contract tokens", () => {
-        expect(naturalizedRules.envelope).toEqual({
-            cardinality: "vm-based",
-            personName: "componentObject",
-            sequences: "datasetArrayOrItem",
-            privateTags: "creatorGrouped",
-            unknownTags: "preserved",
-            rawRetention: "inexactOnly",
-            bulk: "referenceOrBinary"
-        });
-    });
-
-    test("vrFormats table is present", () => {
+    test("vrFormats documents Part 5 for string VRs only", () => {
         expect(naturalizedRules.vrFormats.DA).toEqual({
             pattern: "^\\d{8}$"
         });
-        expect(naturalizedRules.vrFormats.DS).toEqual({ maxLength: 16 });
+        // DS and IS naturalize as numbers; a string format cannot apply
+        expect(naturalizedRules.vrFormats.DS).toBeUndefined();
+        expect(naturalizedRules.vrFormats.IS).toBeUndefined();
     });
 
-    test("committed catalog is fresh and deterministic (CI determinism gate)", async () => {
-        // Rebuilding from the live dictionary must reproduce the committed
-        // artifact exactly — catches stale artifacts AND nondeterminism.
-        const { buildCatalog } = await import(
+    test("rule derivation is cached", () => {
+        expect(buildAttributeRules()).toBe(buildAttributeRules());
+    });
+
+    test("committed projections are fresh (CI determinism gate)", async () => {
+        // Regenerating from the live dictionary must reproduce the committed
+        // artifacts exactly — catches stale artifacts AND nondeterminism.
+        const { buildCatalog, typesSource, jsonSchemaSource } = await import(
             "../../packages/schemas/generate/buildCatalog.mjs"
         );
-        expect(buildCatalog()).toEqual(naturalizedRules);
+        const catalog = buildCatalog();
+        const read = p =>
+            readFileSync(join(__dirname, "../../packages/schemas", p), "utf8");
+        expect(typesSource(catalog)).toBe(read("types/dcmjs-schema.d.ts"));
+        expect(jsonSchemaSource(catalog)).toBe(
+            read("schema/naturalized.schema.json")
+        );
     });
 });

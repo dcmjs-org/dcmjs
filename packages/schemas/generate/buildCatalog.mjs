@@ -1,100 +1,51 @@
 // Catalog builder — pure (no I/O, no import.meta), so the CI gates can
 // import it under jest. The CLI shell that writes files is generate-schema.mjs.
+// The attribute rules come from the shipped src module, which derives them
+// from the packed dictionary — this file only projects them into the two
+// static artifacts (the .d.ts and the JSON Schema).
 import { createHash } from "crypto";
-import { getAllStandardTagEntries } from "../../../src/dicom.lookup.js";
-import {
-    parseVm,
-    VR_SCALAR,
-    MULTI_VR,
-    VR_FORMATS,
-    EXCLUDED_TAGS,
-    KEYWORDLESS_TAGS
-} from "./schemaRules.mjs";
-
-const SCHEMA_VERSION = "1.0.0";
-
-function bareTag(paren) {
-    // "(0008,0008)" -> "00080008"
-    const m = paren.match(/^\((\w{4}),(\w{4})\)$/);
-    if (!m) {
-        throw new Error(`unexpected tag format: ${paren}`);
-    }
-    return (m[1] + m[2]).toUpperCase();
-}
+import { naturalizedRules } from "../src/schema/naturalizedRules.js";
+import { parseVm, VR_SCALAR } from "./schemaRules.mjs";
 
 export function buildCatalog() {
-    const entries = getAllStandardTagEntries();
-    const attributes = {};
-    const tagByKeyword = new Map();
-    for (const e of entries) {
-        const tag = bareTag(e.tag);
-        if (EXCLUDED_TAGS.has(tag) || KEYWORDLESS_TAGS.has(tag)) {
-            continue;
-        }
-        parseVm(e.vm); // throws on unclassifiable VM — loud failure
-        if (!e.name || e.name === "RETIRED_undefined") {
-            throw new Error(
-                `${tag}: missing keyword — add the tag to KEYWORDLESS_TAGS or fix the dictionary`
-            );
-        }
-        const holder = tagByKeyword.get(e.name);
-        if (holder) {
-            throw new Error(
-                `${tag}: keyword "${e.name}" already used by ${holder} — keywords must be unique property names`
-            );
-        }
-        tagByKeyword.set(e.name, tag);
-        let vr;
-        if (VR_SCALAR[e.vr]) {
-            vr = e.vr;
-        } else if (MULTI_VR[e.vr]) {
-            vr = MULTI_VR[e.vr];
-        } else {
-            throw new Error(`${tag} ${e.name}: unmapped VR code "${e.vr}"`);
-        }
-        attributes[tag] = { keyword: e.name, vr, vm: e.vm };
-    }
-    const sorted = Object.fromEntries(
-        Object.entries(attributes).sort(([a], [b]) => a.localeCompare(b))
-    );
+    const attributes = naturalizedRules.attributes;
     const dictionaryHash = createHash("sha256")
-        .update(JSON.stringify(sorted))
+        .update(JSON.stringify(attributes))
         .digest("hex")
         .slice(0, 16);
     return {
-        version: SCHEMA_VERSION,
+        version: naturalizedRules.version,
         dictionaryHash,
-        vrFormats: VR_FORMATS,
-        attributes: sorted,
-        envelope: {
-            cardinality: "vm-based", // VM multi -> array, VM 1 -> scalar (D1)
-            personName: "componentObject", // {Alphabetic,Ideographic,Phonetic} (D13)
-            sequences: "datasetArrayOrItem", // SQ -> dataset[] | single item (1.0 VM rule)
-            privateTags: "creatorGrouped", // '<slot>:<creator>' keys (D2b, spec 12.3)
-            unknownTags: "preserved", // { vr, Value, rawValue } (spec 12.3)
-            rawRetention: "inexactOnly", // raw kept when round-trip inexact (D14)
-            bulk: "referenceOrBinary" // {BulkDataURI} | {InlineBinary} | binary
-        }
+        vrFormats: naturalizedRules.vrFormats,
+        attributes,
+        envelope: naturalizedRules.envelope
     };
+}
+
+function scalarFor(vr) {
+    const scalar = VR_SCALAR[vr];
+    if (!scalar) {
+        throw new Error(`no TS projection for VR "${vr}"`);
+    }
+    return scalar;
 }
 
 export function tsTypeFor(entry) {
     const vrs = Array.isArray(entry.vr) ? entry.vr : [entry.vr];
-    const { multi } = parseVm(entry.vm);
     // Per-VR: sequences and binary VRs are arrays regardless of VM (a binary
     // Value lists frames); everything else follows the VM rule.
     const parts = new Set(
         vrs.map(vr => {
-            const scalar = VR_SCALAR[vr];
+            const scalar = scalarFor(vr);
             if (scalar === "NaturalizedDataset[]") {
                 // A single-item sequence naturalizes as the item itself
-                // (with a hidden [0], length, and iterator), not an array.
+                // (with a hidden [0], length, and an iterator), not an array.
                 return "NaturalizedDataset | NaturalizedDataset[]";
             }
             if (scalar === "BinaryValue") {
                 return "BinaryValue[]";
             }
-            if (!multi) {
+            if (!entry.multi) {
                 return scalar;
             }
             return scalar.includes("|") ? `(${scalar})[]` : `${scalar}[]`;
@@ -126,7 +77,7 @@ export function typesSource(catalog) {
         "",
         "export interface NaturalizedDataset {"
     ];
-    // buildCatalog guarantees unique keywords, so each entry is one property.
+    // buildAttributeRules guarantees unique keywords, so each entry is one property.
     for (const [tag, entry] of Object.entries(catalog.attributes)) {
         const type = tsTypeFor(entry);
         const vrLabel = Array.isArray(entry.vr)
@@ -136,7 +87,7 @@ export function typesSource(catalog) {
         lines.push(`    ${tsPropName(entry.keyword)}?: ${type};`);
     }
     lines.push(
-        "    /** Private ('<slot>:<creator>') and unknown-tag keys (spec 12.3) */"
+        "    /** Private ('<slot>:<creator>') and unknown-tag keys */"
     );
     lines.push("    [privateOrUnknown: string]: unknown;");
     lines.push("}");
@@ -146,7 +97,7 @@ export function typesSource(catalog) {
 
 export function jsonSchemaFor(entry, catalog) {
     const vrs = Array.isArray(entry.vr) ? entry.vr : [entry.vr];
-    const scalarTs = [...new Set(vrs.map(vr => VR_SCALAR[vr]))];
+    const scalarTs = [...new Set(vrs.map(scalarFor))];
     let item;
     if (scalarTs.length === 1 && scalarTs[0] === "NaturalizedDataset[]") {
         item = { $ref: "#" };
@@ -164,7 +115,6 @@ export function jsonSchemaFor(entry, catalog) {
     } else {
         item = {}; // PersonName, BinaryValue, unions: annotation-only
     }
-    const vm = parseVm(entry.vm);
     const isSq = scalarTs[0] === "NaturalizedDataset[]";
     // A binary Value lists frames, so it is an array regardless of VM; its
     // VM does not bound the frame count.
@@ -174,8 +124,9 @@ export function jsonSchemaFor(entry, catalog) {
         // One shared $defs entry: inlining the two-branch sequence shape
         // into every SQ property overflows ajv's codegen on this schema.
         prop = { $ref: "#/$defs/sequenceValue" };
-    } else if (isBinary || vm.multi) {
+    } else if (isBinary || entry.multi) {
         prop = { type: "array", items: item };
+        const vm = parseVm(entry.vm);
         if (!isBinary && vm.min > 1) {
             prop.minItems = vm.min;
         }
@@ -218,15 +169,4 @@ export function jsonSchemaSource(catalog) {
         }
     };
     return JSON.stringify(doc, null, 2) + "\n";
-}
-
-export function catalogSource(catalog) {
-    const header =
-        "// GENERATED by generate/generate-schema.mjs — DO NOT EDIT.\n" +
-        "// Normative rule catalog for the naturalized representation.\n";
-    return `${header}export const naturalizedRules = ${JSON.stringify(
-        catalog,
-        null,
-        2
-    )};\n`;
 }

@@ -1,33 +1,25 @@
-// Rule primitives for the D22 naturalized schema generator.
-// Spec: docs/superpowers/specs/2026-07-03-d22-naturalized-schema-design.md
+// Projection-only rule primitives for the schema generator. The shared
+// semantic tables (MULTI_VR, vrFormats, exclusions) live in
+// ../src/schema/naturalizedRules.js, which the runtime also uses.
 
-// VM pattern -> {min, max, multiple, multi}. max null = unbounded.
-// multi = the naturalized container is an array (VM other than exactly "1").
+// VM pattern -> {min, max, multiple}. max null = unbounded. Whether a value
+// is scalar or a list is NOT decided here — that is core's isMultiVM rule,
+// carried on each attribute rule as `multi`.
 export function parseVm(vm) {
     let m;
     if ((m = vm.match(/^(\d+)$/))) {
         const n = Number(m[1]);
-        return { min: n, max: n, multiple: null, multi: n !== 1 };
+        return { min: n, max: n, multiple: null };
     }
     if ((m = vm.match(/^(\d+)-n$/))) {
-        return { min: Number(m[1]), max: null, multiple: null, multi: true };
+        return { min: Number(m[1]), max: null, multiple: null };
     }
     if ((m = vm.match(/^(\d+)-(\d+)$/))) {
-        return {
-            min: Number(m[1]),
-            max: Number(m[2]),
-            multiple: null,
-            multi: true
-        };
+        return { min: Number(m[1]), max: Number(m[2]), multiple: null };
     }
     if ((m = vm.match(/^(\d+)-(\d+)n$/))) {
         // e.g. 3-3n: at least 3, count must be a multiple of 3
-        return {
-            min: Number(m[1]),
-            max: null,
-            multiple: Number(m[2]),
-            multi: true
-        };
+        return { min: Number(m[1]), max: null, multiple: Number(m[2]) };
     }
     throw new Error(`unclassifiable VM pattern: "${vm}"`);
 }
@@ -44,46 +36,7 @@ export const VR_SCALAR = Object.fromEntries([
     ...BINARY_VRS.map(vr => [vr, "BinaryValue"]),
     ["PN", "PersonName"],
     ["SQ", "NaturalizedDataset[]"],
-    // 64-bit: out-of-safe-range integers retain string form (D14 / spec §12.4)
+    // 64-bit: out-of-safe-range integers retain string form
     ["UV", "number | string"],
     ["SV", "number | string"]
 ]);
-
-// Ambiguous dictionary VR codes -> explicit member unions (exhaustive for
-// the packed dictionary; the generator fails loudly on anything else).
-export const MULTI_VR = {
-    xs: ["US", "SS"],
-    ox: ["OB", "OW"],
-    up: ["UL"],
-    lt: ["OW", "US", "SS"]
-};
-
-// Part 5 per-VR value-format constraints (VR-format depth, D27 decision 3).
-export const VR_FORMATS = {
-    AE: { maxLength: 16 },
-    AS: { pattern: "^\\d{3}[DWMY]$" },
-    CS: { maxLength: 16, pattern: "^[A-Z0-9 _]*$" },
-    DA: { pattern: "^\\d{8}$" },
-    DS: { maxLength: 16 },
-    DT: {
-        maxLength: 26,
-        pattern:
-            "^\\d{4}(\\d{2}(\\d{2}(\\d{2}(\\d{2}(\\d{2}(\\.\\d{1,6})?)?)?)?)?)?([+-]\\d{4})?$"
-    },
-    IS: { maxLength: 12, pattern: "^[+-]?\\d+$" },
-    LO: { maxLength: 64 },
-    LT: { maxLength: 10240 },
-    SH: { maxLength: 16 },
-    ST: { maxLength: 1024 },
-    TM: { pattern: "^\\d{2}(\\d{2}(\\d{2}(\\.\\d{1,6})?)?)?$" },
-    UI: { maxLength: 64, pattern: "^[0-9.]+$" }
-};
-
-// Group FFFE items are stream structure, not data elements (VR "na").
-export const EXCLUDED_TAGS = new Set(["FFFEE000", "FFFEE00D", "FFFEE0DD"]);
-
-// Retired tags the dictionary carries without a keyword (it gives all of
-// them the placeholder "RETIRED_undefined", which cannot be a property
-// name shared by unrelated tags). The generator throws on any other tag
-// whose keyword is missing or duplicated.
-export const KEYWORDLESS_TAGS = new Set(["00180061", "04000315", "300A0782"]);
