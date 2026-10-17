@@ -5,7 +5,7 @@ import {
     IMPLICIT_LITTLE_ENDIAN,
     UNDEFINED_LENGTH
 } from "../src/constants/dicom";
-import { getTestDataset } from "./testUtils.js";
+import { getTestDataset, readFileAsArrayBuffer } from "./testUtils.js";
 import { videoTestMeta, videoTestDict } from "./video-test-dict.js";
 import { oddFrameBitData } from "./odd-frame-bit-data.js";
 import {
@@ -566,7 +566,7 @@ describe("AsyncDicomReader", () => {
 
         // First, read the file with DicomMessage to identify which private tags exist
         // and determine their order relative to PixelData
-        const syncDict = DicomMessage.readFile(fs.readFileSync(dcmPath).buffer);
+        const syncDict = DicomMessage.readFile(readFileAsArrayBuffer(dcmPath));
 
         // Get all tags in order (approximate - dict keys may not preserve exact order)
         const { dict } = syncDict;

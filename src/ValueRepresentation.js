@@ -629,6 +629,17 @@ class BinaryRepresentation extends ValueRepresentation {
             } else if (this.type == 'OB') {
                 bytes = stream.readUint8Array(length);
             }*/
+            // A declared value length longer than the data present means a
+            // truncated or malformed file, so read what is there rather than
+            // allocating the declared length, which the file controls.
+            // https://github.com/dcmjs-org/dcmjs/security/advisories/GHSA-xwvm-687g-rm36
+            const available = stream.endOffset - stream.offset;
+            if (length > available) {
+                validationLog.warn(
+                    `${this.type} value declares ${length} bytes but only ${available} are available - reading the available bytes`
+                );
+                length = available;
+            }
             bytes = stream.getBuffer(stream.offset, stream.offset + length);
             stream.increment(length);
             return [bytes];

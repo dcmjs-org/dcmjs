@@ -146,7 +146,14 @@ export default class SplitDataView {
     }
 
     slice(start = 0, end = this.size) {
-        if (start === end) {
+        // Clamp to the data actually held, the way ArrayBuffer.prototype.slice
+        // does.  Otherwise a value length declared by a malformed file
+        // allocates the declared size however few bytes are really present.
+        // https://github.com/dcmjs-org/dcmjs/security/advisories/GHSA-xwvm-687g-rm36
+        if (end > this.byteLength) {
+            end = this.byteLength;
+        }
+        if (end <= start) {
             return new Uint8Array(0).buffer;
         }
         let index = this.findStart(start);
