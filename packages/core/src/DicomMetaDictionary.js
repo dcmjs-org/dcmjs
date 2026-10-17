@@ -3,9 +3,8 @@ import { getAllStandardTagEntries } from "./dicom.lookup.js";
 import log from "./log.js";
 import addAccessors from "./utilities/addAccessors.js";
 import isMultiVM from "./utilities/isMultiVM.js";
+import BINARY_VRS from "./utilities/binaryVRs.js";
 import { ValueRepresentation } from "./ValueRepresentation.js";
-
-const BINARY_VRS = new Set(["OB", "OD", "OF", "OL", "OV", "OW", "UN"]);
 
 /**
  * The naturalized value of one DICOM JSON element (see naturalizeDataset).
