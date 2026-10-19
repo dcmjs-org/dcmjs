@@ -336,7 +336,10 @@ Named here so their absence is a decision, not an oversight:
    of each new package is done by an owner from a workstation (`npm
    publish --access public` of the stamped package), after which the
    trusted publisher is configured and CI handles every release that
-   follows.
+   follows. `scripts/bootstrap-trusted-publishing.sh` does both steps: it
+   publishes a `0.0.0-bootstrap.0` placeholder under the `bootstrap` tag
+   for each package that does not exist yet, then runs `npm trust github`.
+   Add a new public package to its `PACKAGES` list.
 5. Clean up the stale npm dist-tags when convenient (section 10).
 
 ---
