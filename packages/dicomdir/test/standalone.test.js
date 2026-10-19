@@ -1,9 +1,10 @@
 // packages/dicomdir/test/standalone.test.js
 //
-// The package's reason to exist is running without the legacy engines, so
-// this file imports nothing from @dcmjs-org/legacy — jest gives each test
-// file its own module registry, so no eager DicomMessage is ever wired into
-// core's late-binding seam here. Writing a DICOMDIR serializes a
+// The package exists to build and write DICOMDIRs; what 1.0 additionally
+// promises is that it does so without the legacy engines. This file pins
+// that second property: it imports nothing from @dcmjs-org/legacy — jest
+// gives each test file its own module registry, so no eager DicomMessage
+// is ever wired into core's late-binding seam here. Writing a DICOMDIR serializes a
 // DirectoryRecordSequence, which exercises core's sequence writer with no
 // injected engine; before SequenceOfItems.writeBytes called back into
 // writeDataSet directly, this write threw.
