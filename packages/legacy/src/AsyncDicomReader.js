@@ -7,7 +7,7 @@ import {
     VM_DELIMITER,
     UNDEFINED_LENGTH,
     TagHex,
-    encodingMapping,
+    resolveCharsetDecoder,
     UNDEFINED_LENGTH_FIX,
     VALID_VRS,
     isVideoTransferSyntax,
@@ -16,7 +16,7 @@ import {
     DicomMetadataListener,
     log
 } from "@dcmjs-org/core";
-import { DicomMessage, singleVRs } from "./DicomMessage";
+import { DicomMessage, singleVRs } from "./DicomMessage.js";
 
 const readLog = log.getLogger("AsyncDicomReader");
 
@@ -311,6 +311,14 @@ export class AsyncDicomReader {
         return listener.pop();
     }
 
+    /**
+     * Reads the items of a sequence.
+     *
+     * A defined-length item gets its own end offset, so read() stops at the
+     * item boundary and returns control here for the next item. Without that
+     * offset, read() skips the later Item tags as instructions, and all items
+     * of a defined-length sequence merge into the first item.
+     */
     async readSequence(listener, sqTagInfo, options) {
         const { length } = sqTagInfo;
         const { stream, syntax } = this;
@@ -324,12 +332,7 @@ export class AsyncDicomReader {
             const { tag } = tagInfo;
             if (tag === TagHex.Item) {
                 listener.startObject();
-                // For defined-length items, use the item's own end offset
-                // so read() stops at the item boundary and returns control
-                // to readSequence for the next item. Without this, all
-                // items in a defined-length sequence get merged into the
-                // first item because read() treats subsequent Item tags
-                // as instructions and skips them.
+                // defined-length item: stop at its own end (see doc comment)
                 const itemLength = tagInfo.length;
                 const itemUntilOffset =
                     itemLength === UNDEFINED_LENGTH_FIX
@@ -755,26 +758,14 @@ export class AsyncDicomReader {
         }
 
         if (tagInfo.tag === TagHex.SpecificCharacterSet) {
-            if (values.length > 0) {
-                let [coding] = values;
-                coding = coding.replace(/[_ ]/g, "-").toLowerCase();
-                if (coding in encodingMapping) {
-                    coding = encodingMapping[coding];
-                    this.stream.setDecoder(new TextDecoder(coding));
-                } else if (options?.ignoreErrors) {
-                    log.warn(
-                        `Unsupported character set: ${coding}, using default character set`
-                    );
-                } else {
-                    throw Error(`Unsupported character set: ${coding}`);
-                }
+            const decoder = resolveCharsetDecoder(values, {
+                ignoreErrors: options?.ignoreErrors
+            });
+            if (decoder) {
+                this.stream.setDecoder(decoder);
             }
-            // Normalize to UTF-8 in the stored value, matching the synchronous
-            // DicomMessage path which always rewrites SpecificCharacterSet to
-            // ISO_IR 192 after decoding (dcmjs always re-encodes output as UTF-8).
-            //
-            // TODO: the original charset value should also be preserved:
-            // it is needed for bulk data decoding.
+            // Stored as UTF-8, like DicomMessage (output is always UTF-8).
+            // TODO: keep the original value; bulk data decoding needs it.
             values = ["ISO_IR 192"];
         }
 

@@ -1,8 +1,5 @@
 import { CollectorListener } from "@dcmjs-org/parser";
-// The one TEMPORARY @dcmjs-org/legacy edge in this package (see README): this
-// writer is by design a thin layer over the canonical DicomDict.write
-// encoder, and goes away with it.
-import { DicomDict } from "@dcmjs-org/legacy";
+import { writePart10 } from "@dcmjs-org/core";
 
 /**
  * Part10Writer — slice E2: an event-stream sink that produces DICOM Part 10
@@ -10,9 +7,11 @@ import { DicomDict } from "@dcmjs-org/legacy";
  *
  * Architecture: this is a thin LAYER over the canonical encoder, not a second
  * encoder. It collects the event stream into a tag-keyed `{ meta, dict }` tree
- * (reusing CollectorListener) and delegates serialization to the proven
- * `DicomDict.write()`, which handles every VR, undefined-length sequences,
+ * (reusing CollectorListener) and delegates serialization to core's
+ * `writePart10` (the proven Part 10 envelope, relocated from legacy
+ * `DicomDict.write()`), which handles every VR, undefined-length sequences,
  * deflate, padding, Big16, and FileMetaInformationGroupLength recomputation.
+ * This closed the one temporary `@dcmjs-org/legacy` edge this package had.
  *
  * Byte-IDENTICAL Part 10 round-tripping (incl. re-emitting compressed pixel data
  * verbatim) is intentionally NOT this path's job — that is a non-goal of the
@@ -23,17 +22,18 @@ import { DicomDict } from "@dcmjs-org/legacy";
 export class Part10Writer extends CollectorListener {
     /**
      * Serialize the collected dataset to a Part 10 ArrayBuffer.
-     * @param {Object} [writeOptions] forwarded to DicomDict.write
+     * @param {Object} [writeOptions] forwarded to writePart10
      * @returns {ArrayBuffer}
      */
     write(writeOptions) {
         const meta = { ...this.result.meta };
-        // DicomDict.write recomputes the group length; drop any collected one so
+        // writePart10 recomputes the group length; drop any collected one so
         // it is not double-counted.
         delete meta["00020000"];
 
-        const dict = new DicomDict(meta);
-        dict.dict = this.result.dict;
-        return writeOptions ? dict.write(writeOptions) : dict.write();
+        const dataSet = { meta, dict: this.result.dict };
+        return writeOptions
+            ? writePart10(dataSet, writeOptions)
+            : writePart10(dataSet);
     }
 }

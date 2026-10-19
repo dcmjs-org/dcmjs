@@ -52,7 +52,7 @@ it("test_encodings", async () => {
             expect(String(newDataset.PatientName)).toEqual(
                 expectedPatientNames[fileName]
             );
-            expect(newDataset.SpecificCharacterSet).toEqual("ISO_IR 192");
+            expect(newDataset.SpecificCharacterSet).toEqual(["ISO_IR 192"]); // VM 1-n
         }
     });
 });
