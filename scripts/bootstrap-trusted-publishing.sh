@@ -5,7 +5,11 @@
 # package or trust config is reported, not treated as fatal.
 #   --dry-run  preview the publish and trust calls
 #   --status   only report each package's dist-tags and trust configs
+# A flag is recognized only as the first argument.
 # Each trust call asks for 2FA in the browser; the script waits for it.
+#
+# No `set -e` on purpose: an already-existing package or trust config must be
+# reported and the run must continue, so each command handles its own failure.
 set -uo pipefail
 
 MODE="${1:-}"
@@ -25,6 +29,7 @@ for (const d of fs.readdirSync("packages")) {
 REPO="dcmjs-org/dcmjs"
 echo "Packages: $(echo $PACKAGES)"
 WORK="$(mktemp -d)"
+trap 'rm -rf "$WORK"' EXIT
 SUMMARY=""
 
 npm whoami || exit 1
@@ -61,11 +66,16 @@ EOF
   fi
 
   echo "== trust publish-package.yml / publish env for $name"
-  if npm trust github "$name" \
+  if [ -n "$DRY" ]; then
+    # npm trust has no --dry-run; preview the call instead of running it.
+    echo "DRY-RUN: npm trust github $name --file publish-package.yml" \
+      "--repository $REPO --environment publish --allow-publish --yes"
+    trusted="dry-run"
+  elif npm trust github "$name" \
     --file publish-package.yml \
     --repository "$REPO" \
     --environment publish \
-    --allow-publish --yes $DRY; then
+    --allow-publish --yes; then
     trusted="trusted"
   else
     trusted="trust call failed (already configured? see list below)"
