@@ -54,3 +54,11 @@ export {
     DicomMetadataListener,
     createInformationFilter
 } from "./utilities/DicomMetadataListener.js";
+export {
+    patientTags,
+    studyTags,
+    seriesTags,
+    patientStudyTags,
+    copyAttributesByLevel,
+    DATA_LEVELS
+} from "./utilities/copyAttributesByLevel.js";

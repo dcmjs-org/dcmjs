@@ -9,42 +9,21 @@
 //   extractEncapsulatedPdf(dataset)    — PDF out: recover the PDF bytes from
 //       a parsed (naturalized) Encapsulated PDF instance.
 //
-// The builder defaults to de novo construction — a plain PDF plus
-// caller-supplied context, with everything omitted defaulted. It is NOT a
-// DerivedDataset: it never references a source instance or copies its full
-// module set. But because the common case is attaching a report to a study
-// you already hold an instance of, `options.sourceInstance` offers the
-// lightweight middle ground the full derivation machinery would be overkill
-// for: copy the Patient and General Study context off that instance, mint
-// everything that must be new. Precedence is defaults < sourceInstance <
-// explicit options; the document's own identity (SOP class, Modality,
-// SOP/Series UIDs) is never inherited. See copyContextFromInstance.
+// encapsulatePdf is a thin decorator over the generic `encapsulate` builder
+// (./encapsulate.js): it checks the PDF magic and supplies the PDF base
+// defaults (./defaults/pdfBase.js) and mime type. All the dataset assembly —
+// the defaults < baseDicom < inherited context < overrides merge, the
+// hierarchical inheritance from a source instance, and the identity guard —
+// lives in `encapsulate`.
 
-import { DicomMetaDictionary } from "@dcmjs-org/core";
+import { encapsulate, toExactArrayBuffer } from "./encapsulate.js";
+import {
+    pdfBase,
+    ENCAPSULATED_PDF_SOP_CLASS_UID,
+    PDF_MIME_TYPE
+} from "./defaults/pdfBase.js";
 
-const ENCAPSULATED_PDF_SOP_CLASS_UID = "1.2.840.10008.5.1.4.1.1.104.1";
-const PDF_MIME_TYPE = "application/pdf";
 const PDF_MAGIC = [0x25, 0x50, 0x44, 0x46, 0x2d]; // "%PDF-"
-
-/**
- * Normalize ArrayBuffer | Uint8Array | Node Buffer to an exact ArrayBuffer.
- * Views are sliced by byteOffset/byteLength — a bare `.buffer` on a pooled
- * Node Buffer would hand back unrelated pool bytes.
- */
-function toExactArrayBuffer(bytes) {
-    if (bytes instanceof ArrayBuffer) {
-        return bytes;
-    }
-    if (ArrayBuffer.isView(bytes)) {
-        return bytes.buffer.slice(
-            bytes.byteOffset,
-            bytes.byteOffset + bytes.byteLength
-        );
-    }
-    throw new Error(
-        "encapsulatePdf expects an ArrayBuffer or Uint8Array of PDF bytes"
-    );
-}
 
 function assertPdfMagic(arrayBuffer) {
     const head = new Uint8Array(
@@ -62,161 +41,56 @@ function assertPdfMagic(arrayBuffer) {
     }
 }
 
-// The Patient and General Study attributes carried over from a
-// `sourceInstance`. Deliberately NOT the whole module set: the document's
-// own identity (SOP class/UID, Series UID, Modality) must stay the
-// encapsulated PDF's own, and the SC Equipment / Encapsulated Document
-// attributes describe the PDF, not the source. SeriesInstanceUID is omitted
-// on purpose so the report lands in a fresh series within the source study.
-const INHERITABLE_CONTEXT = [
-    // Patient
-    "PatientName",
-    "PatientID",
-    "PatientBirthDate",
-    "PatientSex",
-    // General Study
-    "StudyInstanceUID",
-    "StudyDate",
-    "StudyTime",
-    "ReferringPhysicianName",
-    "StudyID",
-    "AccessionNumber"
-];
-
-/**
- * Pull the inheritable Patient/General Study context off a naturalized source
- * instance. A sequence of instances from one study shares that context, so an
- * array is accepted and its first element is read. Only attributes actually
- * present (and non-empty) are returned, so an empty Type 2 value on the
- * source never shadows a builder default. Returns {} when no source is given.
- */
-function copyContextFromInstance(sourceInstance) {
-    if (sourceInstance === undefined || sourceInstance === null) {
-        return {};
-    }
-    const source = Array.isArray(sourceInstance)
-        ? sourceInstance[0]
-        : sourceInstance;
-    if (!source || typeof source !== "object" || Array.isArray(source)) {
-        throw new Error(
-            "encapsulatePdf: options.sourceInstance must be a naturalized " +
-                "dataset (or a non-empty array of them)"
-        );
-    }
-    const context = {};
-    for (const key of INHERITABLE_CONTEXT) {
-        if (source[key] !== undefined && source[key] !== "") {
-            context[key] = source[key];
-        }
-    }
-    return context;
-}
-
 /**
  * Wrap PDF bytes into a naturalized Encapsulated PDF dataset.
  *
- * The result carries `_meta` (Explicit VR Little Endian) and `_vrMap`
- * (EncapsulatedDocument pinned to OB) so the Part 10 writers can serialize
- * it directly. Every UID defaults to a freshly minted
- * `DicomMetaDictionary.uid()`; pass `StudyInstanceUID` (and optionally
- * `SeriesInstanceUID`) to attach the document into an existing study.
+ * Thin decorator over {@link encapsulate}: checks the PDF magic, then builds
+ * the dataset from the PDF base defaults plus the caller's options. The
+ * result carries `_meta` (Explicit VR Little Endian) and `_vrMap`
+ * (EncapsulatedDocument pinned to OB) so the Part 10 writers can serialize it
+ * directly. Every UID defaults to a freshly minted `DicomMetaDictionary.uid()`.
  *
- * Pass `options.sourceInstance` (a naturalized instance, or an array of them
- * from one study) to copy the Patient and General Study context off an
- * instance you already hold instead of retyping it. Precedence is
- * defaults < sourceInstance < explicit options; the document's own identity
- * is never inherited (see {@link copyContextFromInstance}).
+ * Pass `instance` (a naturalized instance, or an array of them from one study)
+ * with an optional `dataLevel` ('patient' | 'study' | 'series' | 'instance',
+ * default 'study') to inherit that level's context instead of retyping it;
+ * `sourceInstance` is accepted as a back-compat alias for `instance` at
+ * 'study' level. Precedence is defaults < inherited < explicit options; the
+ * document's own identity (SOP class, Modality, SOP/Series UIDs) is never
+ * inherited.
  *
  * @param {ArrayBuffer|Uint8Array} pdfBytes
  * @param {Object} [options] - naturalized keyword overrides (PatientName,
- *   PatientID, DocumentTitle, StudyInstanceUID, ...) plus `sourceInstance`
+ *   PatientID, DocumentTitle, StudyInstanceUID, ...) plus `instance`,
+ *   `dataLevel`, and the `sourceInstance` alias
  * @returns {Object} naturalized dataset
  */
 function encapsulatePdf(pdfBytes, options = {}) {
     const documentBytes = toExactArrayBuffer(pdfBytes);
     assertPdfMagic(documentBytes);
 
-    const date = DicomMetaDictionary.date();
-    const time = DicomMetaDictionary.time();
+    const { sourceInstance, instance, dataLevel, ...rest } = options;
+    const resolvedInstance = instance ?? sourceInstance;
 
-    // defaults < sourceInstance < explicit options. `inherited` only holds
-    // context attributes present on the source, so `options.X || inherited.X
-    // || default` picks an explicit option first, then the source, then the
-    // builder default.
-    const inherited = copyContextFromInstance(options.sourceInstance);
-
-    const dataset = {
-        // SOP Common
-        SpecificCharacterSet: "ISO_IR 192",
-        SOPClassUID: ENCAPSULATED_PDF_SOP_CLASS_UID,
-        SOPInstanceUID: options.SOPInstanceUID || DicomMetaDictionary.uid(),
-
-        // General Study (Type 2 attributes always present)
-        StudyInstanceUID:
-            options.StudyInstanceUID ||
-            inherited.StudyInstanceUID ||
-            DicomMetaDictionary.uid(),
-        StudyDate: options.StudyDate || inherited.StudyDate || date,
-        StudyTime: options.StudyTime || inherited.StudyTime || time,
-        ReferringPhysicianName:
-            options.ReferringPhysicianName ||
-            inherited.ReferringPhysicianName ||
-            "",
-        StudyID: options.StudyID || inherited.StudyID || "",
-        AccessionNumber:
-            options.AccessionNumber || inherited.AccessionNumber || "",
-
-        // Patient
-        PatientName: options.PatientName || inherited.PatientName || "",
-        PatientID: options.PatientID || inherited.PatientID || "",
-        PatientBirthDate:
-            options.PatientBirthDate || inherited.PatientBirthDate || "",
-        PatientSex: options.PatientSex || inherited.PatientSex || "",
-
-        // Encapsulated Document Series
-        Modality: "DOC",
-        SeriesInstanceUID:
-            options.SeriesInstanceUID || DicomMetaDictionary.uid(),
-        SeriesNumber: options.SeriesNumber || 1,
-
-        // SC Equipment
-        ConversionType: options.ConversionType || "WSD",
-        Manufacturer: options.Manufacturer || "dcmjs",
-
-        // Encapsulated Document
-        InstanceNumber: options.InstanceNumber || 1,
-        ContentDate: options.ContentDate || date,
-        ContentTime: options.ContentTime || time,
-        AcquisitionDateTime:
-            options.AcquisitionDateTime || DicomMetaDictionary.dateTime(),
-        BurnedInAnnotation: options.BurnedInAnnotation || "YES",
-        DocumentTitle: options.DocumentTitle || "",
-        MIMETypeOfEncapsulatedDocument: PDF_MIME_TYPE,
-        // Review finding 16: the writer pads an odd-length OB value with a
-        // NUL, so the stored length alone cannot say whether a trailing zero
-        // byte is content or pad. (0042,0015) records the exact length so
-        // extraction can slice instead of guessing.
-        EncapsulatedDocumentLength: documentBytes.byteLength,
-        EncapsulatedDocument: documentBytes,
-
-        _meta: {
-            TransferSyntaxUID: {
-                Value: ["1.2.840.10008.1.2.1"]
-            }
-        },
-        _vrMap: {
-            EncapsulatedDocument: "OB"
+    // Validate here so the error names the public option the caller used.
+    if (resolvedInstance !== undefined && resolvedInstance !== null) {
+        const first = Array.isArray(resolvedInstance)
+            ? resolvedInstance[0]
+            : resolvedInstance;
+        if (!first || typeof first !== "object" || Array.isArray(first)) {
+            throw new Error(
+                "encapsulatePdf: options.instance (or sourceInstance) must " +
+                    "be a naturalized dataset (or a non-empty array of them)"
+            );
         }
-    };
-
-    if (options.SeriesDescription) {
-        dataset.SeriesDescription = options.SeriesDescription;
-    }
-    if (options.ConceptNameCodeSequence) {
-        dataset.ConceptNameCodeSequence = options.ConceptNameCodeSequence;
     }
 
-    return dataset;
+    return encapsulate(documentBytes, {
+        mimeType: PDF_MIME_TYPE,
+        baseDicom: pdfBase(),
+        instance: resolvedInstance,
+        dataLevel: dataLevel ?? "study",
+        ...rest
+    });
 }
 
 /**
