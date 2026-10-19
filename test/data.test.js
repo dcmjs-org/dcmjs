@@ -179,9 +179,11 @@ it("test_json_1", () => {
         naturalSequence.SharedFunctionalGroupsSequence.PixelMeasuresSequence
             .SpacingBetweenSlices;
     expect(spacing).toEqual(0.12);
+    expect(naturalSequence.SharedFunctionalGroupsSequence.length).toEqual(1);
     expect(
-        Array.isArray(naturalSequence.SharedFunctionalGroupsSequence)
-    ).toEqual(true);
+        naturalSequence.SharedFunctionalGroupsSequence[0].PixelMeasuresSequence
+            .SpacingBetweenSlices
+    ).toEqual(0.12);
 
     expect(naturalSequence.ProcedureCodeSequence[0]).toMatchObject({
         CodingSchemeDesignator: "L",
@@ -1104,10 +1106,6 @@ describe("The same DICOM file loaded from both DCM and JSON", () => {
             expect(dcmDenaturalized["00081070"].Value.__hasValueAccessors).toBe(
                 true
             );
-            expect(jsonDataset.__hasTagAccessors).toBe(true);
-            expect(dcmDataset.__hasTagAccessors).toBe(true);
-            expect(jsonDenaturalized["00081070"].__hasTagAccessors).toBe(true);
-            expect(dcmDenaturalized["00081070"].__hasTagAccessors).toBe(true);
             expect(jsonDenaturalized["00081070"]).not.toBe(
                 jsonDataset.OperatorsName
             );
@@ -1131,12 +1129,14 @@ describe("The same DICOM file loaded from both DCM and JSON", () => {
         });
 
         it("Adds a new PN tag", () => {
+            // No tag Proxy: an assigned value gets its accessors when it is
+            // denaturalized (written), not on assignment.
             jsonDataset.PerformingPhysicianName = { Alphabetic: "Doe^John" };
+            const dict =
+                dcmjs.data.DicomMetaDictionary.denaturalizeDataset(jsonDataset);
 
-            expect(String(jsonDataset.PerformingPhysicianName)).toEqual(
-                "Doe^John"
-            );
-            expect(JSON.stringify(jsonDataset.PerformingPhysicianName)).toEqual(
+            expect(String(dict["00081050"].Value)).toEqual("Doe^John");
+            expect(JSON.stringify(dict["00081050"].Value)).toEqual(
                 '[{"Alphabetic":"Doe^John"}]'
             );
         });
@@ -1220,12 +1220,13 @@ describe("The same DICOM file loaded from both DCM and JSON", () => {
             });
 
             it("Compares changed values", () => {
-                jsonDataset.OperatorsName.Alphabetic =
-                    dcmDataset.OperatorsName.Alphabetic = "Doe^John";
-                jsonDataset.OperatorsName.Ideographic =
-                    dcmDataset.OperatorsName.Ideographic = undefined;
-                jsonDataset.OperatorsName.Phonetic =
-                    dcmDataset.OperatorsName.Phonetic = undefined;
+                // OperatorsName has VM 1-n, so it stays a list
+                jsonDataset.OperatorsName[0].Alphabetic =
+                    dcmDataset.OperatorsName[0].Alphabetic = "Doe^John";
+                jsonDataset.OperatorsName[0].Ideographic =
+                    dcmDataset.OperatorsName[0].Ideographic = undefined;
+                jsonDataset.OperatorsName[0].Phonetic =
+                    dcmDataset.OperatorsName[0].Phonetic = undefined;
 
                 expect(JSON.stringify(jsonDataset.OperatorsName)).toEqual(
                     JSON.stringify(dcmDataset.OperatorsName)

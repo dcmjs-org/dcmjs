@@ -55,7 +55,8 @@ describe("issue #231 — repeated naturalization must not redefine PN accessors"
         // "Cannot redefine property: Alphabetic".
         const second = DicomMetaDictionary.naturalizeDataset(dicomDict.dict);
         expect(second.PatientName.Alphabetic).toBe("DOE^JANE");
-        expect(second.OperatorsName.Alphabetic).toBe("FOX^JANE");
+        // OperatorsName has VM 1-n, so it stays a list
+        expect(second.OperatorsName[0].Alphabetic).toBe("FOX^JANE");
     });
 
     it("naturalizing a dict whose PN values are already naturalized objects does not throw", () => {
@@ -70,17 +71,14 @@ describe("issue #231 — repeated naturalization must not redefine PN accessors"
 });
 
 describe("issues #381/#413 — PN union contract and write-back", () => {
-    it("naturalized PN is a proxy array of component objects with a string path", () => {
+    it("naturalized PN (VM 1) is the component object with a string path", () => {
         const dataset = DicomMetaDictionary.naturalizeDataset(
             DicomMessage.readFile(makePnBuffer()).dict
         );
         const pn = dataset.PatientName;
 
-        // DICOM JSON model shape: [{ Alphabetic }] (proxy array of 1)
-        expect(Array.isArray(pn)).toBe(true);
-        expect(pn.length).toBe(1);
-        expect(pn[0].Alphabetic).toBe("DOE^JANE");
-        // Proxy forwards component access
+        // VM 1: the { Alphabetic } component object itself
+        expect(Array.isArray(pn)).toBe(false);
         expect(pn.Alphabetic).toBe("DOE^JANE");
         // Plain-string comparison path for DIMSE-style consumers (#381)
         expect(String(pn)).toBe("DOE^JANE");

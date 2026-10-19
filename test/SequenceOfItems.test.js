@@ -7,7 +7,10 @@ import { ValueRepresentation } from "../src/ValueRepresentation";
 import { DicomMessage } from "../src/DicomMessage";
 import { DicomDataReadBufferStreamBuilder } from "./helper/DicomDataReadBufferStreamBuilder";
 
-ValueRepresentation.setDicomMessageClass(DicomMessage);
+// The item reader that legacy DicomMessage._readTag gives to the SQ reader.
+const readOptions = {
+    readItem: (itemStream, syntax) => DicomMessage._read(itemStream, syntax)
+};
 
 describe("SequenceOfItems extends ValueRepresentation", () => {
     const sequenceOfItems = ValueRepresentation.createByTypeString("SQ");
@@ -22,7 +25,8 @@ describe("SequenceOfItems extends ValueRepresentation", () => {
             const elements = sequenceOfItems.readBytes(
                 stream,
                 sqLength,
-                syntax
+                syntax,
+                readOptions
             );
 
             expect(elements.length).toBe(0);
@@ -40,7 +44,8 @@ describe("SequenceOfItems extends ValueRepresentation", () => {
             const elements = sequenceOfItems.readBytes(
                 stream,
                 sqLength,
-                syntax
+                syntax,
+                readOptions
             );
 
             expect(elements.length).toBe(0);
@@ -57,7 +62,8 @@ describe("SequenceOfItems extends ValueRepresentation", () => {
             const elements = sequenceOfItems.readBytes(
                 stream,
                 sqLength,
-                syntax
+                syntax,
+                readOptions
             );
 
             expect(elements.length).toBe(0);
@@ -75,7 +81,8 @@ describe("SequenceOfItems extends ValueRepresentation", () => {
             const elements = sequenceOfItems.readBytes(
                 stream,
                 sqLength,
-                syntax
+                syntax,
+                readOptions
             );
 
             expect(elements.length).toBe(1);

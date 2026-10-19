@@ -1,0 +1,7 @@
+{
+    "name": "@dcmjs-org/validator",
+    "version": "0.0.0",
+    "private": true,
+    "description": "Future: checks datasets against @dcmjs-org/schemas. Only a scaffold for now; no working code exists yet",
+    "main": "./src/index.js"
+}

@@ -6,17 +6,15 @@
  *   bare object, so generic code like
  *   `PerFrameFunctionalGroupsSequence[frameNumber - 1]` broke when the
  *   sequence happened to have exactly one item.
- *   1.0 delta: single-item SQ values stay a length-1 Array wrapped in a
- *   Proxy (src/utilities/addAccessors.js, used by
- *   DicomMetaDictionary.naturalizeDataset), so BOTH access styles work:
- *   `seq[0].Field` (array style) and `seq.Field` (legacy object style,
- *   forwarded to item zero by the proxy).
+ *   1.0 delta: a single-item SQ value is the item object itself, with a
+ *   hidden [0] (the item) and length 1 (core utilities/addAccessors.js, no
+ *   Proxy), so BOTH access styles work: `seq[0].Field` and `seq.Field`.
  *
  * #273 (C — contract): https://github.com/dcmjs-org/dcmjs/issues/273
  *   Upstream symptom: SR generateReport produced naturalized datasets
  *   whose single-item sequences were plain objects, inconsistent with
- *   naturalizeDataset's proxy arrays.
- *   1.0 delta: the proxy-array shape is the single contract; here we pin
+ *   naturalizeDataset's shape.
+ *   1.0 delta: the item-with-[0] shape is the single contract; here we pin
  *   that it survives a denaturalize → naturalize round trip unchanged
  *   (same shape, same values, both access styles intact).
  *
@@ -57,42 +55,41 @@ function readNaturalized() {
 }
 
 function expectSingleItemSqContract(seq) {
-    // Array behavior stays sane
-    expect(Array.isArray(seq)).toBe(true);
+    // List-like, not a real array
+    expect(Array.isArray(seq)).toBe(false);
     expect(seq.length).toBe(1);
+    expect([...seq]).toEqual([seq]);
     // Array-style access (the #218 ask)
     expect(seq[0].SeriesInstanceUID).toBe(SERIES_UID);
-    // Proxy object-style access (legacy compatibility, forwarded to item 0)
+    // Object-style access: the value is the item
     expect(seq.SeriesInstanceUID).toBe(SERIES_UID);
 }
 
-describe("issue #218 — single-item SQ naturalizes to a proxy array (both access styles)", () => {
+describe("issue #218 — single-item SQ naturalizes to the item with [0] and length (both access styles)", () => {
     it("ReferencedSeriesSequence with one item supports seq[0].Field and seq.Field", () => {
         const { dataset } = readNaturalized();
         expectSingleItemSqContract(dataset.ReferencedSeriesSequence);
     });
 
-    it("writes through the proxy consistently (outer set visible via item zero)", () => {
+    it("a write through either access style lands on the item", () => {
         const { dataset } = readNaturalized();
         const seq = dataset.ReferencedSeriesSequence;
-        // Setting an unknown prop through the proxy lands on item zero
         seq.SeriesNumber = 9;
         expect(seq[0].SeriesNumber).toBe(9);
     });
 
-    it("JSON serialization of the proxy is the plain one-item array", () => {
+    it("JSON serialization is the plain item object", () => {
         const { dataset } = readNaturalized();
         const json = JSON.parse(
             JSON.stringify(dataset.ReferencedSeriesSequence)
         );
-        expect(Array.isArray(json)).toBe(true);
-        expect(json.length).toBe(1);
-        expect(json[0].SeriesInstanceUID).toBe(SERIES_UID);
+        expect(Array.isArray(json)).toBe(false);
+        expect(json.SeriesInstanceUID).toBe(SERIES_UID);
     });
 });
 
 describe("issue #273 — single-item SQ shape survives denaturalize → naturalize", () => {
-    it("round trips to the identical proxy-array contract", () => {
+    it("round trips to the identical single-item contract", () => {
         const { dataset } = readNaturalized();
         const denaturalized = DicomMetaDictionary.denaturalizeDataset(dataset);
 

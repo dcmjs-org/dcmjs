@@ -3,6 +3,24 @@
     "version": "0.0.0",
     "description": "The engines dcmjs users run today: the eager whole-file reader and writer, and the async reader. They keep working unchanged, so current projects keep their behavior",
     "main": "./src/index.js",
+    "files": [
+        "dist",
+        "README.md"
+    ],
+    "scripts": {
+        "build": "rollup -c ../../rollup.packages.config.mjs"
+    },
+    "publishConfig": {
+        "main": "./dist/index.cjs",
+        "module": "./dist/index.mjs",
+        "exports": {
+            ".": {
+                "import": "./dist/index.mjs",
+                "require": "./dist/index.cjs"
+            },
+            "./package.json": "./package.json"
+        }
+    },
     "license": "MIT",
     "repository": {
         "type": "git",
