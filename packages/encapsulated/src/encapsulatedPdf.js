@@ -1,4 +1,4 @@
-// packages/pdfs/src/encapsulatedPdf.js
+// packages/encapsulated/src/encapsulatedPdf.js
 //
 // Encapsulated PDF IOD (PS3.3 A.45.1), SOP Class 1.2.840.10008.5.1.4.1.1.104.1.
 // Two directions, matching the PACS workflow where PDFs travel inside DICOM:
@@ -9,9 +9,16 @@
 //   extractEncapsulatedPdf(dataset)    — PDF out: recover the PDF bytes from
 //       a parsed (naturalized) Encapsulated PDF instance.
 //
-// This is a de novo builder, deliberately NOT a DerivedDataset — derivations
-// copy patient/study context from a referenced source instance; an
-// encapsulated PDF starts from a plain PDF plus caller-supplied context.
+// The builder defaults to de novo construction — a plain PDF plus
+// caller-supplied context, with everything omitted defaulted. It is NOT a
+// DerivedDataset: it never references a source instance or copies its full
+// module set. But because the common case is attaching a report to a study
+// you already hold an instance of, `options.sourceInstance` offers the
+// lightweight middle ground the full derivation machinery would be overkill
+// for: copy the Patient and General Study context off that instance, mint
+// everything that must be new. Precedence is defaults < sourceInstance <
+// explicit options; the document's own identity (SOP class, Modality,
+// SOP/Series UIDs) is never inherited. See copyContextFromInstance.
 
 import { DicomMetaDictionary } from "@dcmjs-org/core";
 
@@ -55,6 +62,56 @@ function assertPdfMagic(arrayBuffer) {
     }
 }
 
+// The Patient and General Study attributes carried over from a
+// `sourceInstance`. Deliberately NOT the whole module set: the document's
+// own identity (SOP class/UID, Series UID, Modality) must stay the
+// encapsulated PDF's own, and the SC Equipment / Encapsulated Document
+// attributes describe the PDF, not the source. SeriesInstanceUID is omitted
+// on purpose so the report lands in a fresh series within the source study.
+const INHERITABLE_CONTEXT = [
+    // Patient
+    "PatientName",
+    "PatientID",
+    "PatientBirthDate",
+    "PatientSex",
+    // General Study
+    "StudyInstanceUID",
+    "StudyDate",
+    "StudyTime",
+    "ReferringPhysicianName",
+    "StudyID",
+    "AccessionNumber"
+];
+
+/**
+ * Pull the inheritable Patient/General Study context off a naturalized source
+ * instance. A sequence of instances from one study shares that context, so an
+ * array is accepted and its first element is read. Only attributes actually
+ * present (and non-empty) are returned, so an empty Type 2 value on the
+ * source never shadows a builder default. Returns {} when no source is given.
+ */
+function copyContextFromInstance(sourceInstance) {
+    if (sourceInstance === undefined || sourceInstance === null) {
+        return {};
+    }
+    const source = Array.isArray(sourceInstance)
+        ? sourceInstance[0]
+        : sourceInstance;
+    if (!source || typeof source !== "object" || Array.isArray(source)) {
+        throw new Error(
+            "encapsulatePdf: options.sourceInstance must be a naturalized " +
+                "dataset (or a non-empty array of them)"
+        );
+    }
+    const context = {};
+    for (const key of INHERITABLE_CONTEXT) {
+        if (source[key] !== undefined && source[key] !== "") {
+            context[key] = source[key];
+        }
+    }
+    return context;
+}
+
 /**
  * Wrap PDF bytes into a naturalized Encapsulated PDF dataset.
  *
@@ -64,9 +121,15 @@ function assertPdfMagic(arrayBuffer) {
  * `DicomMetaDictionary.uid()`; pass `StudyInstanceUID` (and optionally
  * `SeriesInstanceUID`) to attach the document into an existing study.
  *
+ * Pass `options.sourceInstance` (a naturalized instance, or an array of them
+ * from one study) to copy the Patient and General Study context off an
+ * instance you already hold instead of retyping it. Precedence is
+ * defaults < sourceInstance < explicit options; the document's own identity
+ * is never inherited (see {@link copyContextFromInstance}).
+ *
  * @param {ArrayBuffer|Uint8Array} pdfBytes
  * @param {Object} [options] - naturalized keyword overrides (PatientName,
- *   PatientID, DocumentTitle, StudyInstanceUID, ...)
+ *   PatientID, DocumentTitle, StudyInstanceUID, ...) plus `sourceInstance`
  * @returns {Object} naturalized dataset
  */
 function encapsulatePdf(pdfBytes, options = {}) {
@@ -76,6 +139,12 @@ function encapsulatePdf(pdfBytes, options = {}) {
     const date = DicomMetaDictionary.date();
     const time = DicomMetaDictionary.time();
 
+    // defaults < sourceInstance < explicit options. `inherited` only holds
+    // context attributes present on the source, so `options.X || inherited.X
+    // || default` picks an explicit option first, then the source, then the
+    // builder default.
+    const inherited = copyContextFromInstance(options.sourceInstance);
+
     const dataset = {
         // SOP Common
         SpecificCharacterSet: "ISO_IR 192",
@@ -83,18 +152,26 @@ function encapsulatePdf(pdfBytes, options = {}) {
         SOPInstanceUID: options.SOPInstanceUID || DicomMetaDictionary.uid(),
 
         // General Study (Type 2 attributes always present)
-        StudyInstanceUID: options.StudyInstanceUID || DicomMetaDictionary.uid(),
-        StudyDate: options.StudyDate || date,
-        StudyTime: options.StudyTime || time,
-        ReferringPhysicianName: options.ReferringPhysicianName || "",
-        StudyID: options.StudyID || "",
-        AccessionNumber: options.AccessionNumber || "",
+        StudyInstanceUID:
+            options.StudyInstanceUID ||
+            inherited.StudyInstanceUID ||
+            DicomMetaDictionary.uid(),
+        StudyDate: options.StudyDate || inherited.StudyDate || date,
+        StudyTime: options.StudyTime || inherited.StudyTime || time,
+        ReferringPhysicianName:
+            options.ReferringPhysicianName ||
+            inherited.ReferringPhysicianName ||
+            "",
+        StudyID: options.StudyID || inherited.StudyID || "",
+        AccessionNumber:
+            options.AccessionNumber || inherited.AccessionNumber || "",
 
         // Patient
-        PatientName: options.PatientName || "",
-        PatientID: options.PatientID || "",
-        PatientBirthDate: options.PatientBirthDate || "",
-        PatientSex: options.PatientSex || "",
+        PatientName: options.PatientName || inherited.PatientName || "",
+        PatientID: options.PatientID || inherited.PatientID || "",
+        PatientBirthDate:
+            options.PatientBirthDate || inherited.PatientBirthDate || "",
+        PatientSex: options.PatientSex || inherited.PatientSex || "",
 
         // Encapsulated Document Series
         Modality: "DOC",

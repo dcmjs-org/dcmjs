@@ -1,4 +1,4 @@
-// packages/pdfs/test/encapsulatedPdf.test.js
+// packages/encapsulated/test/encapsulatedPdf.test.js
 //
 // Encapsulated PDF (SOP Class 1.2.840.10008.5.1.4.1.1.104.1): wrap a PDF
 // into a conformant naturalized dataset (encapsulatePdf) and pull the PDF
@@ -158,6 +158,114 @@ it("honors caller options including attachment to an existing study", () => {
 it("rejects bytes that are not a PDF", () => {
     const notPdf = new TextEncoder().encode("hello world, no magic here");
     expect(() => encapsulatePdf(notPdf)).toThrow(/PDF/);
+});
+
+describe("sourceInstance — inherit patient/study context", () => {
+    // A naturalized instance from the study the report is being filed under.
+    const sourceInstance = {
+        SOPClassUID: "1.2.840.10008.5.1.4.1.1.4",
+        SOPInstanceUID: "1.2.3.4.5.6.7.100",
+        StudyInstanceUID: "1.2.3.4.5",
+        SeriesInstanceUID: "1.2.3.4.5.9",
+        Modality: "MR",
+        PatientName: "Doe^Jane",
+        PatientID: "MRN-42",
+        PatientBirthDate: "19700101",
+        PatientSex: "F",
+        StudyDate: "20260101",
+        StudyID: "ST-7",
+        AccessionNumber: "ACC-9"
+    };
+
+    it("copies Patient and General Study attributes off the source", () => {
+        const dataset = encapsulatePdf(PDF_BYTES, { sourceInstance });
+
+        expect(dataset.PatientName).toEqual("Doe^Jane");
+        expect(dataset.PatientID).toEqual("MRN-42");
+        expect(dataset.PatientBirthDate).toEqual("19700101");
+        expect(dataset.PatientSex).toEqual("F");
+        expect(dataset.StudyInstanceUID).toEqual("1.2.3.4.5");
+        expect(dataset.StudyDate).toEqual("20260101");
+        expect(dataset.StudyID).toEqual("ST-7");
+        expect(dataset.AccessionNumber).toEqual("ACC-9");
+    });
+
+    it("never inherits the document's own identity", () => {
+        const dataset = encapsulatePdf(PDF_BYTES, { sourceInstance });
+
+        // Stays the Encapsulated PDF IOD, not the source MR.
+        expect(dataset.SOPClassUID).toEqual(ENCAPSULATED_PDF_SOP_CLASS_UID);
+        expect(dataset.Modality).toEqual("DOC");
+        // Fresh instance, and a new series within the source study.
+        expect(dataset.SOPInstanceUID).not.toEqual(
+            sourceInstance.SOPInstanceUID
+        );
+        expect(dataset.SOPInstanceUID).toMatch(/^2\.25\./);
+        expect(dataset.SeriesInstanceUID).not.toEqual(
+            sourceInstance.SeriesInstanceUID
+        );
+        expect(dataset.SeriesInstanceUID).toMatch(/^2\.25\./);
+    });
+
+    it("lets explicit options override the source (defaults < source < options)", () => {
+        const dataset = encapsulatePdf(PDF_BYTES, {
+            sourceInstance,
+            PatientID: "OVERRIDE-1",
+            SeriesInstanceUID: "1.2.3.4.5.9" // attach into an existing series
+        });
+
+        expect(dataset.PatientID).toEqual("OVERRIDE-1");
+        // Not overridden → still from the source.
+        expect(dataset.PatientName).toEqual("Doe^Jane");
+        // Explicit series wins over the fresh-mint default.
+        expect(dataset.SeriesInstanceUID).toEqual("1.2.3.4.5.9");
+    });
+
+    it("accepts an array of instances and reads context from the first", () => {
+        const dataset = encapsulatePdf(PDF_BYTES, {
+            sourceInstance: [sourceInstance, { PatientID: "OTHER" }]
+        });
+
+        expect(dataset.PatientID).toEqual("MRN-42");
+        expect(dataset.StudyInstanceUID).toEqual("1.2.3.4.5");
+    });
+
+    it("an empty Type 2 value on the source does not shadow a default", () => {
+        const dataset = encapsulatePdf(PDF_BYTES, {
+            sourceInstance: { ...sourceInstance, StudyID: "" }
+        });
+
+        // Source StudyID is empty → builder default (empty string), and the
+        // minted/copied study UID is unaffected.
+        expect(dataset.StudyID).toEqual("");
+        expect(dataset.StudyInstanceUID).toEqual("1.2.3.4.5");
+    });
+
+    it("throws on a non-object sourceInstance", () => {
+        expect(() =>
+            encapsulatePdf(PDF_BYTES, { sourceInstance: "not-a-dataset" })
+        ).toThrow(/sourceInstance/);
+    });
+
+    it("round-trips an inherited-context document through Part 10", async () => {
+        const dataset = encapsulatePdf(PDF_BYTES, {
+            sourceInstance,
+            DocumentTitle: "Discharge Summary"
+        });
+        const listener = await readNaturalized(await writePart10(dataset));
+
+        const readBack = listener.result;
+        // PatientName (PN) naturalizes back as a PersonName in a Value array;
+        // compare its Alphabetic component.
+        const pn = Array.isArray(readBack.PatientName)
+            ? readBack.PatientName[0]
+            : readBack.PatientName;
+        expect(pn.Alphabetic).toEqual("Doe^Jane");
+        expect(readBack.StudyInstanceUID).toEqual("1.2.3.4.5");
+        expect(readBack.SOPClassUID).toEqual(ENCAPSULATED_PDF_SOP_CLASS_UID);
+        const extracted = extractEncapsulatedPdf(readBack);
+        expect(bytesToString(extracted.bytes)).toEqual(PDF_STRING);
+    });
 });
 
 it("round-trips through Part 10 write and read", async () => {
