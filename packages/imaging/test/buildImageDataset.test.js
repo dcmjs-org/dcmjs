@@ -10,7 +10,7 @@ import { validationLog } from "@dcmjs-org/core";
 import {
     buildImageDataset,
     SECONDARY_CAPTURE_SOP_CLASS_UID
-} from "../src/image/index.js";
+} from "../src/index.js";
 
 validationLog.setLevel(5);
 
