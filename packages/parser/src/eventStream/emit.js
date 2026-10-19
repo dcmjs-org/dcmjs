@@ -10,10 +10,17 @@ import { emitEntry } from "./fromDataSet.js";
  */
 
 /**
- * Emits a decoded leaf element. Undefined-length UN parsed as an
- * implicit-VR sequence, so the decode yields item dicts — those are
- * emitted as sequence events (matching the eager dict shape); everything
- * else routes through emitValues.
+ * Emits a decoded leaf element. Sequence-shaped decodes yield item dicts —
+ * those are emitted as sequence events (matching the eager dict shape);
+ * everything else routes through emitValues.
+ *
+ * Two decodes are sequence-shaped: (a) UN with undefined length parsed as an
+ * implicit-VR sequence (PS3.5 §6.2.2, issue #363), and (b) defined-length UN
+ * whose dictionary VR is SQ (ParsedUnknownValue re-parses the value as a
+ * sequence — corpus shape "EVRLE SQ as UN"). Both decode to item dicts in
+ * `values` and must be emitted as sequence events; emitting them through the
+ * scalar value() path crashed on rawValues[index] (the corpus bare-TypeError
+ * cluster).
  */
 export function emitDecodedLeaf(
     listener,
@@ -23,13 +30,7 @@ export function emitDecodedLeaf(
     values,
     rawValues
 ) {
-    // Sequence-shaped decodes: (a) UN with undefined length parsed as an
-    // implicit-VR sequence (PS3.5 §6.2.2, issue #363), and (b) defined-length
-    // UN whose dictionary VR is SQ (ParsedUnknownValue re-parses the value as
-    // a sequence — corpus shape "EVRLE SQ as UN"). Both decode to item dicts
-    // in `values` and must be emitted as sequence events; emitting them
-    // through the scalar value() path crashed on rawValues[index] (the
-    // corpus bare-TypeError cluster).
+    // Sequence-shaped decodes (see JSDoc).
     if (
         (vrInstance.type === "SQ" ||
             (vrInstance.type === "UN" && el.hadUndefinedLength)) &&
@@ -52,12 +53,14 @@ export function emitDecodedLeaf(
 
 /**
  * Route decoded {values, rawValues} to binary or scalar listener events.
+ *
+ * The decoded shapes are normalized first: some VR reads legitimately yield
+ * a bare value or no rawValues array (classic stores these shapes untouched
+ * in the dict; the event stream must not crash on them — corpus
+ * bare-TypeError cluster).
  */
 export function emitValues(listener, tag, vrInstance, el, values, rawValues) {
-    // Normalize the decoded shapes: some VR reads legitimately yield a bare
-    // value or no rawValues array (classic stores these shapes untouched in
-    // the dict; the event stream must not crash on them — corpus
-    // bare-TypeError cluster).
+    // Normalize bare / missing values to a list (see JSDoc).
     const list = Array.isArray(values)
         ? values
         : values === undefined || values === null

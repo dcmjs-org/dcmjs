@@ -7,6 +7,9 @@ export {
     datasetToBuffer,
     datasetToDict
 } from "./datasetToBlob.js";
+// The 0.x ValueRepresentation, with the static addTagAccessors (a no-op).
+export { ValueRepresentation } from "./ValueRepresentation.js";
+export { addTagAccessors } from "./tagAccessors.js";
 // Historically part of the legacy surface; the code lives in @dcmjs-org/core.
 export {
     DicomMetaDictionary,

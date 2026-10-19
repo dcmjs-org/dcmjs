@@ -11,25 +11,6 @@ import {
 } from "@dcmjs-org/core";
 
 /**
- * The narrow eager-delegation seam: the eager reader class, resolved at call
- * time through core's late-binding slot instead of a static import, so this
- * package carries no edge to @dcmjs-org/legacy. Loading legacy's DicomMessage
- * module (directly, via any old src/ path, or via the dcmjs wrapper) wires
- * the slot; without it the one caller below fails with a clear error.
- */
-export function requireEagerReader(caller) {
-    const DicomMessage = ValueRepresentation.getDicomMessageClass();
-    if (!DicomMessage) {
-        throw new Error(
-            `${caller}: this input shape delegates to the eager reader, ` +
-                "which is not loaded; import @dcmjs-org/legacy (or the dcmjs " +
-                "wrapper) before parsing it"
-        );
-    }
-    return DicomMessage;
-}
-
-/**
  * Shared element-decode core extracted from src/lazy/LazyDicomReader.js.
  *
  * All functions operate on two read-only input shapes instead of the mutable
@@ -272,6 +253,39 @@ export function decodeElementValues(window, el, vrInstance, policy) {
     // same clamp for the stream's stop offset.
     const length = effectiveElementLength(window, el, false);
     const stream = buildElementStream(window, el, policy);
+    return readValues(window, vr, stream, length, policy);
+}
+
+/**
+ * Decodes the value of an undefined-length element that is not a streamed
+ * sequence and not encapsulated pixel data (classifyElement "eagerWindow").
+ * The value bytes are [dataOffset, endOffset) of the window; endOffset is the
+ * end of the closing delimiter. The VR reads with UNDEFINED_LENGTH, so the
+ * result is the same as DicomMessage._readTag gives for the element.
+ *
+ * Returns { values, rawValues } in the same shape as decodeElementValues.
+ */
+export function decodeUndefinedLengthValues(window, el, vrInstance, policy) {
+    const stream = new ReadBufferStream(
+        window.arrayBuffer,
+        window.littleEndian,
+        {
+            start: window.baseOffset + el.dataOffset,
+            stop: window.baseOffset + el.endOffset,
+            noCopy: policy.noCopy
+        }
+    );
+    if (window.decoder) {
+        stream.setDecoder(window.decoder);
+    }
+    return readValues(window, vrInstance, stream, UNDEFINED_LENGTH, policy);
+}
+
+/**
+ * The value read of DicomMessage._readTag: the binary multi-read loop for
+ * oversized binary values, or one vr.read() followed by shapeReadValues.
+ */
+function readValues(window, vr, stream, length, policy) {
     const readOptions = { forceStoreRaw: policy.forceStoreRaw };
 
     if (vr.isBinary() && length > vr.maxLength && !vr.noMultiple) {
@@ -297,46 +311,6 @@ export function decodeElementValues(window, el, vrInstance, policy) {
 }
 
 /**
- * NARROW FALLBACK: eagerly re-reads a single element by running
- * DicomMessage._readTag over a window covering the element's full span
- * [startOffset, endOffset). Delegates rare shapes the structural paths do not
- * cover to the exact eager code, so results are byte-equivalent by
- * construction — including eager's error behavior for malformed framing.
- *
- * Mirrors materializeWithEagerReadTag (src/lazy/LazyDicomReader.js:450-476)
- * minus the lazy `entry` bookkeeping (_untrackedNested flagging) — that
- * stays with the lazy caller; callers that need it should flag the entry
- * after this call returns.
- *
- * Returns { values, rawValues } in the same shape as decodeElementValues.
- */
-export function decodeWithEagerReadTag(window, el, policy) {
-    const start = window.baseOffset + el.startOffset;
-    const stop = window.baseOffset + el.endOffset;
-    const stream = new ReadBufferStream(
-        window.arrayBuffer,
-        window.littleEndian,
-        {
-            start,
-            stop,
-            // eager's body stream carries noCopy; its meta stream comes from
-            // stream.more(), which drops it
-            noCopy: policy.noCopy
-        }
-    );
-    if (window.decoder) {
-        stream.setDecoder(window.decoder);
-    }
-    const DicomMessage = requireEagerReader("decodeWithEagerReadTag");
-    const readInfo = DicomMessage._readTag(stream, window.syntax, {
-        untilTag: null,
-        includeUntilTagValue: false,
-        forceStoreRaw: policy.forceStoreRaw
-    });
-    return { values: readInfo.values, rawValues: readInfo.rawValues };
-}
-
-/**
  * Routing predicate: maps an element and its resolved VR instance to one of
  * four decode strategies, mirroring the routing logic in materializeElement
  * (src/lazy/LazyDicomReader.js:533-556).
@@ -346,7 +320,8 @@ export function decodeWithEagerReadTag(window, el, policy) {
  *                   ParsedUnknownValue); delegate to sequence materializer
  *   "encapsulated"— el.hadUndefinedLength + el.encapsulatedPixelData + not
  *                   ParsedUnknownValue; delegate to encapsulated pixel data
- *   "eagerWindow" — any other hadUndefinedLength; delegate to eager fallback
+ *   "eagerWindow" — any other hadUndefinedLength; use
+ *                   decodeUndefinedLengthValues
  *   "value"       — defined-length element; use decodeElementValues
  */
 export function classifyElement(el, vrInstance) {
@@ -361,7 +336,7 @@ export function classifyElement(el, vrInstance) {
             return "encapsulated";
         }
         // UN parsed as implicit SQ by the tokenizer, ParsedUnknownValue with
-        // undefined length, delimiter-scanned values: delegate to eager.
+        // undefined length, delimiter-scanned values.
         return "eagerWindow";
     }
     return "value";

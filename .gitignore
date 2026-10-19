@@ -9,5 +9,9 @@ yarn-error.log
 pnpm-debug.log
 .DS_Store
 build
+dist
+# local output of code-graph tools, and npm lockfiles (this is a pnpm workspace)
+graphify-out/
+package-lock.json
 examples/js/dcmjs*
 *.code-workspace

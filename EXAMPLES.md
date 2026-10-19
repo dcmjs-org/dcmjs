@@ -31,7 +31,8 @@ const { DicomEventStream, NaturalizedListener, StreamingPart10Writer } = dcmjs.e
 
 The examples read data from `/tmp/dcmjs-examples-data`; the
 [test drive](#a-test-drive-for-reviewers) section below shows how to fetch
-every file used here.
+every file used here. Coming from dcmjs 0.x? [docs/MIGRATION.md](docs/MIGRATION.md)
+covers what changed and what did not.
 
 ---
 

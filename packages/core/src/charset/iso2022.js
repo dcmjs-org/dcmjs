@@ -295,9 +295,14 @@ function decodeRun(runBytes, state) {
     return decodeWith("latin1", runBytes);
 }
 
-/** Normalizes one (0008,0005) value to the encodingMapping key form. */
+/**
+ * Normalizes one (0008,0005) value to the encodingMapping key form.
+ * NULs are stripped first: some older modalities illegally pad odd-length
+ * values to even length with \0 instead of the space the standard requires.
+ */
 function normalizeCode(value) {
     return String(value ?? "")
+        .replace(/\0/g, "")
         .trim()
         .replace(/[_ ]/g, "-")
         .toLowerCase();
