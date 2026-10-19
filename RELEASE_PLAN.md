@@ -339,7 +339,8 @@ Named here so their absence is a decision, not an oversight:
    follows. `scripts/bootstrap-trusted-publishing.sh` does both steps: it
    publishes a `0.0.0-bootstrap.0` placeholder under the `bootstrap` tag
    for each package that does not exist yet, then runs `npm trust github`.
-   Add a new public package to its `PACKAGES` list.
+   It finds every non-private package under `packages/`, so run it again
+   after a merge that adds a public package.
 5. Clean up the stale npm dist-tags when convenient (section 10).
 
 ---

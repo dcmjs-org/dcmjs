@@ -12,8 +12,18 @@ MODE="${1:-}"
 DRY=""
 [ "$MODE" = "--dry-run" ] && DRY="--dry-run"
 
-PACKAGES="core schemas dicomdir parser legacy generator"
+# Every non-private workspace package under packages/, as its directory name.
+cd "$(dirname "$0")/.."
+PACKAGES="$(node -e '
+const fs = require("fs");
+for (const d of fs.readdirSync("packages")) {
+  const f = `packages/${d}/package.json`;
+  if (!fs.existsSync(f)) continue;
+  const j = JSON.parse(fs.readFileSync(f, "utf8"));
+  if (!j.private && j.name === `@dcmjs-org/${d}`) console.log(d);
+}')"
 REPO="dcmjs-org/dcmjs"
+echo "Packages: $(echo $PACKAGES)"
 WORK="$(mktemp -d)"
 SUMMARY=""
 
