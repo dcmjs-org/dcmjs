@@ -6,6 +6,7 @@ import {
     lookupTagHex,
     lookupPrivateTag,
     addAccessors,
+    isMultiVM,
     dicomJson,
     log
 } from "@dcmjs-org/core";
@@ -20,7 +21,7 @@ import {
  * bytes, a dcmjs dict, or DICOMweb JSON.
  *
  * Scope (D1): keyword naming, VM cardinality, single-item sequences with hidden
- * length (§12, via the shared addAccessors proxy), empty→null/[], binary
+ * length (§12, via core addAccessors, no Proxy), empty→null/[], binary
  * assembly (InlineBinary/BulkDataURI), and the cardinality-violation policy
  * (§15.2, default warnAndPreserve). Deferred to D2: the PN proxy/toString sugar
  * (§17), private-tag grouping (§18), and precision/raw retention (§16/§27, which
@@ -261,8 +262,7 @@ export class NaturalizedListener extends EventStreamListener {
             return []; // §12 present-empty
         }
         if (items.length === 1 && !declaredMulti) {
-            // §12: single item exposed as the item object with hidden length 1
-            // (the shared addAccessors proxy delegates property access to it).
+            // §12: the item object itself, with a hidden [0] and length 1
             return addAccessors(items);
         }
         // §13: multiple items -> list-like. Not a violation (declared SQ VM
@@ -402,15 +402,4 @@ function addPersonNameAccessors(shaped) {
         return dicomJson.pnAddValueAccessors(shaped);
     }
     return shaped;
-}
-
-/**
- * A declared VM is "scalar" only when it is exactly "1" or "0-1"; anything else
- * (1-n, 2, 2-n, 3, 6, ...) permits multiple values and is list-like.
- */
-function isMultiVM(vm) {
-    if (!vm) {
-        return false; // unknown tag -> treat as scalar-ish (D1; refined in D2)
-    }
-    return vm !== "1" && vm !== "0-1";
 }

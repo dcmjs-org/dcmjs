@@ -8,52 +8,17 @@ import {
 import { log, validationLog } from "./log.js";
 import dicomJson from "./utilities/dicomJson.js";
 
-// We replace the tag with a Proxy which intercepts assignments to obj[valueProp]
-// and adds additional overrides/accessors to the value if need be. If valueProp
-// is falsy, we check target.vr and add accessors via a ValueRepresentation lookup.
-// Specifically, this helps address the incorrect (though common) use of the library:
-//   dicomDict.dict.upsertTag('00101001', 'PN', 'Doe^John'); /* direct string assignment */
-//   dicomDict.dict['00081070'].Value = 'Doe^John\Doe^Jane'; /* overwrite with multiplicity */
-//   ...
-//   jsonOutput = JSON.serialize(dicomDict);
-// or:
-//   naturalizedDataset.OperatorsName = 'Doe^John';
-//   jsonOutput = JSON.serialize(naturalizedDataset);
-// Whereas the correct usage of the dicom+json model would be:
-//   dicomDict.dict.upsertTag('00101001', 'PN', [{Alphabetic:'Doe^John'}]);
-//   naturalizedDataset.OperatorsName = [{Alphabetic:'Doe^John'},{Alphabetic:'Doe^Jane'}];
-// TODO: refactor with addAccessors.js in mind
-const tagProxyHandler = {
-    set(target, prop, value) {
-        var vrType;
-        if (
-            ["values", "Value"].includes(prop) &&
-            target.vr &&
-            ValueRepresentation.hasValueAccessors(target.vr)
-        ) {
-            vrType = ValueRepresentation.createByTypeString(target.vr);
-        } else if (
-            prop in DicomMetaDictionary.nameMap &&
-            ValueRepresentation.hasValueAccessors(
-                DicomMetaDictionary.nameMap[prop].vr
-            )
-        ) {
-            vrType = ValueRepresentation.createByTypeString(
-                DicomMetaDictionary.nameMap[prop].vr
-            );
-        } else {
-            target[prop] = value;
-            return true;
-        }
-
-        target[prop] = vrType.addValueAccessors(value);
-
-        return true;
-    }
-};
-
 function rtrim(str) {
     return str.replace(/\s*$/g, "");
+}
+
+/**
+ * Like String.prototype.trim(), and also removes trailing NUL bytes. Some
+ * modalities pad CS values to even length with \0 instead of the space that
+ * the standard requires.
+ */
+export function trim0(str) {
+    return str.replace(/^\s+|[\s\0]+$/g, "");
 }
 
 function toWindows(inputArray, size) {
@@ -63,7 +28,10 @@ function toWindows(inputArray, size) {
     );
 }
 
-let DicomMessage, Tag, DicomMetaDictionary, writeDataSet;
+// DicomMetaDictionary is still wired for API compatibility; nothing reads it
+// since the tag Proxy left core.
+// eslint-disable-next-line no-unused-vars
+let Tag, DicomMetaDictionary, writeDataSet;
 
 var binaryVRs = ["FL", "FD", "SL", "SS", "UL", "US", "AT", "UV"],
     length32VRs = ["OB", "OW", "OF", "SQ", "UC", "UR", "UT", "UN", "OD", "UV"],
@@ -84,35 +52,17 @@ class ValueRepresentation {
         this._storeRaw = true;
     }
 
-    static setDicomMessageClass(dicomMessageClass) {
-        DicomMessage = dicomMessageClass;
-    }
-
-    /**
-     * The other side of the late-binding seam: the eager-reader class, when
-     * one has been wired (loading @dcmjs-org/legacy's DicomMessage module, or
-     * the dcmjs wrapper, does so). The streaming reader's narrow
-     * eager-delegation fallbacks resolve it here at call time instead of
-     * importing @dcmjs-org/legacy, so the parser package carries no static edge
-     * to the deprecable sync engines. Undefined when no eager reader is
-     * loaded; callers own the error message for that case.
-     */
-    static getDicomMessageClass() {
-        return DicomMessage;
-    }
-
     static setDicomMetaDictionary(metaDictionary) {
         DicomMetaDictionary = metaDictionary;
     }
 
     /**
-     * The write-side counterpart of the DicomMessage seam, but wired by core
-     * itself: core/writeCore.js registers its writeDataSet here at module
+     * Wired by core itself: core/writeCore.js registers its writeDataSet here at module
      * load (a module-level cycle between the two files trips CJS evaluation
      * order, hence registration instead of an import). The sequence writer
      * calls it for its items, so writing works with no eager engine loaded —
-     * which is what lets @dcmjs-org/dicomdir serialize a
-     * DirectoryRecordSequence without @dcmjs-org/legacy anywhere in sight.
+     * which is what lets @dcmjs-org/generator (and later the dicomdir wave)
+     * serialize sequences without @dcmjs-org/legacy anywhere in sight.
      */
     static setWriteDataSet(writeDataSetFunction) {
         writeDataSet = writeDataSetFunction;
@@ -167,22 +117,20 @@ class ValueRepresentation {
     }
 
     /**
-     * Replaces a tag with a Proxy which assigns value accessors based on the vr field
-     * of the tag being given to it. If the tag object does not have a vr or vr.type
-     * property, the proxy will look for the prop name in the natural name map.
-     * @param {any} tag object to add accessors to
-     * @returns {any} either the same object if no accessor needed, or a Proxy
+     * Adds the value accessors of a VR (today only PN has them) to a value.
+     * Readers and naturalize call this when they store a value, so a value
+     * has its accessors from the start and no Proxy is needed.
+     * @param {string} vrType the VR, for example "PN"
+     * @param {any} value the value or the list of values
+     * @returns {any} the value, with the accessors when the VR has them
      */
-    static addTagAccessors(tag) {
-        if (
-            !tag.__hasTagAccessors &&
-            ValueRepresentation.hasValueAccessors(tag.vr?.type || tag.vr)
-        ) {
-            Object.defineProperty(tag, "__hasTagAccessors", { value: true });
-            // See note in declaration of taxProxyHandler
-            return new Proxy(tag, tagProxyHandler);
+    static addValueAccessorsFor(vrType, value) {
+        if (!vrType || !ValueRepresentation.hasValueAccessors(vrType)) {
+            return value;
         }
-        return tag;
+        return ValueRepresentation.createByTypeString(vrType).addValueAccessors(
+            value
+        );
     }
 
     /**
@@ -236,7 +184,7 @@ class ValueRepresentation {
                         length
                 );
         }
-        let rawValue = this.readBytes(stream, length, syntax);
+        let rawValue = this.readBytes(stream, length, syntax, readOptions);
         const value = this.applyFormatting(rawValue);
 
         // avoid duplicating large binary data structures like pixel data which are unlikely to be formatted or directly manipulated
@@ -703,13 +651,11 @@ class CodeString extends AsciiStringRepresentation {
     }
 
     applyFormatting(value) {
-        const trim = str => str.trim();
-
         if (Array.isArray(value)) {
-            return value.map(str => trim(str));
+            return value.map(str => trim0(str));
         }
 
-        return trim(value);
+        return trim0(value);
     }
 }
 
@@ -1141,7 +1087,13 @@ class SequenceOfItems extends ValueRepresentation {
         this._storeRaw = false;
     }
 
-    readBytes(stream, sqlength, syntax) {
+    /**
+     * Splits the sequence into items. Core has no dataset reader, so the
+     * caller gives one: `readOptions.readItem(itemStream, syntax)` parses the
+     * bytes of one item and returns the item dataset. The legacy
+     * DicomMessage._readTag gives DicomMessage._read.
+     */
+    readBytes(stream, sqlength, syntax, readOptions) {
         if (sqlength == 0x0) {
             return []; //contains no dataset
         } else {
@@ -1224,8 +1176,12 @@ class SequenceOfItems extends ValueRepresentation {
                         read += toRead;
                         if (undef) stream.increment(8);
 
-                        var items = DicomMessage._read(itemStream, syntax);
-                        elements.push(items);
+                        if (!readOptions?.readItem) {
+                            throw new Error(
+                                "SequenceOfItems.read needs readOptions.readItem to parse the items"
+                            );
+                        }
+                        elements.push(readOptions.readItem(itemStream, syntax));
                     }
                     if (!undefLength && read == sqlength) {
                         break;
@@ -1426,13 +1382,14 @@ class Unsigned64BitVeryLong extends ValueRepresentation {
         return stream.readBigUint64();
     }
 
+    /**
+     * DataView.setBigUint64 only accepts BigInt values, so this method
+     * coerces Numbers and numeric strings, as the other numeric VRs do with
+     * toInt/toFloat. A null or undefined entry becomes 0, as US/UL write null
+     * entries. A null, undefined or empty scalar stays as it is, so the base
+     * write() writes a zero-length element (PS3.5 7.4, Type 2).
+     */
     writeBytes(stream, value, writeOptions) {
-        // DataView.setBigUint64 only accepts BigInt values, so coerce
-        // Numbers and numeric strings the way the other numeric VRs do
-        // via toInt/toFloat. A null or undefined entry becomes 0, matching
-        // how US/UL write null entries. A null, undefined or empty scalar
-        // is left alone so the base write() short-circuit produces a
-        // zero-length element (PS3.5 7.4, Type 2).
         const coerce = v =>
             typeof v === "bigint"
                 ? v

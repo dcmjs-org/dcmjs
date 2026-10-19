@@ -502,6 +502,16 @@ export class BufferStream {
     }
 }
 
+/**
+ * A read stream over an ArrayBuffer, a typed array or Node Buffer, or a
+ * range of another BufferStream.
+ *
+ * A typed array or Node Buffer is a view into a backing ArrayBuffer that
+ * Node often pools and shares. The stream adopts exactly the viewed byte
+ * range, at logical offset 0. If the stream adopted buffer.buffer whole, it
+ * would alias the other data in the pool. The Node-only Buffer.offset
+ * property (its byteOffset) does not set the read offset.
+ */
 export class ReadBufferStream extends BufferStream {
     constructor(
         buffer,
@@ -520,12 +530,7 @@ export class ReadBufferStream extends BufferStream {
             this.view.from(buffer.view, options);
             this.isComplete = true;
         } else if (ArrayBuffer.isView(buffer)) {
-            // A typed array or Node Buffer is a view into a backing
-            // ArrayBuffer that Node routinely pools and shares, so adopt
-            // exactly the viewed byte range, normalized to logical
-            // offset 0. Adopting buffer.buffer whole would alias
-            // whatever else lives in the pool, and the Node-only
-            // Buffer.offset property must not seed the read offset.
+            // adopt only the viewed byte range (see the class doc comment)
             this.view.addBuffer(buffer.buffer, {
                 start: buffer.byteOffset,
                 end: buffer.byteOffset + buffer.byteLength
@@ -535,10 +540,8 @@ export class ReadBufferStream extends BufferStream {
             this.view.addBuffer(buffer);
             this.isComplete = true;
         }
-        // A source BufferStream contributes its current offset as the
-        // sub-stream start. A Node Buffer also has an `offset` property
-        // (its byteOffset), but the view is adopted at logical offset 0
-        // above, so it must not seed the read offset.
+        // a source BufferStream's offset is the sub-stream start; a Node
+        // Buffer's own `offset` property is ignored (see class doc comment)
         this.offset =
             options.start ??
             (buffer instanceof BufferStream ? buffer.offset : 0);

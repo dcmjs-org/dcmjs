@@ -151,9 +151,7 @@ const dcmjs = {
 };
 
 DicomDict.setDicomMessageClass(DicomMessage);
-ValueRepresentation.setDicomMessageClass(DicomMessage);
 ValueRepresentation.setTagClass(Tag);
-Tag.setDicomMessageClass(DicomMessage);
 
 export {
     DICOMWEB,

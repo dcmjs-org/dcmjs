@@ -120,20 +120,18 @@ file without inflating, it now receives a real deflate stream. Either keep
 writing plain explicit little endian (set the transfer syntax UID to
 `1.2.840.10008.1.2.1` before writing) or teach the consumer to inflate.
 
-## Naturalization: three changes
+## Naturalization: five changes
 
 Naturalization turns the tag-keyed dict into a keyword-keyed dataset
 (`dataset.PatientName` instead of `dict["00100010"]`), and
-denaturalization turns it back. The core contract is unchanged and pinned:
-keywords come verbatim from the dictionary
-(`test/issues/issue3-keyword-contract.test.js`), single-item sequences stay
-length-1 proxy arrays that allow both access styles
-(`test/issues/issue218-single-item-sq.test.js`), person names naturalize to
-component objects that still stringify to the raw PN form
-(`test/issues/issue231-pn-accessors.test.js`), and the single-value
-collapse works as before.
+denaturalization turns it back. Keywords come verbatim from the dictionary
+(`test/issues/issue3-keyword-contract.test.js`), and person names
+naturalize to component objects that still stringify to the raw PN form
+(`test/issues/issue231-pn-accessors.test.js`). The dcmjs surface
+(`dcmjs.data.DicomMetaDictionary`) and `@dcmjs-org/core` share one
+naturalizer, so these changes apply to both.
 
-Three things did change relative to 0.x:
+Five things changed relative to 0.x:
 
 1. **`_vrMap` now carries entries for elements outside the dictionary.**
    A naturalized dataset has always carried a `_vrMap` side table recording
@@ -163,6 +161,26 @@ Three things did change relative to 0.x:
    symmetry by writing into the global `nameMap` as a side effect of
    `naturalizeDataset`; review finding 32 removed that, and this branch
    carries the side-effect-free form.)
+
+4. **The dictionary VM decides between a single value and a list.** In
+   0.x, every one-value list collapsed to its value. Now a VM of "1" or
+   "0-1" gives a single value (`null` when the value is empty), and any
+   other VM keeps the list, also for one value. For example `ImageType`,
+   `OperatorsName` and `SpecificCharacterSet` stay lists, and an empty
+   `ReferringPhysicianName` is `null` instead of `[]`. A binary VR (OB,
+   OW, UN, ...) keeps the list, so `dataset.PixelData[0]` works as before.
+
+5. **No Proxy.** A single-item sequence is now the item object itself,
+   with a hidden `[0]` (the item), a `length` of 1 and an iterator. Both
+   `seq.Field` and `seq[0].Field` work, and so does `for...of`. The value
+   is not an array: `Array.isArray`, `forEach`, `map` and `push` do not
+   work on it, and `JSON.stringify` gives the item object. The tag Proxy is
+   also gone: the readers and naturalize add the PN value accessors when
+   they store a value, and a PN value that you assign gets its accessors
+   when the dataset is denaturalized. `ValueRepresentation.addTagAccessors`
+   remains on the dcmjs surface as a no-op. Pinned by
+   `test/issues/issue218-single-item-sq.test.js` and
+   `test/core/naturalizeDataset.test.js`.
 
 ## Behavior changes made for standard compliance
 
@@ -233,9 +251,9 @@ maintainers decide it is ready.
     timing, same options.
 -   `DicomDict`: same `meta` / `dict` shape, `upsertTag`, `write()`.
 -   Editing: in-place mutation, assignment, `delete`, all as in 0.x.
--   Naturalized dataset shapes: keywords, single-item sequence proxies,
-    person-name accessors, scalar collapse, `InlineBinary` /
-    `BulkDataURI` passthrough.
+-   Naturalized dataset shapes: keywords, person-name accessors,
+    `InlineBinary` / `BulkDataURI` passthrough. (Single-item sequences
+    and the single-value collapse changed; see "Naturalization".)
 -   `DicomMessage.read` and `DicomMessage.readTag`: still present, still
     deprecated, still warning.
 -   The `DICOMWEB` class, adapters, structured reports, derivations,

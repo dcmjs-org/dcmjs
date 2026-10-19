@@ -1,8 +1,42 @@
 import { dictionary, lookupRegisteredTagByName } from "./dictionary.fast.js";
 import { getAllStandardTagEntries } from "./dicom.lookup.js";
 import log from "./log.js";
-import addAccessors from "./utilities/addAccessors";
-import { ValueRepresentation } from "./ValueRepresentation";
+import addAccessors from "./utilities/addAccessors.js";
+import isMultiVM from "./utilities/isMultiVM.js";
+import BINARY_VRS from "./utilities/binaryVRs.js";
+import { ValueRepresentation } from "./ValueRepresentation.js";
+
+/**
+ * The naturalized value of one DICOM JSON element (see naturalizeDataset).
+ */
+function naturalizeElement(data, entry) {
+    if (data.Value === undefined || data.Value === null) {
+        // type 2 (present, empty) is null; binary keeps its reference
+        if (data.InlineBinary) {
+            return { InlineBinary: data.InlineBinary };
+        }
+        if (data.BulkDataURI) {
+            return { BulkDataURI: data.BulkDataURI };
+        }
+        return null;
+    }
+
+    const multi = isMultiVM(entry?.vm);
+    if (data.vr === "SQ") {
+        const items = data.Value.map(item =>
+            DicomMetaDictionary.naturalizeDataset(item)
+        );
+        return items.length === 1 && !multi ? addAccessors(items) : items;
+    }
+
+    let value = data.Value;
+    // a binary Value lists frames or fragments, not a VM: keep the list
+    if (!multi && !BINARY_VRS.has(data.vr)) {
+        if (value.length === 0) return null;
+        if (value.length === 1) value = value[0];
+    }
+    return ValueRepresentation.addValueAccessorsFor(data.vr, value);
+}
 
 export class DicomMetaDictionary {
     // intakes a custom dictionary that will be used to parse/denaturalize the dataset
@@ -112,17 +146,21 @@ export class DicomMetaDictionary {
     }
 
     /**
-     * converts from DICOM JSON Model dataset to a natural dataset
-     * - sequences become lists
-     * - single element lists are replaced by their first element,
-     *     with single element lists remaining lists, but being a
-     *     proxy for the child values, see addAccessors for examples
-     * - object member names are dictionary, not group/element tag
+     * Converts a DICOM JSON Model dataset to a naturalized dataset (1.0 rules):
+     * - member names are dictionary keywords, not group/element tags;
+     * - a value whose dictionary VM is "1" or "0-1" is a single value (null
+     *   when empty); any other VM keeps a list, also for one value. A scalar
+     *   VM with more than one value keeps the list. A binary VR (OB, OW, UN,
+     *   ...) always keeps the list, because its Value lists frames;
+     * - a sequence with one item (and a VM of 1) is that item object, with a
+     *   hidden [0] and length (see addAccessors); otherwise it is a list;
+     * - PN values get their value accessors here, when the value is built.
+     *
+     * The result is a plain object: there is no Proxy. The 0.x shapes are in
+     * the DicomMetaDictionary of @dcmjs-org/legacy.
      */
     static naturalizeDataset(dataset) {
-        const naturalDataset = ValueRepresentation.addTagAccessors({
-            _vrMap: {}
-        });
+        const naturalDataset = { _vrMap: {} };
 
         Object.keys(dataset).forEach(tag => {
             const data = dataset[tag];
@@ -133,68 +171,17 @@ export class DicomMetaDictionary {
             if (entry) {
                 naturalName = entry.name;
 
-                if (entry.vr == "ox") {
-                    // when the vr is data-dependent, keep track of the original type
-                    naturalDataset._vrMap[naturalName] = data.vr;
-                }
-                if (data.vr !== entry.vr) {
-                    // save origin vr if it different that in dictionary
+                if (entry.vr == "ox" || data.vr !== entry.vr) {
+                    // keep the actual VR when it is data-dependent or differs
                     naturalDataset._vrMap[naturalName] = data.vr;
                 }
             } else if (data.vr) {
                 // no dictionary entry: the tag stays the key, and the VR
-                // goes into _vrMap so denaturalizeDataset can rebuild a
-                // writable element instead of dropping it
+                // goes into _vrMap so denaturalizeDataset can rebuild it
                 naturalDataset._vrMap[naturalName] = data.vr;
             }
 
-            if (data.Value === undefined) {
-                // In the case of type 2, add this tag but explictly set it null to indicate its empty.
-                naturalDataset[naturalName] = null;
-
-                if (data.InlineBinary) {
-                    naturalDataset[naturalName] = {
-                        InlineBinary: data.InlineBinary
-                    };
-                } else if (data.BulkDataURI) {
-                    naturalDataset[naturalName] = {
-                        BulkDataURI: data.BulkDataURI
-                    };
-                }
-            } else {
-                if (data.vr === "SQ") {
-                    // convert sequence to list of values
-                    const naturalValues = [];
-
-                    Object.keys(data.Value).forEach(index => {
-                        naturalValues.push(
-                            DicomMetaDictionary.naturalizeDataset(
-                                data.Value[index]
-                            )
-                        );
-                    });
-
-                    naturalDataset[naturalName] = naturalValues;
-                } else {
-                    naturalDataset[naturalName] = data.Value;
-                }
-
-                if (naturalDataset[naturalName].length === 1) {
-                    const sqZero = naturalDataset[naturalName][0];
-                    if (
-                        sqZero &&
-                        typeof sqZero === "object" &&
-                        !sqZero.length
-                    ) {
-                        naturalDataset[naturalName] = addAccessors(
-                            naturalDataset[naturalName],
-                            sqZero
-                        );
-                    } else {
-                        naturalDataset[naturalName] = sqZero;
-                    }
-                }
-            }
+            naturalDataset[naturalName] = naturalizeElement(data, entry);
         });
 
         return naturalDataset;
@@ -267,7 +254,7 @@ export class DicomMetaDictionary {
                         ? dataset._vrMap[naturalName]
                         : entry.vr;
 
-                var dataItem = ValueRepresentation.addTagAccessors({ vr });
+                var dataItem = { vr };
 
                 dataItem.Value = dataset[naturalName];
 
@@ -326,6 +313,9 @@ export class DicomMetaDictionary {
                             }
                         });
                     }
+
+                    // PN gets its value accessors when the value is built
+                    dataItem.Value = vr.addValueAccessors(dataItem.Value);
                 }
 
                 var tag = DicomMetaDictionary.unpunctuateTag(entry.tag);

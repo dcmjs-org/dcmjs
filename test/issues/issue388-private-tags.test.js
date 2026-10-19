@@ -64,14 +64,13 @@ function makeBuffer() {
 }
 
 describe("issue #388 — SQ items with private tags naturalize without accessor collision", () => {
-    it("numeric-string keys land on the item; the sequence array is not extended", () => {
+    it("numeric-string keys land on the item; the sequence length stays 1", () => {
         const dataset = DicomMetaDictionary.naturalizeDataset(
             DicomMessage.readFile(makeBuffer()).dict
         );
         const seq = dataset.ReferencedSeriesSequence;
 
         // The 0.19.x failure mode was seq.length exploding to 20051404+
-        expect(Array.isArray(seq)).toBe(true);
         expect(seq.length).toBe(1);
 
         const item = seq[0];
@@ -86,7 +85,7 @@ describe("issue #388 — SQ items with private tags naturalize without accessor 
         expect(item["00091001"]).toBe("private-in-sq");
         expect(item.SeriesInstanceUID).toBe("1.2.3.4");
 
-        // Proxy forwarding also resolves the private keys without throwing
+        // the single-item value is the item, so the keys resolve on it too
         expect(seq["00091001"]).toBe("private-in-sq");
     });
 
