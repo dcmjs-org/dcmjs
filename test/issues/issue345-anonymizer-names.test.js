@@ -85,21 +85,50 @@ describe("issue #345 — every anonymizer tag name must be a real dictionary key
         expect(unresolved).toEqual([]);
     });
 
-    // KNOWN GAP: observed — 103 of the 221 entries returned by
-    // getTagsNameToEmpty() do not resolve via
-    // DicomMetaDictionary.nameMap, so cleanTags silently skips them and
-    // the corresponding PHI survives anonymization. The set includes the
-    // issue's five suspects (ReferringPhysicianPhoneNumbers,
+    // Formerly a KNOWN GAP: 103 of the 221 entries returned by
+    // getTagsNameToEmpty() did not resolve via
+    // DicomMetaDictionary.nameMap, so cleanTags silently skipped them
+    // and the corresponding PHI survived anonymization. The set included
+    // the issue's five suspects (ReferringPhysicianPhoneNumbers,
     // PhysicianOfRecord, NameOfPhysicianReadingStudy, OperatorName,
     // AdmittingDiagnosisDescription) plus ~98 more ad-hoc names such as
     // RefStudySeq, ContrastAllergies, SPSStartDate, PPSComments, ....
-    // Expected: every name resolves to a real dictionary keyword.
-    it.skip("KNOWN GAP #345: getTagsNameToEmpty contains names that resolve to no dictionary keyword", () => {
+    // The corrected list (ported from the rewrite line) maps every
+    // entry to its real dictionary keyword; retired attributes use the
+    // dictionary's RETIRED_ prefix. This is the structural pin.
+    it("every name in getTagsNameToEmpty resolves to a dictionary keyword", () => {
         const names = dcmjs.anonymizer.getTagsNameToEmpty();
         const nonResolving = names.filter(
             name => !DicomMetaDictionary.nameMap[name]
         );
         // The failing diff lists every non-resolving name.
         expect(nonResolving).toEqual([]);
+    });
+
+    it("cleanTags empties a previously-skipped diagnostic sequence (ContentSequence)", () => {
+        // The old list said "ContentSeq", which resolves to no keyword,
+        // so a ContentSequence (0040,A730) full of SR content survived
+        // cleanTags untouched. PS3.15 Table E.1-1 assigns it a removal
+        // action; the corrected list names the real keyword.
+        const buffer = createSampleDicom({
+            dict: {
+                "0040A730": {
+                    vr: "SQ",
+                    Value: [
+                        {
+                            "0040A160": {
+                                vr: "UT",
+                                Value: ["Findings: incidental nodule"]
+                            }
+                        }
+                    ]
+                }
+            }
+        });
+        const dicomDict = DicomMessage.readFile(buffer);
+        expect(dicomDict.dict["0040A730"].Value.length).toBe(1);
+
+        dcmjs.anonymizer.cleanTags(dicomDict.dict);
+        expect(dicomDict.dict["0040A730"].Value).toEqual([]);
     });
 });

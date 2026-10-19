@@ -1,64 +1,46 @@
-const handler = {
-    /**
-     * Get a proxied value from the array or property value
-     * Note that the property value get works even if you update the underlying object.
-     * Also, return true of proxy.__isProxy in order to distinguish proxies and not double proxy them.
-     */
-    get: (target, prop) => {
-        if (prop == "__isProxy") return true;
-        if (prop in target) return target[prop];
-        return target[0][prop];
-    },
-
-    set: (obj, prop, value) => {
-        if (typeof prop === "number") {
-            obj[prop] = value;
-        } else if (prop in obj) {
-            obj[prop] = value;
-        } else {
-            obj[0][prop] = value;
-        }
-        return true;
-    }
-};
-
 /**
- * Add a proxy object for sqZero or the src[0] element if sqZero is unspecified, AND
- * src is an array of length 1.
+ * Exposes a single-item sequence as its item object, which also behaves like
+ * a one-element list. This is the 1.0 naturalized shape (no Proxy):
  *
- * If sqZero isn't passed in, then assume this is a create call on the destination object
- * itself, by:
- * 1. If not an object, return dest
- * 2. If an array of length != 1, return dest
- * 3. If an array, use dest[0] as sqZero
- * 4. Use dest as sqZero
+ * - `seq.CodeValue` reads the item's own field, because `seq` IS the item;
+ * - `seq[0] === seq` and `seq.length === 1`;
+ * - `for (const item of seq)` iterates once;
+ * - `Array.isArray(seq)` is false, and JSON.stringify(seq) gives the item.
  *
- * @example
- * src = [{a:5,b:'string', c:null}]
- * addAccessors(src)
- * src.c = 'outerChange'
- * src[0].b='innerChange'
+ * `0`, `length` and the iterator are non-enumerable, so Object.keys, JSON and
+ * denaturalize see only the item's attributes. The legacy (0.x) Proxy version
+ * lives in @dcmjs-org/legacy.
  *
- * assert src.a===5
- * assert src[0].c === 'outerChange'
- * assert src.b === 'innerChange'
+ * @param {object|object[]} dest the item, or an array that holds one item
+ * @param {object} [sqZero] the item, when dest is the array that holds it
+ * @returns the item with the list accessors; dest unchanged when it is not a
+ *     single item
  */
 const addAccessors = (dest, sqZero) => {
-    if (dest.__isProxy) return dest;
-    let itemZero = sqZero;
-    if (itemZero === undefined) {
-        if (typeof dest !== "object") return dest;
-        if (Array.isArray(dest) && dest.length !== 1) return dest;
-        itemZero = Array.isArray(dest) ? dest[0] : dest;
+    let item = sqZero;
+    if (item === undefined) {
+        if (!dest || typeof dest !== "object") return dest;
+        if (Array.isArray(dest)) {
+            if (dest.length !== 1) return dest;
+            item = dest[0];
+        } else {
+            item = dest;
+        }
     }
-    // dest may have some decorations so keep the object
-    if (Array.isArray(dest)) {
-        dest.length = 0;
-        dest.push(itemZero);
-        return new Proxy(dest, handler);
-    } else {
-        return new Proxy([itemZero], handler);
-    }
+    if (!item || typeof item !== "object" || Array.isArray(item)) return dest;
+    if (Object.prototype.hasOwnProperty.call(item, "length")) return item;
+
+    Object.defineProperties(item, {
+        0: { value: item, configurable: true },
+        length: { value: 1, configurable: true },
+        [Symbol.iterator]: {
+            value: function* () {
+                yield item;
+            },
+            configurable: true
+        }
+    });
+    return item;
 };
 
 export default addAccessors;

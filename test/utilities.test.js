@@ -159,47 +159,23 @@ describe("dicomJson", () => {
 });
 
 describe("addAccessor", () => {
-    it("testAddAccessor", () => {
+    it("returns the single item, with [0], length and iteration", () => {
         const baseValue = { a: 1, b: 2 };
-        const arrValue = [baseValue];
-        const val = addAccessors(arrValue);
+        const val = addAccessors([baseValue]);
+        expect(val).toBe(baseValue);
         expect(val.a).toEqual(1);
-        baseValue.a = 3;
-        expect(val.a).toEqual(3);
-        val.b = 4;
-        expect(baseValue.b).toEqual(4);
-
-        // Check that we can iterate as an array
-        const forArr = [];
-        val.forEach(item => forArr.push(item));
-        expect(forArr.length).toEqual(1);
-        expect(forArr[0]).toEqual(baseValue);
+        expect(val[0]).toBe(baseValue);
+        expect(val.length).toBe(1);
+        expect([...val]).toEqual([baseValue]);
+        expect(Array.isArray(val)).toBe(false);
+        expect(Object.keys(val)).toEqual(["a", "b"]);
     });
 
-    it("testAddAccessor-adds_children", () => {
+    it("leaves other values unchanged, and does not wrap twice", () => {
         const baseValue = { a: 1, b: 2 };
-        const arrValue = [baseValue];
-        const val = addAccessors(arrValue, baseValue);
-        val.push({ a: "two" });
-        expect(val.length).toBe(2);
-        expect(val[1].a).toBe("two");
-        expect(val.a).toBe(1);
-        expect(val[0].a).toBe(1);
-    });
-
-    it("Does not double proxy", () => {
-        const baseValue = { a: 1, b: 2 };
-        const arrValue = [baseValue];
-        const val = addAccessors(arrValue, baseValue);
-        expect(val).toEqual(addAccessors(val));
-        expect(val.__isProxy).toBe(true);
-    });
-
-    it("Handles non-array dest with no sqzero", () => {
-        const baseValue = { a: 1, b: 2 };
-        expect(Array.isArray(addAccessors(baseValue))).toBe(true);
+        expect(addAccessors(addAccessors(baseValue))).toBe(baseValue);
         expect(addAccessors("Hello")).toBe("Hello");
-        expect(addAccessors([baseValue])[0]).toBe(baseValue);
-        expect(addAccessors([baseValue, 2])[1]).toBe(2);
+        const two = [baseValue, 2];
+        expect(addAccessors(two)).toBe(two);
     });
 });

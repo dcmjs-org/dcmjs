@@ -70,26 +70,8 @@ export function emitEntry(listener, tag, entry) {
         return;
     }
 
-    // {InlineBinary} wrappers — the naturalized binary form produced by both
-    // NaturalizedListener and DicomMetaDictionary.naturalizeDataset (§22).
-    // Unwrap to binary events exactly as fromDicomWebJson does; without this
-    // the wrapper object reaches BinaryRepresentation.writeBytes and throws
-    // (the UN naturalize→write round-trip crash). The wrapper may sit on the
-    // entry itself (no Value array) or inside Value; its content may be an
-    // ArrayBuffer, a typed-array view, a base64 string, or an array of
-    // fragments in any of those forms.
     if (entry.InlineBinary !== undefined || values.some(isInlineBinary)) {
-        const wrappers = entry.InlineBinary !== undefined ? [entry] : values;
-        listener.startElement(tag, { vr: entry.vr, length: entry.length });
-        listener.startBinary({ encapsulated: !!entry.encapsulatedPixelData });
-        for (const w of wrappers) {
-            const inline = isInlineBinary(w) ? w.InlineBinary : w;
-            for (const fragment of Array.isArray(inline) ? inline : [inline]) {
-                listener.binaryFragment(toBinaryFragment(fragment));
-            }
-        }
-        listener.endBinary();
-        listener.endElement();
+        emitInlineBinary(listener, tag, entry, values);
         return;
     }
 
@@ -122,6 +104,32 @@ export function emitEntry(listener, tag, entry) {
         }
         index++;
     }
+    listener.endElement();
+}
+
+/**
+ * Emit an entry that holds {InlineBinary} wrappers as binary events.
+ *
+ * {InlineBinary} wrappers are the naturalized binary form produced by both
+ * NaturalizedListener and DicomMetaDictionary.naturalizeDataset (§22). They
+ * are unwrapped to binary events exactly as fromDicomWebJson does; without
+ * this the wrapper object reaches BinaryRepresentation.writeBytes and throws
+ * (the UN naturalize→write round-trip crash). The wrapper may sit on the
+ * entry itself (no Value array) or inside Value; its content may be an
+ * ArrayBuffer, a typed-array view, a base64 string, or an array of fragments
+ * in any of those forms.
+ */
+function emitInlineBinary(listener, tag, entry, values) {
+    const wrappers = entry.InlineBinary !== undefined ? [entry] : values;
+    listener.startElement(tag, { vr: entry.vr, length: entry.length });
+    listener.startBinary({ encapsulated: !!entry.encapsulatedPixelData });
+    for (const w of wrappers) {
+        const inline = isInlineBinary(w) ? w.InlineBinary : w;
+        for (const fragment of Array.isArray(inline) ? inline : [inline]) {
+            listener.binaryFragment(toBinaryFragment(fragment));
+        }
+    }
+    listener.endBinary();
     listener.endElement();
 }
 
