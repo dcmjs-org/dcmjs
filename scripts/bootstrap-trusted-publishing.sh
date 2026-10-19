@@ -1,22 +1,30 @@
 #!/usr/bin/env bash
 # Reserve each public @dcmjs-org package name with a placeholder publish, then
 # attach the GitHub Actions trusted publisher that CI's OIDC exchange expects.
-# Run after `npm login` as a dcmjs-org admin. Pass --dry-run to preview.
-set -euo pipefail
+# Run after `npm login` as a dcmjs-org admin. Safe to re-run: an existing
+# package or trust config is reported, not treated as fatal.
+#   --dry-run  preview the publish and trust calls
+#   --status   only report each package's dist-tags and trust configs
+# Each trust call asks for 2FA in the browser; the script waits for it.
+set -uo pipefail
 
+MODE="${1:-}"
 DRY=""
-[ "${1:-}" = "--dry-run" ] && DRY="--dry-run"
+[ "$MODE" = "--dry-run" ] && DRY="--dry-run"
 
 PACKAGES="core schemas dicomdir parser legacy generator"
 REPO="dcmjs-org/dcmjs"
 WORK="$(mktemp -d)"
+SUMMARY=""
 
-npm whoami
+npm whoami || exit 1
 
 for p in $PACKAGES; do
   name="@dcmjs-org/$p"
+  [ "$MODE" = "--status" ] && continue
+
   if npm view "$name" name >/dev/null 2>&1; then
-    echo "== $name already exists, skip placeholder"
+    published="exists"
   else
     echo "== publish placeholder for $name"
     dir="$WORK/$p"
@@ -35,16 +43,36 @@ for p in $PACKAGES; do
 }
 EOF
     echo "# $name" > "$dir/README.md"
-    (cd "$dir" && npm publish --access public --tag bootstrap $DRY)
+    if (cd "$dir" && npm publish --access public --tag bootstrap $DRY); then
+      published="published"
+    else
+      published="PUBLISH FAILED"
+    fi
   fi
 
   echo "== trust publish-package.yml / publish env for $name"
-  npm trust github "$name" \
+  if npm trust github "$name" \
     --file publish-package.yml \
     --repository "$REPO" \
     --environment publish \
-    --allow-publish --yes $DRY
+    --allow-publish --yes $DRY; then
+    trusted="trusted"
+  else
+    trusted="trust call failed (already configured? see list below)"
+  fi
+  SUMMARY="$SUMMARY$name: $published, $trusted"$'\n'
 done
 
 echo
-for p in $PACKAGES; do npm trust list "@dcmjs-org/$p"; done
+for p in $PACKAGES; do
+  name="@dcmjs-org/$p"
+  echo "== $name"
+  npm view "$name" dist-tags 2>/dev/null || echo "not on npm"
+  npm trust list "$name" || echo "trust list failed"
+done
+
+if [ -n "$SUMMARY" ]; then
+  echo
+  echo "Summary:"
+  printf '%s' "$SUMMARY"
+fi
