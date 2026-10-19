@@ -3,6 +3,7 @@
 // contract events, and the listeners that collect or naturalize them. The
 // writer sinks live in @dcmjs-org/generator; the DicomEventStream facade that
 // spans both sides stays with the dcmjs wrapper.
+
 export {
     EventStreamListener,
     EVENT_STREAM_VOCABULARY,

@@ -1234,7 +1234,7 @@ describe("lossless-read-write", () => {
 
         // confirm starting dataset contains empty tag value for referring physician person name
         expect(origDicomDict.dict["00080090"]._rawValue).toEqual("");
-        expect(origNaturalizedDataset.ReferringPhysicianName).toEqual([]);
+        expect(origNaturalizedDataset.ReferringPhysicianName).toBeNull(); // VM 1, empty
 
         // re-encode the unnaturalized object
         origDicomDict.dict = DicomMetaDictionary.denaturalizeDataset(
@@ -1248,7 +1248,7 @@ describe("lossless-read-write", () => {
 
         // confirm output referring physician name remains the same
         expect(newDicomDict.dict["00080090"]._rawValue).toEqual("");
-        expect(newNaturalizedDataset.ReferringPhysicianName).toEqual([]);
+        expect(newNaturalizedDataset.ReferringPhysicianName).toBeNull();
 
         // confirm no other changes to the rest of the file
         deepEqual(origDicomDict, newDicomDict);

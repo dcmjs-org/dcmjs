@@ -1732,7 +1732,7 @@ describe("fromPart10Stream — K4: undefined-length SQ length-payload parity", (
 // The J4a "eagerWindow" hard case: a private explicit-VR UN element of
 // undefined length with zero-length items ending in a sequence delimiter
 // (FFFE,E0DD).  The parser routes this through readSequenceItemsImplicit and
-// dcmjs decodes it via the eager reader (decodeWithEagerReadTag), NOT as an SQ.
+// dcmjs decodes it via decodeCore.decodeUndefinedLengthValues, NOT as an SQ.
 // The stream path must bound the element window to the same delimiter and
 // decode identically, with the same startElement length payload (the parser's
 // content span).  Mirrors test/eventStream/fromPart10.test.js's J4a builder.

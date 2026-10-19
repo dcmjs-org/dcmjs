@@ -40,12 +40,15 @@ export { normalizeSyntax } from "./core/normalizeSyntax.js";
 export {
     writeDataSet,
     writeTagObject,
-    getTagWriteValues
+    getTagWriteValues,
+    writePart10
 } from "./core/writeCore.js";
 export { toFloat } from "./utilities/toFloat.js";
 export { toInt } from "./utilities/toInt.js";
 export { deepEqual } from "./utilities/deepEqual.js";
 export { default as addAccessors } from "./utilities/addAccessors.js";
+export { default as isMultiVM } from "./utilities/isMultiVM.js";
+export { default as BINARY_VRS } from "./utilities/binaryVRs.js";
 export { default as dicomJson } from "./utilities/dicomJson.js";
 export {
     DicomMetadataListener,

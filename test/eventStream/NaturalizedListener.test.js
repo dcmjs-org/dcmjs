@@ -4,6 +4,7 @@ import dcmjs from "../../src/index.js";
 import { NaturalizedListener } from "../../src/eventStream/NaturalizedListener";
 import { fromPart10 } from "../../src/eventStream/fromPart10";
 import { fromDataSet } from "../../src/eventStream/fromDataSet";
+import { addAccessors } from "@dcmjs-org/core";
 
 const { DicomMessage } = dcmjs.data;
 
@@ -207,7 +208,8 @@ function normalize(v) {
         if (k === "SpecificCharacterSet") continue;
         out[k] = normalize(v[k]);
     }
-    return out;
+    // keep the single-item sequence shape (hidden [0] and length)
+    return v[0] === v ? addAccessors(out) : out;
 }
 
 async function naturalizeFrom(generator) {

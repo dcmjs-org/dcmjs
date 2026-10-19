@@ -1,0 +1,29 @@
+{
+    "name": "@dcmjs-org/schemas",
+    "version": "0.0.0",
+    "description": "Machine-readable catalog of DICOM attributes: names, types, and rules, generated from the data dictionary",
+    "type": "module",
+    "main": "./src/schema/naturalizedRules.js",
+    "types": "./types/dcmjs-schema.d.ts",
+    "exports": {
+        ".": {
+            "types": "./types/dcmjs-schema.d.ts",
+            "import": "./src/schema/naturalizedRules.js",
+            "default": "./src/schema/naturalizedRules.js"
+        },
+        "./schema/naturalized.schema.json": "./schema/naturalized.schema.json",
+        "./package.json": "./package.json"
+    },
+    "files": [
+        "src/schema",
+        "schema",
+        "types/dcmjs-schema.d.ts",
+        "README.md"
+    ],
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/dcmjs-org/dcmjs.git",
+        "directory": "packages/schemas"
+    }
+}
