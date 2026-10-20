@@ -17,7 +17,13 @@
 // uint64) records the exact stream length so the required trailing pad byte
 // on an odd-length final fragment can be dropped on extraction.
 
-import { DicomMetaDictionary, isVideoTransferSyntax } from "@dcmjs-org/core";
+import {
+    combineBases,
+    createInstance,
+    defaultInstanceBase,
+    isVideoTransferSyntax,
+    predecessorBase
+} from "@dcmjs-org/core";
 import { parseMp4Info } from "../image/mp4Info.js";
 
 const VIDEO_PHOTOGRAPHIC_SOP_CLASS_UID = "1.2.840.10008.5.1.4.1.1.77.1.4.1";
@@ -69,19 +75,54 @@ function unsupportedCodecError(info) {
 }
 
 /**
+ * The Video Photographic Image attributes that do not depend on the stream:
+ * XC modality, and the Image Pixel values that every MPEG-4 AVC transfer
+ * syntax mandates (PS3.5 §8.2.6); the stream carries the real subsampling.
+ */
+const videoPhotographicBase = {
+    SOPClassUID: VIDEO_PHOTOGRAPHIC_SOP_CLASS_UID,
+    Modality: "XC",
+    SamplesPerPixel: 3,
+    PhotometricInterpretation: "YBR_PARTIAL_420",
+    PlanarConfiguration: 0,
+    BitsAllocated: 8,
+    BitsStored: 8,
+    HighBit: 7,
+    PixelRepresentation: 0,
+    LossyImageCompression: "01"
+};
+
+/**
+ * The default base of `buildVideoDataset`: core instance defaults, the
+ * Video Photographic Image block, and `predecessorBase` (for
+ * `predecessor: true`). Use `.items` to build a variant.
+ */
+const videoBase = combineBases(
+    defaultInstanceBase,
+    videoPhotographicBase,
+    predecessorBase
+);
+
+// The options of encapsulateVideo and createVideoEventSource that are not
+// createInstance options or attributes.
+const VIDEO_CONTROL_OPTIONS = ["fragmentBytes"];
+
+/**
  * Build the naturalized dataset shell for a Video Photographic Image
  * instance — everything except PixelData, which the caller supplies either
  * buffered (encapsulateVideo) or as a fragment event stream (fromVideo).
  *
- * Element list mirrors the Supplement 225 reference fixture: XC modality,
- * CineRate/FrameTime from the measured frame rate, YBR_PARTIAL_420 8-bit
- * geometry, LossyImageCompression 01, and the (7FE0,0003) total length as a
- * BigInt (VR UV is a uint64). Every UID defaults to a freshly minted one;
- * pass StudyInstanceUID/SeriesInstanceUID to attach into an existing study.
+ * The dataset comes from {@link createInstance} with `videoBase`, so the
+ * `instance`/`dataLevel` options place the video in an existing study or
+ * series. The stream attributes are set last and cannot be overridden:
+ * CineRate/FrameTime from the measured frame rate, NumberOfFrames, Rows,
+ * Columns, the transfer syntax, and the (7FE0,0003) total length as a BigInt
+ * (VR UV is a uint64). Element list mirrors the Supplement 225 fixture.
  *
  * @param {Object} mp4Info - parseMp4Info result
- * @param {Object} [options] - naturalized keyword overrides (PatientName,
- *   PatientID, StudyInstanceUID, ...)
+ * @param {Object} [options] - the createInstance options (`baseDicom`
+ *   defaults to `videoBase`) and DICOM attribute overrides, plus the control
+ *   options of the callers (`fragmentBytes`), which are ignored here
  * @returns {Object} naturalized dataset with _meta/_vrMap, no PixelData
  */
 function buildVideoDataset(mp4Info, options = {}) {
@@ -89,76 +130,24 @@ function buildVideoDataset(mp4Info, options = {}) {
         throw unsupportedCodecError(mp4Info);
     }
 
-    const date = DicomMetaDictionary.date();
-    const time = DicomMetaDictionary.time();
+    const { baseDicom = videoBase, ...rest } = options;
+    for (const key of VIDEO_CONTROL_OPTIONS) {
+        delete rest[key];
+    }
+    const dataset = createInstance({ baseDicom, ...rest });
 
-    const dataset = {
-        // SOP Common
-        SpecificCharacterSet: "ISO_IR 192",
-        SOPClassUID: VIDEO_PHOTOGRAPHIC_SOP_CLASS_UID,
-        SOPInstanceUID: options.SOPInstanceUID || DicomMetaDictionary.uid(),
-
-        // General Study (Type 2 attributes always present)
-        StudyInstanceUID: options.StudyInstanceUID || DicomMetaDictionary.uid(),
-        StudyDate: options.StudyDate || date,
-        StudyTime: options.StudyTime || time,
-        ReferringPhysicianName: options.ReferringPhysicianName || "",
-        StudyID: options.StudyID || "1",
-        AccessionNumber: options.AccessionNumber || "",
-
-        // Patient
-        PatientName: options.PatientName || "",
-        PatientID: options.PatientID || "",
-        PatientBirthDate: options.PatientBirthDate || "",
-        PatientSex: options.PatientSex || "",
-
-        // Series
-        Modality: "XC",
-        SeriesInstanceUID:
-            options.SeriesInstanceUID || DicomMetaDictionary.uid(),
-        SeriesNumber: options.SeriesNumber || 1,
-
-        // Cine
+    return Object.assign(dataset, {
         CineRate: mp4Info.cineRate,
         FrameTime: mp4Info.frameTime,
-
-        // Image Pixel — the values every MPEG-4 AVC transfer syntax mandates
-        // (PS3.5 §8.2.6): the stream itself carries the real subsampling.
-        InstanceNumber: options.InstanceNumber || 1,
-        SamplesPerPixel: 3,
-        PhotometricInterpretation: "YBR_PARTIAL_420",
-        PlanarConfiguration: 0,
         NumberOfFrames: mp4Info.numberOfFrames,
         Rows: mp4Info.rows,
         Columns: mp4Info.columns,
-        BitsAllocated: 8,
-        BitsStored: 8,
-        HighBit: 7,
-        PixelRepresentation: 0,
-        LossyImageCompression: "01",
-
-        // Exact stream length, excluding the trailing pad byte on an
-        // odd-length final fragment (Sup 225). UV is a uint64 → BigInt.
+        // Exact stream length, without the pad byte of an odd-length final
+        // fragment (Sup 225).
         EncapsulatedPixelDataValueTotalLength: BigInt(mp4Info.mp4ByteLength),
-
-        _meta: {
-            TransferSyntaxUID: {
-                Value: [mp4Info.transferSyntaxUID]
-            }
-        },
-        _vrMap: {
-            PixelData: "OB"
-        }
-    };
-
-    if (options.SeriesDescription) {
-        dataset.SeriesDescription = options.SeriesDescription;
-    }
-    if (options.StudyDescription) {
-        dataset.StudyDescription = options.StudyDescription;
-    }
-
-    return dataset;
+        _meta: { TransferSyntaxUID: { Value: [mp4Info.transferSyntaxUID] } },
+        _vrMap: { ...(dataset._vrMap || {}), PixelData: "OB" }
+    });
 }
 
 /**
@@ -316,6 +305,8 @@ function extractEncapsulatedVideo(dataset) {
 }
 
 export {
+    videoBase,
+    videoPhotographicBase,
     buildVideoDataset,
     encapsulateVideo,
     extractEncapsulatedVideo,

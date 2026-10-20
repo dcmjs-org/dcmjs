@@ -4,8 +4,8 @@
 // codec-free primitive behind DicomEventStream.fromImage. dcmjs deliberately
 // ships no PNG/JPEG codecs (browser + node compatible); callers decode with
 // whatever fits their environment (Canvas, pngjs, ...) and hand over pixels
-// plus geometry. Like encapsulatePdf, this is a de novo builder returning a
-// naturalized dataset ready for datasetToDict()/datasetToBuffer().
+// plus geometry. Like encapsulatePdf, this builds on createInstance and
+// returns a naturalized dataset ready for datasetToDict()/datasetToBuffer().
 //
 // The base context usually comes from a DICOMweb JSON metadata document (the
 // forward-migration case: an image exported from an old DICOM file, traveling
@@ -15,10 +15,37 @@
 // with a fresh SOPInstanceUID — original UIDs are never reused for rebuilt
 // pixel data.
 
-import { DicomMetaDictionary } from "@dcmjs-org/core";
+import {
+    combineBases,
+    createInstance,
+    defaultInstanceBase,
+    DicomMetaDictionary,
+    EXPLICIT_LITTLE_ENDIAN,
+    predecessorBase
+} from "@dcmjs-org/core";
 
 const SECONDARY_CAPTURE_SOP_CLASS_UID = "1.2.840.10008.5.1.4.1.1.7";
-const EXPLICIT_LITTLE_ENDIAN = "1.2.840.10008.1.2.1";
+
+/** Secondary Capture identity and the Image module content date and time. */
+function secondaryCaptureImageBase(context) {
+    return {
+        SOPClassUID: SECONDARY_CAPTURE_SOP_CLASS_UID,
+        Modality: "OT",
+        ContentDate: context.date,
+        ContentTime: context.time
+    };
+}
+
+/**
+ * The default base of `buildImageDataset`: core instance defaults, the
+ * Secondary Capture block, and `predecessorBase` (for `predecessor: true`).
+ * Use `.items` to build a variant.
+ */
+const imageBase = combineBases(
+    defaultInstanceBase,
+    secondaryCaptureImageBase,
+    predecessorBase
+);
 
 // Attributes that must describe the actual pixels, never a metadata claim.
 const GEOMETRY_KEYWORDS = [
@@ -49,6 +76,23 @@ const FILE_META_KEYWORDS = [
 ];
 
 const CONTROL_OPTIONS = ["metadata", "derivedFrom", "lossy", "encapsulated"];
+
+// The createInstance options that buildImageDataset passes through.
+const CREATE_OPTIONS = [
+    "baseDicom",
+    "instance",
+    "dataLevel",
+    "levels",
+    "predecessor"
+];
+
+/** The deepest level that the metadata identifies, for createInstance. */
+function metadataDataLevel(metadata) {
+    if (!metadata.StudyInstanceUID) {
+        return "patient";
+    }
+    return metadata.SeriesInstanceUID ? "series" : "study";
+}
 
 /** Normalize ArrayBuffer | typed-array view to an exact ArrayBuffer. */
 function toExactArrayBuffer(bytes, context) {
@@ -242,9 +286,13 @@ function resolveGeometry(decodedImage, encapsulated) {
 /**
  * Build a naturalized DICOM image dataset from decoded pixels.
  *
- * Merge precedence (highest wins): actual image geometry -> UpperCamel
- * keyword overrides on `options` -> `options.metadata` (stripped of geometry
- * and identity) -> Secondary Capture defaults with freshly minted UIDs.
+ * The dataset comes from {@link createInstance}. Merge precedence (highest
+ * wins): actual image geometry -> UpperCamel keyword overrides on `options`
+ * -> `options.metadata` (stripped of geometry and identity) -> the attributes
+ * inherited from `options.instance` -> `baseDicom` (default `imageBase`).
+ * When `options.instance` is not set, the metadata is the instance, at the
+ * deepest level that its UIDs identify, so the image joins that series or
+ * study and new UIDs are minted only below it.
  *
  * Derivation: when `options.derivedFrom` is set, or `options.metadata`
  * carries a SOPInstanceUID, the result is marked as a derived instance:
@@ -266,7 +314,9 @@ function resolveGeometry(decodedImage, encapsulated) {
  * @param {number} [decodedImage.planarConfiguration=0]
  * @param {number} [decodedImage.numberOfFrames=1]
  * @param {Object} [options] control keys (metadata, derivedFrom, lossy,
- *   encapsulated) plus UpperCamel DICOM keyword overrides (PatientName, ...)
+ *   encapsulated), the createInstance options (baseDicom, instance,
+ *   dataLevel, levels, predecessor), plus UpperCamel DICOM keyword overrides
+ *   (PatientName, ...)
  * @returns {Object} naturalized dataset with _meta and _vrMap
  */
 function buildImageDataset(decodedImage = {}, options = {}) {
@@ -286,7 +336,7 @@ function buildImageDataset(decodedImage = {}, options = {}) {
     // Keyword overrides: everything UpperCamel that is not a control option.
     const overrides = {};
     for (const key of Object.keys(options)) {
-        if (CONTROL_OPTIONS.includes(key)) {
+        if (CONTROL_OPTIONS.includes(key) || CREATE_OPTIONS.includes(key)) {
             continue;
         }
         if (GEOMETRY_KEYWORDS.includes(key)) {
@@ -313,44 +363,32 @@ function buildImageDataset(decodedImage = {}, options = {}) {
         };
     }
 
-    const date = DicomMetaDictionary.date();
-    const time = DicomMetaDictionary.time();
+    const metadataAttributes = { ...base };
+    if (!metadataAttributes.SOPClassUID && derivation?.sopClassUID) {
+        metadataAttributes.SOPClassUID = derivation.sopClassUID;
+    }
+    const hasInstance = options.instance !== undefined;
+    let instance;
+    if (hasInstance) {
+        instance = options.instance;
+    } else if (options.metadata) {
+        // Keep the source identity on the instance for predecessorBase.
+        instance = source.sopInstanceUID
+            ? { ...base, SOPInstanceUID: source.sopInstanceUID }
+            : base;
+    }
+    const created = createInstance({
+        baseDicom: options.baseDicom || imageBase,
+        instance,
+        dataLevel: hasInstance ? options.dataLevel : metadataDataLevel(base),
+        levels: options.levels,
+        predecessor: options.predecessor,
+        ...metadataAttributes,
+        ...overrides
+    });
 
-    const dataset = {
-        // Base context first; scaffold fills the gaps; overrides win.
-        ...base,
-
-        SpecificCharacterSet: "ISO_IR 192",
-        SOPClassUID:
-            base.SOPClassUID ||
-            derivation?.sopClassUID ||
-            SECONDARY_CAPTURE_SOP_CLASS_UID,
-
-        StudyInstanceUID: base.StudyInstanceUID || DicomMetaDictionary.uid(),
-        StudyDate: base.StudyDate || date,
-        StudyTime: base.StudyTime || time,
-        ReferringPhysicianName: base.ReferringPhysicianName ?? "",
-        StudyID: base.StudyID ?? "",
-        AccessionNumber: base.AccessionNumber ?? "",
-
-        PatientName: base.PatientName ?? "",
-        PatientID: base.PatientID ?? "",
-        PatientBirthDate: base.PatientBirthDate ?? "",
-        PatientSex: base.PatientSex ?? "",
-
-        Modality: base.Modality || "OT",
-        SeriesInstanceUID: base.SeriesInstanceUID || DicomMetaDictionary.uid(),
-        SeriesNumber: base.SeriesNumber ?? 1,
-
-        InstanceNumber: base.InstanceNumber ?? 1,
-        ContentDate: base.ContentDate || date,
-        ContentTime: base.ContentTime || time,
-
-        ...overrides,
-
-        // The builder's own attributes: identity, derivation, geometry.
-        SOPInstanceUID: overrides.SOPInstanceUID || DicomMetaDictionary.uid(),
-
+    // The builder's own attributes win: geometry and encoding.
+    const dataset = Object.assign(created, {
         Rows: geometry.rows,
         Columns: geometry.columns,
         SamplesPerPixel: geometry.samplesPerPixel,
@@ -360,7 +398,16 @@ function buildImageDataset(decodedImage = {}, options = {}) {
         HighBit: geometry.highBit,
         PixelRepresentation: geometry.pixelRepresentation,
 
-        _meta: {
+        _vrMap: {
+            ...(created._vrMap || {}),
+            PixelData: geometry.bitsAllocated === 16 ? "OW" : "OB"
+        }
+    });
+    // instanceBase supplies Explicit VR Little Endian; set _meta only for
+    // encapsulated frames, or when a custom base has no _meta.
+    if (options.encapsulated || !dataset._meta) {
+        dataset._meta = {
+            ...(dataset._meta || {}),
             TransferSyntaxUID: {
                 Value: [
                     options.encapsulated
@@ -368,11 +415,8 @@ function buildImageDataset(decodedImage = {}, options = {}) {
                         : EXPLICIT_LITTLE_ENDIAN
                 ]
             }
-        },
-        _vrMap: {
-            PixelData: geometry.bitsAllocated === 16 ? "OW" : "OB"
-        }
-    };
+        };
+    }
 
     if (geometry.samplesPerPixel > 1) {
         dataset.PlanarConfiguration = geometry.planarConfiguration;
@@ -435,10 +479,14 @@ function buildImageDataset(decodedImage = {}, options = {}) {
     // SC Equipment module only where it belongs.
     if (dataset.SOPClassUID === SECONDARY_CAPTURE_SOP_CLASS_UID) {
         dataset.ConversionType = dataset.ConversionType || "WSD";
-        dataset.Manufacturer = dataset.Manufacturer || "dcmjs";
     }
 
     return dataset;
 }
 
-export { buildImageDataset, SECONDARY_CAPTURE_SOP_CLASS_UID };
+export {
+    buildImageDataset,
+    imageBase,
+    secondaryCaptureImageBase,
+    SECONDARY_CAPTURE_SOP_CLASS_UID
+};

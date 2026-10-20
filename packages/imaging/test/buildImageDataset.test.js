@@ -25,6 +25,34 @@ function grayPixels(rows = 4, columns = 4) {
     };
 }
 
+describe("createInstance options", () => {
+    test("instance and dataLevel place the image in an existing series", () => {
+        const source = {
+            PatientID: "P1",
+            StudyInstanceUID: "2.25.1",
+            SeriesInstanceUID: "2.25.2",
+            SOPClassUID: SECONDARY_CAPTURE_SOP_CLASS_UID,
+            SOPInstanceUID: "2.25.3",
+            Modality: "OT"
+        };
+        const dataset = buildImageDataset(grayPixels(), {
+            instance: source,
+            dataLevel: "series",
+            predecessor: true
+        });
+        expect(dataset.PatientID).toBe("P1");
+        expect(dataset.StudyInstanceUID).toBe("2.25.1");
+        expect(dataset.SeriesInstanceUID).toBe("2.25.2");
+        expect(dataset.SOPInstanceUID).not.toBe("2.25.3");
+        expect(
+            dataset.PredecessorDocumentsSequence[0].ReferencedSeriesSequence[0]
+                .ReferencedSOPSequence[0].ReferencedSOPInstanceUID
+        ).toBe("2.25.3");
+        expect(dataset.instance).toBeUndefined();
+        expect(dataset.dataLevel).toBeUndefined();
+    });
+});
+
 describe("defaults (no metadata)", () => {
     const dataset = buildImageDataset(grayPixels());
 

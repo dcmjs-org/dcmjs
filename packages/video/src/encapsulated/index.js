@@ -1,6 +1,8 @@
 // src/encapsulated/index.js — the video half of the encapsulated module.
-// The PDF half (encapsulatedPdf) belongs to the media wave, not this package.
+// The PDF half (encapsulatePdf) is in @dcmjs-org/encapsulated.
 import {
+    videoBase,
+    videoPhotographicBase,
     buildVideoDataset,
     encapsulateVideo,
     extractEncapsulatedVideo,
@@ -10,6 +12,8 @@ import {
 } from "./encapsulatedVideo.js";
 
 export {
+    videoBase,
+    videoPhotographicBase,
     buildVideoDataset,
     encapsulateVideo,
     extractEncapsulatedVideo,

@@ -14,6 +14,7 @@ import {
     VIDEO_PHOTOGRAPHIC_SOP_CLASS_UID,
     DEFAULT_FRAGMENT_BYTES
 } from "../src/encapsulated/encapsulatedVideo.js";
+import { log } from "@dcmjs-org/core";
 import { parseMp4Info } from "../src/image/mp4Info.js";
 import { makeTinyMp4 } from "./utils/makeTinyMp4.js";
 
@@ -25,6 +26,40 @@ describe("buildVideoDataset", () => {
         info = await parseMp4Info(makeTinyMp4());
     });
 
+    it("joins the study of a source instance, and only attributes reach the dataset", () => {
+        const warn = jest.spyOn(log, "warn").mockImplementation(() => {});
+        const source = {
+            PatientID: "JD-001",
+            StudyInstanceUID: "2.25.1",
+            SeriesInstanceUID: "2.25.2",
+            SOPClassUID: VIDEO_PHOTOGRAPHIC_SOP_CLASS_UID,
+            SOPInstanceUID: "2.25.3",
+            Modality: "XC"
+        };
+        const dataset = buildVideoDataset(info, {
+            instance: source,
+            predecessor: true,
+            Rows: 1,
+            fragmentBytes: 2,
+            onProgress: () => {}
+        });
+        expect(dataset.PatientID).toBe("JD-001");
+        expect(dataset.StudyInstanceUID).toBe("2.25.1");
+        expect(dataset.SeriesInstanceUID).not.toBe("2.25.2");
+        expect(
+            dataset.PredecessorDocumentsSequence[0].ReferencedSeriesSequence[0]
+                .ReferencedSOPSequence[0].ReferencedSOPInstanceUID
+        ).toBe("2.25.3");
+        expect(dataset.Rows).toBe(48);
+        expect(dataset.fragmentBytes).toBeUndefined();
+        expect(dataset.onProgress).toBeUndefined();
+        expect(warn).toHaveBeenCalledTimes(1);
+        expect(warn).toHaveBeenCalledWith(
+            expect.stringMatching(/"onProgress" is not a DICOM attribute/)
+        );
+        warn.mockRestore();
+    });
+
     it("mirrors the Supplement 225 reference element list", () => {
         const dataset = buildVideoDataset(info, {
             PatientName: "DOE^JANE",
@@ -34,6 +69,7 @@ describe("buildVideoDataset", () => {
         expect(dataset.Modality).toBe("XC");
         expect(dataset.PatientName).toBe("DOE^JANE");
         expect(dataset.PatientID).toBe("JD-001");
+        expect(dataset.StudyID).toBe("");
         expect(dataset.CineRate).toBe(60);
         expect(dataset.FrameTime).toBe("16.666667");
         expect(dataset.SamplesPerPixel).toBe(3);

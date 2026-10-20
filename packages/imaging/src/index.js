@@ -6,6 +6,8 @@
 // @dcmjs-org/core — the heavy MP4/video processing lives in @dcmjs-org/video.
 export {
     buildImageDataset,
+    imageBase,
+    secondaryCaptureImageBase,
     SECONDARY_CAPTURE_SOP_CLASS_UID
 } from "./buildImageDataset.js";
 export { parseJpegInfo } from "./jpegInfo.js";

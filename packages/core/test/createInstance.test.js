@@ -79,6 +79,22 @@ describe("createInstance", () => {
         expect(ds.SOPInstanceUID).toBe("1.2.3.4.5.6.7.200");
     });
 
+    it("writes only DICOM attributes, and warns for any other key", () => {
+        const warn = jest.spyOn(log, "warn").mockImplementation(() => {});
+        const ds = createInstance({
+            PatientID: "P1",
+            "00091010": "private",
+            onProgress: () => {}
+        });
+        expect(ds.PatientID).toBe("P1");
+        expect(ds["00091010"]).toBe("private");
+        expect(ds.onProgress).toBeUndefined();
+        expect(warn).toHaveBeenCalledWith(
+            expect.stringMatching(/"onProgress" is not a DICOM attribute/)
+        );
+        warn.mockRestore();
+    });
+
     it("has no instance level", () => {
         expect(() =>
             createInstance({ instance: source, dataLevel: "instance" })

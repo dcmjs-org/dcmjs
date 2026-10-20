@@ -196,6 +196,18 @@ export function nextSeriesNumberBase(seriesList, filter = () => true) {
     };
 }
 
+/**
+ * True for a key that can be a dataset attribute: a dictionary keyword, an
+ * 8-hex-digit tag, or an `_` key such as `_meta` or `_vrMap`.
+ */
+function isAttributeKey(key) {
+    return (
+        key.startsWith("_") ||
+        /^[0-9A-Fa-f]{8}$/.test(key) ||
+        Object.prototype.hasOwnProperty.call(DicomMetaDictionary.nameMap, key)
+    );
+}
+
 // Attributes where an inherited value that differs from the base is legal
 // but usually a mistake, so it gets a warning.
 const CONSISTENCY_KEYS = ["Modality", "SOPClassUID"];
@@ -214,8 +226,11 @@ const CONSISTENCY_KEYS = ["Modality", "SOPClassUID"];
  * - `inherited` is `copyAttributesByLevel(instance, dataLevel)`. Its object
  *   values are shared with `instance`; pass `deepCloneInstance(instance)` to
  *   avoid that.
- * - `overrides` is every other option; it always wins. Instance-level
- *   attributes (for example a specific `SOPInstanceUID`) go here.
+ * - `overrides` is every other option that is a DICOM attribute: a
+ *   dictionary keyword, an 8-hex-digit tag, or an `_` key (`_meta`,
+ *   `_vrMap`). It always wins. Instance-level attributes (for example a
+ *   specific `SOPInstanceUID`) go here. Any other key is dropped with a
+ *   warning; a builder removes its own control options before the call.
  *
  * A warning is logged when the inherited Modality or SOPClassUID differs from
  * the base, because that object is valid DICOM only in special cases.
@@ -236,8 +251,20 @@ export function createInstance(options = {}) {
         dataLevel = "study",
         levels = DATA_LEVELS,
         predecessor = false,
-        ...overrides
+        ...rest
     } = options;
+
+    const overrides = {};
+    for (const key of Object.keys(rest)) {
+        if (isAttributeKey(key)) {
+            overrides[key] = rest[key];
+        } else {
+            log.warn(
+                `createInstance: option "${key}" is not a DICOM attribute ` +
+                    `and is not written to the dataset`
+            );
+        }
+    }
 
     const levelIndex = dataLevelIndex(dataLevel, levels);
     const hasInstance = instance !== undefined && instance !== null;
