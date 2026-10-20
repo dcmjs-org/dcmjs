@@ -15,3 +15,7 @@ graphify-out/
 package-lock.json
 examples/js/dcmjs*
 *.code-workspace
+
+# Local reviews and scratch output
+temp/
+tmp/

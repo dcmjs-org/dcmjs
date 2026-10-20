@@ -179,6 +179,12 @@ importers:
         specifier: workspace:*
         version: link:../parser
 
+  packages/encapsulated:
+    dependencies:
+      '@dcmjs-org/core':
+        specifier: workspace:*
+        version: link:../core
+
   packages/fhir:
     dependencies:
       '@dcmjs-org/core':
