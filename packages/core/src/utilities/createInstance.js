@@ -4,6 +4,7 @@
 // source instance, and explicit overrides.
 
 import { DicomMetaDictionary } from "../DicomMetaDictionary.js";
+import { lookupRegisteredTagByName } from "../dictionary.fast.js";
 import { EXPLICIT_LITTLE_ENDIAN } from "../constants/dicom.js";
 import log from "../log.js";
 import {
@@ -197,14 +198,19 @@ export function nextSeriesNumberBase(seriesList, filter = () => true) {
 }
 
 /**
- * True for a key that can be a dataset attribute: a dictionary keyword, an
- * 8-hex-digit tag, or an `_` key such as `_meta` or `_vrMap`.
+ * True for a key that can be a dataset attribute: a dictionary keyword, a
+ * keyword added with `registerTag`, an 8-hex-digit tag, or an `_` key such as
+ * `_meta` or `_vrMap`.
  */
 function isAttributeKey(key) {
     return (
         key.startsWith("_") ||
         /^[0-9A-Fa-f]{8}$/.test(key) ||
-        Object.prototype.hasOwnProperty.call(DicomMetaDictionary.nameMap, key)
+        Object.prototype.hasOwnProperty.call(
+            DicomMetaDictionary.nameMap,
+            key
+        ) ||
+        lookupRegisteredTagByName(key) !== undefined
     );
 }
 

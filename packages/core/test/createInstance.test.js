@@ -10,6 +10,7 @@ import {
     defaultInstanceBase,
     nextSeriesNumberBase,
     predecessorBase,
+    registerTag,
     log
 } from "../src/index.js";
 
@@ -81,13 +82,16 @@ describe("createInstance", () => {
 
     it("writes only DICOM attributes, and warns for any other key", () => {
         const warn = jest.spyOn(log, "warn").mockImplementation(() => {});
+        registerTag("00111010", { name: "TestRegisteredName", vr: "LO" });
         const ds = createInstance({
             PatientID: "P1",
             "00091010": "private",
+            TestRegisteredName: "registered",
             onProgress: () => {}
         });
         expect(ds.PatientID).toBe("P1");
         expect(ds["00091010"]).toBe("private");
+        expect(ds.TestRegisteredName).toBe("registered");
         expect(ds.onProgress).toBeUndefined();
         expect(warn).toHaveBeenCalledWith(
             expect.stringMatching(/"onProgress" is not a DICOM attribute/)
