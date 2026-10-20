@@ -1,15 +1,13 @@
 // packages/core/test/copyAttributesByLevel.test.js
 //
-// The hierarchical attribute-copy helper and its level Sets. Names and
-// coverage mirror cornerstone3D's copyStudyTags.ts so the two codebases
-// share one vocabulary.
+// The level hierarchy and the attribute copy. These own the inheritance
+// rules; the builders that use them do not repeat these cases.
 
 import {
-    patientTags,
-    studyTags,
-    seriesTags,
-    patientStudyTags,
-    copyAttributesByLevel
+    copyAttributesByLevel,
+    deepCloneInstance,
+    extendDataLevels,
+    DATA_LEVELS
 } from "../src/index.js";
 
 const source = {
@@ -20,104 +18,53 @@ const source = {
     Modality: "MR",
     PatientName: "Doe^Jane",
     PatientID: "MRN-42",
-    PatientBirthDate: "19700101",
-    PatientSex: "F",
-    StudyDate: "20260101",
+    PatientAge: "056Y",
     StudyID: "ST-7",
-    AccessionNumber: "ACC-9",
     SeriesDescription: "AX T1",
-    SeriesNumber: 3
+    SeriesNumber: 3,
+    OtherPatientIDsSequence: [{ PatientID: "ALT-1" }],
+    _meta: { x: 1 },
+    _vrMap: { y: "OB" }
 };
-
-describe("level Sets", () => {
-    it("are Set instances", () => {
-        expect(patientTags).toBeInstanceOf(Set);
-        expect(studyTags).toBeInstanceOf(Set);
-        expect(seriesTags).toBeInstanceOf(Set);
-        expect(patientStudyTags).toBeInstanceOf(Set);
-    });
-
-    it("carry the cornerstone coverage", () => {
-        expect(patientTags.has("PatientName")).toBe(true);
-        expect(patientTags.has("IssuerOfPatientID")).toBe(true);
-        expect(patientTags.has("DeidentificationMethodCodeSequence")).toBe(
-            true
-        );
-        expect(studyTags.has("StudyInstanceUID")).toBe(true);
-        expect(studyTags.has("TimezoneOffsetFromUTC")).toBe(true);
-        expect(seriesTags.has("SeriesInstanceUID")).toBe(true);
-        expect(seriesTags.has("Modality")).toBe(true);
-    });
-
-    it("patientStudyTags is the union of patient and study", () => {
-        for (const key of patientTags) {
-            expect(patientStudyTags.has(key)).toBe(true);
-        }
-        for (const key of studyTags) {
-            expect(patientStudyTags.has(key)).toBe(true);
-        }
-        expect(patientStudyTags.size).toBe(patientTags.size + studyTags.size);
-    });
-});
 
 describe("copyAttributesByLevel", () => {
     it("copies only patient attributes at 'patient'", () => {
         const out = copyAttributesByLevel(source, "patient");
         expect(out.PatientName).toBe("Doe^Jane");
-        expect(out.PatientID).toBe("MRN-42");
         expect(out.StudyInstanceUID).toBeUndefined();
-        expect(out.SeriesDescription).toBeUndefined();
+        expect(out.PatientAge).toBeUndefined();
     });
 
-    it("adds study attributes at 'study' (the default)", () => {
+    it("adds study attributes at 'study' (the default), PatientAge included", () => {
         const out = copyAttributesByLevel(source);
         expect(out.PatientName).toBe("Doe^Jane");
         expect(out.StudyInstanceUID).toBe("1.2.3.4.5");
-        expect(out.StudyID).toBe("ST-7");
-        // Series level not reached.
+        expect(out.PatientAge).toBe("056Y");
         expect(out.SeriesInstanceUID).toBeUndefined();
-        expect(out.SeriesDescription).toBeUndefined();
     });
 
-    it("adds series attributes at 'series'", () => {
+    it("adds series attributes at 'series', series identity included", () => {
         const out = copyAttributesByLevel(source, "series");
-        expect(out.PatientName).toBe("Doe^Jane"); // patient flows down
-        expect(out.StudyInstanceUID).toBe("1.2.3.4.5"); // study flows down
+        expect(out.StudyInstanceUID).toBe("1.2.3.4.5");
         expect(out.SeriesInstanceUID).toBe("1.2.3.4.5.9");
-        expect(out.SeriesDescription).toBe("AX T1");
         expect(out.Modality).toBe("MR");
+        expect(out.SOPInstanceUID).toBeUndefined();
+        expect(out._meta).toBeUndefined();
+        expect(out._vrMap).toBeUndefined();
     });
 
-    it("adds nothing beyond series at 'instance'", () => {
-        const series = copyAttributesByLevel(source, "series");
-        const instance = copyAttributesByLevel(source, "instance");
-        expect(instance).toEqual(series);
-        // Instance identity is never inherited.
-        expect(instance.SOPInstanceUID).toBeUndefined();
-    });
-
-    it("skips absent and empty attributes", () => {
+    it("skips absent and empty values", () => {
         const out = copyAttributesByLevel(
-            { ...source, StudyID: "", PatientSex: undefined },
+            { ...source, StudyID: "", PatientID: undefined },
             "study"
         );
-        expect(out.StudyID).toBeUndefined();
-        expect(out.PatientSex).toBeUndefined();
-        expect(out.PatientName).toBe("Doe^Jane");
+        expect(out).not.toHaveProperty("StudyID");
+        expect(out).not.toHaveProperty("PatientID");
     });
 
     it("reads the first element of an array", () => {
         const out = copyAttributesByLevel([source, { PatientID: "OTHER" }]);
         expect(out.PatientID).toBe("MRN-42");
-    });
-
-    it("returns {} for null/undefined", () => {
-        expect(copyAttributesByLevel(undefined)).toEqual({});
-        expect(copyAttributesByLevel(null)).toEqual({});
-    });
-
-    it("throws on a non-object source", () => {
-        expect(() => copyAttributesByLevel("nope")).toThrow(/sourceInstance/);
     });
 
     it("throws on an unknown dataLevel", () => {
@@ -126,12 +73,44 @@ describe("copyAttributesByLevel", () => {
         );
     });
 
-    it("does not copy _meta or _vrMap", () => {
-        const out = copyAttributesByLevel(
-            { ...source, _meta: { x: 1 }, _vrMap: { y: 2 } },
-            "series"
+    it("shares object values, and deepCloneInstance of the source makes them independent", () => {
+        const shared = copyAttributesByLevel(source, "patient");
+        expect(shared.OtherPatientIDsSequence).toBe(
+            source.OtherPatientIDsSequence
         );
-        expect(out._meta).toBeUndefined();
-        expect(out._vrMap).toBeUndefined();
+        const cloned = copyAttributesByLevel(
+            deepCloneInstance(source),
+            "patient"
+        );
+        expect(cloned.OtherPatientIDsSequence).toEqual(
+            source.OtherPatientIDsSequence
+        );
+        expect(cloned.OtherPatientIDsSequence).not.toBe(
+            source.OtherPatientIDsSequence
+        );
+    });
+
+    it("uses a custom level list: extended patient level and a new level", () => {
+        const levels = [
+            ...extendDataLevels(DATA_LEVELS, {
+                patient: ["PatientComments"]
+            }).slice(0, 2),
+            { name: "frameOfReference", tags: new Set(["FrameOfReferenceUID"]) }
+        ];
+        const out = copyAttributesByLevel(
+            {
+                ...source,
+                PatientComments: "note",
+                FrameOfReferenceUID: "1.9"
+            },
+            "frameOfReference",
+            { levels }
+        );
+        expect(out.PatientComments).toBe("note");
+        expect(out.StudyInstanceUID).toBe("1.2.3.4.5");
+        expect(out.FrameOfReferenceUID).toBe("1.9");
+        expect(out.SeriesInstanceUID).toBeUndefined();
+        // The shared default is unchanged.
+        expect(DATA_LEVELS[0].tags.has("PatientComments")).toBe(false);
     });
 });

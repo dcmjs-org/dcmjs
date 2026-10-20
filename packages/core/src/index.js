@@ -46,6 +46,7 @@ export {
 export { toFloat } from "./utilities/toFloat.js";
 export { toInt } from "./utilities/toInt.js";
 export { deepEqual } from "./utilities/deepEqual.js";
+export { deepCloneInstance } from "./utilities/deepCloneInstance.js";
 export { default as addAccessors } from "./utilities/addAccessors.js";
 export { default as isMultiVM } from "./utilities/isMultiVM.js";
 export { default as BINARY_VRS } from "./utilities/binaryVRs.js";
@@ -60,5 +61,21 @@ export {
     seriesTags,
     patientStudyTags,
     copyAttributesByLevel,
+    extendDataLevels,
+    dataLevelIndex,
     DATA_LEVELS
 } from "./utilities/copyAttributesByLevel.js";
+export {
+    createInstance,
+    combineBases,
+    resolveBase,
+    patientBase,
+    studyBase,
+    seriesBase,
+    instanceBase,
+    equipmentBase,
+    predecessorBase,
+    hierarchicalReferences,
+    defaultInstanceBase,
+    nextSeriesNumberBase
+} from "./utilities/createInstance.js";

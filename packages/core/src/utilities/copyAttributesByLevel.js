@@ -1,16 +1,7 @@
 // packages/core/src/utilities/copyAttributesByLevel.js
 //
-// The DICOM information model is a hierarchy — Patient > Study > Series >
-// Instance — and when you build one instance from the context of another
-// (a report filed under an existing study, a derived object, ...), the
-// attributes that identify the broader levels should carry over while the
-// narrower ones are minted fresh. This module names the attributes of each
-// level as Sets and copies them off a naturalized source instance down to a
-// chosen level.
-//
-// The Set contents and names mirror cornerstone3D's adapters
-// (packages/adapters/src/adapters/helpers/copyStudyTags.ts) so the two
-// codebases share one vocabulary.
+// The attributes of each level of the DICOM information model, and a copy of
+// those attributes off a naturalized source instance down to a chosen level.
 
 /** Patient-level attributes (General Patient module identity). */
 export const patientTags = new Set([
@@ -26,7 +17,7 @@ export const patientTags = new Set([
     "DeidentificationMethodCodeSequence"
 ]);
 
-/** Study-level attributes (General Study module). */
+/** Study-level attributes (General Study and Patient Study modules). */
 export const studyTags = new Set([
     "StudyDate",
     "StudyTime",
@@ -37,7 +28,10 @@ export const studyTags = new Set([
     "AccessionNumber",
     "StudyID",
     "ReferringPhysicianName",
-    "TimezoneOffsetFromUTC"
+    "TimezoneOffsetFromUTC",
+    "PatientAge",
+    "PatientSize",
+    "PatientWeight"
 ]);
 
 /** Series-level attributes (General Series module). */
@@ -53,39 +47,83 @@ export const seriesTags = new Set([
 /** Patient + Study, the common "study context" pairing. */
 export const patientStudyTags = new Set([...patientTags, ...studyTags]);
 
-// The hierarchy, broadest first. Each level cumulatively includes the ones
-// above it. There is no instance-level Set: instance identity (SOPInstanceUID,
-// InstanceNumber) is always minted fresh, never inherited, so `instance` adds
-// nothing beyond series — it exists only so callers can name the full depth.
-const LEVEL_TAGS = [
-    ["patient", patientTags],
-    ["study", studyTags],
-    ["series", seriesTags],
-    ["instance", new Set()]
+/**
+ * The default level hierarchy, broadest first. Each entry is
+ * `{ name, tags }`. There is no instance level: instance attributes have no
+ * fixed list, so the caller sets them as overrides.
+ *
+ * A change to these entries or Sets changes the default for every caller. To
+ * change one call only, pass a new list (see {@link extendDataLevels}) as the
+ * `levels` option.
+ */
+export const DATA_LEVELS = [
+    { name: "patient", tags: patientTags },
+    { name: "study", tags: studyTags },
+    { name: "series", tags: seriesTags }
 ];
 
-const DATA_LEVELS = LEVEL_TAGS.map(([name]) => name);
+/**
+ * Return a new level list with extra attributes added to the named levels.
+ *
+ * @param {Object[]} levels - a level list, for example `DATA_LEVELS`
+ * @param {Object<string, Iterable<string>>} extraTags - level name to the
+ *   attribute keywords to add, for example `{ patient: ["PatientComments"] }`
+ * @returns {Object[]} a new level list
+ */
+export function extendDataLevels(levels, extraTags) {
+    return levels.map(level => {
+        const extra = extraTags[level.name];
+        if (!extra) {
+            return level;
+        }
+        return { name: level.name, tags: new Set([...level.tags, ...extra]) };
+    });
+}
+
+/**
+ * Index of `dataLevel` in `levels`; throws for an unknown level name.
+ *
+ * @param {string} dataLevel
+ * @param {Object[]} [levels=DATA_LEVELS]
+ * @returns {number}
+ */
+export function dataLevelIndex(dataLevel, levels = DATA_LEVELS) {
+    const index = levels.findIndex(level => level.name === dataLevel);
+    if (index === -1) {
+        throw new Error(
+            `unknown dataLevel "${dataLevel}" (expected one of ` +
+                `${levels.map(level => level.name).join(", ")})`
+        );
+    }
+    return index;
+}
 
 /**
  * Copy the attributes of a naturalized source instance that belong at or
  * above a given level of the DICOM information model.
  *
- * Hierarchical inheritance: patient-level attributes flow down to every
- * level; each level adds its own. `dataLevel: 'patient'` copies only patient
- * attributes; `'study'` adds study; `'series'` adds series; `'instance'` adds
- * nothing beyond series (instance identity is always minted fresh).
+ * Patient-level attributes flow down to every level, and each level adds its
+ * own. `_meta`/`_vrMap` are never copied, because those describe the
+ * target's encoding.
  *
- * Only attributes actually present and non-empty on the source are copied, so
- * an empty Type 2 value never shadows a builder default downstream.
- * `_meta`/`_vrMap` are intentionally not copied — those describe the target
- * dataset's own encoding, not inheritable context.
+ * Only values that are present and not `""` are copied, so an empty Type 2
+ * value never shadows a builder default.
+ *
+ * Object values (sequences, PN objects, binary) are the same objects as in
+ * the source. To get independent values, pass `deepCloneInstance(source)`.
  *
  * @param {Object|Object[]} sourceInstance - a naturalized instance, or an
- *   array of them from one study (the first is read — they share this context)
- * @param {('patient'|'study'|'series'|'instance')} [dataLevel="study"]
+ *   array of them from one study (the first is read)
+ * @param {string} [dataLevel="study"] - a level name from `levels`
+ * @param {Object} [options]
+ * @param {Object[]} [options.levels=DATA_LEVELS] - the level hierarchy
  * @returns {Object} a plain object of the copied attributes
  */
-export function copyAttributesByLevel(sourceInstance, dataLevel = "study") {
+export function copyAttributesByLevel(
+    sourceInstance,
+    dataLevel = "study",
+    { levels = DATA_LEVELS } = {}
+) {
     if (sourceInstance === undefined || sourceInstance === null) {
         return {};
     }
@@ -94,28 +132,20 @@ export function copyAttributesByLevel(sourceInstance, dataLevel = "study") {
         : sourceInstance;
     if (!source || typeof source !== "object" || Array.isArray(source)) {
         throw new Error(
-            "copyAttributesByLevel: sourceInstance must be a naturalized " +
+            "copyAttributesByLevel: instance must be a naturalized " +
                 "dataset (or a non-empty array of them)"
         );
     }
 
-    const levelIndex = DATA_LEVELS.indexOf(dataLevel);
-    if (levelIndex === -1) {
-        throw new Error(
-            `copyAttributesByLevel: unknown dataLevel "${dataLevel}" ` +
-                `(expected one of ${DATA_LEVELS.join(", ")})`
-        );
-    }
-
+    const levelIndex = dataLevelIndex(dataLevel, levels);
     const result = {};
     for (let i = 0; i <= levelIndex; i++) {
-        for (const key of LEVEL_TAGS[i][1]) {
-            if (source[key] !== undefined && source[key] !== "") {
-                result[key] = source[key];
+        for (const key of levels[i].tags) {
+            const value = source[key];
+            if (value !== undefined && value !== "") {
+                result[key] = value;
             }
         }
     }
     return result;
 }
-
-export { DATA_LEVELS };

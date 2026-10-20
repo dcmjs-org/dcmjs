@@ -1,10 +1,12 @@
 // The public surface of @dcmjs-org/encapsulated: the generic Encapsulated
-// Document builder plus the Encapsulated PDF builder and extractor. PDF is the
-// first encapsulated-document IOD to land here; the other document types (CDA,
-// STL, OBJ, MTL) share this package and the generic `encapsulate`. The video
-// half of the v2 encapsulated module is encapsulated *pixel data*, not a
-// document, and belongs to the media wave, not here.
+// Document builder, its base blocks, and the Encapsulated PDF builder and
+// extractor. The other document types (CDA, STL, OBJ, MTL) share this package.
 export { encapsulate } from "./encapsulate.js";
+export {
+    encapsulatedDocumentBase,
+    encapsulatedBase
+} from "./defaults/encapsulatedDocumentBase.js";
+export { pdfBase, encapsulatedPdfBase } from "./defaults/pdfBase.js";
 export {
     encapsulatePdf,
     extractEncapsulatedPdf,

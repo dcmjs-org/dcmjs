@@ -9,16 +9,12 @@
 //   extractEncapsulatedPdf(dataset)    — PDF out: recover the PDF bytes from
 //       a parsed (naturalized) Encapsulated PDF instance.
 //
-// encapsulatePdf is a thin decorator over the generic `encapsulate` builder
-// (./encapsulate.js): it checks the PDF magic and supplies the PDF base
-// defaults (./defaults/pdfBase.js) and mime type. All the dataset assembly —
-// the defaults < baseDicom < inherited context < overrides merge, the
-// hierarchical inheritance from a source instance, and the identity guard —
-// lives in `encapsulate`.
+// encapsulatePdf checks the PDF magic and calls the generic `encapsulate`
+// with the PDF base (./defaults/pdfBase.js).
 
 import { encapsulate, toExactArrayBuffer } from "./encapsulate.js";
 import {
-    pdfBase,
+    encapsulatedPdfBase,
     ENCAPSULATED_PDF_SOP_CLASS_UID,
     PDF_MIME_TYPE
 } from "./defaults/pdfBase.js";
@@ -44,52 +40,21 @@ function assertPdfMagic(arrayBuffer) {
 /**
  * Wrap PDF bytes into a naturalized Encapsulated PDF dataset.
  *
- * Thin decorator over {@link encapsulate}: checks the PDF magic, then builds
- * the dataset from the PDF base defaults plus the caller's options. The
- * result carries `_meta` (Explicit VR Little Endian) and `_vrMap`
- * (EncapsulatedDocument pinned to OB) so the Part 10 writers can serialize it
- * directly. Every UID defaults to a freshly minted `DicomMetaDictionary.uid()`.
- *
- * Pass `instance` (a naturalized instance, or an array of them from one study)
- * with an optional `dataLevel` ('patient' | 'study' | 'series' | 'instance',
- * default 'study') to inherit that level's context instead of retyping it;
- * `sourceInstance` is accepted as a back-compat alias for `instance` at
- * 'study' level. Precedence is defaults < inherited < explicit options; the
- * document's own identity (SOP class, Modality, SOP/Series UIDs) is never
- * inherited.
+ * Checks the PDF magic, then calls {@link encapsulate} with
+ * `encapsulatedPdfBase` as the default `baseDicom`. All other options
+ * (`instance`, `dataLevel`, `levels`, `mimeType`, and keyword
+ * overrides) pass through; see `createInstance` in `@dcmjs-org/core`.
  *
  * @param {ArrayBuffer|Uint8Array} pdfBytes
- * @param {Object} [options] - naturalized keyword overrides (PatientName,
- *   PatientID, DocumentTitle, StudyInstanceUID, ...) plus `instance`,
- *   `dataLevel`, and the `sourceInstance` alias
+ * @param {Object} [options]
  * @returns {Object} naturalized dataset
  */
 function encapsulatePdf(pdfBytes, options = {}) {
     const documentBytes = toExactArrayBuffer(pdfBytes);
     assertPdfMagic(documentBytes);
-
-    const { sourceInstance, instance, dataLevel, ...rest } = options;
-    const resolvedInstance = instance ?? sourceInstance;
-
-    // Validate here so the error names the public option the caller used.
-    if (resolvedInstance !== undefined && resolvedInstance !== null) {
-        const first = Array.isArray(resolvedInstance)
-            ? resolvedInstance[0]
-            : resolvedInstance;
-        if (!first || typeof first !== "object" || Array.isArray(first)) {
-            throw new Error(
-                "encapsulatePdf: options.instance (or sourceInstance) must " +
-                    "be a naturalized dataset (or a non-empty array of them)"
-            );
-        }
-    }
-
     return encapsulate(documentBytes, {
-        mimeType: PDF_MIME_TYPE,
-        baseDicom: pdfBase(),
-        instance: resolvedInstance,
-        dataLevel: dataLevel ?? "study",
-        ...rest
+        baseDicom: encapsulatedPdfBase,
+        ...options
     });
 }
 
