@@ -57,50 +57,166 @@ it("test_encodings", async () => {
     });
 });
 
+const EXPLICIT_LE = "1.2.840.10008.1.2.1";
+const IMPLICIT_LE = "1.2.840.10008.1.2";
+
+// dcmjs writes every sequence and item with undefined length. This rewrites
+// them with defined lengths, so the reader takes each item's length instead of
+// looking for its Item Delimitation Item. The file meta group is Explicit VR;
+// the data set after it is Explicit or Implicit VR Little Endian.
+function withDefinedLengths(buffer, syntax) {
+    const view = new DataView(buffer);
+    const bytes = new Uint8Array(buffer);
+    const longVRs = ["OB", "OD", "OF", "OL", "OV", "OW", "SQ", "SV", "UC"];
+    longVRs.push("UN", "UR", "UT", "UV");
+    const u32 = value => [
+        value & 0xff,
+        (value >> 8) & 0xff,
+        (value >> 16) & 0xff,
+        value >>> 24
+    ];
+    // The meta group ends where its group length, (0002,0000) UL, says.
+    let pos = 144 + view.getUint32(140, true);
+    const head = bytes.subarray(0, pos);
+
+    // Copies the elements up to the end of the file or of the current item,
+    // and returns their bytes.
+    function elements() {
+        const out = [];
+        while (pos < bytes.length) {
+            if (view.getUint16(pos, true) === 0xfffe) {
+                pos += 8; // Item Delimitation Item
+                break;
+            }
+            const vr = String.fromCharCode(bytes[pos + 4], bytes[pos + 5]);
+            let header = 8;
+            let length = view.getUint16(pos + 6, true);
+            if (syntax === IMPLICIT_LE) {
+                length = view.getUint32(pos + 4, true);
+            } else if (longVRs.includes(vr)) {
+                header = 12;
+                length = view.getUint32(pos + 8, true);
+            }
+            if (length === 0xffffffff) {
+                // A sequence: tag, and in Explicit VR "SQ" and two bytes
+                const tagAndVR = Array.from(
+                    bytes.subarray(pos, pos + header - 4)
+                );
+                pos += header;
+                const items = [];
+                while (view.getUint16(pos + 2, true) === 0xe000) {
+                    pos += 8;
+                    const item = elements();
+                    items.push(0xfe, 0xff, 0x00, 0xe0);
+                    items.push(...u32(item.length), ...item);
+                }
+                pos += 8; // Sequence Delimitation Item
+                out.push(...tagAndVR, ...u32(items.length), ...items);
+            } else {
+                out.push(...bytes.subarray(pos, pos + header + length));
+                pos += header + length;
+            }
+        }
+        return out;
+    }
+
+    return Uint8Array.from([...head, ...elements()]).buffer;
+}
+
+// The two transfer syntaxes dcmjs writes, each with the undefined lengths it
+// writes and rewritten with defined lengths.
+const encodings = [
+    ["Explicit VR, undefined lengths", EXPLICIT_LE, false],
+    ["Explicit VR, defined lengths", EXPLICIT_LE, true],
+    ["Implicit VR, undefined lengths", IMPLICIT_LE, false],
+    ["Implicit VR, defined lengths", IMPLICIT_LE, true]
+];
+
+function writePart10(dict, syntax) {
+    const dicomDict = new DicomDict({
+        "00020010": { vr: "UI", Value: [syntax] }
+    });
+    dicomDict.dict = dict;
+    return dicomDict.write();
+}
+
+describe("Sequences rewritten with defined lengths", () => {
+    const undefinedLength = buffer => {
+        const data = new Uint8Array(buffer);
+        return data.some((_, i) =>
+            [0, 1, 2, 3].every(j => data[i + j] === 0xff)
+        );
+    };
+
+    it.each([
+        ["Explicit VR", EXPLICIT_LE],
+        ["Implicit VR", IMPLICIT_LE]
+    ])("keep no undefined length (%s)", (_, syntax) => {
+        const part10 = writePart10(
+            DicomMetaDictionary.denaturalizeDataset({
+                SpecificCharacterSet: "ISO_IR 192",
+                ContentSequence: [
+                    {
+                        TextValue: "a",
+                        ContentSequence: [{ TextValue: "b" }]
+                    }
+                ]
+            }),
+            syntax
+        );
+        expect(undefinedLength(part10)).toBe(true);
+        expect(undefinedLength(withDefinedLengths(part10, syntax))).toBe(false);
+    });
+});
+
 describe("SpecificCharacterSet in data read from sub-streams", () => {
     const text = "lesione – café 肝";
 
-    function writeAndRead(dict) {
-        const dicomDict = new DicomDict({
-            "00020010": { vr: "UI", Value: ["1.2.840.10008.1.2.1"] }
-        });
-        dicomDict.dict = dict;
+    function writeAndRead(dict, syntax = EXPLICIT_LE, defined = false) {
+        const part10 = writePart10(dict, syntax);
         return DicomMetaDictionary.naturalizeDataset(
-            DicomMessage.readFile(dicomDict.write()).dict
+            DicomMessage.readFile(
+                defined ? withDefinedLengths(part10, syntax) : part10
+            ).dict
         );
     }
 
-    it("decodes text in sequence items at every depth", () => {
-        const dataset = writeAndRead(
-            DicomMetaDictionary.denaturalizeDataset({
-                SpecificCharacterSet: "ISO_IR 192",
-                SOPClassUID: "1.2.840.10008.5.1.4.1.1.88.33",
-                SOPInstanceUID: "1.2.3",
-                StudyDescription: text,
-                ValueType: "CONTAINER",
-                ContentSequence: [
-                    {
-                        RelationshipType: "CONTAINS",
-                        ValueType: "TEXT",
-                        TextValue: text,
-                        ContentSequence: [
-                            {
-                                RelationshipType: "CONTAINS",
-                                ValueType: "TEXT",
-                                TextValue: text
-                            }
-                        ]
-                    }
-                ]
-            })
-        );
+    it.each(encodings)(
+        "decodes text in sequence items at every depth (%s)",
+        (_, syntax, defined) => {
+            const dataset = writeAndRead(
+                DicomMetaDictionary.denaturalizeDataset({
+                    SpecificCharacterSet: "ISO_IR 192",
+                    SOPClassUID: "1.2.840.10008.5.1.4.1.1.88.33",
+                    SOPInstanceUID: "1.2.3",
+                    StudyDescription: text,
+                    ValueType: "CONTAINER",
+                    ContentSequence: [
+                        {
+                            RelationshipType: "CONTAINS",
+                            ValueType: "TEXT",
+                            TextValue: text,
+                            ContentSequence: [
+                                {
+                                    RelationshipType: "CONTAINS",
+                                    ValueType: "TEXT",
+                                    TextValue: text
+                                }
+                            ]
+                        }
+                    ]
+                }),
+                syntax,
+                defined
+            );
 
-        expect(dataset.StudyDescription).toEqual(text);
-        expect(dataset.ContentSequence[0].TextValue).toEqual(text);
-        expect(dataset.ContentSequence[0].ContentSequence[0].TextValue).toEqual(
-            text
-        );
-    });
+            expect(dataset.StudyDescription).toEqual(text);
+            expect(dataset.ContentSequence[0].TextValue).toEqual(text);
+            expect(
+                dataset.ContentSequence[0].ContentSequence[0].TextValue
+            ).toEqual(text);
+        }
+    );
 
     it("decodes text in UN elements read with their dictionary VR", () => {
         const dict = DicomMetaDictionary.denaturalizeDataset({
@@ -149,9 +265,9 @@ describe("SpecificCharacterSet declared in a sequence item", () => {
         data.set(bytes, at);
     }
 
-    function worklistPart10() {
+    function worklistPart10(syntax) {
         const dicomDict = new DicomDict({
-            "00020010": { vr: "UI", Value: ["1.2.840.10008.1.2.1"] }
+            "00020010": { vr: "UI", Value: [syntax] }
         });
         dicomDict.dict = DicomMetaDictionary.denaturalizeDataset({
             SpecificCharacterSet: "ISO_IR 192",
@@ -204,11 +320,17 @@ describe("SpecificCharacterSet declared in a sequence item", () => {
         ).toEqual(cyrillicName);
     });
 
-    it("applies only to that item and the items nested in it", () => {
-        expectEachItemInItsCharacterSet(
-            DicomMetaDictionary.naturalizeDataset(
-                DicomMessage.readFile(worklistPart10()).dict
-            )
-        );
-    });
+    it.each(encodings)(
+        "applies only to that item and the items nested in it (%s)",
+        (_, syntax, defined) => {
+            const part10 = worklistPart10(syntax);
+            expectEachItemInItsCharacterSet(
+                DicomMetaDictionary.naturalizeDataset(
+                    DicomMessage.readFile(
+                        defined ? withDefinedLengths(part10, syntax) : part10
+                    ).dict
+                )
+            );
+        }
+    );
 });
