@@ -13,6 +13,7 @@ export {
 export { CollectorListener } from "./eventStream/CollectorListener.js";
 export { NaturalizedListener } from "./eventStream/NaturalizedListener.js";
 export { fromDataSet, emitEntry } from "./eventStream/fromDataSet.js";
+export { fromNaturalized } from "./eventStream/fromNaturalized.js";
 export {
     fromDicomWebJson,
     base64ToArrayBuffer

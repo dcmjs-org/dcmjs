@@ -71,7 +71,7 @@ export const envelope = {
     values: "asReturned", // the schema describes what dcmjs returns; vrFormats documents Part 5 separately
     personName: "componentObject", // {Alphabetic,Ideographic,Phonetic}
     sequences: "datasetArrayOrItem", // SQ -> dataset[] | the single item
-    privateTags: "creatorGrouped", // '<slot>:<creator>' keys
+    privateTags: "creatorGrouped", // '<group>:<creator>' keys
     unknownTags: "preserved", // { vr, Value, rawValue }
     rawRetention: "inexactOnly", // raw kept when round-trip inexact
     bulk: "referenceOrBinary" // {BulkDataURI} | {InlineBinary} | frame list

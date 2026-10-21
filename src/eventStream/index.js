@@ -17,6 +17,7 @@ export {
 export { CollectorListener } from "./CollectorListener.js";
 export { NaturalizedListener } from "./NaturalizedListener.js";
 export { fromDataSet } from "./fromDataSet.js";
+export { fromNaturalized } from "./fromNaturalized.js";
 export { fromDicomWebJson } from "./fromDicomWebJson.js";
 export { createEventAsyncIterable } from "./asyncIterator.js";
 export { fromPart10 } from "./fromPart10.js";
@@ -34,6 +35,7 @@ import {
 import { CollectorListener } from "./CollectorListener.js";
 import { NaturalizedListener } from "./NaturalizedListener.js";
 import { fromDataSet } from "./fromDataSet.js";
+import { fromNaturalized } from "./fromNaturalized.js";
 import { fromDicomWebJson } from "./fromDicomWebJson.js";
 import { createEventAsyncIterable } from "./asyncIterator.js";
 import { fromPart10 } from "./fromPart10.js";
@@ -50,6 +52,7 @@ export default {
     CollectorListener,
     NaturalizedListener,
     fromDataSet,
+    fromNaturalized,
     fromDicomWebJson,
     createEventAsyncIterable,
     fromPart10,

@@ -55,6 +55,16 @@ export { default as isMultiVM } from "./utilities/isMultiVM.js";
 export { default as BINARY_VRS } from "./utilities/binaryVRs.js";
 export { default as dicomJson } from "./utilities/dicomJson.js";
 export {
+    checkBinaryAs,
+    naturalBinaryFragment
+} from "./utilities/binaryFragment.js";
+export {
+    isPrivateTag,
+    placePrivateElements,
+    definePrivateAliases,
+    expandPrivateBlocks
+} from "./utilities/privateBlocks.js";
+export {
     DicomMetadataListener,
     createInformationFilter
 } from "./utilities/DicomMetadataListener.js";

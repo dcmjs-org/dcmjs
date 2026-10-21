@@ -4,10 +4,14 @@ import {
 } from "./EventStreamListener.js";
 import {
     lookupTagHex,
-    lookupPrivateTag,
+    dictionary,
     addAccessors,
     isMultiVM,
     dicomJson,
+    isPrivateTag,
+    placePrivateElements,
+    checkBinaryAs,
+    naturalBinaryFragment,
     log
 } from "@dcmjs-org/core";
 
@@ -38,10 +42,14 @@ export class NaturalizedListener extends EventStreamListener {
      * @param {string} [options.cardinalityViolationPolicy="warnAndPreserve"]
      *   One of preserve | discardExtra | warnAndPreserve | warnAndDiscardExtra |
      *   recordAndPreserve | recordAndDiscardExtra | throw.
+     * @param {"ArrayBuffer"|"Uint8Array"} [options.binaryAs="ArrayBuffer"]
+     *   The type of each fragment or frame of a binary value, as in
+     *   DicomMetaDictionary.naturalizeDataset.
      */
     constructor(options = {}, ...filters) {
         super(...filters);
         this.policy = options.cardinalityViolationPolicy || "warnAndPreserve";
+        this.binaryAs = checkBinaryAs(options.binaryAs);
         this.result = {};
         this.meta = {};
         this.violations = [];
@@ -62,20 +70,22 @@ export class NaturalizedListener extends EventStreamListener {
     }
 
     _baseStartDataSet() {
-        this.result = {};
-        this.meta = {};
+        this.result = { _vrMap: {} };
+        this.meta = { _vrMap: {} };
         this.violations = [];
-        this._stack = [{ kind: "object", obj: this.result }];
+        this._stack = [objectFrame(this.result)];
     }
 
-    _baseEndDataSet() {}
+    _baseEndDataSet() {
+        endObject(this._stack[0]);
+    }
 
     _baseStartFileMetaInformation() {
-        this._stack.push({ kind: "object", obj: this.meta });
+        this._stack.push(objectFrame(this.meta));
     }
 
     _baseEndFileMetaInformation() {
-        this._stack.pop();
+        endObject(this._stack.pop());
     }
 
     _baseStartElement(tag, info = {}) {
@@ -119,9 +129,9 @@ export class NaturalizedListener extends EventStreamListener {
         if (bot && bot.length) {
             fragments = mergeFragmentsPerBotWindow(fragments, bot);
         }
-        frame.binary = {
-            InlineBinary: fragments.length === 1 ? fragments[0] : fragments
-        };
+        frame.binary = fragments.map(fragment =>
+            naturalBinaryFragment(fragment, this.binaryAs)
+        );
         frame._fragments = undefined;
         frame._binaryInfo = undefined;
     }
@@ -143,12 +153,28 @@ export class NaturalizedListener extends EventStreamListener {
         }
 
         if (isPrivateTag(frame.tag)) {
-            this._placePrivate(targetFrame, frame);
+            const entry = registeredEntry(frame.tag);
+            let value = frame.binary;
+            if (value === undefined) {
+                value = entry
+                    ? this._shapeValues(frame, entry, frame.tag)
+                    : privateShape(frame.values);
+                if (frame.vr === "PN" && value !== null) {
+                    value = addPersonNameAccessors(value);
+                }
+            }
+            targetFrame.privates.push({
+                tag: frame.tag,
+                vr: frame.vr,
+                value,
+                entry
+            });
             return;
         }
 
         const entry = lookupTagHex(frame.tag);
         const key = (entry && entry.name) || frame.tag;
+        recordVr(targetFrame, key, entry, frame.vr);
         if (frame.binary !== undefined) {
             targetFrame.obj[key] = frame.binary;
             return;
@@ -165,11 +191,12 @@ export class NaturalizedListener extends EventStreamListener {
     }
 
     _baseStartItem() {
-        this._stack.push({ kind: "object", obj: {} });
+        this._stack.push(objectFrame({ _vrMap: {} }));
     }
 
     _baseEndItem() {
         const itemFrame = this._stack.pop();
+        endObject(itemFrame);
         // The enclosing frame is the sequence.
         this._stack[this._stack.length - 1].items.push(itemFrame.obj);
     }
@@ -177,60 +204,22 @@ export class NaturalizedListener extends EventStreamListener {
     _baseEndSequence() {
         const frame = this._stack.pop();
         const targetFrame = this._objectFrame();
-        const shaped = this._shapeSequence(frame, lookupTagHex(frame.tag));
-
         if (isPrivateTag(frame.tag)) {
-            this._placePrivateValue(targetFrame, frame.tag, frame.vr, shaped);
+            const entry = registeredEntry(frame.tag);
+            const shaped = this._shapeSequence(frame, entry);
+            targetFrame.privates.push({
+                tag: frame.tag,
+                vr: frame.vr,
+                value: shaped,
+                entry
+            });
             return;
         }
         const entry = lookupTagHex(frame.tag);
+        const shaped = this._shapeSequence(frame, entry);
         const key = (entry && entry.name) || frame.tag;
+        recordVr(targetFrame, key, entry, frame.vr);
         targetFrame.obj[key] = shaped;
-    }
-
-    // --- private-tag grouping (§18) -----------------------------------------
-
-    _placePrivate(targetFrame, frame) {
-        const elem = parseInt(frame.tag.slice(4, 8), 16);
-        // Private creator (gggg,00xx): record it for the block; do NOT emit it
-        // as an ordinary attribute (§18.5).
-        if (elem <= 0x00ff) {
-            const v =
-                frame.values && frame.values.length ? frame.values[0] : null;
-            if (v != null) {
-                targetFrame.creators = targetFrame.creators || {};
-                targetFrame.creators[elem] = String(v);
-            }
-            return;
-        }
-        const value =
-            frame.binary !== undefined
-                ? frame.binary
-                : privateShape(frame.values);
-        this._placePrivateValue(targetFrame, frame.tag, frame.vr, value);
-    }
-
-    _placePrivateValue(targetFrame, tag, vr, value) {
-        const elem = parseInt(tag.slice(4, 8), 16);
-        const slot = elem >> 8; // creator slot (high byte of the element)
-        const offset = elem & 0xff; // block-relative element (low byte)
-        const creator = targetFrame.creators && targetFrame.creators[slot];
-
-        if (creator) {
-            const groupKey = `${hex2(slot)}:${creator}`;
-            let group = targetFrame.obj[groupKey];
-            if (!group) {
-                group = { originalTagOffset: slot };
-                targetFrame.obj[groupKey] = group;
-            }
-            group[privateKeyFor(tag, creator, offset, group)] = value;
-            return;
-        }
-        // §18.4: no identifiable creator -> full tag key, unknown attribute shape.
-        targetFrame.obj[tag] = {
-            vr,
-            Value: Array.isArray(value) ? value : value == null ? [] : [value]
-        };
     }
 
     // --- cardinality shaping ------------------------------------------------
@@ -300,36 +289,28 @@ export class NaturalizedListener extends EventStreamListener {
 }
 
 /**
- * A private tag has an odd group number and an element at or above 0x0010 (the
- * first usable private creator slot). Group-length (0x0000) and reserved low
- * elements fall through to standard handling.
+ * A dataset or item frame. Its private elements wait in `privates` until the
+ * level ends, so a creator that comes after its data still applies (§18).
  */
-function isPrivateTag(tag) {
-    const group = parseInt(tag.slice(0, 4), 16);
-    const elem = parseInt(tag.slice(4, 8), 16);
-    return (group & 1) === 1 && elem >= 0x0010;
+function objectFrame(obj) {
+    return { kind: "object", obj, privates: [] };
 }
 
-/** Two-hex-digit uppercase, e.g. 0x10 -> "10". */
-function hex2(n) {
-    return n.toString(16).toUpperCase().padStart(2, "0");
+function endObject(frame) {
+    placePrivateElements(frame.obj, frame.obj._vrMap, frame.privates);
+    frame.privates = [];
 }
 
-/**
- * Block-relative key for a private data element (§18.2): the registered private
- * name when the (creator, offset) is known in the private dictionary and the
- * name is meaningful and non-colliding; otherwise the numeric block-relative
- * offset. Registered names stay scoped to the creator group.
- */
-function privateKeyFor(tag, creator, offset, group) {
-    const numeric = hex2(offset);
-    const reg = lookupPrivateTag(
-        `(${tag.slice(0, 4)},"${creator}",${numeric})`
-    );
-    if (reg && reg.name && reg.name !== "Unknown" && !(reg.name in group)) {
-        return reg.name;
+/** The _vrMap rule of DicomMetaDictionary.naturalizeDataset. */
+function recordVr(frame, key, entry, vr) {
+    if (vr && (!entry || entry.vr === "ox" || entry.vr !== vr)) {
+        frame.obj._vrMap[key] = vr;
     }
-    return numeric;
+}
+
+/** A registerTag() entry for a private tag, or undefined. */
+function registeredEntry(tag) {
+    return dictionary[`(${tag.slice(0, 4)},${tag.slice(4, 8)})`];
 }
 
 /**

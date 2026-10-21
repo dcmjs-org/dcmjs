@@ -4,12 +4,21 @@ import log from "./log.js";
 import addAccessors from "./utilities/addAccessors.js";
 import isMultiVM from "./utilities/isMultiVM.js";
 import BINARY_VRS from "./utilities/binaryVRs.js";
+import {
+    checkBinaryAs,
+    naturalBinaryFragment
+} from "./utilities/binaryFragment.js";
 import { ValueRepresentation } from "./ValueRepresentation.js";
+import {
+    isPrivateTag,
+    placePrivateElements,
+    expandPrivateBlocks
+} from "./utilities/privateBlocks.js";
 
 /**
  * The naturalized value of one DICOM JSON element (see naturalizeDataset).
  */
-function naturalizeElement(data, entry) {
+function naturalizeElement(data, entry, options) {
     if (data.Value === undefined || data.Value === null) {
         // type 2 (present, empty) is null; binary keeps its reference
         if (data.InlineBinary) {
@@ -24,14 +33,19 @@ function naturalizeElement(data, entry) {
     const multi = isMultiVM(entry?.vm);
     if (data.vr === "SQ") {
         const items = data.Value.map(item =>
-            DicomMetaDictionary.naturalizeDataset(item)
+            DicomMetaDictionary.naturalizeDataset(item, options)
         );
         return items.length === 1 && !multi ? addAccessors(items) : items;
     }
 
     let value = data.Value;
-    // a binary Value lists frames or fragments, not a VM: keep the list
-    if (!multi && !BINARY_VRS.has(data.vr)) {
+    if (BINARY_VRS.has(data.vr)) {
+        // a binary Value lists frames or fragments, not a VM: keep the list
+        return value.map(fragment =>
+            naturalBinaryFragment(fragment, options.binaryAs)
+        );
+    }
+    if (!multi) {
         if (value.length === 0) return null;
         if (value.length === 1) value = value[0];
     }
@@ -154,18 +168,36 @@ export class DicomMetaDictionary {
      *   ...) always keeps the list, because its Value lists frames;
      * - a sequence with one item (and a VM of 1) is that item object, with a
      *   hidden [0] and length (see addAccessors); otherwise it is a list;
-     * - PN values get their value accessors here, when the value is built.
+     * - PN values get their value accessors here, when the value is built;
+     * - private elements group by reserved block under `${group}:${creator}`
+     *   keys, with non-enumerable hex-tag aliases (see privateBlocks.js).
      *
      * The result is a plain object: there is no Proxy. The 0.x shapes are in
      * the DicomMetaDictionary of @dcmjs-org/legacy.
+     *
+     * @param {Object} dataset - DICOM JSON Model dataset
+     * @param {Object} [options]
+     * @param {"ArrayBuffer"|"Uint8Array"} [options.binaryAs="ArrayBuffer"] -
+     *   the type of each fragment or frame of a binary value
      */
-    static naturalizeDataset(dataset) {
+    static naturalizeDataset(dataset, options = {}) {
+        options = { ...options, binaryAs: checkBinaryAs(options.binaryAs) };
         const naturalDataset = { _vrMap: {} };
+        const privateElements = [];
 
         Object.keys(dataset).forEach(tag => {
             const data = dataset[tag];
             const punctuatedTag = DicomMetaDictionary.punctuateTag(tag);
             const entry = DicomMetaDictionary.dictionary[punctuatedTag];
+            if (isPrivateTag(tag)) {
+                privateElements.push({
+                    tag,
+                    vr: data.vr,
+                    value: naturalizeElement(data, entry, options),
+                    entry
+                });
+                return;
+            }
             let naturalName = tag;
 
             if (entry) {
@@ -181,9 +213,18 @@ export class DicomMetaDictionary {
                 naturalDataset._vrMap[naturalName] = data.vr;
             }
 
-            naturalDataset[naturalName] = naturalizeElement(data, entry);
+            naturalDataset[naturalName] = naturalizeElement(
+                data,
+                entry,
+                options
+            );
         });
 
+        placePrivateElements(
+            naturalDataset,
+            naturalDataset._vrMap,
+            privateElements
+        );
         return naturalDataset;
     }
 
@@ -212,6 +253,8 @@ export class DicomMetaDictionary {
     // keep the static function to support previous calls to the class
     static denaturalizeDataset(dataset, nameMap = DicomMetaDictionary.nameMap) {
         var unnaturalDataset = {};
+        // reserved private blocks become a creator plus hex-tag elements
+        dataset = expandPrivateBlocks(dataset);
         Object.keys(dataset).forEach(naturalName => {
             // check if it's a sequence
             var name = naturalName;

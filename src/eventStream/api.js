@@ -6,6 +6,7 @@ import { fromPart10 } from "./fromPart10.js";
 import { fromPart10Stream } from "./fromPart10Stream.js";
 import { fromDicomWebJson } from "./fromDicomWebJson.js";
 import { fromDataSet } from "./fromDataSet.js";
+import { fromNaturalized } from "./fromNaturalized.js";
 import { createEventAsyncIterable } from "./asyncIterator.js";
 import { datasetToDict } from "../datasetToBlob.js";
 import { dicomDictFromFhir } from "./fromFhir.js";
@@ -118,6 +119,16 @@ export class DicomEventStream {
     /** A parsed dcmjs dataset ({ meta, dict }) source. */
     static fromDataSet(dataset) {
         return new DicomEventStream(listener => fromDataSet(dataset, listener));
+    }
+
+    /**
+     * A naturalized dataset source (the inverse of toNaturalized); a `_meta`
+     * member becomes the file meta information.
+     */
+    static fromNaturalized(dataset) {
+        return new DicomEventStream(listener =>
+            fromNaturalized(dataset, listener)
+        );
     }
 
     /**

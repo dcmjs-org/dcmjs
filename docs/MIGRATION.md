@@ -120,7 +120,7 @@ file without inflating, it now receives a real deflate stream. Either keep
 writing plain explicit little endian (set the transfer syntax UID to
 `1.2.840.10008.1.2.1` before writing) or teach the consumer to inflate.
 
-## Naturalization: five changes
+## Naturalization: six changes
 
 Naturalization turns the tag-keyed dict into a keyword-keyed dataset
 (`dataset.PatientName` instead of `dict["00100010"]`), and
@@ -131,15 +131,15 @@ naturalize to component objects that still stringify to the raw PN form
 (`dcmjs.data.DicomMetaDictionary`) and `@dcmjs-org/core` share one
 naturalizer, so these changes apply to both.
 
-Five things changed relative to 0.x:
+Six things changed relative to 0.x:
 
 1. **`_vrMap` now carries entries for elements outside the dictionary.**
    A naturalized dataset has always carried a `_vrMap` side table recording
    the actual VR of elements whose on-wire type was ambiguous. It now also
    records the VR of any element that has no dictionary entry at all, such
-   as an unregistered private tag, keyed by the element's 8-digit hex tag.
-   Code that iterates or counts `_vrMap` keys sees entries it did not see
-   in 0.x.
+   as a private element without a creator, keyed by the element's 8-digit
+   hex tag, and the VRs of each private block (change 6). Code that
+   iterates or counts `_vrMap` keys sees entries it did not see in 0.x.
 
 2. **Private elements survive the round trip.** In 0.x,
    `denaturalizeDataset` logged "Unknown name in dataset" for an
@@ -181,6 +181,43 @@ Five things changed relative to 0.x:
    remains on the dcmjs surface as a no-op. Pinned by
    `test/issues/issue218-single-item-sq.test.js` and
    `test/core/naturalizeDataset.test.js`.
+
+6. **Private elements group by reserved block.** A private creator
+   (gggg,00xx) reserves the elements (gggg,xx00-xxFF) (PS3.5 7.8.1). The
+   creator and its elements now naturalize to one key,
+   `` `${gggg}:${creator}` ``, and the element number within the block
+   is the key `xEE`:
+
+   ```js
+   dataset["0029:ACME"]; // { creator: "ACME", reservedBlock: 0x10, x01: "a" }
+   dataset._vrMap["0029:ACME"]; // { x01: "LO" }
+   ```
+
+   - The 8-digit hex tags (`dataset["00290010"]`, `dataset["00291001"]`)
+     remain as non-enumerable aliases. A read works as before, and a write
+     to an element alias goes to the block. The creator alias is read-only.
+     `Object.keys` and `JSON.stringify` no longer show the hex keys.
+   - A `registerTag()` keyword for a private tag is a non-enumerable alias
+     on the dataset and in the block. A private dictionary keyword (for
+     example `CSAImageHeaderInfo`) is an alias in the block only.
+   - A private element without a creator keeps its hex tag as the key.
+   - `denaturalizeDataset` accepts the block form and the hex-tag form. It
+     keeps `reservedBlock` when that block is free in the group, and moves
+     the block to the first free xx when it is not.
+   - `NaturalizedListener` (`toNaturalized()`) gives the same object as
+     `naturalizeDataset`, `_vrMap` included. Its earlier draft keys
+     (`"10:ACME"`, `originalTagOffset`) are gone. Its binary values are a
+     list of `ArrayBuffer`, as `naturalizeDataset` gives, in place of the
+     earlier `{ InlineBinary }` wrapper.
+   - Both naturalizers take `{ binaryAs: "Uint8Array" }` to give each
+     binary fragment as a `Uint8Array` view with no copy. The default stays
+     `ArrayBuffer`.
+   - `DicomEventStream.fromNaturalized()` streams a naturalized dataset to
+     any sink, for example `Part10Writer`.
+
+   [specs/naturalized-dataset.md](specs/naturalized-dataset.md) gives the
+   full rules. Pinned by `test/core/privateBlocks.test.js` and
+   `test/issues/issue388-private-tags.test.js`.
 
 ## Behavior changes made for standard compliance
 

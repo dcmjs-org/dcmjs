@@ -22,7 +22,11 @@ describe("NaturalizedListener — keyword naming + scalar cardinality", () => {
         scalar(l, "00100020", "LO", "12345"); // PatientID, VM 1
         scalar(l, "00200013", "IS", 12); // InstanceNumber, VM 1
         l.endDataSet();
-        expect(l.result).toEqual({ PatientID: "12345", InstanceNumber: 12 });
+        expect(l.result).toEqual({
+            _vrMap: {},
+            PatientID: "12345",
+            InstanceNumber: 12
+        });
     });
 
     test("VM-1 present-empty is null; absent is omitted", () => {
@@ -30,7 +34,7 @@ describe("NaturalizedListener — keyword naming + scalar cardinality", () => {
         l.startDataSet({});
         scalar(l, "00100020", "LO"); // present, no value
         l.endDataSet();
-        expect(l.result).toEqual({ PatientID: null });
+        expect(l.result).toEqual({ _vrMap: {}, PatientID: null });
         expect("InstanceNumber" in l.result).toBe(false);
     });
 
@@ -120,7 +124,7 @@ describe("NaturalizedListener — sequences", () => {
 });
 
 describe("NaturalizedListener — binary and meta", () => {
-    test("assembled binary fragments become InlineBinary", () => {
+    test("assembled binary fragments become a list of ArrayBuffer", () => {
         const l = new NaturalizedListener();
         const buf = new Uint8Array([1, 2, 3, 4]).buffer;
         l.startDataSet({});
@@ -130,9 +134,8 @@ describe("NaturalizedListener — binary and meta", () => {
         l.endBinary();
         l.endElement();
         l.endDataSet();
-        expect(
-            Array.from(new Uint8Array(l.result.PixelData.InlineBinary))
-        ).toEqual([1, 2, 3, 4]);
+        expect(l.result.PixelData).toHaveLength(1);
+        expect(l.result.PixelData[0]).toBe(buf);
     });
 
     test("bulkDataReference becomes BulkDataURI", () => {
@@ -324,46 +327,56 @@ describe("NaturalizedListener — Person Name proxy (§17)", () => {
 });
 
 describe("NaturalizedListener — private-tag grouping (§18)", () => {
-    test("groups private data under <slot>:<creator>, with block-relative keys", () => {
+    test("groups a reserved block under <group>:<creator>, with xEE keys and VRs", () => {
         const l = new NaturalizedListener();
         l.startDataSet({});
-        // An unregistered creator -> numeric block-relative keys (§18.1/§18.3).
-        scalar(l, "00290010", "LO", "ACME_PRIVATE_1.0"); // creator, slot 0x10
-        scalar(l, "00291010", "LO", "acme-value"); // private data (0029,1010)
-        scalar(l, "00291011", "LO", "acme-value-2"); // private data (0029,1011)
+        scalar(l, "00290010", "LO", "ACME_PRIVATE_1.0"); // creator, block 0x10
+        scalar(l, "00291010", "LO", "acme-value");
+        scalar(l, "00291011", "LO", "acme-value-2");
         l.endDataSet();
 
-        expect(l.result["10:ACME_PRIVATE_1.0"]).toEqual({
-            originalTagOffset: 0x10,
-            10: "acme-value",
-            11: "acme-value-2"
+        expect(l.result).toEqual({
+            _vrMap: { "0029:ACME_PRIVATE_1.0": { x10: "LO", x11: "LO" } },
+            "0029:ACME_PRIVATE_1.0": {
+                creator: "ACME_PRIVATE_1.0",
+                reservedBlock: 0x10,
+                x10: "acme-value",
+                x11: "acme-value-2"
+            }
         });
-        // §18.5: the creator element is not emitted as an ordinary attribute
-        expect("00290010" in l.result).toBe(false);
+        // the hex tags stay readable as non-enumerable aliases
+        expect(l.result["00290010"]).toBe("ACME_PRIVATE_1.0");
+        expect(l.result["00291010"]).toBe("acme-value");
     });
 
-    test("uses the registered private name when known (§18.2)", () => {
+    test("a private dictionary keyword is a non-enumerable alias in the block (§18.2)", () => {
         const l = new NaturalizedListener();
         l.startDataSet({});
-        scalar(l, "00290010", "LO", "SIEMENS CSA HEADER"); // creator, slot 0x10
+        scalar(l, "00290010", "LO", "SIEMENS CSA HEADER");
         scalar(l, "00291010", "OB", "csa"); // (0029,1010) -> CSAImageHeaderInfo
-        scalar(l, "00291099", "LO", "x"); // (0029,1099) -> not registered, numeric
+        scalar(l, "00291099", "LO", "x"); // not in the private dictionary
         l.endDataSet();
 
-        const group = l.result["10:SIEMENS CSA HEADER"];
-        expect(group.CSAImageHeaderInfo).toBe("csa");
-        expect(group["99"]).toBe("x");
-        // registered names stay scoped to the creator group
+        const block = l.result["0029:SIEMENS CSA HEADER"];
+        expect(Object.keys(block)).toEqual([
+            "creator",
+            "reservedBlock",
+            "x10",
+            "x99"
+        ]);
+        expect(block.CSAImageHeaderInfo).toBe("csa");
+        // the keyword stays scoped to its block
         expect("CSAImageHeaderInfo" in l.result).toBe(false);
     });
 
-    test("private data without an identifiable creator keeps a full-tag unknown shape (§18.4)", () => {
+    test("private data without a creator keeps its hex tag, with the VR in _vrMap (§18.4)", () => {
         const l = new NaturalizedListener();
         l.startDataSet({});
-        scalar(l, "00291020", "UN", "orphan"); // no creator declared for slot 0x10
+        scalar(l, "00291020", "UN", "orphan"); // no creator for block 0x10
         l.endDataSet();
 
-        expect(l.result["00291020"]).toEqual({ vr: "UN", Value: ["orphan"] });
+        expect(l.result["00291020"]).toBe("orphan");
+        expect(l.result._vrMap["00291020"]).toBe("UN");
     });
 
     test("private grouping is scoped per dataset level (sequence items have their own creators)", () => {
@@ -379,9 +392,9 @@ describe("NaturalizedListener — private-tag grouping (§18)", () => {
         l.endSequence();
         l.endDataSet();
 
-        expect(l.result["10:ROOT CREATOR"]["10"]).toBe("root");
+        expect(l.result["0029:ROOT CREATOR"].x10).toBe("root");
         const item = l.result.ScheduledProcedureStepSequence;
-        expect(item["10:ITEM CREATOR"]["10"]).toBe("item");
+        expect(item["0029:ITEM CREATOR"].x10).toBe("item");
     });
 });
 

@@ -74,13 +74,12 @@ describe("issue #388 — SQ items with private tags naturalize without accessor 
         expect(seq.length).toBe(1);
 
         const item = seq[0];
+        // the private block is one key; the hex tags are hidden aliases
         expect(Object.keys(item)).toEqual(
-            expect.arrayContaining([
-                "00090010",
-                "00091001",
-                "SeriesInstanceUID"
-            ])
+            expect.arrayContaining([`0009:${CREATOR}`, "SeriesInstanceUID"])
         );
+        expect(Object.keys(item)).not.toContain("00091001");
+        expect(item[`0009:${CREATOR}`].x01).toBe("private-in-sq");
         expect(item["00090010"]).toBe(CREATOR);
         expect(item["00091001"]).toBe("private-in-sq");
         expect(item.SeriesInstanceUID).toBe("1.2.3.4");

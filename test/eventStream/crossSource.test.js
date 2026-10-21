@@ -66,6 +66,9 @@ function normalize(v) {
     if (v === null || typeof v !== "object") return v;
     if (v instanceof ArrayBuffer || ArrayBuffer.isView(v)) return "__bytes";
     if ("InlineBinary" in v || "BulkDataURI" in v) return "__binary";
+    if (Array.isArray(v) && v.some(f => f instanceof ArrayBuffer)) {
+        return "__binary";
+    }
     if (Array.isArray(v)) return v.map(normalize);
     const out = {};
     for (const k of Object.keys(v).sort()) {
