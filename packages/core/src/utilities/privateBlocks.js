@@ -117,9 +117,9 @@ export function placePrivateElements(target, vrMap, elements) {
     const creators = new Map();
     for (const { tag, value } of elements) {
         const element = parseInt(tag.slice(4, 8), 16);
-        const creator = Array.isArray(value) ? value[0] : value;
-        if (element <= 0x00ff && creator != null && creator !== "") {
-            creators.set(tag.toUpperCase(), String(creator));
+        const creator = element <= 0x00ff ? creatorText(value) : "";
+        if (creator !== "") {
+            creators.set(tag.toUpperCase(), creator);
         }
     }
 
@@ -148,6 +148,22 @@ export function placePrivateElements(target, vrMap, elements) {
         }
     }
     definePrivateAliases(target);
+}
+
+/**
+ * The creator string of a private creator value. A creator that was read as
+ * UN (implicit VR, or a gateway that converts unknown VRs) holds bytes; they
+ * decode as LO text, without the trailing NUL or space padding.
+ */
+function creatorText(value) {
+    const v = Array.isArray(value) ? value[0] : value;
+    if (v instanceof ArrayBuffer || ArrayBuffer.isView(v)) {
+        const bytes = ArrayBuffer.isView(v)
+            ? new Uint8Array(v.buffer, v.byteOffset, v.byteLength)
+            : new Uint8Array(v);
+        return String.fromCharCode(...bytes).replace(/[\0 ]+$/, "");
+    }
+    return v == null ? "" : String(v);
 }
 
 function blockFor(target, group, creator, xx) {

@@ -66,6 +66,21 @@ describe("private reserved blocks", () => {
         }
     });
 
+    it("a creator read as UN bytes gives its text as the block key", () => {
+        const naturalized = DicomMetaDictionary.naturalizeDataset({
+            "7FDD0010": {
+                vr: "UN",
+                Value: [new TextEncoder().encode("TSC Private Group ").buffer]
+            },
+            "7FDD1001": { vr: "UN", Value: [new ArrayBuffer(2)] }
+        });
+        expect(Object.keys(naturalized["7FDD:TSC Private Group"])).toEqual([
+            "creator",
+            "reservedBlock",
+            "x01"
+        ]);
+    });
+
     it("a hex alias writes through to its block", () => {
         const naturalized = DicomMetaDictionary.naturalizeDataset(sourceDict());
         naturalized["00291001"] = 9;

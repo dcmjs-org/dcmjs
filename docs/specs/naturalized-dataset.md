@@ -253,7 +253,9 @@ naturalizes to
 - **NAT-I-PLACE-2.** The creators of a level are found first, so the order
   of the source does not matter (NAT-U-PRIV-7).
 - **NAT-I-PLACE-3.** A creator with an empty value is not a creator. Its
-  element keeps its hex tag.
+  element keeps its hex tag. A creator value that holds bytes (read as UN)
+  decodes as LO text without its trailing NUL or space padding, and
+  denaturalize writes the creator as LO.
 - **NAT-I-PLACE-4.** The blocks come after the standard attributes in key
   order.
 - **NAT-I-PLACE-5.** Each producer shapes values with its own rules before
