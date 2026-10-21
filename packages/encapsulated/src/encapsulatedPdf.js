@@ -42,8 +42,18 @@ function assertPdfMagic(arrayBuffer) {
  *
  * Checks the PDF magic, then calls {@link encapsulate} with
  * `encapsulatedPdfBase` as the default `baseDicom`. All other options
- * (`instance`, `dataLevel`, `levels`, `mimeType`, and keyword
- * overrides) pass through; see `createInstance` in `@dcmjs-org/core`.
+ * (`instance`, `dataLevel`, `levels`, `predecessor`, `postProcess`,
+ * `mimeType`, and `overrides`) pass through; see `createInstance` in
+ * `@dcmjs-org/core`. The DICOM attributes go in `overrides`, a naturalized
+ * DICOM provider with the forms of `baseDicom`. Bytes without the `%PDF-`
+ * magic throw an error (ENC-USR-11).
+ *
+ * @example
+ * encapsulatePdf(pdfBytes, {
+ *     instance,
+ *     dataLevel: "series",
+ *     overrides: { DocumentTitle: "v1" }
+ * });
  *
  * @param {ArrayBuffer|Uint8Array} pdfBytes
  * @param {Object} [options]
@@ -53,8 +63,12 @@ function encapsulatePdf(pdfBytes, options = {}) {
     const documentBytes = toExactArrayBuffer(pdfBytes);
     assertPdfMagic(documentBytes);
     return encapsulate(documentBytes, {
-        baseDicom: encapsulatedPdfBase,
-        ...options
+        ...options,
+        // An undefined baseDicom means the default, as in encapsulate.
+        baseDicom:
+            options.baseDicom === undefined
+                ? encapsulatedPdfBase
+                : options.baseDicom
     });
 }
 
@@ -67,7 +81,8 @@ function encapsulatePdf(pdfBytes, options = {}) {
  * even-length original that genuinely ends in a zero byte survives
  * (review finding 16). Only for files written without the element does the
  * old heuristic apply: a single trailing 0x00 on an even stored length is
- * trimmed as pad.
+ * trimmed as pad. A dataset that is not an Encapsulated PDF throws an error
+ * (ENC-USR-11).
  *
  * @param {Object} dataset - naturalized Encapsulated PDF instance
  * @returns {{ bytes: Uint8Array, mimeType: string, title: string }}
@@ -146,5 +161,6 @@ function extractEncapsulatedPdf(dataset) {
 export {
     encapsulatePdf,
     extractEncapsulatedPdf,
-    ENCAPSULATED_PDF_SOP_CLASS_UID
+    ENCAPSULATED_PDF_SOP_CLASS_UID,
+    PDF_MIME_TYPE
 };

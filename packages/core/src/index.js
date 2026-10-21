@@ -77,5 +77,6 @@ export {
     predecessorBase,
     hierarchicalReferences,
     defaultInstanceBase,
-    nextSeriesNumberBase
+    nextSeriesNumberBase,
+    removeUndefinedAttributes
 } from "./utilities/createInstance.js";

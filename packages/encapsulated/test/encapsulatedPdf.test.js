@@ -103,12 +103,14 @@ it("builds a conformant Encapsulated PDF dataset with defaults", () => {
 
 it("honors caller options including attachment to an existing study", () => {
     const dataset = encapsulatePdf(PDF_BYTES, {
-        PatientName: "Doe^Jane",
-        PatientID: "MRN-42",
-        DocumentTitle: "Discharge Summary",
-        StudyInstanceUID: "1.2.3.4.5",
-        SeriesInstanceUID: "1.2.3.4.5.6",
-        SeriesDescription: "External reports"
+        overrides: {
+            PatientName: "Doe^Jane",
+            PatientID: "MRN-42",
+            DocumentTitle: "Discharge Summary",
+            StudyInstanceUID: "1.2.3.4.5",
+            SeriesInstanceUID: "1.2.3.4.5.6",
+            SeriesDescription: "External reports"
+        }
     });
 
     expect(dataset.PatientName).toEqual("Doe^Jane");
@@ -126,8 +128,10 @@ it("rejects bytes that are not a PDF", () => {
 
 it("round-trips through Part 10 write and read", async () => {
     const dataset = encapsulatePdf(PDF_BYTES, {
-        PatientName: "Doe^Jane",
-        DocumentTitle: "Discharge Summary"
+        overrides: {
+            PatientName: "Doe^Jane",
+            DocumentTitle: "Discharge Summary"
+        }
     });
 
     const listener = await readNaturalized(await writePart10(dataset));
@@ -162,7 +166,7 @@ it("round-trips through Part 10 write and read", async () => {
 
 it("extractEncapsulatedPdf recovers the exact original bytes", async () => {
     const dataset = encapsulatePdf(PDF_BYTES, {
-        DocumentTitle: "Discharge Summary"
+        overrides: { DocumentTitle: "Discharge Summary" }
     });
     const listener = await readNaturalized(await writePart10(dataset));
 

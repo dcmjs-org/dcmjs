@@ -52,13 +52,13 @@ describe("encapsulate — the generic builder", () => {
         expect(
             encapsulate(PDF_BYTES, {
                 baseDicom: base,
-                MIMETypeOfEncapsulatedDocument: "model/stl"
+                overrides: { MIMETypeOfEncapsulatedDocument: "model/stl" }
             }).MIMETypeOfEncapsulatedDocument
         ).toBe("model/stl");
         expect(
             encapsulate(PDF_BYTES, {
                 baseDicom: base,
-                MIMETypeOfEncapsulatedDocument: "model/stl",
+                overrides: { MIMETypeOfEncapsulatedDocument: "model/stl" },
                 mimeType: "text/xml; charset=utf-8"
             }).MIMETypeOfEncapsulatedDocument
         ).toBe("text/xml; charset=utf-8");
@@ -75,15 +75,20 @@ describe("encapsulate — the generic builder", () => {
         expect(ds.Manufacturer).toBe("PDF/A tool");
         expect(ds.SOPClassUID).toBe(ENCAPSULATED_PDF_SOP_CLASS_UID);
         expect(ds.ConversionType).toBe("WSD");
+        expect(
+            encapsulatePdf(PDF_BYTES, { baseDicom: undefined }).SOPClassUID
+        ).toBe(ENCAPSULATED_PDF_SOP_CLASS_UID);
     });
 
     it("a new PDF replaces an older one in its series, with the older one as predecessor", async () => {
-        const older = encapsulatePdf(PDF_BYTES, { DocumentTitle: "v1" });
+        const older = encapsulatePdf(PDF_BYTES, {
+            overrides: { DocumentTitle: "v1" }
+        });
         const newer = encapsulatePdf(PDF_BYTES, {
             instance: older,
             dataLevel: "series",
             predecessor: true,
-            DocumentTitle: "v2"
+            overrides: { DocumentTitle: "v2" }
         });
         expect(newer.SeriesInstanceUID).toBe(older.SeriesInstanceUID);
         expect(newer.SOPInstanceUID).not.toBe(older.SOPInstanceUID);
@@ -106,7 +111,7 @@ describe("encapsulate — the generic builder", () => {
         };
         const ds = encapsulatePdf(PDF_BYTES, {
             instance: source,
-            DocumentTitle: "Discharge Summary"
+            overrides: { DocumentTitle: "Discharge Summary" }
         });
         const { result } = await readNaturalized(await writePart10(ds));
 

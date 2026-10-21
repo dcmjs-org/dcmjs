@@ -10,5 +10,6 @@ export { pdfBase, encapsulatedPdfBase } from "./defaults/pdfBase.js";
 export {
     encapsulatePdf,
     extractEncapsulatedPdf,
-    ENCAPSULATED_PDF_SOP_CLASS_UID
+    ENCAPSULATED_PDF_SOP_CLASS_UID,
+    PDF_MIME_TYPE
 } from "./encapsulatedPdf.js";

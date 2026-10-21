@@ -181,6 +181,12 @@ importers:
         specifier: workspace:*
         version: link:../parser
 
+  packages/imaging:
+    dependencies:
+      '@dcmjs-org/core':
+        specifier: workspace:*
+        version: link:../core
+
   packages/legacy:
     dependencies:
       '@dcmjs-org/core':
@@ -211,6 +217,22 @@ importers:
         version: link:../parser
 
   packages/validator: {}
+
+  packages/video:
+    dependencies:
+      '@dcmjs-org/core':
+        specifier: workspace:*
+        version: link:../core
+      '@dcmjs-org/imaging':
+        specifier: workspace:*
+        version: link:../imaging
+      '@dcmjs-org/parser':
+        specifier: workspace:*
+        version: link:../parser
+    devDependencies:
+      '@dcmjs-org/generator':
+        specifier: workspace:*
+        version: link:../generator
 
 packages:
 
