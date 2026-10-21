@@ -21,7 +21,10 @@ const sharedPlugins = [
         preventAssignment: true
     }),
     resolve({
-        browser: true
+        browser: true,
+        // the workspace packages give their sources under "source"; Node
+        // gets their dist/ build under "import"
+        exportConditions: ["source"]
     }),
     commonjs(),
     babel({
@@ -69,6 +72,8 @@ const umd = {
         file: pkg.main,
         format: "umd",
         name: "dcmjs",
+        // a fixed indent: rollup otherwise copies it from the first module
+        indent: "\t",
         sourcemap: true
     },
     plugins: sharedPlugins

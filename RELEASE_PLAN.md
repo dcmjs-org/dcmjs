@@ -206,9 +206,11 @@ request; the implementation requirements (WRAP-IMP-n) can change freely.
     `constants`, `DICOMWEB`, `log`). Each 0.52 namespace keeps every 0.52
     name; a namespace can add names. A 0.52 user changes only the import
     name. `test/compat-052.test.js` checks this.
--   **WRAP-USR-2** Each default bundle stays at most ×1.05 of the same
-    0.52.0 bundle: `build/dcmjs.js` (UMD) and `build/dcmjs.es.js` (ESM).
-    `test/bundle-size.test.js` enforces both ceilings.
+-   **WRAP-USR-2** What a user loads for the default entry stays at most
+    ×1.05 of the same 0.52.0 bundle: `build/dcmjs.js` (UMD), and the bundle
+    that an application bundler gives for `build/dcmjs.es.js` (ESM) with the
+    `@dcmjs-org/*` packages that it imports. `test/bundle-size.test.js`
+    enforces both ceilings.
 -   **WRAP-USR-3** The new engines are available only through subpath
     imports, never on the default export:
     `@dcmjs-org/dcmjs/eventStream` (the event-stream contract, sources,
@@ -218,7 +220,12 @@ request; the implementation requirements (WRAP-IMP-n) can change freely.
     `@dcmjs-org/dcmjs/fhir` (the FHIR sink plus `fromPart10`). Each subpath
     gives its names as named exports and as the default export; the
     `media`, `encapsulated`, `image` and `fhir` subpaths have the names of
-    the dcmjs v2 namespaces. The subpaths are ES modules only.
+    the dcmjs v2 namespaces. The subpaths are ES modules only: a
+    `require()` of a subpath fails with `ERR_PACKAGE_PATH_NOT_EXPORTED`, so
+    it cannot load a second copy of the reader state.
+-   **WRAP-USR-5** Each subpath works after an install from the registry,
+    and also from a built checkout (`pnpm run build`), for example for the
+    examples in `EXAMPLES.md` and for `pnpm bench`.
 -   **WRAP-USR-4** `build/dcmjs.js` and `build/dcmjs.min.js` work from a
     script tag with no other file.
 
@@ -230,7 +237,10 @@ request; the implementation requirements (WRAP-IMP-n) can change freely.
     and `package.json` lists each of those packages in `dependencies`. A
     bundler then resolves one shared copy of `@dcmjs-org/core`, also when
     the app imports it directly. Other dependencies stay inlined, as in
-    0.52.
+    0.52. The `src/` shims import the package entry (`@dcmjs-org/core`,
+    `@dcmjs-org/parser`), not a file in `packages/<name>/src`, so the ESM
+    build holds no copy of a runtime package. `test/package-layout.test.js`
+    checks the source maps of `build/` for this.
 -   **WRAP-IMP-3** One rollup ESM build has six entries: `src/index.js`
     (`build/dcmjs.es.js`), and `src/eventStream.js`, `src/media.js`,
     `src/encapsulated.js`, `src/image.js` and `src/fhir.js`
@@ -247,15 +257,26 @@ request; the implementation requirements (WRAP-IMP-n) can change freely.
     `fhir.es.js` share is in one chunk, `build/dcmjs.shared-<hash>.js`.
     Each entry file exports only its public names; the chunk is in the
     published `build/` directory, and `exports` does not name it. The size
-    check of WRAP-USR-2 measures an entry together with every chunk that it
-    imports.
+    check of WRAP-USR-2 bundles `build/dcmjs.es.js` with rollup, its chunks
+    and its `@dcmjs-org/*` packages included, and measures the result.
+-   **WRAP-IMP-6** Each `@dcmjs-org/*` package that the root needs at
+    runtime has a `files` list that holds its published entry. Without a
+    `files` list, pnpm applies the root `.npmignore`, which excludes `src/`.
+    `test/package-layout.test.js` checks this.
+-   **WRAP-IMP-7** `@dcmjs-org/core` and `@dcmjs-org/parser` have an
+    `exports` map with a `source` condition (`src/`, for the root rollup
+    build and jest), `import` (`dist/`, for Node in a built checkout) and
+    `default` (`src/`). `publishConfig.exports` replaces the map on publish.
+    Core lists in `sideEffects` each module with a top-level side effect;
+    parser has none. The UMD output has a fixed indent, and
+    `pnpm run build` deletes `build/` first, so no old chunk is published.
 
 **The size ceiling.** The aim is "no more than ×1.05 of 0.52", and the
 default bundles now meet it. The new engines (the streaming reader and
 writers, the event-stream facade, the FHIR mapping, and the DICOMDIR, PDF
 and video builders) are subpath entries, so the default bundles do not
 contain them. The legacy `src/` still imports `@dcmjs-org/core`, so the
-UMD bundle inlines that package.
+UMD bundle inlines that package, and the ESM consumer bundle holds it once.
 
 **Baseline provenance.** `dcmjs@0.52.0` from npm
 (<https://registry.npmjs.org/dcmjs/-/dcmjs-0.52.0.tgz>), measured
@@ -267,16 +288,20 @@ external `@dcmjs-org/*` imports in the ESM build:
 
 | Bundle | Bytes | Ratio to 0.52 | Ceiling |
 | --- | --- | --- | --- |
-| `build/dcmjs.js` (UMD) | 1,426,671 | ×1.031 | ×1.05 |
-| `build/dcmjs.es.js` (ESM, with its chunk) | 1,376,551 | ×1.014 | ×1.05 |
-| `build/dcmjs.min.js` (UMD, minified) | 719,641 | ×1.014 | not enforced |
-| `build/dcmjs.es.js` alone | 279 | | |
-| `build/dcmjs.shared-<hash>.js` | 1,376,272 | | |
-| `build/eventStream.es.js` (plus the shared chunk) | 226,152 | | |
+| `build/dcmjs.js` (UMD) | 1,443,476 | ×1.043 | ×1.05 |
+| `build/dcmjs.es.js`, consumer bundle with its packages | 1,394,652 | ×1.027 | ×1.05 |
+| `build/dcmjs.min.js` (UMD, minified) | 725,117 | ×1.022 | not enforced |
+| `build/dcmjs.es.js` alone | 282 | | |
+| `build/dcmjs.shared-<hash>.js` | 589,298 | | |
+| `build/eventStream.es.js` | 57,028 | | |
 | `build/media.es.js` | 513 | | |
 | `build/encapsulated.es.js` | 1,311 | | |
 | `build/image.es.js` | 720 | | |
-| `build/fhir.es.js` (plus the shared chunk) | 1,374 | | |
+| `build/fhir.es.js` | 1,374 | | |
+
+An earlier measurement of the ESM entry (×1.014) counted only the files in
+`build/`. That shared chunk held a second copy of `@dcmjs-org/core`, so the
+real consumer bundle was 2,017,524 bytes (×1.49).
 
 Earlier states of the wrapper, for the record: with the four v2 engine
 namespaces and `eventStream` on the default export, the UMD bundle was

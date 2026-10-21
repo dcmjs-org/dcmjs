@@ -5,6 +5,7 @@
 // policy, the baseline provenance and the current measurements.
 
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
 const { execFileSync } = require("child_process");
 
@@ -73,7 +74,9 @@ function withChunks(name, seen = new Set()) {
     if (!seen.has(name)) {
         seen.add(name);
         const source = fs.readFileSync(path.join(BUILD_DIR, name), "utf8");
-        for (const match of source.matchAll(/from\s+['"]\.\/([^'"]+)['"]/g)) {
+        for (const match of source.matchAll(
+            /(?:from|import)\s+['"]\.\/([^'"]+)['"]/g
+        )) {
             withChunks(match[1], seen);
         }
     }
@@ -115,6 +118,41 @@ function ensureBuild() {
     );
 }
 
+// The size of what an application bundler gives for an ESM entry: the entry,
+// its chunks, and the @dcmjs-org/* packages that it imports, in one rollup
+// bundle (WRAP-IMP-5). The packages resolve to their sources ("source"), so
+// no package build is needed.
+function consumerBundleSize(entry) {
+    const out = path.join(
+        fs.mkdtempSync(path.join(os.tmpdir(), "dcmjs-consumer-")),
+        "bundle.js"
+    );
+    try {
+        execFileSync(
+            process.execPath,
+            [
+                require.resolve("rollup/dist/bin/rollup"),
+                path.join(BUILD_DIR, entry),
+                "--plugin",
+                "@rollup/plugin-node-resolve={exportConditions:['source']}",
+                "--plugin",
+                "@rollup/plugin-commonjs",
+                "--plugin",
+                "@rollup/plugin-json",
+                "--format",
+                "es",
+                "--file",
+                out,
+                "--silent"
+            ],
+            { cwd: ROOT, stdio: "inherit", timeout: BUILD_TIMEOUT_MS }
+        );
+        return fs.statSync(out).size;
+    } finally {
+        fs.rmSync(path.dirname(out), { recursive: true, force: true });
+    }
+}
+
 describe("bundle size vs dcmjs 0.52", () => {
     beforeAll(() => {
         ensureBuild();
@@ -124,12 +162,10 @@ describe("bundle size vs dcmjs 0.52", () => {
         "%s stays under its ceiling",
         bundleName => {
             const { baseline, ceiling } = BUNDLES[bundleName];
-            // What a consumer loads: the entry and every chunk it imports.
-            const size = withChunks(bundleName).reduce(
-                (total, file) =>
-                    total + fs.statSync(path.join(BUILD_DIR, file)).size,
-                0
-            );
+            // The UMD file is complete; an ESM entry needs its packages.
+            const size = bundleName.endsWith(".es.js")
+                ? consumerBundleSize(bundleName)
+                : fs.statSync(path.join(BUILD_DIR, bundleName)).size;
             const ratio = size / baseline;
 
             console.log(
@@ -138,7 +174,8 @@ describe("bundle size vs dcmjs 0.52", () => {
                     `ceiling ×${ceiling})`
             );
             expect(ratio).toBeLessThanOrEqual(ceiling);
-        }
+        },
+        BUILD_TIMEOUT_MS
     );
 });
 

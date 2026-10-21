@@ -9,11 +9,21 @@
             "import": "./build/dcmjs.es.js",
             "require": "./build/dcmjs.js"
         },
-        "./eventStream": "./build/eventStream.es.js",
-        "./media": "./build/media.es.js",
-        "./encapsulated": "./build/encapsulated.es.js",
-        "./image": "./build/image.es.js",
-        "./fhir": "./build/fhir.es.js",
+        "./eventStream": {
+            "import": "./build/eventStream.es.js"
+        },
+        "./media": {
+            "import": "./build/media.es.js"
+        },
+        "./encapsulated": {
+            "import": "./build/encapsulated.es.js"
+        },
+        "./image": {
+            "import": "./build/image.es.js"
+        },
+        "./fhir": {
+            "import": "./build/fhir.es.js"
+        },
         "./dictionary": "./generate/dictionary.mjs"
     },
     "files": [
@@ -33,7 +43,7 @@
         "prepare": "husky",
         "install:update-lockfile": "pnpm install --no-frozen-lockfile",
         "test": "jest --testTimeout 60000 .",
-        "build": "rollup -c && pnpm run build:packages",
+        "build": "node -e \"require('fs').rmSync('build',{recursive:true,force:true})\" && rollup -c && pnpm run build:packages",
         "build:packages": "pnpm -r --filter \"./packages/*\" run build",
         "build:examples": "pnpm run build && pnpm exec cpy \"build/**/*.js\" \"build/**/*.map\" examples/js --flat",
         "start": "rollup -c -w",

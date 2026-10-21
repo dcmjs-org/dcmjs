@@ -3,6 +3,10 @@
     "version": "0.0.0",
     "description": "Encapsulated document IODs: wrap a document into a conformant naturalized DICOM dataset and recover the exact bytes from a parsed instance. PDF (SOP Class 1.2.840.10008.5.1.4.1.1.104.1) today; the other encapsulated-document types (CDA, STL, OBJ, MTL) share the same home",
     "main": "./src/index.js",
+    "files": [
+        "src",
+        "README.md"
+    ],
     "license": "MIT",
     "repository": {
         "type": "git",

@@ -3,6 +3,10 @@
     "version": "0.0.0",
     "description": "Lightweight, codec-free image building for dcmjs: turn already-decoded pixels into a conformant DICOM image instance, and inspect JPEG/H.264 headers without decoding. The heavy MP4/video processing lives in @dcmjs-org/video",
     "main": "./src/index.js",
+    "files": [
+        "src",
+        "README.md"
+    ],
     "license": "MIT",
     "repository": {
         "type": "git",

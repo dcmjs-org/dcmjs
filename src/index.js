@@ -7,10 +7,11 @@ import { DicomDict } from "./DicomDict.js";
 import { DicomMessage } from "./DicomMessage.js";
 import { DicomMetaDictionary } from "./DicomMetaDictionary.js";
 import { registerPrivatesModule } from "./dictionary.fast.js";
-import * as privateData from "./dictionary.private.data.js";
+import { lookupPrivateTag } from "@dcmjs-org/core";
 import { DICOMWEB } from "./dicomweb.js";
 
-registerPrivatesModule(privateData);
+// the private dictionary module needs only its lookup function
+registerPrivatesModule({ lookupPrivateTag });
 import { Tag } from "./Tag.js";
 import { ValueRepresentation } from "./ValueRepresentation.js";
 import { Colors } from "./colors.js";

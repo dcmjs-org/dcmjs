@@ -1,2 +1,8 @@
 // Moved to packages/core; this shim keeps the old import path working.
-export * from "../packages/core/src/BufferStream.js";
+// It imports @dcmjs-org/core, so the ESM build keeps one copy (WRAP-IMP-2).
+export {
+    BufferStream,
+    DeflatedReadBufferStream,
+    ReadBufferStream,
+    WriteBufferStream
+} from "@dcmjs-org/core";

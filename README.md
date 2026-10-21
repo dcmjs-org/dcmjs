@@ -78,7 +78,7 @@ import { buildImageDataset } from "@dcmjs-org/dcmjs/image";
 import { toFhir, fromPart10 } from "@dcmjs-org/dcmjs/fhir";
 ```
 
-The subpaths are ES modules only. `build/dcmjs.js` (UMD, for a script tag) has the default export only.
+The subpaths are ES modules only: a `require()` of a subpath fails with `ERR_PACKAGE_PATH_NOT_EXPORTED`. `build/dcmjs.js` (UMD, for a script tag, or for `require("@dcmjs-org/dcmjs")`) has the default export only.
 
 ## For Developers
 

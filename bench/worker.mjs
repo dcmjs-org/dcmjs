@@ -19,10 +19,14 @@
 
 import fs from "node:fs";
 import dcmjs from "../build/dcmjs.es.js";
+import {
+    DicomEventStream,
+    EventStreamListener,
+    NaturalizedListener,
+    StreamingPart10Writer
+} from "../build/eventStream.es.js";
 
 const { DicomMessage, DicomMetaDictionary } = dcmjs.data;
-const { DicomEventStream, EventStreamListener, NaturalizedListener, StreamingPart10Writer } =
-    dcmjs.eventStream;
 
 const spec = JSON.parse(process.argv[2]);
 const { workload, file } = spec;
