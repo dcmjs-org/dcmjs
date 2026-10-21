@@ -14,12 +14,12 @@
 // resolution belongs to the access layer, not the core library.
 //
 // This module is wrapper-level glue (the same home as api.js): it composes
-// the encapsulated, imaging, fhir, and parser packages, so it belongs to
+// the encapsulated, imaging, fhir, and core packages, so it belongs to
 // none of them — it moves into the step-7 wrapper package with the facade.
 
 import { encapsulatePdf, PDF_MIME_TYPE } from "@dcmjs-org/encapsulated";
 import { buildImageDataset, parseJpegInfo } from "@dcmjs-org/imaging";
-import { base64ToArrayBuffer } from "@dcmjs-org/parser";
+import { base64ToArrayBuffer } from "@dcmjs-org/core";
 import { patientToDataset } from "@dcmjs-org/fhir";
 import { datasetToDict } from "../datasetToBlob.js";
 
@@ -38,11 +38,64 @@ function attachmentOf(resource) {
     return resource.content || null;
 }
 
-/** Unwrap a Bundle into { contentResource, patientResource }. */
+/**
+ * True when the FHIR `reference` (relative "Patient/123", absolute, or a
+ * urn:uuid fullUrl) points to this Bundle entry.
+ */
+function referencesEntry(reference, entry) {
+    if (entry.fullUrl && reference === entry.fullUrl) {
+        return true;
+    }
+    const id = entry.resource.id;
+    if (!id) {
+        return false;
+    }
+    const relative = `Patient/${id}`;
+    return reference === relative || reference.endsWith(`/${relative}`);
+}
+
+/**
+ * The Patient of the content resource in a Bundle. With a
+ * `subject.reference`, the Patient entry it references; else the only
+ * Patient. A reference that matches no Patient, or more than one Patient
+ * with no reference, throws, so the demographics never go to the wrong
+ * patient. No Patient in the Bundle gives undefined.
+ */
+function selectPatient(patientEntries, contentResource) {
+    if (patientEntries.length === 0) {
+        return undefined;
+    }
+    const reference = contentResource.subject?.reference;
+    if (reference) {
+        const match = patientEntries.find(entry =>
+            referencesEntry(reference, entry)
+        );
+        if (!match) {
+            throw new Error(
+                `fromFhir: the subject ${reference} of the ` +
+                    `${contentResource.resourceType} matches no Patient in ` +
+                    `the Bundle — pass the Patient as options.patient`
+            );
+        }
+        return match.resource;
+    }
+    if (patientEntries.length > 1) {
+        throw new Error(
+            `fromFhir: the Bundle contains ${patientEntries.length} Patient ` +
+                `resources and the ${contentResource.resourceType} has no ` +
+                `subject reference — pass the Patient as options.patient`
+        );
+    }
+    return patientEntries[0].resource;
+}
+
+/**
+ * Unwrap a Bundle into { contentResource, patientEntries }. The Patient is
+ * selected later, because options.patient replaces the Bundle Patients.
+ */
 function selectFromBundle(bundle) {
-    const resources = (bundle.entry || [])
-        .map(entry => entry?.resource)
-        .filter(Boolean);
+    const entries = (bundle.entry || []).filter(entry => entry?.resource);
+    const resources = entries.map(entry => entry.resource);
     const content = resources.filter(r => CONTENT_TYPES.has(r.resourceType));
     if (content.length === 0) {
         throw new Error(
@@ -60,7 +113,9 @@ function selectFromBundle(bundle) {
     }
     return {
         contentResource: content[0],
-        patientResource: resources.find(r => r.resourceType === "Patient")
+        patientEntries: entries.filter(
+            entry => entry.resource.resourceType === "Patient"
+        )
     };
 }
 
@@ -82,10 +137,13 @@ function selectFromBundle(bundle) {
  *     overrides: { SeriesDescription: "Scanned reports" }
  * });
  *
+ * @experimental Preliminary, with the fhir package (packages/fhir/README.md).
  * @param {Object} resource - DocumentReference | Media | Bundle
  * @param {Object} [options]
  * @param {Object} [options.patient] - FHIR Patient supplying demographics
- *   (wins over a Patient found inside a Bundle)
+ *   (replaces the Patients of a Bundle). In a Bundle without this option,
+ *   the `subject` of the content resource selects the Patient; see
+ *   selectPatient.
  * @returns {{ dicomDict: {meta: Object, dict: Object}, encapsulated: boolean }}
  */
 export function dicomDictFromFhir(resource, options = {}) {
@@ -99,7 +157,8 @@ export function dicomDictFromFhir(resource, options = {}) {
     if (resource.resourceType === "Bundle") {
         const selected = selectFromBundle(resource);
         contentResource = selected.contentResource;
-        patientResource = patient || selected.patientResource;
+        patientResource =
+            patient || selectPatient(selected.patientEntries, contentResource);
     }
 
     if (contentResource.resourceType === "Patient") {
@@ -161,14 +220,23 @@ export function dicomDictFromFhir(resource, options = {}) {
                     "JPEG first, or decode and use DicomEventStream.fromImage"
             );
         }
+        if (!info.photometricInterpretation) {
+            throw new Error(
+                `fromFhir: a JPEG with ${info.samplesPerPixel} components ` +
+                    `has no DICOM photometric interpretation — convert it to ` +
+                    `RGB or greyscale JPEG first`
+            );
+        }
         const dataset = buildImageDataset(
             {
                 rows: info.rows,
                 columns: info.columns,
                 samplesPerPixel: info.samplesPerPixel,
                 bitsAllocated: info.bitsAllocated,
-                photometricInterpretation:
-                    info.samplesPerPixel === 3 ? "YBR_FULL_422" : "MONOCHROME2"
+                bitsStored: info.bitsStored,
+                pixelRepresentation: 0,
+                planarConfiguration: 0,
+                photometricInterpretation: info.photometricInterpretation
             },
             {
                 ...instanceOptions,

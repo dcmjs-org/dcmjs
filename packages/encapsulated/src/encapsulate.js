@@ -3,7 +3,7 @@
 // The generic Encapsulated Document builder. The per-type wrappers
 // (encapsulatePdf, and CDA/STL/... as they land) supply the base blocks.
 
-import { createInstance } from "@dcmjs-org/core";
+import { base64ToArrayBuffer, createInstance } from "@dcmjs-org/core";
 import { encapsulatedBase } from "./defaults/encapsulatedDocumentBase.js";
 
 /**
@@ -94,7 +94,9 @@ export function encapsulate(bytes, options = {}) {
  * writes it), the payload is sliced to that exact length, so an even-length
  * original that ends in a zero byte survives (review finding 16). Without
  * the element, a single trailing 0x00 on an even stored length is trimmed
- * as pad.
+ * as pad only for a document type that never ends in 0x00: PDF, a text or
+ * XML type (CDA, OBJ, MTL), or no MIME type (the PDF default). A binary
+ * type such as STL keeps every byte.
  *
  * @param {Object} dataset - naturalized Encapsulated Document instance
  * @returns {Uint8Array|null} the document bytes, or null when the dataset
@@ -119,12 +121,7 @@ export function extractEncapsulated(dataset) {
             : payload.InlineBinary;
     }
     if (typeof payload === "string") {
-        const binary = atob(payload);
-        const decoded = new Uint8Array(binary.length);
-        for (let i = 0; i < binary.length; i++) {
-            decoded[i] = binary.charCodeAt(i);
-        }
-        payload = decoded;
+        payload = base64ToArrayBuffer(payload);
     }
     const bytes = ArrayBuffer.isView(payload)
         ? new Uint8Array(payload.buffer, payload.byteOffset, payload.byteLength)
@@ -142,6 +139,7 @@ export function extractEncapsulated(dataset) {
         return bytes.subarray(0, declaredLength);
     }
     if (
+        isPaddableMimeType(dataset.MIMETypeOfEncapsulatedDocument) &&
         bytes.byteLength > 0 &&
         bytes.byteLength % 2 === 0 &&
         bytes[bytes.byteLength - 1] === 0x00
@@ -149,4 +147,25 @@ export function extractEncapsulated(dataset) {
         return bytes.subarray(0, bytes.byteLength - 1);
     }
     return bytes;
+}
+
+// The types whose content never ends in 0x00 (see extractEncapsulated).
+const PADDABLE_MIME_TYPES = new Set([
+    "application/pdf",
+    "application/xml",
+    "model/obj",
+    "model/mtl"
+]);
+
+function isPaddableMimeType(mimeType) {
+    const type = (Array.isArray(mimeType) ? mimeType[0] : mimeType)
+        ?.split(";")[0]
+        .trim()
+        .toLowerCase();
+    return (
+        !type ||
+        PADDABLE_MIME_TYPES.has(type) ||
+        type.startsWith("text/") ||
+        type.endsWith("+xml")
+    );
 }

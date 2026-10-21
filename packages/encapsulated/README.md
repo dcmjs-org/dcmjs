@@ -10,6 +10,8 @@ is encapsulated _pixel data_, not a document — it lives in
     `createInstance` from `@dcmjs-org/core`, then sets the document payload.
 -   `encapsulatePdf(pdfBytes, options)` — checks the PDF magic, then calls
     `encapsulate` with `encapsulatedPdfBase`.
+-   `extractEncapsulated(dataset)` — recovers the document bytes of any
+    encapsulated document type, without a SOP class check.
 -   `extractEncapsulatedPdf(dataset)` — recovers the PDF bytes, MIME type, and
     document title from a parsed (naturalized) Encapsulated PDF instance.
 -   `ENCAPSULATED_PDF_SOP_CLASS_UID` and `PDF_MIME_TYPE` — the constants of

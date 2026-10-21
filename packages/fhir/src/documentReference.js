@@ -6,19 +6,17 @@
 // meta.tags; id assignment is the consumer's job (same contract as
 // patient.js / imagingStudy.js).
 //
-// Known limitation: DocumentReference.date is a FHIR instant (timezone
-// required) but DICOM ContentDate/ContentTime carry no zone; the ISO string
-// is emitted as-is, matching this package's dicomDateTimeToIso pragmatism.
+// DocumentReference.date is a FHIR instant, so it is written only when the
+// dataset has ContentDate, ContentTime, and TimezoneOffsetFromUTC.
 
+import { encodeBase64, toStringFirst } from "@dcmjs-org/core";
 import {
     extractEncapsulated,
     ENCAPSULATED_PDF_SOP_CLASS_UID,
     PDF_MIME_TYPE
 } from "@dcmjs-org/encapsulated";
 import {
-    asString,
-    bytesToBase64,
-    dicomDateTimeToIso,
+    dicomDateTimeToInstant,
     uidToUrn,
     DICOM_UID_SYSTEM
 } from "./helpers.js";
@@ -43,15 +41,15 @@ function conceptNameToCodeableConcept(conceptName) {
         return null;
     }
 
-    const code = asString(item.CodeValue);
-    const meaning = asString(item.CodeMeaning);
+    const code = toStringFirst(item.CodeValue);
+    const meaning = toStringFirst(item.CodeMeaning);
     if (!code && !meaning) {
         return null;
     }
 
     const codeableConcept = {};
     if (code) {
-        const designator = asString(item.CodingSchemeDesignator);
+        const designator = toStringFirst(item.CodingSchemeDesignator);
         const coding = { code };
         if (designator) {
             coding.system = CODING_SCHEME_SYSTEMS[designator] || designator;
@@ -83,8 +81,8 @@ export function documentReferenceFromDataset(dataset, options = {}) {
         return null;
     }
 
-    const mimeType = asString(dataset.MIMETypeOfEncapsulatedDocument);
-    const sopClassUid = asString(dataset.SOPClassUID);
+    const mimeType = toStringFirst(dataset.MIMETypeOfEncapsulatedDocument);
+    const sopClassUid = toStringFirst(dataset.SOPClassUID);
     const isEncapsulated =
         mimeType !== null || sopClassUid === ENCAPSULATED_PDF_SOP_CLASS_UID;
     if (!isEncapsulated || dataset.EncapsulatedDocument === undefined) {
@@ -114,12 +112,16 @@ export function documentReferenceFromDataset(dataset, options = {}) {
         documentReference.subject = options.subject;
     }
 
-    const date = dicomDateTimeToIso(dataset.ContentDate, dataset.ContentTime);
+    const date = dicomDateTimeToInstant(
+        dataset.ContentDate,
+        dataset.ContentTime,
+        dataset.TimezoneOffsetFromUTC
+    );
     if (date) {
         documentReference.date = date;
     }
 
-    const title = asString(dataset.DocumentTitle);
+    const title = toStringFirst(dataset.DocumentTitle);
     if (title) {
         documentReference.description = title;
     }
@@ -135,7 +137,7 @@ export function documentReferenceFromDataset(dataset, options = {}) {
     if (bytes) {
         attachment.size = bytes.byteLength;
         if (includeData) {
-            attachment.data = bytesToBase64(bytes);
+            attachment.data = encodeBase64(bytes);
         }
     }
     documentReference.content = [{ attachment }];

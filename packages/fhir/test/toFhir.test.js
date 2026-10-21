@@ -67,10 +67,11 @@ describe("@dcmjs-org/fhir helpers", () => {
         expect(parsePersonName([])).toBeNull();
     });
 
-    test("dicomDateTimeToIso formats DA and DA+TM", () => {
+    test("dicomDateTimeToIso writes the time only with a timezone", () => {
         expect(dicomDateTimeToIso("20010101")).toBe("2001-01-01");
-        expect(dicomDateTimeToIso("20010101", "102231")).toBe(
-            "2001-01-01T10:22:31"
+        expect(dicomDateTimeToIso("20010101", "102231")).toBe("2001-01-01");
+        expect(dicomDateTimeToIso("20010101", "102231", "+0130")).toBe(
+            "2001-01-01T10:22:31+01:30"
         );
         expect(dicomDateTimeToIso(null)).toBeNull();
     });
@@ -118,7 +119,8 @@ describe("@dcmjs-org/fhir sink", () => {
         expect(imagingStudy.numberOfSeries).toBe(1);
         expect(imagingStudy.numberOfInstances).toBe(1);
         expect(imagingStudy.modality[0].code).toBe("MR");
-        expect(imagingStudy.started).toMatch(/^2001-01-01T/);
+        // The fixture has no TimezoneOffsetFromUTC, so only the date.
+        expect(imagingStudy.started).toBe("2001-01-01");
 
         const series = imagingStudy.series[0];
         expect(series.modality.code).toBe("MR");
@@ -144,6 +146,19 @@ describe("@dcmjs-org/fhir sink", () => {
         expect(study.numberOfSeries).toBe(1);
         expect(study.numberOfInstances).toBe(2);
         expect(study.series[0].instance).toHaveLength(2);
+    });
+
+    test("imagingStudyFromDatasets skips a dataset of another study", () => {
+        const other = {
+            ...dataset,
+            StudyInstanceUID: "9.9.9",
+            SeriesInstanceUID: "9.9.9.1",
+            SOPInstanceUID: "9.9.9.1.1"
+        };
+        const study = imagingStudyFromDatasets([dataset, other]);
+        expect(study.identifier[0].value).toBe(`urn:oid:${STUDY_UID}`);
+        expect(study.numberOfSeries).toBe(1);
+        expect(study.numberOfInstances).toBe(1);
     });
 
     test("toBundle emits one Patient and one aggregated ImagingStudy", () => {

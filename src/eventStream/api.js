@@ -159,6 +159,8 @@ export class DicomEventStream {
      * surfaces from .process() or whichever sink runs first), while
      * minted UIDs stay stable across re-runs of the same stream.
      *
+     * @experimental Preliminary: the options and the behaviour can change in
+     *   a minor release (packages/fhir/README.md).
      * @param {Object} resource - DocumentReference | Media | Bundle
      * @param {Object} [options] - `patient` (a FHIR Patient) plus the
      *   createInstance options; see dicomDictFromFhir
@@ -303,6 +305,8 @@ export class DicomEventStream {
      * ImagingStudy is a multi-stream operation: collect naturalized
      * datasets and use fhir.imagingStudyFromDatasets / fhir.toBundle.
      *
+     * @experimental Preliminary: the output shape can change in a minor
+     *   release (packages/fhir/README.md).
      * @param {Object} [options] - toFhir options (fhirVersion, subject, ...)
      */
     async toFhir(options = {}) {

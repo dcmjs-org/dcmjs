@@ -164,6 +164,10 @@ describe("fromFhir", () => {
         expect(dataset.Rows).toBe(2);
         expect(dataset.Columns).toBe(3);
         expect(dataset.PhotometricInterpretation).toBe("MONOCHROME2");
+        expect(dataset.BitsAllocated).toBe(8);
+        expect(dataset.BitsStored).toBe(8);
+        expect(dataset.HighBit).toBe(7);
+        expect(dataset.PixelRepresentation).toBe(0);
         expect(dataset.PatientID).toBe("22446688");
 
         let payload = dataset.PixelData;
@@ -225,6 +229,57 @@ describe("fromFhir", () => {
         );
         expect(dataset.PatientID).toBe("22446688");
         expect(dataset.SOPClassUID).toBe("1.2.840.10008.5.1.4.1.1.104.1");
+    });
+
+    describe("Bundle with more than one Patient", () => {
+        const OTHER = {
+            ...JANE_FOX,
+            id: "other",
+            identifier: [{ value: "99999999" }]
+        };
+        const JANE = { ...JANE_FOX, id: "jane" };
+
+        test("the subject reference selects the Patient", async () => {
+            const bundle = {
+                resourceType: "Bundle",
+                type: "collection",
+                entry: [
+                    { fullUrl: "urn:uuid:other", resource: OTHER },
+                    { fullUrl: "urn:uuid:jane", resource: JANE },
+                    {
+                        resource: documentReference({
+                            subject: { reference: "Patient/jane" }
+                        })
+                    }
+                ]
+            };
+            const { dataset } = readBack(
+                await DicomEventStream.fromFhir(bundle).toPart10()
+            );
+            expect(dataset.PatientID).toBe("22446688");
+        });
+
+        test.each([
+            ["no subject reference", undefined, /2 Patient resources/],
+            [
+                "a subject that matches no Patient",
+                { reference: "Patient/nobody" },
+                /matches no Patient/
+            ]
+        ])("throws for %s", async (_, subject, message) => {
+            const bundle = {
+                resourceType: "Bundle",
+                type: "collection",
+                entry: [
+                    { resource: OTHER },
+                    { resource: JANE },
+                    { resource: documentReference({ subject }) }
+                ]
+            };
+            await expect(
+                DicomEventStream.fromFhir(bundle).toPart10()
+            ).rejects.toThrow(message);
+        });
     });
 
     test("Patient alone is rejected with guidance", async () => {

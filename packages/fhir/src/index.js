@@ -2,6 +2,9 @@
 //
 // @dcmjs-org/fhir — FHIR both ways.
 //
+// PRELIMINARY API: the exports can change in a minor release while
+// packages/fhir/README.md has the preliminary notice.
+//
 // The sink: naturalized DICOM Part 10 datasets
 // (DicomMetaDictionary.naturalizeDataset output) → FHIR R4B resources.
 // The source: a FHIR Patient → DICOM patient-module attributes

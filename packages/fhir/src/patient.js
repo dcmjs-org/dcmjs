@@ -5,8 +5,8 @@
 // no storage references. Id assignment and any deployment-specific
 // decoration are the consumer's job.
 
+import { toStringFirst } from "@dcmjs-org/core";
 import {
-    asString,
     dicomDateTimeToIso,
     parsePersonName,
     personNameToHumanName,
@@ -26,7 +26,7 @@ export function patientFromDataset(dataset) {
         return null;
     }
 
-    const patientId = asString(dataset.PatientID);
+    const patientId = toStringFirst(dataset.PatientID);
     const humanName = personNameToHumanName(
         parsePersonName(dataset.PatientName)
     );
@@ -67,7 +67,7 @@ export function patientFromDataset(dataset) {
         patient.birthDate = birthDate;
     }
 
-    const dicomSex = asString(dataset.PatientSex);
+    const dicomSex = toStringFirst(dataset.PatientSex);
     patient.gender = sexToGender(dicomSex);
 
     const extensions = [

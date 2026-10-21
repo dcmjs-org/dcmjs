@@ -19,7 +19,6 @@ import {
     toBundle,
     documentReferenceFromDataset
 } from "../src/index.js";
-import { bytesToBase64 } from "../src/helpers.js";
 
 validationLog.setLevel(5);
 
@@ -77,16 +76,10 @@ function buildPdfDataset(options = {}) {
         DocumentTitle: "Discharge Summary",
         ContentDate: "20260803",
         ContentTime: "101500",
+        TimezoneOffsetFromUTC: "-0600",
         ...options
     };
 }
-
-describe("bytesToBase64", () => {
-    test("encodes bytes without Buffer", () => {
-        const encoded = bytesToBase64(new TextEncoder().encode("dcmjs!"));
-        expect(encoded).toEqual("ZGNtanMh");
-    });
-});
 
 describe("documentReferenceFromDataset", () => {
     test("maps an Encapsulated PDF dataset to a DocumentReference", () => {
@@ -100,7 +93,7 @@ describe("documentReferenceFromDataset", () => {
             value: `urn:oid:${dataset.SOPInstanceUID}`
         });
         expect(documentReference.description).toBe("Discharge Summary");
-        expect(documentReference.date).toMatch(/^2026-08-03T10:15:00/);
+        expect(documentReference.date).toBe("2026-08-03T10:15:00-06:00");
 
         const attachment = documentReference.content[0].attachment;
         expect(attachment.contentType).toBe("application/pdf");
@@ -116,6 +109,13 @@ describe("documentReferenceFromDataset", () => {
             system: "urn:dicom:uid",
             value: "urn:oid:1.2.3.4.5"
         });
+    });
+
+    test("omits date when the dataset has no timezone (an instant needs one)", () => {
+        const documentReference = documentReferenceFromDataset(
+            buildPdfDataset({ TimezoneOffsetFromUTC: undefined })
+        );
+        expect(documentReference.date).toBeUndefined();
     });
 
     test("honors subject and includeData options", () => {
