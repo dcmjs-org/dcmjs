@@ -14,53 +14,16 @@
 // resolution belongs to the access layer, not the core library.
 //
 // This module is wrapper-level glue (the same home as api.js): it composes
-// the pdfs, video, fhir, parser, and core packages, so it belongs to none
-// of them — it moves into the step-7 wrapper package with the facade.
+// the encapsulated, imaging, fhir, and parser packages, so it belongs to
+// none of them — it moves into the step-7 wrapper package with the facade.
 
-import { DicomMetaDictionary } from "@dcmjs-org/core";
-import { encapsulatePdf } from "@dcmjs-org/encapsulated";
+import { encapsulatePdf, PDF_MIME_TYPE } from "@dcmjs-org/encapsulated";
 import { buildImageDataset, parseJpegInfo } from "@dcmjs-org/imaging";
 import { base64ToArrayBuffer } from "@dcmjs-org/parser";
 import { patientToDataset } from "@dcmjs-org/fhir";
+import { datasetToDict } from "../datasetToBlob.js";
 
 const CONTENT_TYPES = new Set(["DocumentReference", "Media"]);
-
-const IMPLEMENTATION_CLASS_UID =
-    "2.25.80302813137786398554742050926734630921603366648225212145404";
-
-/**
- * Denaturalize a dataset into the plain `{ meta, dict }` shape fromDataSet
- * consumes: the file meta group is minted from the dataset identity exactly
- * the way legacy's datasetToDict does it, minus the DicomDict wrapper —
- * nothing here writes bytes, so no writer object is needed. (A local copy
- * of the video package's datasetToMetaDict, which is not exported; both
- * copies retire into the step-7 wrapper.)
- */
-function datasetToMetaDict(dataset) {
-    const fileMetaInformationVersionArray = new Uint8Array(2);
-    fileMetaInformationVersionArray[1] = 1;
-
-    const TransferSyntaxUID =
-        dataset._meta.TransferSyntaxUID &&
-        dataset._meta.TransferSyntaxUID.Value &&
-        dataset._meta.TransferSyntaxUID.Value[0]
-            ? dataset._meta.TransferSyntaxUID.Value[0]
-            : "1.2.840.10008.1.2.1";
-
-    dataset._meta = {
-        MediaStorageSOPClassUID: dataset.SOPClassUID,
-        MediaStorageSOPInstanceUID: dataset.SOPInstanceUID,
-        ImplementationVersionName: "dcmjs-0.0",
-        TransferSyntaxUID,
-        ImplementationClassUID: IMPLEMENTATION_CLASS_UID,
-        FileMetaInformationVersion: fileMetaInformationVersionArray.buffer
-    };
-
-    return {
-        meta: DicomMetaDictionary.denaturalizeDataset(dataset._meta),
-        dict: DicomMetaDictionary.denaturalizeDataset(dataset)
-    };
-}
 
 function attachmentOf(resource) {
     if (resource.resourceType === "DocumentReference") {
@@ -102,28 +65,41 @@ function selectFromBundle(bundle) {
 }
 
 /**
- * Build a plain { meta, dict } dataset from a content-carrying FHIR
- * resource.
+ * Build a { meta, dict } dataset from a content-carrying FHIR resource.
+ *
+ * The options other than `patient` are the {@link createInstance} options of
+ * `@dcmjs-org/core` (`instance`, `dataLevel`, `levels`, `predecessor`,
+ * `postProcess`, `baseDicom`, `overrides`), and pass to encapsulatePdf or
+ * buildImageDataset. The values that come from FHIR (the patient
+ * demographics, and the DocumentTitle from the resource description or the
+ * attachment title) go in front of `options.overrides`, so the caller
+ * overrides win, and the FHIR values win over the base and inherited values.
+ *
+ * @example
+ * dicomDictFromFhir(documentReference, {
+ *     patient,
+ *     instance: priorStudyInstance,
+ *     overrides: { SeriesDescription: "Scanned reports" }
+ * });
  *
  * @param {Object} resource - DocumentReference | Media | Bundle
  * @param {Object} [options]
  * @param {Object} [options.patient] - FHIR Patient supplying demographics
  *   (wins over a Patient found inside a Bundle)
- * @param {Object} [options.overrides] - naturalized keyword overrides
- *   passed through to the underlying builder
  * @returns {{ dicomDict: {meta: Object, dict: Object}, encapsulated: boolean }}
  */
 export function dicomDictFromFhir(resource, options = {}) {
     if (!resource || typeof resource !== "object" || !resource.resourceType) {
         throw new Error("fromFhir: expected a FHIR resource object");
     }
+    const { patient, overrides, ...instanceOptions } = options;
 
     let contentResource = resource;
-    let patientResource = options.patient;
+    let patientResource = patient;
     if (resource.resourceType === "Bundle") {
         const selected = selectFromBundle(resource);
         contentResource = selected.contentResource;
-        patientResource = options.patient || selected.patientResource;
+        patientResource = patient || selected.patientResource;
     }
 
     if (contentResource.resourceType === "Patient") {
@@ -160,18 +136,19 @@ export function dicomDictFromFhir(resource, options = {}) {
     const demographics = patientResource
         ? patientToDataset(patientResource)
         : {};
-    const overrides = { ...demographics, ...(options.overrides || {}) };
 
-    if (contentType === "application/pdf") {
+    if (contentType === PDF_MIME_TYPE) {
+        // No FHIR title keeps the base or inherited DocumentTitle.
+        const title = contentResource.description || attachment.title;
         const dataset = encapsulatePdf(bytes, {
-            ...overrides,
-            DocumentTitle:
-                overrides.DocumentTitle ||
-                contentResource.description ||
-                attachment.title ||
-                ""
+            ...instanceOptions,
+            overrides: [
+                title ? { DocumentTitle: title } : {},
+                demographics,
+                overrides
+            ]
         });
-        return { dicomDict: datasetToMetaDict(dataset), encapsulated: false };
+        return { dicomDict: datasetToDict(dataset), encapsulated: false };
     }
 
     if (contentType === "image/jpeg" || contentType === "image/jpg") {
@@ -194,14 +171,15 @@ export function dicomDictFromFhir(resource, options = {}) {
                     info.samplesPerPixel === 3 ? "YBR_FULL_422" : "MONOCHROME2"
             },
             {
-                ...overrides,
+                ...instanceOptions,
+                overrides: [demographics, overrides],
                 encapsulated: {
                     transferSyntaxUID: info.transferSyntaxUID,
                     frames: [bytes]
                 }
             }
         );
-        const dicomDict = datasetToMetaDict(dataset);
+        const dicomDict = datasetToDict(dataset);
         if (dicomDict.dict["7FE00010"]) {
             dicomDict.dict["7FE00010"].encapsulatedPixelData = true;
         }

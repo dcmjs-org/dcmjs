@@ -78,3 +78,75 @@ export function encapsulate(bytes, options = {}) {
 
     return dataset;
 }
+
+/**
+ * Recover the document bytes from a naturalized Encapsulated Document
+ * instance of any type (PDF, CDA, STL, OBJ, MTL). No SOP class check; see
+ * extractEncapsulatedPdf for the PDF form.
+ *
+ * Accepts every payload shape a naturalized dataset produces: an ArrayBuffer
+ * or a view, an array that wraps one, or the event-stream naturalizer's
+ * `{ InlineBinary }` wrapper around a base64 string, an ArrayBuffer, or a
+ * view.
+ *
+ * The Part 10 writer pads odd-length OB values with a trailing NUL. When
+ * `EncapsulatedDocumentLength (0042,0015)` is present (encapsulate always
+ * writes it), the payload is sliced to that exact length, so an even-length
+ * original that ends in a zero byte survives (review finding 16). Without
+ * the element, a single trailing 0x00 on an even stored length is trimmed
+ * as pad.
+ *
+ * @param {Object} dataset - naturalized Encapsulated Document instance
+ * @returns {Uint8Array|null} the document bytes, or null when the dataset
+ *   has no EncapsulatedDocument
+ */
+export function extractEncapsulated(dataset) {
+    let payload = dataset.EncapsulatedDocument;
+    if (Array.isArray(payload)) {
+        payload = payload[0];
+    }
+    if (payload === undefined || payload === null) {
+        return null;
+    }
+    if (
+        typeof payload === "object" &&
+        !(payload instanceof ArrayBuffer) &&
+        !ArrayBuffer.isView(payload) &&
+        payload.InlineBinary !== undefined
+    ) {
+        payload = Array.isArray(payload.InlineBinary)
+            ? payload.InlineBinary[0]
+            : payload.InlineBinary;
+    }
+    if (typeof payload === "string") {
+        const binary = atob(payload);
+        const decoded = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+            decoded[i] = binary.charCodeAt(i);
+        }
+        payload = decoded;
+    }
+    const bytes = ArrayBuffer.isView(payload)
+        ? new Uint8Array(payload.buffer, payload.byteOffset, payload.byteLength)
+        : new Uint8Array(payload);
+
+    let declaredLength = dataset.EncapsulatedDocumentLength;
+    if (Array.isArray(declaredLength)) {
+        declaredLength = declaredLength[0];
+    }
+    if (
+        Number.isInteger(declaredLength) &&
+        declaredLength >= 0 &&
+        declaredLength <= bytes.byteLength
+    ) {
+        return bytes.subarray(0, declaredLength);
+    }
+    if (
+        bytes.byteLength > 0 &&
+        bytes.byteLength % 2 === 0 &&
+        bytes[bytes.byteLength - 1] === 0x00
+    ) {
+        return bytes.subarray(0, bytes.byteLength - 1);
+    }
+    return bytes;
+}

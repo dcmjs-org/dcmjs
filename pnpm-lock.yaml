@@ -193,6 +193,9 @@ importers:
       '@dcmjs-org/core':
         specifier: workspace:*
         version: link:../core
+      '@dcmjs-org/encapsulated':
+        specifier: workspace:*
+        version: link:../encapsulated
     devDependencies:
       '@dcmjs-org/legacy':
         specifier: workspace:*

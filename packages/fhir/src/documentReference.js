@@ -11,16 +11,17 @@
 // is emitted as-is, matching this package's dicomDateTimeToIso pragmatism.
 
 import {
-    asNumber,
+    extractEncapsulated,
+    ENCAPSULATED_PDF_SOP_CLASS_UID,
+    PDF_MIME_TYPE
+} from "@dcmjs-org/encapsulated";
+import {
     asString,
     bytesToBase64,
     dicomDateTimeToIso,
     uidToUrn,
     DICOM_UID_SYSTEM
 } from "./helpers.js";
-
-const ENCAPSULATED_PDF_SOP_CLASS_UID = "1.2.840.10008.5.1.4.1.1.104.1";
-const PDF_MIME_TYPE = "application/pdf";
 
 const CODING_SCHEME_SYSTEMS = {
     LN: "http://loinc.org",
@@ -64,73 +65,6 @@ function conceptNameToCodeableConcept(conceptName) {
         codeableConcept.text = meaning;
     }
     return codeableConcept;
-}
-
-/**
- * Extract the encapsulated payload as bytes.
- *
- * Accepts every shape a naturalized dataset produces: an ArrayBuffer or
- * typed-array view, an array wrapping one, or the event-stream
- * naturalizer's { InlineBinary } wrapper around a base64 string, an
- * ArrayBuffer, or a view (review finding 8 — the unwrap mirrors
- * extractEncapsulatedPdf in the encapsulated-PDF module; it is a local
- * copy because this package must not depend on the pdfs package).
- *
- * When `declaredLength` (EncapsulatedDocumentLength, 0042,0015) is
- * present it is authoritative for the content length, since the Part 10
- * writer pads only odd-length OB values and an even length is otherwise
- * indistinguishable from content ending in a real zero byte (review
- * finding 16; the write side that emits 0042,0015 lands with the pdfs
- * wave). Without it, the historical trailing-NUL heuristic applies.
- */
-function payloadBytes(encapsulatedDocument, declaredLength) {
-    let payload = encapsulatedDocument;
-    if (Array.isArray(payload)) {
-        payload = payload.length > 0 ? payload[0] : null;
-    }
-    if (payload === null || payload === undefined) {
-        return null;
-    }
-    // The event-stream naturalizer wraps binary as { InlineBinary } (an
-    // ArrayBuffer, a view, or a base64 string); unwrap before extracting.
-    if (
-        payload &&
-        typeof payload === "object" &&
-        !(payload instanceof ArrayBuffer) &&
-        !ArrayBuffer.isView(payload) &&
-        payload.InlineBinary !== undefined
-    ) {
-        payload = Array.isArray(payload.InlineBinary)
-            ? payload.InlineBinary[0]
-            : payload.InlineBinary;
-    }
-    if (typeof payload === "string") {
-        const binary = atob(payload);
-        const decoded = new Uint8Array(binary.length);
-        for (let i = 0; i < binary.length; i++) {
-            decoded[i] = binary.charCodeAt(i);
-        }
-        payload = decoded;
-    }
-    let bytes = ArrayBuffer.isView(payload)
-        ? new Uint8Array(payload.buffer, payload.byteOffset, payload.byteLength)
-        : new Uint8Array(payload);
-    if (
-        declaredLength !== null &&
-        declaredLength !== undefined &&
-        declaredLength >= 0 &&
-        declaredLength <= bytes.byteLength
-    ) {
-        return bytes.subarray(0, declaredLength);
-    }
-    if (
-        bytes.byteLength > 0 &&
-        bytes.byteLength % 2 === 0 &&
-        bytes[bytes.byteLength - 1] === 0x00
-    ) {
-        bytes = bytes.subarray(0, bytes.byteLength - 1);
-    }
-    return bytes;
 }
 
 /**
@@ -196,10 +130,8 @@ export function documentReferenceFromDataset(dataset, options = {}) {
     if (title) {
         attachment.title = title;
     }
-    const bytes = payloadBytes(
-        dataset.EncapsulatedDocument,
-        asNumber(dataset.EncapsulatedDocumentLength)
-    );
+    // Review findings 8 (InlineBinary unwrap) and 16 (declared length).
+    const bytes = extractEncapsulated(dataset);
     if (bytes) {
         attachment.size = bytes.byteLength;
         if (includeData) {

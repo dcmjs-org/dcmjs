@@ -1,10 +1,9 @@
 // packages/fhir/test/documentReference.test.js
 //
 // FHIR DocumentReference from Encapsulated PDF instances — the "PDF out of
-// PACS" mapping. The v2 original built its input datasets with
-// dcmjs.encapsulated.encapsulatePdf; that module belongs to the pdfs wave
-// and is not on this branch yet, so buildPdfDataset constructs the same
-// naturalized shape directly. The round-trip case still serializes and
+// PACS" mapping. buildPdfDataset constructs the naturalized shape of
+// @dcmjs-org/encapsulated's encapsulatePdf directly, with fixed UIDs and
+// payload shapes for each case. The round-trip case still serializes and
 // re-reads through @dcmjs-org/legacy (test-only; the package itself never
 // imports legacy), and the image fixture naturalizes through
 // @dcmjs-org/parser as in toFhir.test.js.

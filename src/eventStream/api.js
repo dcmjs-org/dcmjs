@@ -37,11 +37,12 @@ import { toFhir as mapToFhir } from "@dcmjs-org/fhir";
  * fromVideoStream, toPdf, toVideo — the media wave), and the FHIR pair
  * (fromFhir, toFhir — this wave).
  *
- * The media source factories and fromFhir pass `options` unchanged to their builder,
+ * The media source factories pass `options` unchanged to their builder,
  * which takes the `createInstance` options of `@dcmjs-org/core` (`instance`,
  * `dataLevel`, `levels`, `predecessor`, `postProcess`, `baseDicom`,
  * `overrides`). The DICOM attributes go in `overrides`, for example
  * `fromPdf(bytes, { instance, overrides: { DocumentTitle: "Report" } })`.
+ * fromFhir takes the same options plus `patient`.
  */
 export class DicomEventStream {
     /**
@@ -159,7 +160,8 @@ export class DicomEventStream {
      * minted UIDs stay stable across re-runs of the same stream.
      *
      * @param {Object} resource - DocumentReference | Media | Bundle
-     * @param {Object} [options] - { patient, overrides } (see fromFhir.js)
+     * @param {Object} [options] - `patient` (a FHIR Patient) plus the
+     *   createInstance options; see dicomDictFromFhir
      * @returns {DicomEventStream}
      */
     static fromFhir(resource, options = {}) {

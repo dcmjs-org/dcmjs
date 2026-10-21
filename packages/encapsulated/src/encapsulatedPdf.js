@@ -12,7 +12,11 @@
 // encapsulatePdf checks the PDF magic and calls the generic `encapsulate`
 // with the PDF base (./defaults/pdfBase.js).
 
-import { encapsulate, toExactArrayBuffer } from "./encapsulate.js";
+import {
+    encapsulate,
+    extractEncapsulated,
+    toExactArrayBuffer
+} from "./encapsulate.js";
 import {
     encapsulatedPdfBase,
     ENCAPSULATED_PDF_SOP_CLASS_UID,
@@ -73,16 +77,10 @@ function encapsulatePdf(pdfBytes, options = {}) {
 }
 
 /**
- * Recover the PDF from a naturalized Encapsulated PDF instance.
- *
- * The Part 10 writer pads odd-length OB values with a trailing NUL. When
- * `EncapsulatedDocumentLength (0042,0015)` is present (encapsulatePdf always
- * writes it), the payload is sliced to that exact declared length, so an
- * even-length original that genuinely ends in a zero byte survives
- * (review finding 16). Only for files written without the element does the
- * old heuristic apply: a single trailing 0x00 on an even stored length is
- * trimmed as pad. A dataset that is not an Encapsulated PDF throws an error
- * (ENC-USR-11).
+ * Recover the PDF from a naturalized Encapsulated PDF instance. Checks the
+ * SOP class or the MIME type, then calls {@link extractEncapsulated}, which
+ * documents the payload shapes and the pad handling (review finding 16). A
+ * dataset that is not an Encapsulated PDF throws an error (ENC-USR-11).
  *
  * @param {Object} dataset - naturalized Encapsulated PDF instance
  * @returns {{ bytes: Uint8Array, mimeType: string, title: string }}
@@ -101,58 +99,8 @@ function extractEncapsulatedPdf(dataset) {
         );
     }
 
-    let payload = dataset.EncapsulatedDocument;
-    if (Array.isArray(payload)) {
-        payload = payload[0];
-    }
-    // The event-stream naturalizer wraps binary as { InlineBinary } (an
-    // ArrayBuffer, a view, or a base64 string); unwrap before extracting.
-    if (
-        payload &&
-        typeof payload === "object" &&
-        !(payload instanceof ArrayBuffer) &&
-        !ArrayBuffer.isView(payload) &&
-        payload.InlineBinary !== undefined
-    ) {
-        payload = Array.isArray(payload.InlineBinary)
-            ? payload.InlineBinary[0]
-            : payload.InlineBinary;
-    }
-    if (typeof payload === "string") {
-        const binary = atob(payload);
-        const decoded = new Uint8Array(binary.length);
-        for (let i = 0; i < binary.length; i++) {
-            decoded[i] = binary.charCodeAt(i);
-        }
-        payload = decoded;
-    }
-    let bytes = ArrayBuffer.isView(payload)
-        ? new Uint8Array(payload.buffer, payload.byteOffset, payload.byteLength)
-        : new Uint8Array(payload);
-
-    let declaredLength = dataset.EncapsulatedDocumentLength;
-    if (Array.isArray(declaredLength)) {
-        declaredLength = declaredLength[0];
-    }
-    if (
-        Number.isInteger(declaredLength) &&
-        declaredLength >= 0 &&
-        declaredLength <= bytes.byteLength
-    ) {
-        // Exact: slice to the declared original length.
-        bytes = bytes.subarray(0, declaredLength);
-    } else if (
-        bytes.byteLength > 0 &&
-        bytes.byteLength % 2 === 0 &&
-        bytes[bytes.byteLength - 1] === 0x00
-    ) {
-        // Fallback for files without (0042,0015): treat a single trailing
-        // NUL on an even stored length as the writer's pad byte.
-        bytes = bytes.subarray(0, bytes.byteLength - 1);
-    }
-
     return {
-        bytes,
+        bytes: extractEncapsulated(dataset) || new Uint8Array(0),
         mimeType: mimeType || PDF_MIME_TYPE,
         title: dataset.DocumentTitle || ""
     };

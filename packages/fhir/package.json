@@ -10,7 +10,8 @@
         "directory": "packages/fhir"
     },
     "dependencies": {
-        "@dcmjs-org/core": "workspace:*"
+        "@dcmjs-org/core": "workspace:*",
+        "@dcmjs-org/encapsulated": "workspace:*"
     },
     "devDependencies": {
         "@dcmjs-org/legacy": "workspace:*",

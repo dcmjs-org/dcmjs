@@ -10,7 +10,7 @@
 //
 // Ported from v2's test/eventStream/fhirPdfEventStream.test.js with two
 // deltas: the parseJpegInfo block lives with its code in
-// packages/video/test/jpegInfo.test.js (a superset — not duplicated
+// packages/imaging/test/jpegInfo.test.js (a superset — not duplicated
 // here), and fromFhir is now LAZY (finding 14), so the corrective-error
 // tests assert rejection from the sink rather than a throw from the
 // factory.
@@ -186,6 +186,25 @@ describe("fromFhir", () => {
         expect(bytes.length - JPEG_BYTES.length).toBeLessThanOrEqual(1);
     });
 
+    test("createInstance options: instance gives the study, overrides win over the FHIR values", async () => {
+        const prior = {
+            StudyInstanceUID: "1.2.3.4",
+            PatientID: "OLD-ID",
+            SOPInstanceUID: "1.2.3.4.5.6"
+        };
+        const events = DicomEventStream.fromFhir(documentReference(), {
+            patient: JANE_FOX,
+            instance: prior,
+            overrides: { DocumentTitle: "Override title" }
+        });
+        const { dataset } = readBack(await events.toPart10());
+
+        expect(dataset.StudyInstanceUID).toBe("1.2.3.4");
+        expect(dataset.PatientID).toBe("22446688");
+        expect(dataset.DocumentTitle).toBe("Override title");
+        expect(dataset.SOPInstanceUID).not.toBe("1.2.3.4.5.6");
+    });
+
     test("fromFhir streams are re-runnable with stable identity", async () => {
         const events = DicomEventStream.fromFhir(documentReference(), {
             patient: JANE_FOX
@@ -255,9 +274,11 @@ describe("fromFhir", () => {
 describe("fromPdf / toPdf / toFhir", () => {
     test("fromPdf wraps and toPdf recovers the bytes", async () => {
         const events = DicomEventStream.fromPdf(PDF_BYTES, {
-            PatientName: "FOX^JANE",
-            PatientID: "22446688",
-            DocumentTitle: "Discharge Summary"
+            overrides: {
+                PatientName: "FOX^JANE",
+                PatientID: "22446688",
+                DocumentTitle: "Discharge Summary"
+            }
         });
         const extracted = await events.toPdf();
         expect(new TextDecoder().decode(extracted.bytes)).toBe(PDF_STRING);
@@ -277,9 +298,11 @@ describe("fromPdf / toPdf / toFhir", () => {
         const events = DicomEventStream.fromImage(
             { pixels: new Uint8Array(16), rows: 4, columns: 4 },
             {
-                PatientName: "FOX^JANE",
-                PatientID: "22446688",
-                Modality: "MR"
+                overrides: {
+                    PatientName: "FOX^JANE",
+                    PatientID: "22446688",
+                    Modality: "MR"
+                }
             }
         );
         const {
@@ -295,7 +318,7 @@ describe("fromPdf / toPdf / toFhir", () => {
 
     test("toFhir on a PDF instance yields a DocumentReference", async () => {
         const events = DicomEventStream.fromPdf(PDF_BYTES, {
-            PatientID: "22446688"
+            overrides: { PatientID: "22446688" }
         });
         const { imagingStudy, documentReference: doc } = await events.toFhir();
         expect(doc.resourceType).toBe("DocumentReference");
