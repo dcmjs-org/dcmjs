@@ -26,9 +26,12 @@ importers:
       '@babel/runtime-corejs3':
         specifier: 7.29.2
         version: 7.29.2
-      '@dcmjs-org/pdfs':
+      '@dcmjs-org/encapsulated':
         specifier: workspace:*
-        version: link:packages/pdfs
+        version: link:packages/encapsulated
+      '@dcmjs-org/imaging':
+        specifier: workspace:*
+        version: link:packages/imaging
       '@dcmjs-org/video':
         specifier: workspace:*
         version: link:packages/video
@@ -170,6 +173,12 @@ importers:
         specifier: workspace:*
         version: link:../parser
 
+  packages/encapsulated:
+    dependencies:
+      '@dcmjs-org/core':
+        specifier: workspace:*
+        version: link:../core
+
   packages/fixtures: {}
 
   packages/generator:
@@ -180,6 +189,12 @@ importers:
       '@dcmjs-org/parser':
         specifier: workspace:*
         version: link:../parser
+
+  packages/imaging:
+    dependencies:
+      '@dcmjs-org/core':
+        specifier: workspace:*
+        version: link:../core
 
   packages/legacy:
     dependencies:
@@ -195,9 +210,12 @@ importers:
       '@dcmjs-org/dicomdir':
         specifier: workspace:*
         version: link:../dicomdir
-      '@dcmjs-org/pdfs':
+      '@dcmjs-org/encapsulated':
         specifier: workspace:*
-        version: link:../pdfs
+        version: link:../encapsulated
+      '@dcmjs-org/imaging':
+        specifier: workspace:*
+        version: link:../imaging
       '@dcmjs-org/video':
         specifier: workspace:*
         version: link:../video
@@ -210,12 +228,6 @@ importers:
       pako:
         specifier: 2.1.0
         version: 2.1.0
-
-  packages/pdfs:
-    dependencies:
-      '@dcmjs-org/core':
-        specifier: workspace:*
-        version: link:../core
 
   packages/schemas: {}
 
@@ -235,6 +247,9 @@ importers:
       '@dcmjs-org/core':
         specifier: workspace:*
         version: link:../core
+      '@dcmjs-org/imaging':
+        specifier: workspace:*
+        version: link:../imaging
       '@dcmjs-org/parser':
         specifier: workspace:*
         version: link:../parser

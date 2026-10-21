@@ -22,7 +22,8 @@ export default [
             "no-unused-vars": [
                 "error",
                 {
-                    argsIgnorePattern: "^_" // for function parameters
+                    argsIgnorePattern: "^_", // for function parameters
+                    ignoreRestSiblings: true // `{ control, ...rest }` removal
                 }
             ]
         }

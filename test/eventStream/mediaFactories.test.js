@@ -84,7 +84,7 @@ test("fromVideo → toPart10 → toVideo recovers the MP4 byte-identically", asy
     const mp4 = makeTinyMp4();
 
     const buffer = await DicomEventStream.fromVideo(mp4, {
-        PatientName: "FOX^JANE"
+        overrides: { PatientName: "FOX^JANE" }
     }).toPart10();
 
     const { meta, dataset } = readBack(buffer);
@@ -113,8 +113,10 @@ test("fromPdf → toPart10 → toPdf recovers the PDF byte-identically", async (
     ]);
 
     const buffer = await DicomEventStream.fromPdf(pdf, {
-        PatientName: "DOE^JANE",
-        DocumentTitle: "Discharge Summary"
+        overrides: {
+            PatientName: "DOE^JANE",
+            DocumentTitle: "Discharge Summary"
+        }
     }).toPart10();
 
     const { dataset } = readBack(buffer);
@@ -127,6 +129,31 @@ test("fromPdf → toPart10 → toPdf recovers the PDF byte-identically", async (
     expect(mimeType).toBe("application/pdf");
     expect(title).toBe("Discharge Summary");
     expect(Array.from(bytes)).toEqual(Array.from(pdf));
+});
+
+test("fromPdf passes the createInstance options to the builder", async () => {
+    const pdf = new Uint8Array([
+        0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x34
+    ]);
+    const instance = {
+        PatientName: "DOE^JANE",
+        StudyInstanceUID: "1.2.3",
+        SeriesInstanceUID: "1.2.3.4",
+        Modality: "DOC",
+        InstanceNumber: 3
+    };
+
+    const dataset = await DicomEventStream.fromPdf(pdf, {
+        instance,
+        dataLevel: "series",
+        overrides: { DocumentTitle: "v2" }
+    }).toNaturalized();
+
+    expect(String(dataset.PatientName)).toBe("DOE^JANE");
+    expect(dataset.StudyInstanceUID).toBe("1.2.3");
+    expect(dataset.SeriesInstanceUID).toBe("1.2.3.4");
+    expect(Number(dataset.InstanceNumber)).toBe(4);
+    expect(dataset.DocumentTitle).toBe("v2");
 });
 
 test("toPdf on a non-PDF stream throws the corrective error", async () => {

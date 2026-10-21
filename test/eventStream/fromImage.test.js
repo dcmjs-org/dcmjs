@@ -35,7 +35,7 @@ test("toPart10 round trip: geometry, meta group, byte-identical pixels", async (
     const pixels = ramp16(8, 8);
     const events = DicomEventStream.fromImage(
         { pixels, rows: 8, columns: 8, bitsStored: 12 },
-        { PatientName: "FOX^JANE", PatientID: "22446688" }
+        { overrides: { PatientName: "FOX^JANE", PatientID: "22446688" } }
     );
 
     const buffer = await events.toPart10();

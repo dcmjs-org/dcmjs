@@ -53,12 +53,17 @@ describe("createVideoEventSource", () => {
     it("round-trips MP4 → Part 10 → MP4 byte-identically", async () => {
         const mp4 = makeTinyMp4(); // odd payload → exercises the pad byte
         const part10 = await videoToPart10(mp4, {
-            PatientName: "DOE^JANE",
+            overrides: {
+                PatientName: "DOE^JANE",
+                _meta: { ImplementationVersionName: { Value: ["X"] } }
+            },
             fragmentBytes: 512
         });
 
         const dataset = await naturalizedRead(part10);
         expect(dataset._meta.TransferSyntaxUID).toBe(H264_HIGH_42);
+        // API: the file meta keeps the other _meta keys (VID-USR-2).
+        expect(dataset._meta.ImplementationVersionName).toBe("X");
         expect(dataset.Modality).toBe("XC");
         expect([].concat(dataset.PatientName)[0]).toMatchObject({
             Alphabetic: "DOE^JANE"
@@ -122,6 +127,11 @@ describe("createVideoEventSource", () => {
         const writer = new StreamingPart10Writer(); // accumulate mode
         await source.run(writer);
         const bytes = new Uint8Array(writer.toArrayBuffer());
+        // API: the file meta group does not replace the returned _meta
+        // (CORE-USR-13).
+        expect(source.dataset._meta).toEqual({
+            TransferSyntaxUID: { Value: [H264_HIGH_42] }
+        });
 
         // Pixel Data header: (7FE0,0010) OB, undefined length.
         const pixelHeader = [

@@ -1,4 +1,4 @@
-// packages/pdfs/src/encapsulatedPdf.js
+// packages/encapsulated/src/encapsulatedPdf.js
 //
 // Encapsulated PDF IOD (PS3.3 A.45.1), SOP Class 1.2.840.10008.5.1.4.1.1.104.1.
 // Two directions, matching the PACS workflow where PDFs travel inside DICOM:
@@ -9,35 +9,17 @@
 //   extractEncapsulatedPdf(dataset)    — PDF out: recover the PDF bytes from
 //       a parsed (naturalized) Encapsulated PDF instance.
 //
-// This is a de novo builder, deliberately NOT a DerivedDataset — derivations
-// copy patient/study context from a referenced source instance; an
-// encapsulated PDF starts from a plain PDF plus caller-supplied context.
+// encapsulatePdf checks the PDF magic and calls the generic `encapsulate`
+// with the PDF base (./defaults/pdfBase.js).
 
-import { DicomMetaDictionary } from "@dcmjs-org/core";
+import { encapsulate, toExactArrayBuffer } from "./encapsulate.js";
+import {
+    encapsulatedPdfBase,
+    ENCAPSULATED_PDF_SOP_CLASS_UID,
+    PDF_MIME_TYPE
+} from "./defaults/pdfBase.js";
 
-const ENCAPSULATED_PDF_SOP_CLASS_UID = "1.2.840.10008.5.1.4.1.1.104.1";
-const PDF_MIME_TYPE = "application/pdf";
 const PDF_MAGIC = [0x25, 0x50, 0x44, 0x46, 0x2d]; // "%PDF-"
-
-/**
- * Normalize ArrayBuffer | Uint8Array | Node Buffer to an exact ArrayBuffer.
- * Views are sliced by byteOffset/byteLength — a bare `.buffer` on a pooled
- * Node Buffer would hand back unrelated pool bytes.
- */
-function toExactArrayBuffer(bytes) {
-    if (bytes instanceof ArrayBuffer) {
-        return bytes;
-    }
-    if (ArrayBuffer.isView(bytes)) {
-        return bytes.buffer.slice(
-            bytes.byteOffset,
-            bytes.byteOffset + bytes.byteLength
-        );
-    }
-    throw new Error(
-        "encapsulatePdf expects an ArrayBuffer or Uint8Array of PDF bytes"
-    );
-}
 
 function assertPdfMagic(arrayBuffer) {
     const head = new Uint8Array(
@@ -58,88 +40,36 @@ function assertPdfMagic(arrayBuffer) {
 /**
  * Wrap PDF bytes into a naturalized Encapsulated PDF dataset.
  *
- * The result carries `_meta` (Explicit VR Little Endian) and `_vrMap`
- * (EncapsulatedDocument pinned to OB) so the Part 10 writers can serialize
- * it directly. Every UID defaults to a freshly minted
- * `DicomMetaDictionary.uid()`; pass `StudyInstanceUID` (and optionally
- * `SeriesInstanceUID`) to attach the document into an existing study.
+ * Checks the PDF magic, then calls {@link encapsulate} with
+ * `encapsulatedPdfBase` as the default `baseDicom`. All other options
+ * (`instance`, `dataLevel`, `levels`, `predecessor`, `postProcess`,
+ * `mimeType`, and `overrides`) pass through; see `createInstance` in
+ * `@dcmjs-org/core`. The DICOM attributes go in `overrides`, a naturalized
+ * DICOM provider with the forms of `baseDicom`. Bytes without the `%PDF-`
+ * magic throw an error (ENC-USR-11).
+ *
+ * @example
+ * encapsulatePdf(pdfBytes, {
+ *     instance,
+ *     dataLevel: "series",
+ *     overrides: { DocumentTitle: "v1" }
+ * });
  *
  * @param {ArrayBuffer|Uint8Array} pdfBytes
- * @param {Object} [options] - naturalized keyword overrides (PatientName,
- *   PatientID, DocumentTitle, StudyInstanceUID, ...)
+ * @param {Object} [options]
  * @returns {Object} naturalized dataset
  */
 function encapsulatePdf(pdfBytes, options = {}) {
     const documentBytes = toExactArrayBuffer(pdfBytes);
     assertPdfMagic(documentBytes);
-
-    const date = DicomMetaDictionary.date();
-    const time = DicomMetaDictionary.time();
-
-    const dataset = {
-        // SOP Common
-        SpecificCharacterSet: "ISO_IR 192",
-        SOPClassUID: ENCAPSULATED_PDF_SOP_CLASS_UID,
-        SOPInstanceUID: options.SOPInstanceUID || DicomMetaDictionary.uid(),
-
-        // General Study (Type 2 attributes always present)
-        StudyInstanceUID: options.StudyInstanceUID || DicomMetaDictionary.uid(),
-        StudyDate: options.StudyDate || date,
-        StudyTime: options.StudyTime || time,
-        ReferringPhysicianName: options.ReferringPhysicianName || "",
-        StudyID: options.StudyID || "",
-        AccessionNumber: options.AccessionNumber || "",
-
-        // Patient
-        PatientName: options.PatientName || "",
-        PatientID: options.PatientID || "",
-        PatientBirthDate: options.PatientBirthDate || "",
-        PatientSex: options.PatientSex || "",
-
-        // Encapsulated Document Series
-        Modality: "DOC",
-        SeriesInstanceUID:
-            options.SeriesInstanceUID || DicomMetaDictionary.uid(),
-        SeriesNumber: options.SeriesNumber || 1,
-
-        // SC Equipment
-        ConversionType: options.ConversionType || "WSD",
-        Manufacturer: options.Manufacturer || "dcmjs",
-
-        // Encapsulated Document
-        InstanceNumber: options.InstanceNumber || 1,
-        ContentDate: options.ContentDate || date,
-        ContentTime: options.ContentTime || time,
-        AcquisitionDateTime:
-            options.AcquisitionDateTime || DicomMetaDictionary.dateTime(),
-        BurnedInAnnotation: options.BurnedInAnnotation || "YES",
-        DocumentTitle: options.DocumentTitle || "",
-        MIMETypeOfEncapsulatedDocument: PDF_MIME_TYPE,
-        // Review finding 16: the writer pads an odd-length OB value with a
-        // NUL, so the stored length alone cannot say whether a trailing zero
-        // byte is content or pad. (0042,0015) records the exact length so
-        // extraction can slice instead of guessing.
-        EncapsulatedDocumentLength: documentBytes.byteLength,
-        EncapsulatedDocument: documentBytes,
-
-        _meta: {
-            TransferSyntaxUID: {
-                Value: ["1.2.840.10008.1.2.1"]
-            }
-        },
-        _vrMap: {
-            EncapsulatedDocument: "OB"
-        }
-    };
-
-    if (options.SeriesDescription) {
-        dataset.SeriesDescription = options.SeriesDescription;
-    }
-    if (options.ConceptNameCodeSequence) {
-        dataset.ConceptNameCodeSequence = options.ConceptNameCodeSequence;
-    }
-
-    return dataset;
+    return encapsulate(documentBytes, {
+        ...options,
+        // An undefined baseDicom means the default, as in encapsulate.
+        baseDicom:
+            options.baseDicom === undefined
+                ? encapsulatedPdfBase
+                : options.baseDicom
+    });
 }
 
 /**
@@ -151,7 +81,8 @@ function encapsulatePdf(pdfBytes, options = {}) {
  * even-length original that genuinely ends in a zero byte survives
  * (review finding 16). Only for files written without the element does the
  * old heuristic apply: a single trailing 0x00 on an even stored length is
- * trimmed as pad.
+ * trimmed as pad. A dataset that is not an Encapsulated PDF throws an error
+ * (ENC-USR-11).
  *
  * @param {Object} dataset - naturalized Encapsulated PDF instance
  * @returns {{ bytes: Uint8Array, mimeType: string, title: string }}
@@ -230,5 +161,6 @@ function extractEncapsulatedPdf(dataset) {
 export {
     encapsulatePdf,
     extractEncapsulatedPdf,
-    ENCAPSULATED_PDF_SOP_CLASS_UID
+    ENCAPSULATED_PDF_SOP_CLASS_UID,
+    PDF_MIME_TYPE
 };

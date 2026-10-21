@@ -8,9 +8,12 @@ import { fromDicomWebJson } from "./fromDicomWebJson.js";
 import { fromDataSet } from "./fromDataSet.js";
 import { createEventAsyncIterable } from "./asyncIterator.js";
 import { datasetToDict } from "../datasetToBlob.js";
-import { encapsulatePdf, extractEncapsulatedPdf } from "@dcmjs-org/pdfs";
 import {
-    buildImageDataset,
+    encapsulatePdf,
+    extractEncapsulatedPdf
+} from "@dcmjs-org/encapsulated";
+import { buildImageDataset } from "@dcmjs-org/imaging";
+import {
     createVideoEventSource,
     extractEncapsulatedVideo
 } from "@dcmjs-org/video";
@@ -31,6 +34,12 @@ import {
  * wave), plus the media factories (fromImage, fromPdf, fromVideo,
  * fromVideoStream, toPdf, toVideo — this wave). The FHIR pair (fromFhir,
  * toFhir) lands with the FHIR wave.
+ *
+ * The media source factories pass `options` unchanged to their builder,
+ * which takes the `createInstance` options of `@dcmjs-org/core` (`instance`,
+ * `dataLevel`, `levels`, `predecessor`, `postProcess`, `baseDicom`,
+ * `overrides`). The DICOM attributes go in `overrides`, for example
+ * `fromPdf(bytes, { instance, overrides: { DocumentTitle: "Report" } })`.
  */
 export class DicomEventStream {
     /**
@@ -110,13 +119,14 @@ export class DicomEventStream {
 
     /**
      * An already-decoded image source: builds a full instance dataset via
-     * image/buildImageDataset (geometry from the pixels, context from
-     * options.metadata / keyword overrides, derived-instance conformance),
-     * then streams it. The dataset is built eagerly so minted UIDs are
-     * stable across re-runs of the same stream.
+     * buildImageDataset of @dcmjs-org/imaging (geometry from the pixels,
+     * context from `instance` and `overrides`, `derivedFrom` for a derived
+     * instance), then streams it. The dataset is built eagerly so minted
+     * UIDs are stable across re-runs of the same stream.
      *
      * @param {Object} decodedImage - { pixels, rows, columns, ... }
-     * @param {Object} [options] - buildImageDataset options
+     * @param {Object} [options] - buildImageDataset options (the
+     *   createInstance options plus `derivedFrom`, `lossy`, `encapsulated`)
      * @returns {DicomEventStream}
      */
     static fromImage(decodedImage, options = {}) {
@@ -133,12 +143,12 @@ export class DicomEventStream {
 
     /**
      * A PDF source: wraps the bytes into an Encapsulated PDF instance
-     * (encapsulatePdf) and streams it. Options are the encapsulatePdf
-     * naturalized keyword overrides (PatientName, DocumentTitle,
-     * StudyInstanceUID, ...).
+     * (encapsulatePdf of @dcmjs-org/encapsulated) and streams it.
      *
      * @param {ArrayBuffer|Uint8Array} pdfBytes
-     * @param {Object} [options]
+     * @param {Object} [options] - encapsulatePdf options (the
+     *   createInstance options plus `mimeType`); the attributes
+     *   (PatientName, DocumentTitle, ...) go in `overrides`
      * @returns {DicomEventStream}
      */
     static fromPdf(pdfBytes, options = {}) {
@@ -162,8 +172,9 @@ export class DicomEventStream {
      * the transcode.
      *
      * @param {ArrayBuffer|Uint8Array} mp4Bytes
-     * @param {Object} [options] - buildVideoDataset overrides (PatientName,
-     *   StudyInstanceUID, ...) + { fragmentBytes }
+     * @param {Object} [options] - buildVideoDataset options (the
+     *   createInstance options; the attributes go in `overrides`) plus
+     *   `fragmentBytes`
      * @returns {DicomEventStream}
      */
     static fromVideo(mp4Bytes, options = {}) {

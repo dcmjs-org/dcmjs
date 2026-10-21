@@ -15,11 +15,28 @@
         "./package.json": "./package.json"
     },
     "files": [
-        "src/schema",
+        "dist",
         "schema",
         "types/dcmjs-schema.d.ts",
         "README.md"
     ],
+    "scripts": {
+        "build": "rollup -c ../../rollup.packages.config.mjs"
+    },
+    "publishConfig": {
+        "main": "./dist/index.cjs",
+        "module": "./dist/index.mjs",
+        "types": "./types/dcmjs-schema.d.ts",
+        "exports": {
+            ".": {
+                "types": "./types/dcmjs-schema.d.ts",
+                "import": "./dist/index.mjs",
+                "require": "./dist/index.cjs"
+            },
+            "./schema/naturalized.schema.json": "./schema/naturalized.schema.json",
+            "./package.json": "./package.json"
+        }
+    },
     "license": "MIT",
     "repository": {
         "type": "git",

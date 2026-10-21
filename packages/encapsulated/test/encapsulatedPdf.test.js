@@ -1,4 +1,4 @@
-// packages/pdfs/test/encapsulatedPdf.test.js
+// packages/encapsulated/test/encapsulatedPdf.test.js
 //
 // Encapsulated PDF (SOP Class 1.2.840.10008.5.1.4.1.1.104.1): wrap a PDF
 // into a conformant naturalized dataset (encapsulatePdf) and pull the PDF
@@ -10,13 +10,12 @@
 // the parser/generator pipeline.
 
 import { DicomMetaDictionary, validationLog } from "@dcmjs-org/core";
-import {
-    fromDataSet,
-    fromPart10,
-    NaturalizedListener
-} from "../../parser/src/index.js";
-import { Part10Writer } from "../../generator/src/index.js";
 import { encapsulatePdf, extractEncapsulatedPdf } from "../src/index.js";
+import {
+    bytesToString,
+    readNaturalized,
+    writePart10
+} from "./part10Helpers.js";
 
 // Ignore validation chatter
 validationLog.setLevel(5);
@@ -33,36 +32,6 @@ const PDF_STRING =
     "trailer<</Size 4/Root 1 0 R>>\n" +
     "%%EOF";
 const PDF_BYTES = new TextEncoder().encode(PDF_STRING);
-
-function bytesToString(bytes) {
-    return String.fromCharCode(...bytes);
-}
-
-/** Naturalized dataset -> Part 10 bytes, minting the file meta group the
- *  way the legacy datasetToDict does, but through the event-stream writer. */
-async function writePart10(dataset) {
-    const transferSyntaxUID =
-        (dataset._meta &&
-            dataset._meta.TransferSyntaxUID &&
-            dataset._meta.TransferSyntaxUID.Value[0]) ||
-        "1.2.840.10008.1.2.1";
-    const meta = DicomMetaDictionary.denaturalizeDataset({
-        MediaStorageSOPClassUID: dataset.SOPClassUID,
-        MediaStorageSOPInstanceUID: dataset.SOPInstanceUID,
-        TransferSyntaxUID: transferSyntaxUID
-    });
-    const dict = DicomMetaDictionary.denaturalizeDataset(dataset);
-    const writer = new Part10Writer();
-    await fromDataSet({ meta, dict }, writer);
-    return writer.write();
-}
-
-/** Part 10 bytes -> { result, meta } naturalized via the streaming reader. */
-async function readNaturalized(arrayBuffer) {
-    const listener = new NaturalizedListener();
-    await fromPart10(arrayBuffer, listener);
-    return listener;
-}
 
 /** Unwrap the naturalized EncapsulatedDocument ({ InlineBinary } wrapper,
  *  Value array, ArrayBuffer, or view) into a Uint8Array, without the
@@ -91,11 +60,6 @@ function rawPayloadBytes(readBack) {
 it("fixture PDF is odd-length", () => {
     expect(PDF_BYTES.byteLength % 2).toEqual(1);
     expect(bytesToString(PDF_BYTES.slice(0, 5))).toEqual("%PDF-");
-});
-
-it("exports encapsulatePdf and extractEncapsulatedPdf", () => {
-    expect(typeof encapsulatePdf).toEqual("function");
-    expect(typeof extractEncapsulatedPdf).toEqual("function");
 });
 
 it("builds a conformant Encapsulated PDF dataset with defaults", () => {
@@ -139,12 +103,14 @@ it("builds a conformant Encapsulated PDF dataset with defaults", () => {
 
 it("honors caller options including attachment to an existing study", () => {
     const dataset = encapsulatePdf(PDF_BYTES, {
-        PatientName: "Doe^Jane",
-        PatientID: "MRN-42",
-        DocumentTitle: "Discharge Summary",
-        StudyInstanceUID: "1.2.3.4.5",
-        SeriesInstanceUID: "1.2.3.4.5.6",
-        SeriesDescription: "External reports"
+        overrides: {
+            PatientName: "Doe^Jane",
+            PatientID: "MRN-42",
+            DocumentTitle: "Discharge Summary",
+            StudyInstanceUID: "1.2.3.4.5",
+            SeriesInstanceUID: "1.2.3.4.5.6",
+            SeriesDescription: "External reports"
+        }
     });
 
     expect(dataset.PatientName).toEqual("Doe^Jane");
@@ -162,8 +128,10 @@ it("rejects bytes that are not a PDF", () => {
 
 it("round-trips through Part 10 write and read", async () => {
     const dataset = encapsulatePdf(PDF_BYTES, {
-        PatientName: "Doe^Jane",
-        DocumentTitle: "Discharge Summary"
+        overrides: {
+            PatientName: "Doe^Jane",
+            DocumentTitle: "Discharge Summary"
+        }
     });
 
     const listener = await readNaturalized(await writePart10(dataset));
@@ -198,7 +166,7 @@ it("round-trips through Part 10 write and read", async () => {
 
 it("extractEncapsulatedPdf recovers the exact original bytes", async () => {
     const dataset = encapsulatePdf(PDF_BYTES, {
-        DocumentTitle: "Discharge Summary"
+        overrides: { DocumentTitle: "Discharge Summary" }
     });
     const listener = await readNaturalized(await writePart10(dataset));
 
