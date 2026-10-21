@@ -51,12 +51,18 @@ export const patientBase = {
     PatientSex: ""
 };
 
-/** Study level: Type 2 empties, plus a new study when it is not inherited. */
+/**
+ * Study level: Type 2 empties, plus a new study when it is not inherited. An
+ * inherited study gets empty StudyDate/StudyTime, which a source value
+ * replaces.
+ */
 export function studyBase(context) {
     const base = {
         StudyID: "",
         AccessionNumber: "",
-        ReferringPhysicianName: ""
+        ReferringPhysicianName: "",
+        StudyDate: "",
+        StudyTime: ""
     };
     if (!context.inherits("study")) {
         base.StudyInstanceUID = DicomMetaDictionary.uid();
@@ -66,26 +72,90 @@ export function studyBase(context) {
     return base;
 }
 
-/** Series level: a new series when it is not inherited. */
+/**
+ * Series level: a new series when it is not inherited. An inherited series
+ * gets an empty SeriesNumber (Type 2), which a source value replaces.
+ */
 export function seriesBase(context) {
     if (context.inherits("series")) {
-        return {};
+        return { SeriesNumber: "" };
     }
     return { SeriesInstanceUID: DicomMetaDictionary.uid(), SeriesNumber: 1 };
 }
 
+/** The largest value of VR IS (a signed 32-bit integer). */
+const IS_MAX = 2147483647;
+
+/** The smallest value of VR IS. */
+const IS_MIN = -2147483648;
+
+/**
+ * An IS value as an integer: a number, an IS string, or a one-element array
+ * of them. A value outside the IS range, or anything else, gives `undefined`.
+ */
+function integerValue(value) {
+    if (Array.isArray(value)) {
+        value = value.length === 1 ? value[0] : undefined;
+    }
+    if (typeof value === "string") {
+        value = /^\s*[+-]?\d+\s*$/.test(value) ? Number(value) : undefined;
+    }
+    return Number.isInteger(value) && value >= IS_MIN && value <= IS_MAX
+        ? value
+        : undefined;
+}
+
+/**
+ * The InstanceNumber after the prior instances in the target series
+ * (CORE-USR-5). An item counts when its `SeriesInstanceUID` is the target
+ * series; an item without one counts only when the target series is the
+ * series of the first item.
+ */
+function nextInstanceNumber(context = {}) {
+    if (!context.inherits?.("series")) {
+        return 1;
+    }
+    const instances = [].concat(context.instance);
+    const inheritedSeries = instances[0]?.SeriesInstanceUID;
+    const override = context.options?.SeriesInstanceUID;
+    const hasOverride = override !== undefined && override !== null;
+    const series = hasOverride ? override : inheritedSeries;
+    const sameAsFirst = !hasOverride || override === inheritedSeries;
+    let max;
+    for (const instance of instances) {
+        const other = instance?.SeriesInstanceUID;
+        if (other ? other !== series : !sameAsFirst) {
+            continue;
+        }
+        const value = integerValue(instance?.InstanceNumber);
+        if (value >= 0 && (max === undefined || value > max)) {
+            max = value;
+        }
+    }
+    return max !== undefined && max < IS_MAX ? max + 1 : 1;
+}
+
 /** Instance: a new SOP instance and the encoding defaults. */
-export function instanceBase() {
+export function instanceBase(context) {
     return {
         SpecificCharacterSet: "ISO_IR 192",
         SOPInstanceUID: DicomMetaDictionary.uid(),
-        InstanceNumber: 1,
+        InstanceNumber: nextInstanceNumber(context),
         _meta: { TransferSyntaxUID: { Value: [EXPLICIT_LITTLE_ENDIAN] } }
     };
 }
 
 /** General Equipment: the creating software. */
 export const equipmentBase = { Manufacturer: "dcmjs" };
+
+const REFERENCE_KEYS = [
+    "StudyInstanceUID",
+    "SeriesInstanceUID",
+    "SOPClassUID",
+    "SOPInstanceUID"
+];
+const REFERENCE_KEYS_TEXT =
+    "StudyInstanceUID, SeriesInstanceUID, SOPClassUID, and SOPInstanceUID";
 
 /**
  * Reference instances in the Hierarchical SOP Instance Reference shape:
@@ -97,25 +167,28 @@ export const equipmentBase = { Manufacturer: "dcmjs" };
  * @returns {Object[]} the study items
  */
 export function hierarchicalReferences(instances) {
+    return buildReferences(
+        instances,
+        missing =>
+            `hierarchicalReferences: an instance is missing ${missing}; ` +
+            `each instance needs ${REFERENCE_KEYS_TEXT}`
+    );
+}
+
+/** hierarchicalReferences, with the error text of the caller. */
+function buildReferences(instances, missingText) {
     const studies = new Map();
     for (const instance of instances) {
+        const missing = REFERENCE_KEYS.filter(key => !instance?.[key]);
+        if (missing.length) {
+            throw new Error(missingText(missing.join(", ")));
+        }
         const {
             StudyInstanceUID,
             SeriesInstanceUID,
             SOPClassUID,
             SOPInstanceUID
         } = instance;
-        if (
-            !StudyInstanceUID ||
-            !SeriesInstanceUID ||
-            !SOPClassUID ||
-            !SOPInstanceUID
-        ) {
-            throw new Error(
-                "hierarchicalReferences: each instance needs StudyInstanceUID, " +
-                    "SeriesInstanceUID, SOPClassUID, and SOPInstanceUID"
-            );
-        }
         if (!studies.has(StudyInstanceUID)) {
             studies.set(StudyInstanceUID, new Map());
         }
@@ -150,8 +223,12 @@ export function predecessorBase(context) {
         return {};
     }
     return {
-        PredecessorDocumentsSequence: hierarchicalReferences(
-            [].concat(context.instance)
+        PredecessorDocumentsSequence: buildReferences(
+            [].concat(context.instance),
+            missing =>
+                `predecessor: the instance is missing ${missing}; the ` +
+                `instance must identify the source instance with ` +
+                REFERENCE_KEYS_TEXT
         )
     };
 }
@@ -168,8 +245,8 @@ export const defaultInstanceBase = combineBases(
 /**
  * A base block that sets `SeriesNumber` to one more than the largest series
  * number in `seriesList` (naturalized, or DICOM JSON such as a QIDO-RS series
- * response). Put it after `seriesBase`. It does nothing when the series is
- * inherited.
+ * response). A value that is not an IS integer does not count. Put it after
+ * `seriesBase`. It does nothing when the series is inherited.
  *
  * @param {Object[]} seriesList
  * @param {Function} [filter] - `(series) => boolean`, for example to count
@@ -186,14 +263,14 @@ export function nextSeriesNumberBase(seriesList, filter = () => true) {
             if (!filter(series)) {
                 continue;
             }
-            const value = Number(
+            const value = integerValue(
                 series.SeriesNumber ?? series["00200011"]?.Value?.[0]
             );
-            if (Number.isFinite(value) && value > max) {
+            if (value > max) {
                 max = value;
             }
         }
-        return { SeriesNumber: max + 1 };
+        return { SeriesNumber: max < IS_MAX ? max + 1 : 1 };
     };
 }
 
@@ -216,34 +293,71 @@ function isAttributeKey(key) {
 
 // Attributes where an inherited value that differs from the base is legal
 // but usually a mistake, so it gets a warning.
-const CONSISTENCY_KEYS = ["Modality", "SOPClassUID"];
+const CONSISTENCY_KEYS = ["Modality"];
 
 /**
- * Create a naturalized instance. The merge is
+ * The identity of the source instance itself (CORE-USR-4). `createInstance`
+ * never inherits these from `instance`, whatever `levels` lists; an override
+ * or the base blocks set them.
+ */
+const INSTANCE_IDENTITY_KEYS = Object.freeze([
+    "SOPInstanceUID",
+    "SOPClassUID",
+    "InstanceNumber",
+    "MediaStorageSOPInstanceUID",
+    "MediaStorageSOPClassUID"
+]);
+
+/**
+ * True when an instance is DICOM JSON (CORE-IMP-10): every key is an
+ * 8-hex-digit tag, and at least one value is an object with `vr`. A
+ * naturalized dataset has keyword keys, also when it keeps a private element
+ * as `{ vr, Value }` under its tag.
+ */
+function isDicomJson(instance) {
+    const keys = Object.keys(instance);
+    return (
+        keys.length > 0 &&
+        keys.every(key => /^[0-9A-Fa-f]{8}$/.test(key)) &&
+        keys.some(key => {
+            const value = instance[key];
+            return (
+                value !== null &&
+                typeof value === "object" &&
+                !Array.isArray(value) &&
+                "vr" in value
+            );
+        })
+    );
+}
+
+/**
+ * Create a naturalized instance. The user requirements are CORE-USR-1 to
+ * CORE-USR-14 in `packages/core/README.md`; the implementation requirements
+ * are CORE-IMP-n there. The merge is
  *
  *     baseDicom  <  inherited  <  overrides
  *
  * - `baseDicom` is a base block (see {@link combineBases}). Function blocks
  *   get a context: `{ dataLevel, levels, instance, predecessor,
  *   inherits(levelName), date, time, dateTime, options }`, where
- *   `inherits(name)` is true when the level comes from `instance`. The level
- *   blocks use it to create new identity only for the levels below
- *   `dataLevel`.
- * - `inherited` is `copyAttributesByLevel(instance, dataLevel)`. Its object
- *   values are shared with `instance`; pass `deepCloneInstance(instance)` to
- *   avoid that.
+ *   `inherits(name)` is true when the level comes from `instance`.
+ * - `inherited` is `copyAttributesByLevel(instance, dataLevel)` without the
+ *   identity of `instance` (CORE-USR-4). Its object values are shared with
+ *   `instance` (CORE-IMP-6).
  * - `overrides` is every other option that is a DICOM attribute: a
- *   dictionary keyword, an 8-hex-digit tag, or an `_` key (`_meta`,
- *   `_vrMap`). It always wins. Instance-level attributes (for example a
- *   specific `SOPInstanceUID`) go here. Any other key is dropped with a
- *   warning; a builder removes its own control options before the call.
+ *   dictionary keyword, a `registerTag` keyword, an 8-hex-digit tag, or an
+ *   `_` key (CORE-USR-7, CORE-USR-8). An 8-hex key needs a `_vrMap` entry;
+ *   the hex form of a standard tag does not replace its keyword form.
  *
- * A warning is logged when the inherited Modality or SOPClassUID differs from
- * the base, because that object is valid DICOM only in special cases.
+ * With `dataLevel: "series"` (or a deeper custom level), `instance` is the
+ * prior instance in the series (CORE-USR-5).
  *
  * @param {Object} [options]
  * @param {*} [options.baseDicom=defaultInstanceBase]
- * @param {Object|Object[]} [options.instance] - naturalized source instance(s)
+ * @param {Object|Object[]} [options.instance] - naturalized source instance(s);
+ *   DICOM JSON throws (naturalize it first with
+ *   `DicomMetaDictionary.naturalizeDataset`)
  * @param {string} [options.dataLevel="study"]
  * @param {Object[]} [options.levels=DATA_LEVELS]
  * @param {boolean} [options.predecessor=false] - reference each `instance` as
@@ -262,12 +376,25 @@ export function createInstance(options = {}) {
 
     const overrides = {};
     for (const key of Object.keys(rest)) {
+        if (rest[key] === undefined) {
+            continue;
+        }
         if (isAttributeKey(key)) {
             overrides[key] = rest[key];
         } else {
             log.warn(
                 `createInstance: option "${key}" is not a DICOM attribute ` +
                     `and is not written to the dataset`
+            );
+        }
+    }
+
+    for (const item of [].concat(instance ?? [])) {
+        if (item && typeof item === "object" && isDicomJson(item)) {
+            throw new Error(
+                "createInstance: instance is DICOM JSON (tag keys with " +
+                    "{ vr, Value }); naturalize it first with " +
+                    "DicomMetaDictionary.naturalizeDataset"
             );
         }
     }
@@ -291,6 +418,9 @@ export function createInstance(options = {}) {
 
     const base = resolveBase(baseDicom, context);
     const inherited = copyAttributesByLevel(instance, dataLevel, { levels });
+    for (const key of INSTANCE_IDENTITY_KEYS) {
+        delete inherited[key];
+    }
 
     for (const key of CONSISTENCY_KEYS) {
         if (

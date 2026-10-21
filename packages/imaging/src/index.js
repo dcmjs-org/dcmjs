@@ -10,5 +10,9 @@ export {
     secondaryCaptureImageBase,
     SECONDARY_CAPTURE_SOP_CLASS_UID
 } from "./buildImageDataset.js";
+export {
+    derivedImageAttributes,
+    derivedImageBase
+} from "./derivedImageAttributes.js";
 export { parseJpegInfo } from "./jpegInfo.js";
 export { h264TransferSyntaxUID } from "./h264.js";

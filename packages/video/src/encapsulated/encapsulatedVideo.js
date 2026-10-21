@@ -103,18 +103,16 @@ const videoBase = combineBases(
     predecessorBase
 );
 
-// The options of encapsulateVideo and createVideoEventSource that are not
-// createInstance options or attributes.
-const VIDEO_CONTROL_OPTIONS = ["fragmentBytes"];
-
 /**
  * Build the naturalized dataset shell for a Video Photographic Image
  * instance — everything except PixelData, which the caller supplies either
  * buffered (encapsulateVideo) or as a fragment event stream (fromVideo).
  *
- * The dataset comes from {@link createInstance} with `videoBase`, so the
- * `instance`/`dataLevel` options place the video in an existing study or
- * series. The stream attributes are set last and cannot be overridden:
+ * The dataset comes from {@link createInstance} with `videoBase`; the
+ * options follow CORE-USR-1 (`packages/core/README.md`), and the video rules
+ * are VID-USR-n in `packages/video/README.md`. With `dataLevel: "series"`,
+ * `instance` is the prior instance in the series (CORE-USR-5). The stream
+ * attributes are set last and replace an override (VID-USR-2):
  * CineRate/FrameTime from the measured frame rate, NumberOfFrames, Rows,
  * Columns, the transfer syntax, and the (7FE0,0003) total length as a BigInt
  * (VR UV is a uint64). Element list mirrors the Supplement 225 fixture.
@@ -130,10 +128,9 @@ function buildVideoDataset(mp4Info, options = {}) {
         throw unsupportedCodecError(mp4Info);
     }
 
-    const { baseDicom = videoBase, ...rest } = options;
-    for (const key of VIDEO_CONTROL_OPTIONS) {
-        delete rest[key];
-    }
+    // fragmentBytes is a control key of the callers (CORE-IMP-9).
+    // eslint-disable-next-line no-unused-vars
+    const { baseDicom = videoBase, fragmentBytes, ...rest } = options;
     const dataset = createInstance({ baseDicom, ...rest });
 
     return Object.assign(dataset, {

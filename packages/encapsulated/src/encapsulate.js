@@ -35,6 +35,10 @@ export function toExactArrayBuffer(bytes) {
  * Explicit VR Little Endian default from the core base; a writer that stores
  * the data in another transfer syntax must update it.
  *
+ * The options follow CORE-USR-1 (`packages/core/README.md`). With
+ * `dataLevel: "series"`, `instance` is the prior instance in the series
+ * (CORE-USR-5).
+ *
  * `EncapsulatedDocumentLength (0042,0015)` records the exact byte length,
  * because the writer pads an odd-length OB value; see extractEncapsulatedPdf.
  *

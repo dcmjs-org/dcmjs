@@ -15,7 +15,7 @@ is encapsulated _pixel data_, not a document — it lives in
 
 ```js
 const pdfInstance = encapsulatePdf(pdfBytes, {
-    instance: existingNaturalizedInstance, // or an array; the first is read
+    instance: existingNaturalizedInstance, // or an array (CORE-USR-14)
     dataLevel: "study", // the default
     DocumentTitle: "Discharge Summary"
 });
@@ -23,86 +23,83 @@ const pdfInstance = encapsulatePdf(pdfBytes, {
 
 ## Scope and change rule
 
-The user requirements say what a caller can rely on. Change one only when it
-describes the behaviour wrongly, or when the intended behaviour changes, and
-say so in the pull request. The implementation requirements describe the
-current approach, and can change freely.
+The options and the merge of `encapsulate` follow the shared requirements of
+`createInstance`: CORE-USR-1 to CORE-USR-14 and CORE-IMP-1 to CORE-IMP-10 in
+`packages/core/README.md`. This README lists only the requirements of this
+package.
+
+The change rule of the core README applies. Change a user requirement
+(ENC-USR-n) only when it describes the behaviour wrongly, or when the
+intended user-facing behaviour changes, and name the change in the pull
+request. The implementation requirements (ENC-IMP-n) describe the current
+approach, and can change freely. Do not renumber an identifier.
 
 ## § User requirements
 
--   **ENC-USR-1** Without `instance`, the result is a new object: a new
-    study, series, and SOP instance, today's dates, and empty Type 2
-    attributes.
--   **ENC-USR-2** With `instance`, the attributes of `dataLevel` and of every
-    level above it come from `instance`. The levels below `dataLevel` are new.
-    -   `patient`: the same patient, in a new study.
-    -   `study` (the default): the same study, in a new series.
-    -   `series`: the same series (its UID, number, and description), as a new
-        SOP instance.
-    -   There is no `instance` level. Instance attributes, for example a
-        specific `SOPInstanceUID`, are explicit options.
--   **ENC-USR-3** Precedence is base < inherited < explicit options. An
-    explicit option always wins.
--   **ENC-USR-4** The MIME type is `mimeType`, else the explicit or inherited
-    `MIMETypeOfEncapsulatedDocument`, else the base value.
--   **ENC-USR-5** When an inherited `Modality` or `SOPClassUID` differs from
-    the base, the builder logs a warning and keeps the inherited value.
+-   **ENC-USR-4** The MIME type is `mimeType`, else the override or inherited
+    `MIMETypeOfEncapsulatedDocument`, else the base value. The control key
+    `mimeType` replaces an override of `MIMETypeOfEncapsulatedDocument`.
+-   **ENC-USR-5** When an inherited `Modality` differs from the base
+    `Modality` (`DOC` for PDF), the builder logs a warning and keeps the
+    inherited value (CORE-USR-10).
 -   **ENC-USR-6** `extractEncapsulatedPdf` returns the bytes that were
-    encapsulated, byte for byte, including an even-length document that ends
-    in a zero byte.
--   **ENC-USR-7** A caller can replace any one base block, or add one, without
-    a copy of the other blocks.
--   **ENC-USR-8** With `predecessor: true`, the new document lists each
-    `instance` in `PredecessorDocumentsSequence (0040,A360)`. The new document
-    replaces the older ones, and the older documents are not changed or
-    deleted. Use `dataLevel: "series"` to put the new version in the series of
-    the old one.
+    encapsulated, byte for byte. This rule also applies to an even-length
+    document that ends in a zero byte.
+-   **ENC-USR-9** The result never gets the `SOPInstanceUID`, `SOPClassUID`,
+    `InstanceNumber`, `MediaStorageSOPInstanceUID`, or
+    `MediaStorageSOPClassUID` of `instance`, also with a custom `levels`
+    (CORE-USR-4). An override sets a value of the identity. Without an
+    override, the base blocks set the identity: a new `SOPInstanceUID`, the
+    `SOPClassUID` of the document class (Encapsulated PDF for
+    `encapsulatedPdfBase`), and the `InstanceNumber` of CORE-USR-5.
+-   **ENC-USR-10** The payload attributes are `EncapsulatedDocument` and
+    `EncapsulatedDocumentLength`. `encapsulate` sets them from `bytes` after
+    `createInstance`, and replaces an override of them. `encapsulate` adds
+    `EncapsulatedDocument: "OB"` to the `_vrMap` of the result, and keeps the
+    other `_vrMap` entries. The only control key of `encapsulate` is
+    `mimeType` (CORE-USR-1).
+
+These user requirements moved to `@dcmjs-org/core`. The identifiers stay
+reserved:
+
+-   **ENC-USR-1** → CORE-USR-2 (a new object without `instance`).
+-   **ENC-USR-2** → CORE-USR-3 (the levels) and CORE-USR-5 (the
+    `InstanceNumber`).
+-   **ENC-USR-3** → CORE-USR-6 (the precedence).
+-   **ENC-USR-7** → CORE-USR-11 (replace or add a base block).
+-   **ENC-USR-8** → CORE-USR-9 (the predecessor). `encapsulatedBase` and
+    `encapsulatedPdfBase` have `predecessorBase`.
 
 ## § Implementation requirements
 
--   **ENC-IMP-1** The merge, the levels, and the core base blocks live in
+-   **ENC-IMP-1** The merge, the levels, and the core base blocks are in
     `@dcmjs-org/core` (`createInstance`, `copyAttributesByLevel`,
-    `DATA_LEVELS`). This package adds only the document blocks and payload.
--   **ENC-IMP-2** `baseDicom` is a base block: an object, a function
-    `(context) => object`, an array of blocks, or `combineBases(...blocks)`.
-    Later blocks win. A combined block keeps its parts on `.items`.
--   **ENC-IMP-3** The default bases are compositions, not extensions:
-    -   `defaultInstanceBase` (core): `patientBase`, `studyBase`, `seriesBase`,
-        `instanceBase`, `equipmentBase`.
+    `DATA_LEVELS`). This package adds only the document blocks and the
+    payload.
+-   **ENC-IMP-3** The bases of this package are compositions of
+    `defaultInstanceBase` (CORE-IMP-3):
     -   `encapsulatedBase`: `defaultInstanceBase` + `encapsulatedDocumentBase`
         (SC Equipment conversion fields, Encapsulated Document module) +
         `predecessorBase`.
-    -   `encapsulatedPdfBase`: `encapsulatedBase` parts + `pdfBase` (SOP class,
-        Modality `DOC`, `application/pdf`).
--   **ENC-IMP-4** The level blocks create new identity only for the levels
-    below `dataLevel`, through `context.inherits(levelName)`. A function block
-    such as `nextSeriesNumberBase(qidoSeries, filter)` can compute a value
-    from other data.
--   **ENC-IMP-5** The levels are a list of `{ name, tags }`, passed as
-    `levels`. `extendDataLevels` adds attributes to a level; a new level is a
-    new entry. The level Sets use the
-    Cornerstone3D adapter names; dcmjs also has `PatientAge`, `PatientSize`,
-    and `PatientWeight` at study level.
--   **ENC-IMP-6** Inherited object values (sequences, PN objects, binary) are
-    shared with `instance`. To clone them, pass
-    `instance: deepCloneInstance(source)` (from `@dcmjs-org/core`). Binary
-    values stay shared unless `{ copyBinary: true }` is given, because a copy
-    of large binary data can run out of memory. `deepCloneInstance(block)`
-    wraps a function block, so each call returns a clone; a promise gives a
-    promise for a clone. The builder freezes nothing, so a caller can change
-    the result after the call.
--   **ENC-IMP-7** `_meta` is Explicit VR Little Endian from `instanceBase`. A
-    writer that stores another transfer syntax must update it.
+    -   `encapsulatedPdfBase`: the parts of `encapsulatedBase` + `pdfBase`
+        (SOP class, Modality `DOC`, `application/pdf`).
 -   **ENC-IMP-8** `EncapsulatedDocumentLength (0042,0015)` records the exact
     length, and extraction slices to it. Without the element, extraction
-    trims one trailing NUL from an even-length payload, as the writer's pad
-    byte.
--   **ENC-IMP-9** `predecessorBase` (core) reads the `predecessor` context
-    flag and builds the sequence with `hierarchicalReferences(instances)`: one
-    item for each study, then each series, then each SOP instance. It is in
-    the encapsulated bases only, not in `defaultInstanceBase`. The
-    Encapsulated Document module does not define the attribute, but does not
-    forbid it, so it is a Standard Extended SOP Class attribute.
+    removes one NUL at the end of an even-length payload, as the pad byte of
+    the writer.
+-   **ENC-IMP-9** The Encapsulated Document module does not define
+    `PredecessorDocumentsSequence`, but does not forbid it. The attribute is a
+    Standard Extended SOP Class attribute (CORE-IMP-8).
+-   **ENC-IMP-10** `encapsulate` removes its control key `mimeType` before it
+    calls `createInstance` (CORE-IMP-9).
+
+These implementation requirements moved to `@dcmjs-org/core`:
+
+-   **ENC-IMP-2** → CORE-IMP-2 (the shape of a base block).
+-   **ENC-IMP-4** → CORE-IMP-4 (the context and the producer blocks).
+-   **ENC-IMP-5** → CORE-IMP-5 (the level list).
+-   **ENC-IMP-6** → CORE-IMP-6 (shared object values, `deepCloneInstance`).
+-   **ENC-IMP-7** → CORE-IMP-7 (`_meta`).
 
 ## Dependencies
 

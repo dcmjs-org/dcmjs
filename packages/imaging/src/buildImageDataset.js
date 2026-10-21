@@ -4,33 +4,31 @@
 // codec-free primitive behind DicomEventStream.fromImage. dcmjs deliberately
 // ships no PNG/JPEG codecs (browser + node compatible); callers decode with
 // whatever fits their environment (Canvas, pngjs, ...) and hand over pixels
-// plus geometry. Like encapsulatePdf, this builds on createInstance and
-// returns a naturalized dataset ready for datasetToDict()/datasetToBuffer().
-//
-// The base context usually comes from a DICOMweb JSON metadata document (the
-// forward-migration case: an image exported from an old DICOM file, traveling
-// with its original metadata). Conformance rule for that case: the actual
-// image geometry always wins over metadata claims, and a metadata document
-// that identifies an original instance yields a DERIVED\SECONDARY instance
-// with a fresh SOPInstanceUID — original UIDs are never reused for rebuilt
-// pixel data.
+// plus geometry. Like encapsulate, this builds on createInstance and takes
+// the same options, and returns a naturalized dataset ready for
+// datasetToDict()/datasetToBuffer().
 
 import {
     combineBases,
     createInstance,
     defaultInstanceBase,
-    DicomMetaDictionary,
     EXPLICIT_LITTLE_ENDIAN,
+    log,
     predecessorBase
 } from "@dcmjs-org/core";
+import { derivedImageBase } from "./derivedImageAttributes.js";
 
 const SECONDARY_CAPTURE_SOP_CLASS_UID = "1.2.840.10008.5.1.4.1.1.7";
 
-/** Secondary Capture identity and the Image module content date and time. */
+/**
+ * Secondary Capture identity, the default `ImageType` (ORIGINAL\PRIMARY),
+ * and the Image module content date and time.
+ */
 function secondaryCaptureImageBase(context) {
     return {
         SOPClassUID: SECONDARY_CAPTURE_SOP_CLASS_UID,
         Modality: "OT",
+        ImageType: ["ORIGINAL", "PRIMARY"],
         ContentDate: context.date,
         ContentTime: context.time
     };
@@ -47,7 +45,7 @@ const imageBase = combineBases(
     predecessorBase
 );
 
-// Attributes that must describe the actual pixels, never a metadata claim.
+// Attributes that must describe the actual pixels, never another source.
 const GEOMETRY_KEYWORDS = [
     "Rows",
     "Columns",
@@ -62,38 +60,6 @@ const GEOMETRY_KEYWORDS = [
     "PixelData"
 ];
 
-// File meta (group 0002) keywords that leak in when callers naturalize a
-// full instance document; the writer mints a fresh meta group instead.
-const FILE_META_KEYWORDS = [
-    "FileMetaInformationGroupLength",
-    "FileMetaInformationVersion",
-    "MediaStorageSOPClassUID",
-    "MediaStorageSOPInstanceUID",
-    "TransferSyntaxUID",
-    "ImplementationClassUID",
-    "ImplementationVersionName",
-    "SourceApplicationEntityTitle"
-];
-
-const CONTROL_OPTIONS = ["metadata", "derivedFrom", "lossy", "encapsulated"];
-
-// The createInstance options that buildImageDataset passes through.
-const CREATE_OPTIONS = [
-    "baseDicom",
-    "instance",
-    "dataLevel",
-    "levels",
-    "predecessor"
-];
-
-/** The deepest level that the metadata identifies, for createInstance. */
-function metadataDataLevel(metadata) {
-    if (!metadata.StudyInstanceUID) {
-        return "patient";
-    }
-    return metadata.SeriesInstanceUID ? "series" : "study";
-}
-
 /** Normalize ArrayBuffer | typed-array view to an exact ArrayBuffer. */
 function toExactArrayBuffer(bytes, context) {
     if (bytes instanceof ArrayBuffer) {
@@ -106,61 +72,6 @@ function toExactArrayBuffer(bytes, context) {
         );
     }
     throw new Error(`${context}: expected an ArrayBuffer or typed array`);
-}
-
-/** True when the object looks like DICOM JSON: tag-keyed { vr, ... } entries. */
-function isTagKeyed(metadata) {
-    const keys = Object.keys(metadata);
-    if (!keys.length) {
-        return false;
-    }
-    return keys.some(
-        key =>
-            /^[0-9A-Fa-f]{8}$/.test(key) &&
-            metadata[key] &&
-            typeof metadata[key] === "object" &&
-            typeof metadata[key].vr === "string"
-    );
-}
-
-/**
- * Accept the base metadata in either DICOM JSON form (tag-keyed {vr,Value})
- * or naturalized keyword form; return a naturalized copy stripped of
- * everything the builder owns (geometry, pixel data, file meta, identity).
- */
-function normalizeMetadata(metadata) {
-    let naturalized;
-    if (isTagKeyed(metadata)) {
-        const tagEntries = {};
-        for (const key of Object.keys(metadata)) {
-            if (/^[0-9A-Fa-f]{8}$/.test(key)) {
-                tagEntries[key.toUpperCase()] = metadata[key];
-            }
-        }
-        naturalized = DicomMetaDictionary.naturalizeDataset(tagEntries);
-    } else {
-        naturalized = { ...metadata };
-    }
-
-    const source = {
-        sopClassUID: naturalized.SOPClassUID,
-        sopInstanceUID: naturalized.SOPInstanceUID
-    };
-
-    for (const keyword of [
-        ...GEOMETRY_KEYWORDS,
-        ...FILE_META_KEYWORDS,
-        "SOPInstanceUID",
-        "SpecificCharacterSet",
-        "_meta",
-        "_vrMap"
-    ]) {
-        delete naturalized[keyword];
-    }
-    // naturalizeDataset adds a _vrMap of its own on some inputs
-    delete naturalized._vrMap;
-
-    return { naturalized, source };
 }
 
 function resolveGeometry(decodedImage, encapsulated) {
@@ -284,21 +195,19 @@ function resolveGeometry(decodedImage, encapsulated) {
 }
 
 /**
- * Build a naturalized DICOM image dataset from decoded pixels.
+ * Build a naturalized DICOM image dataset from decoded pixels with
+ * {@link createInstance}, then set the pixel data.
  *
- * The dataset comes from {@link createInstance}. Merge precedence (highest
- * wins): actual image geometry -> UpperCamel keyword overrides on `options`
- * -> `options.metadata` (stripped of geometry and identity) -> the attributes
- * inherited from `options.instance` -> `baseDicom` (default `imageBase`).
- * When `options.instance` is not set, the metadata is the instance, at the
- * deepest level that its UIDs identify, so the image joins that series or
- * study and new UIDs are minted only below it.
+ * The options follow CORE-USR-1 (`packages/core/README.md`); the image rules
+ * are IMG-USR-n in `packages/imaging/README.md`. With `dataLevel: "series"`,
+ * `instance` is the prior instance in the series (CORE-USR-5).
  *
- * Derivation: when `options.derivedFrom` is set, or `options.metadata`
- * carries a SOPInstanceUID, the result is marked as a derived instance:
- * fresh SOPInstanceUID, ImageType DERIVED\SECONDARY, SourceImageSequence
- * referencing the original, LossyImageCompression "01" (pass
- * `lossy: false` for a lossless derivation, or `{ method, ratio }` detail).
+ * For a non-empty `derivedFrom`, the base is
+ * `combineBases(baseDicom, derivedImageBase(derivedFrom, { lossy }))`, so
+ * the merge stays base < inherited < overrides. The builder removes its
+ * control keys `derivedFrom`, `lossy`, and `encapsulated` before the call
+ * (CORE-IMP-9). The geometry and the pixel encoding are set last; an
+ * override of a geometry keyword throws.
  *
  * @param {Object} decodedImage
  * @param {Uint8Array|Int8Array|Uint16Array|Int16Array} [decodedImage.pixels]
@@ -313,79 +222,60 @@ function resolveGeometry(decodedImage, encapsulated) {
  * @param {number} [decodedImage.pixelRepresentation] 1 for signed arrays
  * @param {number} [decodedImage.planarConfiguration=0]
  * @param {number} [decodedImage.numberOfFrames=1]
- * @param {Object} [options] control keys (metadata, derivedFrom, lossy,
- *   encapsulated), the createInstance options (baseDicom, instance,
- *   dataLevel, levels, predecessor), plus UpperCamel DICOM keyword overrides
- *   (PatientName, ...)
+ * @param {Object} [options] - the {@link createInstance} options, plus:
+ * @param {*} [options.baseDicom=imageBase] - base blocks
+ * @param {Object|Object[]} [options.derivedFrom] - the naturalized
+ *   instance(s) that the image is derived from; each needs SOPClassUID and
+ *   SOPInstanceUID. An empty array is the same as no `derivedFrom`.
+ * @param {boolean|{method: string, ratio: number}} [options.lossy=true] -
+ *   the lossy compression of a derivation (only with `derivedFrom`)
+ * @param {{transferSyntaxUID: string, frames: Array}} [options.encapsulated]
+ *   - pre-encoded frames and their transfer syntax, in place of pixels
  * @returns {Object} naturalized dataset with _meta and _vrMap
  */
 function buildImageDataset(decodedImage = {}, options = {}) {
-    if (decodedImage.pixels && options.encapsulated) {
+    const {
+        baseDicom = imageBase,
+        derivedFrom,
+        lossy,
+        encapsulated,
+        ...rest
+    } = options;
+    if (decodedImage.pixels && encapsulated) {
         throw new Error(
             "buildImageDataset: pass either decodedImage.pixels or " +
                 "options.encapsulated, not both"
         );
     }
 
-    const geometry = resolveGeometry(decodedImage, options.encapsulated);
+    const geometry = resolveGeometry(decodedImage, encapsulated);
 
-    const { naturalized: base, source } = options.metadata
-        ? normalizeMetadata(options.metadata)
-        : { naturalized: {}, source: {} };
-
-    // Keyword overrides: everything UpperCamel that is not a control option.
-    const overrides = {};
-    for (const key of Object.keys(options)) {
-        if (CONTROL_OPTIONS.includes(key) || CREATE_OPTIONS.includes(key)) {
-            continue;
-        }
-        if (GEOMETRY_KEYWORDS.includes(key)) {
+    // An undefined option keeps the base or inherited value.
+    for (const key of GEOMETRY_KEYWORDS) {
+        if (rest[key] !== undefined) {
             throw new Error(
                 `buildImageDataset: ${key} comes from the decoded image and ` +
                     `cannot be overridden — fix decodedImage instead`
             );
         }
-        overrides[key] = options[key];
     }
 
-    // Derivation source: explicit derivedFrom wins over metadata identity.
-    let derivation = null;
-    if (options.derivedFrom === true || source.sopInstanceUID) {
-        derivation = {
-            sopClassUID: source.sopClassUID,
-            sopInstanceUID: source.sopInstanceUID
-        };
-    }
-    if (options.derivedFrom && typeof options.derivedFrom === "object") {
-        derivation = {
-            sopClassUID: options.derivedFrom.sopClassUID,
-            sopInstanceUID: options.derivedFrom.sopInstanceUID
-        };
-    }
-
-    const metadataAttributes = { ...base };
-    if (!metadataAttributes.SOPClassUID && derivation?.sopClassUID) {
-        metadataAttributes.SOPClassUID = derivation.sopClassUID;
-    }
-    const hasInstance = options.instance !== undefined;
-    let instance;
-    if (hasInstance) {
-        instance = options.instance;
-    } else if (options.metadata) {
-        // Keep the source identity on the instance for predecessorBase.
-        instance = source.sopInstanceUID
-            ? { ...base, SOPInstanceUID: source.sopInstanceUID }
-            : base;
+    const sources = [].concat(derivedFrom ?? []);
+    if (!sources.length && lossy !== undefined) {
+        log.warn(
+            "buildImageDataset: lossy applies only with derivedFrom, and " +
+                "is ignored"
+        );
     }
     const created = createInstance({
-        baseDicom: options.baseDicom || imageBase,
-        instance,
-        dataLevel: hasInstance ? options.dataLevel : metadataDataLevel(base),
-        levels: options.levels,
-        predecessor: options.predecessor,
-        ...metadataAttributes,
-        ...overrides
+        ...rest,
+        baseDicom: sources.length
+            ? combineBases(baseDicom, derivedImageBase(sources, { lossy }))
+            : baseDicom
     });
+    for (const key of GEOMETRY_KEYWORDS) {
+        delete created[key];
+    }
 
     // The builder's own attributes win: geometry and encoding.
     const dataset = Object.assign(created, {
@@ -405,13 +295,13 @@ function buildImageDataset(decodedImage = {}, options = {}) {
     });
     // instanceBase supplies Explicit VR Little Endian; set _meta only for
     // encapsulated frames, or when a custom base has no _meta.
-    if (options.encapsulated || !dataset._meta) {
+    if (encapsulated || !dataset._meta) {
         dataset._meta = {
             ...(dataset._meta || {}),
             TransferSyntaxUID: {
                 Value: [
-                    options.encapsulated
-                        ? options.encapsulated.transferSyntaxUID
+                    encapsulated
+                        ? encapsulated.transferSyntaxUID
                         : EXPLICIT_LITTLE_ENDIAN
                 ]
             }
@@ -425,18 +315,18 @@ function buildImageDataset(decodedImage = {}, options = {}) {
         dataset.NumberOfFrames = geometry.numberOfFrames;
     }
 
-    if (options.encapsulated) {
+    if (encapsulated) {
         if (
-            !options.encapsulated.transferSyntaxUID ||
-            !Array.isArray(options.encapsulated.frames) ||
-            !options.encapsulated.frames.length
+            !encapsulated.transferSyntaxUID ||
+            !Array.isArray(encapsulated.frames) ||
+            !encapsulated.frames.length
         ) {
             throw new Error(
                 "buildImageDataset: options.encapsulated needs " +
                     "{ transferSyntaxUID, frames: [bytes, ...] }"
             );
         }
-        dataset.PixelData = options.encapsulated.frames.map(frame =>
+        dataset.PixelData = encapsulated.frames.map(frame =>
             toExactArrayBuffer(frame, "buildImageDataset encapsulated frame")
         );
         dataset._vrMap.PixelData = "OB";
@@ -445,35 +335,6 @@ function buildImageDataset(decodedImage = {}, options = {}) {
             decodedImage.pixels,
             "buildImageDataset pixels"
         );
-    }
-
-    if (derivation) {
-        if (!overrides.ImageType) {
-            dataset.ImageType = ["DERIVED", "SECONDARY"];
-        }
-        if (derivation.sopClassUID && derivation.sopInstanceUID) {
-            dataset.SourceImageSequence = [
-                {
-                    ReferencedSOPClassUID: derivation.sopClassUID,
-                    ReferencedSOPInstanceUID: derivation.sopInstanceUID
-                }
-            ];
-        }
-        if (options.lossy === false) {
-            dataset.LossyImageCompression = "00";
-        } else {
-            dataset.LossyImageCompression = "01";
-            if (options.lossy && typeof options.lossy === "object") {
-                if (options.lossy.method) {
-                    dataset.LossyImageCompressionMethod = options.lossy.method;
-                }
-                if (options.lossy.ratio) {
-                    dataset.LossyImageCompressionRatio = options.lossy.ratio;
-                }
-            }
-        }
-    } else if (!overrides.ImageType && !base.ImageType) {
-        dataset.ImageType = ["ORIGINAL", "PRIMARY"];
     }
 
     // SC Equipment module only where it belongs.

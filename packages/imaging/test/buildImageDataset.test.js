@@ -1,14 +1,22 @@
 // test/buildImageDataset.test.js
 //
-// buildImageDataset: decoded pixels + optional DICOM JSON / naturalized
-// metadata -> a conformant naturalized image dataset. The load-bearing
-// rules: actual geometry always wins over metadata claims, and identifying
-// an original instance yields a DERIVED\SECONDARY result with a fresh
-// SOPInstanceUID — original UIDs are never reused for rebuilt pixels.
+// buildImageDataset: decoded pixels -> a conformant naturalized image
+// dataset, with the options of encapsulate. The load-bearing rules: the
+// geometry comes from the pixels, and derivedFrom yields a DERIVED\SECONDARY
+// result with a new SOPInstanceUID.
 
-import { validationLog } from "@dcmjs-org/core";
+import {
+    combineBases,
+    DATA_LEVELS,
+    extendDataLevels,
+    log,
+    validationLog
+} from "@dcmjs-org/core";
 import {
     buildImageDataset,
+    derivedImageAttributes,
+    derivedImageBase,
+    imageBase,
     SECONDARY_CAPTURE_SOP_CLASS_UID
 } from "../src/index.js";
 
@@ -53,7 +61,7 @@ describe("createInstance options", () => {
     });
 });
 
-describe("defaults (no metadata)", () => {
+describe("defaults (no instance)", () => {
     const dataset = buildImageDataset(grayPixels());
 
     test("Secondary Capture scaffold with minted UIDs", () => {
@@ -96,19 +104,25 @@ describe("defaults (no metadata)", () => {
 });
 
 describe("geometry always wins", () => {
-    test("metadata claiming other geometry is overridden by the pixels", () => {
+    // API: geometry that a custom level inherits from the prior instance
+    // does not reach the result.
+    test("the geometry of the prior instance does not reach the result", () => {
         const dataset = buildImageDataset(grayPixels(4, 4), {
-            metadata: {
+            instance: {
+                StudyInstanceUID: "1.2.3.4",
+                SeriesInstanceUID: "1.2.3.4.1",
                 Rows: 999,
-                Columns: 999,
-                BitsAllocated: 16,
-                PhotometricInterpretation: "RGB"
-            }
+                NumberOfFrames: 7,
+                PlanarConfiguration: 1
+            },
+            dataLevel: "series",
+            levels: extendDataLevels(DATA_LEVELS, {
+                series: ["Rows", "NumberOfFrames", "PlanarConfiguration"]
+            })
         });
         expect(dataset.Rows).toBe(4);
-        expect(dataset.Columns).toBe(4);
-        expect(dataset.BitsAllocated).toBe(8);
-        expect(dataset.PhotometricInterpretation).toBe("MONOCHROME2");
+        expect(dataset.NumberOfFrames).toBeUndefined();
+        expect(dataset.PlanarConfiguration).toBeUndefined();
     });
 
     test("geometry keyword override throws", () => {
@@ -198,77 +212,38 @@ describe("validation", () => {
     });
 });
 
-describe("metadata forms", () => {
-    const tagKeyed = {
-        "00080060": { vr: "CS", Value: ["MR"] },
-        "00100010": { vr: "PN", Value: [{ Alphabetic: "DOE^JANE" }] },
-        "00100020": { vr: "LO", Value: ["998877"] },
-        "0020000D": { vr: "UI", Value: ["1.2.3.4"] }
-    };
-
-    test("DICOMweb JSON (tag-keyed) is naturalized", () => {
+describe("overrides", () => {
+    // API: an override beats the value inherited from instance.
+    test("keyword overrides beat instance", () => {
         const dataset = buildImageDataset(grayPixels(), {
-            metadata: tagKeyed
-        });
-        expect(dataset.Modality).toBe("MR");
-        expect(dataset.PatientID).toBe("998877");
-        expect(dataset.StudyInstanceUID).toBe("1.2.3.4");
-    });
-
-    test("naturalized metadata is accepted identically", () => {
-        const dataset = buildImageDataset(grayPixels(), {
-            metadata: {
-                Modality: "MR",
-                PatientID: "998877",
-                StudyInstanceUID: "1.2.3.4"
-            }
-        });
-        expect(dataset.Modality).toBe("MR");
-        expect(dataset.PatientID).toBe("998877");
-        expect(dataset.StudyInstanceUID).toBe("1.2.3.4");
-    });
-
-    test("file meta keywords in metadata are stripped", () => {
-        const dataset = buildImageDataset(grayPixels(), {
-            metadata: {
-                Modality: "MR",
-                TransferSyntaxUID: "1.2.840.10008.1.2",
-                MediaStorageSOPInstanceUID: "9.9.9"
-            }
-        });
-        expect(dataset.TransferSyntaxUID).toBeUndefined();
-        expect(dataset.MediaStorageSOPInstanceUID).toBeUndefined();
-        expect(dataset._meta.TransferSyntaxUID.Value[0]).toBe(
-            "1.2.840.10008.1.2.1"
-        );
-    });
-
-    test("keyword overrides beat metadata", () => {
-        const dataset = buildImageDataset(grayPixels(), {
-            metadata: { PatientID: "998877" },
+            instance: { PatientID: "998877", StudyInstanceUID: "1.2.3.4" },
             PatientID: "22446688",
             PatientName: "FOX^JANE"
         });
+        expect(dataset.StudyInstanceUID).toBe("1.2.3.4");
         expect(dataset.PatientID).toBe("22446688");
         expect(dataset.PatientName).toBe("FOX^JANE");
     });
 });
 
 describe("derived-instance conformance", () => {
-    const sourceMetadata = {
+    const source = {
         SOPClassUID: MR_SOP_CLASS_UID,
         SOPInstanceUID: SOURCE_SOP_INSTANCE_UID,
         Modality: "MR",
         StudyInstanceUID: "1.2.3.4"
     };
 
-    test("metadata identity triggers derived mode", () => {
+    // User experience: a derived image references its source and never
+    // reuses the source identity.
+    test("derivedFrom gives a DERIVED\\SECONDARY image that references the source", () => {
         const dataset = buildImageDataset(grayPixels(), {
-            metadata: sourceMetadata
+            instance: source,
+            derivedFrom: source
         });
+        expect(dataset.StudyInstanceUID).toBe("1.2.3.4");
         expect(dataset.SOPInstanceUID).not.toBe(SOURCE_SOP_INSTANCE_UID);
-        expect(dataset.SOPInstanceUID).toMatch(/^2\.25\./);
-        expect(dataset.SOPClassUID).toBe(MR_SOP_CLASS_UID);
+        expect(dataset.SOPClassUID).toBe(SECONDARY_CAPTURE_SOP_CLASS_UID);
         expect(dataset.ImageType).toEqual(["DERIVED", "SECONDARY"]);
         expect(dataset.SourceImageSequence).toEqual([
             {
@@ -279,42 +254,133 @@ describe("derived-instance conformance", () => {
         expect(dataset.LossyImageCompression).toBe("01");
     });
 
-    test("explicit derivedFrom object", () => {
+    // API: an override ImageType wins over the derived default.
+    test("an override ImageType wins with derivedFrom", () => {
         const dataset = buildImageDataset(grayPixels(), {
-            derivedFrom: {
-                sopClassUID: MR_SOP_CLASS_UID,
-                sopInstanceUID: SOURCE_SOP_INSTANCE_UID
-            }
+            derivedFrom: [source],
+            ImageType: ["DERIVED", "PRIMARY"]
         });
-        expect(dataset.SourceImageSequence[0].ReferencedSOPInstanceUID).toBe(
-            SOURCE_SOP_INSTANCE_UID
-        );
-        expect(dataset.LossyImageCompression).toBe("01");
+        expect(dataset.ImageType).toEqual(["DERIVED", "PRIMARY"]);
+        expect(dataset.SourceImageSequence).toHaveLength(1);
     });
 
+    // API: the lossy option sets the Lossy Image Compression attributes.
     test("lossy: false marks a lossless derivation", () => {
         const dataset = buildImageDataset(grayPixels(), {
-            metadata: sourceMetadata,
+            derivedFrom: source,
             lossy: false
         });
         expect(dataset.LossyImageCompression).toBe("00");
+        // A lossy source stays lossy (PS3.3 C.7.6.1.1.5).
+        expect(
+            buildImageDataset(grayPixels(), {
+                derivedFrom: { ...source, LossyImageCompression: "01" },
+                lossy: false
+            }).LossyImageCompression
+        ).toBe("01");
     });
 
+    // API: ImageType is a base value, so a custom base sets it, and
+    // derivedImageBase composed after it replaces it.
+    test("a custom base sets ImageType, and derivedImageBase replaces it", () => {
+        const base = combineBases(imageBase, {
+            ImageType: ["DERIVED", "PRIMARY"]
+        });
+        expect(
+            buildImageDataset(grayPixels(), { baseDicom: base }).ImageType
+        ).toEqual(["DERIVED", "PRIMARY"]);
+        const derived = buildImageDataset(grayPixels(), {
+            baseDicom: combineBases(base, derivedImageBase(source))
+        });
+        expect(derived.ImageType).toEqual(["DERIVED", "SECONDARY"]);
+        expect(derived.SourceImageSequence).toHaveLength(1);
+    });
+
+    // API: a lossy object sets the method and the ratio.
     test("lossy detail carries method and ratio", () => {
         const dataset = buildImageDataset(grayPixels(), {
-            metadata: sourceMetadata,
+            derivedFrom: source,
             lossy: { method: "ISO_10918_1", ratio: 8 }
         });
         expect(dataset.LossyImageCompressionMethod).toBe("ISO_10918_1");
         expect(dataset.LossyImageCompressionRatio).toBe(8);
     });
 
+    // API: an override SOPInstanceUID always wins.
     test("explicit SOPInstanceUID override is respected", () => {
         const dataset = buildImageDataset(grayPixels(), {
-            metadata: sourceMetadata,
+            instance: source,
+            derivedFrom: source,
             SOPInstanceUID: "2.25.42"
         });
         expect(dataset.SOPInstanceUID).toBe("2.25.42");
+    });
+});
+
+describe("derivedImageAttributes", () => {
+    // API: one SourceImageSequence item for each source, and a clear error
+    // for a source without its identity.
+    test("references each partial instance, and names a missing keyword", () => {
+        const attributes = derivedImageAttributes([
+            { SOPClassUID: MR_SOP_CLASS_UID, SOPInstanceUID: "2.25.1" },
+            { SOPClassUID: MR_SOP_CLASS_UID, SOPInstanceUID: "2.25.2" }
+        ]);
+        expect(attributes.ImageType).toEqual(["DERIVED", "SECONDARY"]);
+        expect(
+            attributes.SourceImageSequence.map(
+                item => item.ReferencedSOPInstanceUID
+            )
+        ).toEqual(["2.25.1", "2.25.2"]);
+        expect(() =>
+            derivedImageAttributes([{ SOPClassUID: MR_SOP_CLASS_UID }])
+        ).toThrow(/derivedFrom\[0\] is missing SOPInstanceUID/);
+        expect(() => derivedImageAttributes([])).toThrow(
+            /derivedFrom needs at least one instance/
+        );
+        expect(() => derivedImageBase([])).toThrow(
+            /derivedFrom needs at least one instance/
+        );
+    });
+
+    // API: the lossy steps of a source stay in the history (PS3.3
+    // C.7.6.1.1.5), before the step of this derivation.
+    test("keeps the lossy compression history of a lossy source", () => {
+        const attributes = derivedImageAttributes(
+            {
+                SOPClassUID: MR_SOP_CLASS_UID,
+                SOPInstanceUID: "2.25.1",
+                LossyImageCompression: "01",
+                LossyImageCompressionMethod: "ISO_14495_1",
+                LossyImageCompressionRatio: 5
+            },
+            { lossy: { method: "ISO_10918_1", ratio: 10 } }
+        );
+        expect([
+            attributes.LossyImageCompressionMethod,
+            attributes.LossyImageCompressionRatio
+        ]).toEqual([
+            ["ISO_14495_1", "ISO_10918_1"],
+            [5, 10]
+        ]);
+
+        // A source method without a ratio: the ratios cannot pair by
+        // position, so the result has no ratio (IMG-USR-3).
+        const warn = jest.spyOn(log, "warn").mockImplementation(() => {});
+        const unpaired = derivedImageAttributes(
+            {
+                SOPClassUID: MR_SOP_CLASS_UID,
+                SOPInstanceUID: "2.25.1",
+                LossyImageCompression: "01",
+                LossyImageCompressionMethod: "ISO_15444_1"
+            },
+            { lossy: { method: "ISO_10918_1", ratio: 8 } }
+        );
+        expect([
+            unpaired.LossyImageCompressionMethod,
+            unpaired.LossyImageCompressionRatio,
+            warn.mock.calls.length
+        ]).toEqual([["ISO_15444_1", "ISO_10918_1"], undefined, 1]);
+        warn.mockRestore();
     });
 });
 

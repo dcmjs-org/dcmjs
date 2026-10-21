@@ -6,7 +6,9 @@
 import {
     createInstance,
     combineBases,
+    DATA_LEVELS,
     deepCloneInstance,
+    extendDataLevels,
     defaultInstanceBase,
     nextSeriesNumberBase,
     predecessorBase,
@@ -63,7 +65,6 @@ describe("createInstance", () => {
         expect(ds.SeriesNumber).toBe(3);
         expect(ds.SeriesDescription).toBe("AX T1");
         expect(ds.SOPInstanceUID).not.toBe("1.2.3.4.5.6.7.100");
-        expect(ds.InstanceNumber).toBe(1);
         expect(warn).toHaveBeenCalledWith(expect.stringMatching(/Modality/));
         warn.mockRestore();
     });
@@ -86,6 +87,7 @@ describe("createInstance", () => {
         const ds = createInstance({
             PatientID: "P1",
             "00091010": "private",
+            _vrMap: { "00091010": "LO" },
             TestRegisteredName: "registered",
             onProgress: () => {}
         });
@@ -97,6 +99,143 @@ describe("createInstance", () => {
             expect.stringMatching(/"onProgress" is not a DICOM attribute/)
         );
         warn.mockRestore();
+    });
+
+    it("an inherited study or series gets Type 2 empty values, and a source value wins", () => {
+        const bare = { ...source };
+        delete bare.SeriesNumber;
+        const empty = createInstance({ instance: bare, dataLevel: "series" });
+        expect(empty.StudyDate).toBe("");
+        expect(empty.StudyTime).toBe("");
+        expect(empty.SeriesNumber).toBe("");
+        expect(empty.StudyInstanceUID).toBe("1.2.3.4.5");
+
+        const full = createInstance({
+            instance: { ...source, StudyDate: "20240102" },
+            dataLevel: "series"
+        });
+        expect(full.StudyDate).toBe("20240102");
+        expect(full.SeriesNumber).toBe(3);
+    });
+
+    it("an undefined override keeps the base value; null stays empty", () => {
+        const ds = createInstance({
+            PatientName: undefined,
+            Manufacturer: undefined,
+            StudyID: null
+        });
+        expect(ds.PatientName).toBe("");
+        expect(ds.Manufacturer).toBe("dcmjs");
+        expect(ds.StudyID).toBeNull();
+        expect(
+            createInstance({
+                instance: source,
+                dataLevel: "series",
+                SeriesNumber: undefined
+            }).SeriesNumber
+        ).toBe(3);
+    });
+
+    it("never inherits the source identity, also with a custom levels list", () => {
+        const levels = extendDataLevels(DATA_LEVELS, {
+            series: ["SOPInstanceUID", "SOPClassUID", "InstanceNumber"]
+        });
+        const options = { instance: source, dataLevel: "series", levels };
+        const ds = createInstance(options);
+        expect(ds.SOPInstanceUID).not.toBe(source.SOPInstanceUID);
+        expect(ds.SOPClassUID).toBeUndefined();
+        expect(ds.InstanceNumber).toBe(8);
+
+        const set = createInstance({
+            ...options,
+            SOPInstanceUID: "1.2.3.4.5.6.7.200"
+        });
+        expect(set.SOPInstanceUID).toBe("1.2.3.4.5.6.7.200");
+
+        const next = createInstance({
+            ...options,
+            baseDicom: combineBases(defaultInstanceBase, predecessorBase),
+            predecessor: true
+        });
+        expect(next.SOPInstanceUID).not.toBe(source.SOPInstanceUID);
+        const [study] = next.PredecessorDocumentsSequence;
+        expect(
+            study.ReferencedSeriesSequence[0].ReferencedSOPSequence[0]
+                .ReferencedSOPInstanceUID
+        ).toBe(source.SOPInstanceUID);
+    });
+
+    // User experience: a new instance in a series follows the prior one.
+    it("at 'series', InstanceNumber is the prior InstanceNumber + 1", () => {
+        const next = options =>
+            createInstance({ instance: source, ...options });
+        expect(next({ dataLevel: "series" }).InstanceNumber).toBe(8);
+        expect(
+            next({
+                instance: { ...source, InstanceNumber: ["7"] },
+                dataLevel: "series"
+            }).InstanceNumber
+        ).toBe(8);
+        expect(next({ dataLevel: "study" }).InstanceNumber).toBe(1);
+        expect(
+            next({ dataLevel: "series", InstanceNumber: 3 }).InstanceNumber
+        ).toBe(3);
+        // Several instances: the largest number in the target series.
+        expect(
+            next({
+                instance: [
+                    { ...source, InstanceNumber: 2 },
+                    { ...source, InstanceNumber: 9 },
+                    { ...source, SeriesInstanceUID: "9.9", InstanceNumber: 50 }
+                ],
+                dataLevel: "series"
+            }).InstanceNumber
+        ).toBe(10);
+        // A value outside the IS range does not count; the others do.
+        expect(
+            next({
+                instance: [
+                    { ...source, InstanceNumber: 5 },
+                    { ...source, InstanceNumber: 3e9 }
+                ],
+                dataLevel: "series"
+            }).InstanceNumber
+        ).toBe(6);
+        // A new target series starts at 1, also with an item without a
+        // SeriesInstanceUID.
+        expect(
+            next({
+                instance: { StudyInstanceUID: "1.2.3.4", InstanceNumber: 5 },
+                dataLevel: "series",
+                SeriesInstanceUID: "7.7"
+            }).InstanceNumber
+        ).toBe(1);
+        // The IS maximum has no next value.
+        expect(
+            next({
+                instance: { ...source, InstanceNumber: 2147483647 },
+                dataLevel: "series"
+            }).InstanceNumber
+        ).toBe(1);
+    });
+
+    // API: instance must be naturalized; DICOM JSON gets a clear error.
+    it("rejects a DICOM JSON instance", () => {
+        expect(() =>
+            createInstance({
+                instance: { "0020000D": { vr: "UI", Value: ["1.2.3"] } }
+            })
+        ).toThrow(/DICOM JSON.*naturalizeDataset/);
+        // The parser keeps a private element without a creator as
+        // { vr, Value } in a naturalized dataset.
+        expect(
+            createInstance({
+                instance: {
+                    ...source,
+                    "00191010": { vr: "LO", Value: ["x"] }
+                }
+            }).StudyInstanceUID
+        ).toBe(source.StudyInstanceUID);
     });
 
     it("has no instance level", () => {
@@ -208,5 +347,12 @@ describe("base blocks", () => {
             baseDicom: [defaultInstanceBase, nextSeriesNumberBase(qido, notCt)]
         });
         expect(ds.SeriesNumber).toBe(10);
+        const atMax = createInstance({
+            baseDicom: [
+                defaultInstanceBase,
+                nextSeriesNumberBase([{ SeriesNumber: 2147483647 }])
+            ]
+        });
+        expect(atMax.SeriesNumber).toBe(1);
     });
 });
