@@ -8,6 +8,7 @@ import { NaturalizedListener } from "../../src/eventStream/NaturalizedListener";
 import { fromDataSet } from "../../src/eventStream/fromDataSet";
 import { fromNaturalized } from "../../src/eventStream/fromNaturalized";
 import { Part10Writer } from "../../src/eventStream/Part10Writer";
+import { definePrivateAliases } from "@dcmjs-org/core";
 
 const { DicomMessage, DicomMetaDictionary } = dcmjs.data;
 
@@ -99,16 +100,37 @@ describe("private reserved blocks", () => {
         expect(Number(dict["00291001"].Value[0])).toBe(10);
     });
 
-    it("a delete of a hex alias removes the element, and of a creator alias the block", () => {
+    it("a delete of a hex alias removes the element, and of a creator alias the block, on both write paths", async () => {
         const naturalized = DicomMetaDictionary.naturalizeDataset(sourceDict());
         delete naturalized["00291001"];
         delete naturalized["00090010"];
+        // a later re-define must not bring the deleted alias back
+        definePrivateAliases(naturalized);
         const dict = DicomMetaDictionary.denaturalizeDataset(naturalized);
 
         expect(dict["00291001"]).toBeUndefined();
         expect(dict["00290010"].Value).toEqual(["ACME"]);
         expect(dict["00090010"]).toBeUndefined();
         expect(dict["00091001"]).toBeUndefined();
+
+        naturalized._meta = { TransferSyntaxUID: "1.2.840.10008.1.2.1" };
+        const writer = new Part10Writer();
+        await fromNaturalized(naturalized, writer);
+        const back = DicomMessage.readFile(writer.write()).dict;
+        expect(back["00291001"]).toBeUndefined();
+        expect(back["00091001"]).toBeUndefined();
+    });
+
+    it("a value set on a deleted hex alias replaces the deleted element", () => {
+        const naturalized = DicomMetaDictionary.naturalizeDataset(sourceDict());
+        delete naturalized["00291001"];
+        naturalized["00291001"] = "REDACTED";
+        naturalized._vrMap["00291001"] = "LO";
+        const dict = DicomMetaDictionary.denaturalizeDataset(naturalized);
+
+        expect(dict["00290010"].Value).toEqual(["ACME"]);
+        expect(dict["00291001"].Value).toEqual(["REDACTED"]);
+        expect(dict["00290011"]).toBeUndefined();
     });
 
     it("a flat element in the range of a block joins it, and a flat keyword holds its block", () => {

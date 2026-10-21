@@ -364,7 +364,7 @@ describe("NaturalizedListener — private-tag grouping (§18)", () => {
             "x10",
             "x99"
         ]);
-        expect(block.CSAImageHeaderInfo).toBe("csa");
+        expect(block.CSAImageHeaderInfo).toEqual(["csa"]); // OB keeps its list
         // the keyword stays scoped to its block
         expect("CSAImageHeaderInfo" in l.result).toBe(false);
     });
@@ -375,7 +375,8 @@ describe("NaturalizedListener — private-tag grouping (§18)", () => {
         scalar(l, "00291020", "UN", "orphan"); // no creator for block 0x10
         l.endDataSet();
 
-        expect(l.result["00291020"]).toBe("orphan");
+        // UN is a binary VR, so its value stays a list (NAT-U-BIN-1)
+        expect(l.result["00291020"]).toEqual(["orphan"]);
         expect(l.result._vrMap["00291020"]).toBe("UN");
     });
 

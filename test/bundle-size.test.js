@@ -7,6 +7,7 @@
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
+const vm = require("vm");
 const { execFileSync } = require("child_process");
 
 const ROOT = path.join(__dirname, "..");
@@ -123,6 +124,11 @@ function ensureBuild() {
 // bundle (WRAP-IMP-5). The packages resolve to their sources ("source"), so
 // no package build is needed.
 function consumerBundleSize(entry) {
+    return consumerBundle(entry, "es").length;
+}
+
+// The consumer bundle of an ESM entry, as source text in `format`.
+function consumerBundle(entry, format) {
     const out = path.join(
         fs.mkdtempSync(path.join(os.tmpdir(), "dcmjs-consumer-")),
         "bundle.js"
@@ -140,14 +146,18 @@ function consumerBundleSize(entry) {
                 "--plugin",
                 "@rollup/plugin-json",
                 "--format",
-                "es",
+                format,
+                "--name",
+                "dcmjs",
+                "--exports",
+                "named",
                 "--file",
                 out,
                 "--silent"
             ],
             { cwd: ROOT, stdio: "inherit", timeout: BUILD_TIMEOUT_MS }
         );
-        return fs.statSync(out).size;
+        return fs.readFileSync(out);
     } finally {
         fs.rmSync(path.dirname(out), { recursive: true, force: true });
     }
@@ -216,6 +226,36 @@ describe("the ESM entries import the workspace packages", () => {
             });
         }
     });
+});
+
+describe("the ESM consumer bundle works in a browser", () => {
+    beforeAll(() => {
+        ensureBuild();
+    }, BUILD_TIMEOUT_MS);
+
+    test(
+        "it loads and naturalizes with no `process` global",
+        () => {
+            // A browser bundler gives no `process`, and 0.52 needed none.
+            const code = consumerBundle("dcmjs.es.js", "iife").toString();
+            // the browser globals that the code uses, and no `process`
+            const context = vm.createContext({
+                console,
+                TextDecoder,
+                TextEncoder,
+                URL,
+                atob,
+                btoa
+            });
+            vm.runInContext(code, context);
+            const dcmjs = context.dcmjs.default;
+            const dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset({
+                "00100020": { vr: "LO", Value: ["PID"] }
+            });
+            expect(dataset.PatientID).toBe("PID");
+        },
+        BUILD_TIMEOUT_MS
+    );
 });
 
 describe("the UMD bundle works with no workspace", () => {

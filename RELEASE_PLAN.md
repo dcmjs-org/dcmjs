@@ -221,13 +221,20 @@ request; the implementation requirements (WRAP-IMP-n) can change freely.
     gives its names as named exports and as the default export; the
     `media`, `encapsulated`, `image` and `fhir` subpaths have the names of
     the dcmjs v2 namespaces. The subpaths are ES modules only: a
-    `require()` of a subpath fails with `ERR_PACKAGE_PATH_NOT_EXPORTED`, so
-    it cannot load a second copy of the reader state.
+    `require()` of a subpath fails with `ERR_PACKAGE_PATH_NOT_EXPORTED`. A
+    CommonJS user (`require`, or jest without an ESM transform of
+    `node_modules/@dcmjs-org`) gets the default entry only, from the UMD
+    build. Code that takes the default entry with `require()` and a subpath
+    with `import` has two copies of the reader state (the log level, the
+    `registerTag()` entries); such code must use `import` for both.
+-   **WRAP-USR-4** `build/dcmjs.js` and `build/dcmjs.min.js` work from a
+    script tag with no other file.
 -   **WRAP-USR-5** Each subpath works after an install from the registry,
     and also from a built checkout (`pnpm run build`), for example for the
     examples in `EXAMPLES.md` and for `pnpm bench`.
--   **WRAP-USR-4** `build/dcmjs.js` and `build/dcmjs.min.js` work from a
-    script tag with no other file.
+-   **WRAP-USR-6** The default ESM entry, bundled for a browser, loads with
+    no `process` global, as 0.52 did. `test/bundle-size.test.js` runs the
+    consumer bundle with no `process`.
 
 #### § Implementation requirements
 
@@ -239,8 +246,12 @@ request; the implementation requirements (WRAP-IMP-n) can change freely.
     the app imports it directly. Other dependencies stay inlined, as in
     0.52. The `src/` shims import the package entry (`@dcmjs-org/core`,
     `@dcmjs-org/parser`), not a file in `packages/<name>/src`, so the ESM
-    build holds no copy of a runtime package. `test/package-layout.test.js`
-    checks the source maps of `build/` for this.
+    build holds no copy of a runtime package. Four shims that only tests
+    use still import a package file, because the package entry does not
+    export their names: `src/dicom.packed.js`,
+    `src/dictionary.private.data.js`, `src/dictionary.ranges.data.js` and
+    `src/core/decodeCore.js`. `test/package-layout.test.js` checks the
+    source maps of `build/`, so a build that imports one of them fails.
 -   **WRAP-IMP-3** One rollup ESM build has six entries: `src/index.js`
     (`build/dcmjs.es.js`), and `src/eventStream.js`, `src/media.js`,
     `src/encapsulated.js`, `src/image.js` and `src/fhir.js`
@@ -258,18 +269,25 @@ request; the implementation requirements (WRAP-IMP-n) can change freely.
     Each entry file exports only its public names; the chunk is in the
     published `build/` directory, and `exports` does not name it. The size
     check of WRAP-USR-2 bundles `build/dcmjs.es.js` with rollup, its chunks
-    and its `@dcmjs-org/*` packages included, and measures the result.
+    and its `@dcmjs-org/*` packages included, and measures the result. The
+    check takes the packages from their sources (the `source` condition),
+    so it needs no package build; the published `dist/` builds give a
+    bundle about 0.4% larger.
 -   **WRAP-IMP-6** Each `@dcmjs-org/*` package that the root needs at
     runtime has a `files` list that holds its published entry. Without a
     `files` list, pnpm applies the root `.npmignore`, which excludes `src/`.
     `test/package-layout.test.js` checks this.
 -   **WRAP-IMP-7** `@dcmjs-org/core` and `@dcmjs-org/parser` have an
     `exports` map with a `source` condition (`src/`, for the root rollup
-    build and jest), `import` (`dist/`, for Node in a built checkout) and
-    `default` (`src/`). `publishConfig.exports` replaces the map on publish.
-    Core lists in `sideEffects` each module with a top-level side effect;
-    parser has none. The UMD output has a fixed indent, and
-    `pnpm run build` deletes `build/` first, so no old chunk is published.
+    build), `import` (`dist/`, for Node in a built checkout) and `default`
+    (`src/`, for jest, which resolves the CommonJS conditions or `main`).
+    `publishConfig.exports` replaces the map on publish. Core lists in
+    `sideEffects` each module with a top-level side effect; parser has none.
+    The UMD output has a fixed indent. `pnpm run build` deletes `build/`
+    first, and the ESM build removes the shared chunks of earlier builds, so
+    no old chunk is published.
+-   **WRAP-IMP-8** Core reads `process.env.LOG_LEVEL` only when `process`
+    exists. The root rollup build replaces the expression at build time.
 
 **The size ceiling.** The aim is "no more than ×1.05 of 0.52", and the
 default bundles now meet it. The new engines (the streaming reader and
@@ -288,12 +306,12 @@ external `@dcmjs-org/*` imports in the ESM build:
 
 | Bundle | Bytes | Ratio to 0.52 | Ceiling |
 | --- | --- | --- | --- |
-| `build/dcmjs.js` (UMD) | 1,443,476 | ×1.043 | ×1.05 |
-| `build/dcmjs.es.js`, consumer bundle with its packages | 1,394,652 | ×1.027 | ×1.05 |
-| `build/dcmjs.min.js` (UMD, minified) | 725,117 | ×1.022 | not enforced |
+| `build/dcmjs.js` (UMD) | 1,445,215 | ×1.044 | ×1.05 |
+| `build/dcmjs.es.js`, consumer bundle with its packages | 1,396,849 | ×1.029 | ×1.05 |
+| `build/dcmjs.min.js` (UMD, minified) | 725,759 | ×1.023 | not enforced |
 | `build/dcmjs.es.js` alone | 282 | | |
 | `build/dcmjs.shared-<hash>.js` | 589,298 | | |
-| `build/eventStream.es.js` | 57,028 | | |
+| `build/eventStream.es.js` | 57,122 | | |
 | `build/media.es.js` | 513 | | |
 | `build/encapsulated.es.js` | 1,311 | | |
 | `build/image.es.js` | 720 | | |

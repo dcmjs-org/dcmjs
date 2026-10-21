@@ -6,6 +6,7 @@ import {
     lookupTagHex,
     addAccessors,
     isMultiVM,
+    BINARY_VRS,
     dicomJson,
     isPrivateTag,
     placePrivateElements,
@@ -155,7 +156,10 @@ export class NaturalizedListener extends EventStreamListener {
         if (isPrivateTag(frame.tag)) {
             const entry = registeredTagEntry(frame.tag);
             let value = frame.binary;
-            if (value === undefined) {
+            if (value === undefined && BINARY_VRS.has(frame.vr)) {
+                // a binary VR keeps its list, also of non-buffer values
+                value = frame.values.slice();
+            } else if (value === undefined) {
                 value = entry
                     ? this._shapeValues(frame, entry, frame.tag)
                     : privateShape(frame.values);
@@ -173,10 +177,14 @@ export class NaturalizedListener extends EventStreamListener {
         }
 
         const entry = lookupTagHex(frame.tag);
-        const key = (entry && entry.name) || frame.tag;
+        const key = (entry && entry.name) || frame.tag.toUpperCase();
         recordVr(targetFrame.obj._vrMap, key, entry, frame.vr);
         if (frame.binary !== undefined) {
             targetFrame.obj[key] = frame.binary;
+            return;
+        }
+        if (BINARY_VRS.has(frame.vr)) {
+            targetFrame.obj[key] = frame.values.slice();
             return;
         }
         let shaped = this._shapeValues(frame, entry, key);
@@ -217,7 +225,7 @@ export class NaturalizedListener extends EventStreamListener {
         }
         const entry = lookupTagHex(frame.tag);
         const shaped = this._shapeSequence(frame, entry);
-        const key = (entry && entry.name) || frame.tag;
+        const key = (entry && entry.name) || frame.tag.toUpperCase();
         recordVr(targetFrame.obj._vrMap, key, entry, frame.vr);
         targetFrame.obj[key] = shaped;
     }

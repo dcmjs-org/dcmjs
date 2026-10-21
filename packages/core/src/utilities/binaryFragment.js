@@ -30,12 +30,24 @@ export function naturalBinaryFragment(fragment, binaryAs = "ArrayBuffer") {
     if (fragment instanceof ArrayBuffer) {
         return binaryAs === "Uint8Array" ? new Uint8Array(fragment) : fragment;
     }
+    if (
+        typeof SharedArrayBuffer !== "undefined" &&
+        fragment instanceof SharedArrayBuffer
+    ) {
+        // a shared buffer is not an ArrayBuffer: the default mode copies it
+        const view = new Uint8Array(fragment);
+        return binaryAs === "Uint8Array" ? view : view.slice().buffer;
+    }
     if (!ArrayBuffer.isView(fragment)) {
         return fragment;
     }
     const { buffer, byteOffset, byteLength } = fragment;
     if (binaryAs === "Uint8Array") {
         return new Uint8Array(buffer, byteOffset, byteLength);
+    }
+    if (!(buffer instanceof ArrayBuffer)) {
+        // a view over a shared buffer
+        return new Uint8Array(buffer, byteOffset, byteLength).slice().buffer;
     }
     return byteOffset === 0 && byteLength === buffer.byteLength
         ? buffer

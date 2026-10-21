@@ -1,6 +1,9 @@
 import log from "loglevel";
 
-log.setLevel(process.env.LOG_LEVEL || "warn");
+// A browser has no `process`; the root rollup build replaces the expression.
+log.setLevel(
+    (typeof process !== "undefined" && process.env.LOG_LEVEL) || "warn"
+);
 
 const validationLog = log.getLogger("validation.dcmjs");
 

@@ -201,7 +201,7 @@ export class DicomMetaDictionary {
             }
             // no dictionary entry: the tag stays the key, and the VR goes
             // into _vrMap so denaturalizeDataset can rebuild it
-            const naturalName = entry ? entry.name : tag;
+            const naturalName = entry ? entry.name : tag.toUpperCase();
             recordVr(naturalDataset._vrMap, naturalName, entry, data.vr);
 
             naturalDataset[naturalName] = naturalizeElement(

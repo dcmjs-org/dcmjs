@@ -199,8 +199,12 @@ Six things changed relative to 0.x:
      a write to it throws `TypeError` in strict-mode code. A `delete` of an
      element alias still removes the element from the written output, and a
      `delete` of the creator alias removes the whole block, so code that
-     removes private tags by hex key keeps working. `Object.keys` and
-     `JSON.stringify` no longer show the hex keys.
+     removes private tags by hex key keeps working, through
+     `denaturalizeDataset` and through `fromNaturalized`. A copy of the
+     dataset (an object spread, JSON, `deepCloneInstance`) does not keep
+     such a delete, so delete in the block (`delete
+     dataset["0029:ACME"].x01`) when you copy the dataset later.
+     `Object.keys` and `JSON.stringify` no longer show the hex keys.
    - A source that gives one creator two blocks in a group (PS3.5 7.8.1
      does not permit this) gets one merged block and a warning.
    - A `registerTag()` keyword for a private tag is a non-enumerable alias
@@ -217,7 +221,10 @@ Six things changed relative to 0.x:
      earlier `{ InlineBinary }` wrapper.
    - Both naturalizers take `{ binaryAs: "Uint8Array" }` to give each
      binary fragment as a `Uint8Array` view with no copy. The default stays
-     `ArrayBuffer`.
+     `ArrayBuffer`. In the default mode, `toNaturalized()` copies a fragment
+     that is a view into a larger buffer (for example pixel data read from
+     Part 10 bytes) to its own `ArrayBuffer`. Before, it kept the view. Use
+     `Uint8Array` to avoid the copy for large pixel data.
    - `DicomEventStream.fromNaturalized()` streams a naturalized dataset to
      any sink, for example `Part10Writer`.
 

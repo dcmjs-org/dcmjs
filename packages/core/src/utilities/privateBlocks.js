@@ -87,9 +87,19 @@ function defineAlias(target, name, get, set) {
 }
 
 /**
+ * True when the dataset alias `name` was deleted, or replaced by a plain
+ * value, after definePrivateAliases defined it.
+ */
+function aliasDeleted(target, name, record) {
+    const descriptor = Object.getOwnPropertyDescriptor(target, name);
+    return !descriptor || descriptor.get !== record.get;
+}
+
+/**
  * Defines the non-enumerable aliases of every reserved block in `target`
  * (see the module comment). The aliases derive from the blocks alone, so a
- * caller can call this again on a clone.
+ * caller can call this again on a clone. An alias that was deleted stays
+ * deleted.
  */
 export function definePrivateAliases(target) {
     let aliases = target[DATASET_ALIASES];
@@ -97,8 +107,35 @@ export function definePrivateAliases(target) {
         aliases = new Map();
         Object.defineProperty(target, DATASET_ALIASES, { value: aliases });
     }
-    const onDataset = (name, record, get, set) => {
-        if (defineAlias(target, name, get, set)) aliases.set(name, record);
+    const onDataset = (name, key, elementKey) => {
+        if (aliases.has(name)) return;
+        const record = { key, elementKey };
+        record.get =
+            elementKey === null
+                ? () =>
+                      target[key]
+                          ? parsePrivateBlockKey(key, target[key])?.creator
+                          : undefined
+                : () => target[key]?.[elementKey];
+        const set =
+            elementKey === null
+                ? undefined
+                : v => {
+                      if (target[key]) {
+                          target[key][elementKey] = v;
+                          return;
+                      }
+                      // the block is gone: the value becomes a flat element
+                      Object.defineProperty(target, name, {
+                          value: v,
+                          writable: true,
+                          enumerable: true,
+                          configurable: true
+                      });
+                  };
+        if (defineAlias(target, name, record.get, set)) {
+            aliases.set(name, record);
+        }
     };
     for (const key of Object.keys(target)) {
         const block = target[key];
@@ -106,23 +143,16 @@ export function definePrivateAliases(target) {
         if (!parsed || typeof block.reservedBlock !== "number") continue;
         const { group, creator } = parsed;
         const xx = hex2(block.reservedBlock);
-        onDataset(`${group}00${xx}`, { key, elementKey: null }, () =>
-            target[key] ? creator : undefined
-        );
+        onDataset(`${group}00${xx}`, key, null);
         for (const elementKey of Object.keys(block)) {
             const match = ELEMENT_KEY.exec(elementKey);
             if (!match) continue;
             const ee = match[1].toUpperCase();
             const tag = `${group}${xx}${ee}`;
-            const record = { key, elementKey };
-            const get = () => target[key]?.[elementKey];
-            const set = v => {
-                if (target[key]) target[key][elementKey] = v;
-            };
-            onDataset(tag, record, get, set);
+            onDataset(tag, key, elementKey);
             const registered = registeredTagEntry(tag);
             if (registered && registered.name) {
-                onDataset(registered.name, record, get, set);
+                onDataset(registered.name, key, elementKey);
                 defineAlias(
                     block,
                     registered.name,
@@ -213,6 +243,15 @@ export function placePrivateElements(target, vrMap, elements) {
  * unknown VRs) holds bytes, or an `{ InlineBinary }` from DICOM JSON; the
  * first 64 bytes decode as LO text.
  */
+function isBytes(v) {
+    return (
+        v instanceof ArrayBuffer ||
+        ArrayBuffer.isView(v) ||
+        (typeof SharedArrayBuffer !== "undefined" &&
+            v instanceof SharedArrayBuffer)
+    );
+}
+
 function creatorText(value) {
     let v = Array.isArray(value) ? value[0] : value;
     if (v && typeof v === "object" && v.InlineBinary !== undefined) {
@@ -220,13 +259,14 @@ function creatorText(value) {
         if (typeof v === "string") v = base64ToArrayBuffer(v);
     }
     let text;
-    if (v instanceof ArrayBuffer || ArrayBuffer.isView(v)) {
+    if (isBytes(v)) {
         const bytes = ArrayBuffer.isView(v)
             ? new Uint8Array(v.buffer, v.byteOffset, v.byteLength)
             : new Uint8Array(v);
         text = latin1.decode(bytes.subarray(0, CREATOR_MAX_BYTES));
     } else {
-        text = v == null ? "" : String(v);
+        // a reference ({ BulkDataURI }) or another object is no creator
+        text = typeof v === "string" || typeof v === "number" ? String(v) : "";
     }
     return text.replace(/^ +|[\0 ]+$/g, "");
 }
@@ -267,8 +307,9 @@ function deletedByAlias(dataset) {
     const deleted = { blocks: new Set(), elements: new Set() };
     const aliases = dataset[DATASET_ALIASES];
     if (!aliases) return deleted;
-    for (const [name, { key, elementKey }] of aliases) {
-        if (Object.prototype.hasOwnProperty.call(dataset, name)) continue;
+    for (const [name, record] of aliases) {
+        if (!aliasDeleted(dataset, name, record)) continue;
+        const { key, elementKey } = record;
         if (elementKey === null) deleted.blocks.add(key);
         else deleted.elements.add(`${key}\n${elementKey}`);
     }
@@ -326,7 +367,11 @@ export function expandPrivateBlocks(dataset) {
             !flatCreators.has(`${group}00${hexTag.slice(4, 6)}`) &&
             blocks.find(b => b.group === group && b.block.reservedBlock === xx);
         // join the block, unless the block already holds that element
-        if (owner && !(`x${ee}` in owner.block)) {
+        const taken =
+            owner &&
+            `x${ee}` in owner.block &&
+            !deleted.elements.has(`${owner.key}\nx${ee}`);
+        if (owner && !taken && !deleted.blocks.has(owner.key)) {
             owner.joined.push({ key, ee });
             joinedKeys.add(key);
         } else {

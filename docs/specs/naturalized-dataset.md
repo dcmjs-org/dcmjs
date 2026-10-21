@@ -201,22 +201,29 @@ naturalizes to
   example `CSAImageHeaderInfo` for `(0029,"SIEMENS CSA HEADER",10)`, is
   readable and writable in the block only. The dataset does not get that
   name, because different creators use the same names.
-- **NAT-U-HIST-7.** A `delete` of an element alias on the dataset (the hex
-  tag or the `registerTag()` keyword) removes that element from the
-  denaturalized output. A `delete` of a creator alias removes the creator
-  and every element of its block. So code that removes private tags by hex
-  key (de-identification) continues to remove them. The block object keeps
-  the value until the denaturalize; `delete dataset[blockKey].xEE` removes
-  it from the naturalized dataset too.
-- **NAT-U-HIST-8.** An alias reads and writes the block that the dataset
-  holds under the block key when the alias is used, also after the user
-  replaces the block object.
 - **NAT-U-HIST-5.** The historical names are not enumerable. `Object.keys`,
   `for...in`, `JSON.stringify` and the denaturalizers do not see them.
   `"00291001" in dataset` is true.
 - **NAT-U-HIST-6.** A copy that keeps only enumerable properties (JSON, an
-  object spread, `deepCloneInstance`) does not keep the historical names.
-  `definePrivateAliases(dataset)` from `@dcmjs-org/core` adds them again.
+  object spread, `deepCloneInstance`) does not keep the historical names,
+  and it does not keep the deletes of NAT-U-HIST-7: its blocks still hold a
+  deleted element. `definePrivateAliases(dataset)` from `@dcmjs-org/core`
+  adds the names again. To remove an element from a dataset that you copy
+  later, delete it in the block: `delete dataset[blockKey].xEE`.
+- **NAT-U-HIST-7.** A `delete` of an element alias on the dataset (the hex
+  tag or the `registerTag()` keyword) removes that element from the output
+  of `denaturalizeDataset` and of `fromNaturalized`. A `delete` of a creator
+  alias removes the creator and every element of its block. So code that
+  removes private tags by hex key (de-identification) continues to remove
+  them. A deleted alias stays deleted, also after a call of
+  `definePrivateAliases`. A value that the user then sets on the deleted
+  name is a new flat element (NAT-U-RT-1). The block object keeps the
+  deleted value until the write; `delete dataset[blockKey].xEE` removes it
+  from the naturalized dataset too.
+- **NAT-U-HIST-8.** An alias reads and writes the block that the dataset
+  holds under the block key when the alias is used, also after the user
+  replaces the block object. After the user deletes the block key, a write
+  to an element alias makes a flat element.
 
 ### NAT-U-RT — conversion back to DICOM
 
@@ -291,8 +298,11 @@ naturalizes to
 - **NAT-I-BIN-1.** `naturalBinaryFragment(fragment, binaryAs)` in
   `packages/core/src/utilities/binaryFragment.js` converts each fragment for
   both producers. In the default mode, a view that covers its whole buffer
-  gives that buffer with no copy. Any other view is copied with
-  `buffer.slice`.
+  gives that buffer with no copy. Any other view, and a `SharedArrayBuffer`,
+  is copied to a new `ArrayBuffer`.
+- **NAT-I-BIN-3.** A binary-VR element whose values are not buffers (for
+  example a UN element with a string `Value`) keeps its values as a list in
+  both producers.
 - **NAT-I-BIN-2.** `checkBinaryAs` rejects a `binaryAs` value other than
   `"ArrayBuffer"` or `"Uint8Array"` with a `TypeError`.
 
@@ -303,15 +313,19 @@ naturalizes to
   `configurable: true`. A dataset alias reads `dataset[blockKey]` when it is
   used. An element alias has a getter and a setter. A creator alias has a
   getter only, so a write throws `TypeError` in strict-mode code.
-- **NAT-I-ALIAS-4.** `definePrivateAliases` records each dataset alias in a
-  non-enumerable `Symbol.for("dcmjs.privateAliases")` map. `expandPrivateBlocks`
-  leaves out an element or block whose recorded alias is no longer an own
-  property (NAT-U-HIST-7). A clone has no record, so it keeps every element.
 - **NAT-I-ALIAS-2.** An alias never replaces an own property that is
   already there.
 - **NAT-I-ALIAS-3.** The private dictionary lookup uses the `dictionary`
   proxy key `(gggg,"creator",ee)`, so it works only when
   `registerPrivatesModule()` registered the private dictionary.
+- **NAT-I-ALIAS-4.** `definePrivateAliases` records each dataset alias, with
+  its getter, in a non-enumerable `Symbol.for("dcmjs.privateAliases")` map,
+  and it never defines a recorded name again. An alias is deleted when the
+  own property is gone, or when its getter is no longer the recorded one (a
+  plain value replaced it). `expandPrivateBlocks` leaves out the element or
+  block of a deleted alias, and a deleted element does not hold its number
+  in the block. `fromNaturalized` denaturalizes the dataset itself, not a
+  copy, so the record applies.
 
 ### NAT-I-VR — the `_vrMap` rules
 

@@ -12,11 +12,13 @@ import { fromDataSet } from "./fromDataSet.js";
  * @param {import("./EventStreamListener").EventStreamListener} listener
  */
 export function fromNaturalized(dataset, listener) {
-    const { _meta, ...rest } = dataset;
+    // no copy of the dataset: a copy loses the alias deletes (NAT-U-HIST-7);
+    // denaturalizeDataset skips the _meta member
+    const meta = dataset._meta;
     return fromDataSet(
         {
-            meta: _meta ? DicomMetaDictionary.denaturalizeDataset(_meta) : null,
-            dict: DicomMetaDictionary.denaturalizeDataset(rest)
+            meta: meta ? DicomMetaDictionary.denaturalizeDataset(meta) : null,
+            dict: DicomMetaDictionary.denaturalizeDataset(dataset)
         },
         listener
     );

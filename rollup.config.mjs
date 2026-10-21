@@ -7,7 +7,8 @@ import commonjs from "@rollup/plugin-commonjs";
 import json from "@rollup/plugin-json";
 import replace from "@rollup/plugin-replace";
 import terser from "@rollup/plugin-terser";
-import { readFileSync } from "fs";
+import { readFileSync, readdirSync, rmSync } from "fs";
+import path from "path";
 
 const pkg = JSON.parse(
     readFileSync(new URL("./package.json", import.meta.url), "utf8")
@@ -38,6 +39,20 @@ const sharedPlugins = [
 // so a bundler keeps one shared copy. The UMD builds inline them.
 const isWorkspacePackage = id => id.startsWith("@dcmjs-org/");
 
+// After a write, removes the shared chunks of earlier builds from build/,
+// because `files: ["build"]` publishes every file there.
+const removeOldSharedChunks = {
+    name: "remove-old-shared-chunks",
+    writeBundle(options, bundle) {
+        for (const file of readdirSync(options.dir)) {
+            const chunk = file.replace(/\.map$/, "");
+            if (/^dcmjs\.shared-.*\.js$/.test(chunk) && !bundle[chunk]) {
+                rmSync(path.join(options.dir, file));
+            }
+        }
+    }
+};
+
 // `rollup -c --environment BUNDLES_ONLY` skips the minified build
 // (test/bundle-size.test.js builds only what it measures).
 const bundlesOnly = process.env.BUNDLES_ONLY === "true";
@@ -63,7 +78,7 @@ const esm = {
         chunkFileNames: "dcmjs.shared-[hash].js",
         sourcemap: true
     },
-    plugins: sharedPlugins
+    plugins: [...sharedPlugins, removeOldSharedChunks]
 };
 
 const umd = {

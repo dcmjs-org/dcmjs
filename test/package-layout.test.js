@@ -74,13 +74,11 @@ describe("the published packages", () => {
     test("core lists each module with a top-level side effect", () => {
         // Bundlers drop an unused module that sideEffects does not list.
         const core = readJson(path.join(ROOT, "packages/core/package.json"));
-        const walk = dir =>
-            fs.readdirSync(dir).flatMap(name => {
-                const file = path.join(dir, name);
-                if (fs.statSync(file).isDirectory()) return walk(file);
-                return name.endsWith(".js") ? [file] : [];
-            });
-        const withEffects = walk(path.join(ROOT, "packages/core/src"))
+        const coreSrc = path.join(ROOT, "packages/core/src");
+        const withEffects = fs
+            .readdirSync(coreSrc, { recursive: true })
+            .filter(name => name.endsWith(".js"))
+            .map(name => path.join(coreSrc, name))
             .filter(file =>
                 parseAst(fs.readFileSync(file, "utf8")).body.some(
                     node =>
