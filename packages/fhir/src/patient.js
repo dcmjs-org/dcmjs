@@ -5,14 +5,12 @@
 // no storage references. Id assignment and any deployment-specific
 // decoration are the consumer's job.
 
+import { toStringFirst } from "@dcmjs-org/core";
 import {
-    asString,
     dicomDateTimeToIso,
     parsePersonName,
     personNameToHumanName,
-    sexToGender,
-    birthSexExtension,
-    sexExtension
+    sexToGender
 } from "./helpers.js";
 
 /**
@@ -26,7 +24,7 @@ export function patientFromDataset(dataset) {
         return null;
     }
 
-    const patientId = asString(dataset.PatientID);
+    const patientId = toStringFirst(dataset.PatientID);
     const humanName = personNameToHumanName(
         parsePersonName(dataset.PatientName)
     );
@@ -67,16 +65,7 @@ export function patientFromDataset(dataset) {
         patient.birthDate = birthDate;
     }
 
-    const dicomSex = asString(dataset.PatientSex);
-    patient.gender = sexToGender(dicomSex);
-
-    const extensions = [
-        birthSexExtension(dicomSex),
-        sexExtension(dicomSex)
-    ].filter(Boolean);
-    if (extensions.length > 0) {
-        patient.extension = extensions;
-    }
+    patient.gender = sexToGender(dataset.PatientSex);
 
     return patient;
 }

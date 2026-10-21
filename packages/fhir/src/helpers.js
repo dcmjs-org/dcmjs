@@ -7,109 +7,17 @@
 // (string / number / array / PN object) and strict about output — absent
 // or unparseable inputs return null, never partial garbage.
 
+import { MODALITY_DISPLAY, toStringFirst } from "@dcmjs-org/core";
+
 export const DICOM_UID_SYSTEM = "urn:dicom:uid";
 export const DICOM_MODALITY_SYSTEM =
     "http://dicom.nema.org/resources/ontology/DCM";
 
 /**
- * DICOM Modality code → display name.
- * System: http://dicom.nema.org/resources/ontology/DCM
- */
-export const MODALITY_DISPLAY = {
-    AR: "Autorefraction",
-    AU: "Audio",
-    BDUS: "Bone Densitometry (Ultrasound)",
-    BI: "Biomagnetic Imaging",
-    BMD: "Bone Densitometry (X-Ray)",
-    CR: "Computed Radiography",
-    CT: "Computed Tomography",
-    DG: "Diaphanography",
-    DOC: "Document",
-    DX: "Digital Radiography",
-    ECG: "Electrocardiography",
-    EPS: "Cardiac Electrophysiology",
-    ES: "Endoscopy",
-    GM: "General Microscopy",
-    HC: "Hard Copy",
-    HD: "Hemodynamic Waveform",
-    IO: "Intra-Oral Radiography",
-    IVUS: "Intravascular Ultrasound",
-    KO: "Key Object Selection",
-    LS: "Laser Surface Scan",
-    MG: "Mammography",
-    MR: "Magnetic Resonance",
-    NM: "Nuclear Medicine",
-    OAM: "Ophthalmic Axial Measurements",
-    OCT: "Optical Coherence Tomography",
-    OP: "Ophthalmic Photography",
-    OPM: "Ophthalmic Mapping",
-    OPT: "Ophthalmic Tomography",
-    OPV: "Ophthalmic Visual Field",
-    OT: "Other",
-    PR: "Presentation State",
-    PT: "Positron Emission Tomography",
-    PX: "Panoramic X-Ray",
-    REG: "Registration",
-    RF: "Radio Fluoroscopy",
-    RG: "Radiographic Imaging",
-    RTDOSE: "Radiotherapy Dose",
-    RTIMAGE: "Radiotherapy Image",
-    RTPLAN: "Radiotherapy Plan",
-    RTRECORD: "RT Treatment Record",
-    RTSTRUCT: "Radiotherapy Structure Set",
-    SEG: "Segmentation",
-    SM: "Slide Microscopy",
-    SMR: "Stereometric Relationship",
-    SR: "Structured Report",
-    SRF: "Subjective Refraction",
-    TG: "Thermography",
-    US: "Ultrasound",
-    VA: "Visual Acuity",
-    XA: "X-Ray Angiography",
-    XC: "External-Camera Photography"
-};
-
-/**
- * Coerce a naturalized value to a trimmed string, or null.
- * Handles scalars, single/multi-value arrays (first value wins), and
- * numbers (IS/DS naturalize to Number).
- */
-export function asString(value) {
-    if (value === undefined || value === null) {
-        return null;
-    }
-    if (Array.isArray(value)) {
-        return value.length > 0 ? asString(value[0]) : null;
-    }
-    if (typeof value === "number") {
-        return String(value);
-    }
-    if (typeof value === "string") {
-        const trimmed = value.trim();
-        return trimmed.length > 0 ? trimmed : null;
-    }
-    return null;
-}
-
-/**
- * Coerce a naturalized value to a finite number, or null.
- */
-export function asNumber(value) {
-    if (value === undefined || value === null) {
-        return null;
-    }
-    if (Array.isArray(value)) {
-        return value.length > 0 ? asNumber(value[0]) : null;
-    }
-    const num = Number(value);
-    return Number.isFinite(num) ? num : null;
-}
-
-/**
  * Prefix a DICOM UID with urn:oid: for FHIR identifier/uid slots.
  */
 export function uidToUrn(uid) {
-    const clean = asString(uid);
+    const clean = toStringFirst(uid);
     if (!clean) {
         return null;
     }
@@ -117,11 +25,23 @@ export function uidToUrn(uid) {
 }
 
 /**
- * DICOM DA (YYYYMMDD) + optional TM (HHMMSS.ffffff) → ISO 8601.
+ * DICOM DA (YYYYMMDD) + optional TM (HHMMSS.ffffff) → a FHIR dateTime.
+ *
+ * FHIR requires a timezone when a dateTime has a time. The time is written
+ * only with a valid `timezoneOffset` (TimezoneOffsetFromUTC (0008,0201),
+ * "+HHMM" or "-HHMM"); without it the result is the date only, which is
+ * a valid dateTime that asserts no zone.
+ *
+ * The date must be YYYYMMDD (the ACR-NEMA form YYYY.MM.DD is accepted), else
+ * the result is null. The time must start with HHMMSS (the form HH:MM:SS is
+ * accepted), else the result is the date only.
  */
-export function dicomDateTimeToIso(dicomDate, dicomTime) {
-    const date = asString(dicomDate);
-    if (!date || date.length < 8) {
+export function dicomDateTimeToIso(dicomDate, dicomTime, timezoneOffset) {
+    const rawDate = toStringFirst(dicomDate);
+    const date = /^\d{4}\.\d{2}\.\d{2}$/.test(rawDate || "")
+        ? rawDate.replace(/\./g, "")
+        : rawDate;
+    if (!date || !/^\d{8}$/.test(date)) {
         return null;
     }
 
@@ -130,15 +50,28 @@ export function dicomDateTimeToIso(dicomDate, dicomTime) {
         8
     )}`;
 
-    const time = asString(dicomTime);
-    if (time && time.length >= 6) {
-        iso += `T${time.substring(0, 2)}:${time.substring(
-            2,
-            4
-        )}:${time.substring(4, 6)}`;
+    const rawTime = toStringFirst(dicomTime);
+    const time = /^\d{2}:\d{2}:\d{2}/.test(rawTime || "")
+        ? rawTime.replace(/:/g, "")
+        : rawTime;
+    const offset = toStringFirst(timezoneOffset);
+    if (time && /^\d{6}/.test(time) && offset && /^[+-]\d{4}$/.test(offset)) {
+        iso +=
+            `T${time.substring(0, 2)}:${time.substring(2, 4)}:` +
+            `${time.substring(4, 6)}${offset.substring(0, 3)}:` +
+            offset.substring(3);
     }
 
     return iso;
+}
+
+/**
+ * DICOM DA + TM + TimezoneOffsetFromUTC → a FHIR instant, or null when a
+ * part is missing (an instant needs the full time and the zone).
+ */
+export function dicomDateTimeToInstant(dicomDate, dicomTime, timezoneOffset) {
+    const iso = dicomDateTimeToIso(dicomDate, dicomTime, timezoneOffset);
+    return iso && iso.includes("T") ? iso : null;
 }
 
 /**
@@ -199,65 +132,19 @@ export function personNameToHumanName(parsed) {
 }
 
 /**
- * DICOM PatientSex (M/F/O) → FHIR administrative gender.
+ * DICOM PatientSex (M/F/O) → FHIR administrative gender. PatientSex is an
+ * administrative value, so the Patient gets no birth-sex or clinical-sex
+ * extension from it (FHIR-USR-3).
  */
 export function sexToGender(dicomSex) {
     const mapping = { M: "male", F: "female", O: "other" };
-    return mapping[asString(dicomSex)] || "unknown";
-}
-
-/**
- * DICOM PatientSex → US Core birthsex code (M/F/UNK).
- */
-export function sexToBirthSex(dicomSex) {
-    const mapping = { M: "M", F: "F", O: "UNK" };
-    return mapping[asString(dicomSex)] || "UNK";
-}
-
-/**
- * US Core birthsex extension for a DICOM PatientSex value.
- */
-export function birthSexExtension(dicomSex) {
-    if (!asString(dicomSex)) {
-        return null;
-    }
-    return {
-        url: "http://hl7.org/fhir/us/core/StructureDefinition/us-core-birthsex",
-        valueCode: sexToBirthSex(dicomSex)
-    };
-}
-
-/**
- * US Core sex extension (sex-for-clinical-use) for a DICOM PatientSex value.
- */
-export function sexExtension(dicomSex) {
-    const sex = asString(dicomSex);
-    if (!sex) {
-        return null;
-    }
-    const mapping = {
-        M: "male-typical",
-        F: "female-typical",
-        O: "specified"
-    };
-    return {
-        url: "http://hl7.org/fhir/us/core/StructureDefinition/us-core-sex",
-        valueCodeableConcept: {
-            coding: [
-                {
-                    system: "http://terminology.hl7.org/CodeSystem/sex-for-clinical-use",
-                    code: mapping[sex] || "unknown",
-                    display: mapping[sex] || "Unknown"
-                }
-            ]
-        }
-    };
+    return mapping[toStringFirst(dicomSex)] || "unknown";
 }
 
 /**
  * FHIR administrative gender → DICOM PatientSex (0010,0040).
  *
- * QUICKSAND, TREAD SLOWLY. FHIR `Patient.gender` is *administrative
+ * FHIR `Patient.gender` is *administrative
  * gender*; DICOM PatientSex is a three-letter administrative repertoire
  * (M / F / O, Type 2 so empty is legal). These are not the same concept as
  * clinical sex or gender identity, and this mapping deliberately consults
@@ -277,7 +164,7 @@ export function sexExtension(dicomSex) {
  * unknown round-trips to empty.
  */
 export function genderToSex(gender) {
-    const value = asString(gender);
+    const value = toStringFirst(gender);
     if (!value) {
         return "";
     }
@@ -314,13 +201,13 @@ export function humanNameToPersonName(humanName) {
     }
     const given = Array.isArray(humanName.given) ? humanName.given : [];
     const components = [
-        asString(humanName.family) || "",
-        asString(given[0]) || "",
-        asString(given[1]) || "",
-        asString(
+        toStringFirst(humanName.family) || "",
+        toStringFirst(given[0]) || "",
+        toStringFirst(given[1]) || "",
+        toStringFirst(
             Array.isArray(humanName.prefix) ? humanName.prefix[0] : null
         ) || "",
-        asString(
+        toStringFirst(
             Array.isArray(humanName.suffix) ? humanName.suffix[0] : null
         ) || ""
     ];
@@ -332,7 +219,7 @@ export function humanNameToPersonName(humanName) {
         return pn;
     }
     // No structured parts: fall back to the free-text form, if any.
-    return asString(humanName.text);
+    return toStringFirst(humanName.text);
 }
 
 /**
@@ -342,7 +229,7 @@ export function humanNameToPersonName(humanName) {
  * fabricated day.
  */
 export function isoDateToDicom(isoDate) {
-    const value = asString(isoDate);
+    const value = toStringFirst(isoDate);
     if (!value) {
         return null;
     }
@@ -357,7 +244,7 @@ export function isoDateToDicom(isoDate) {
  * FHIR Coding for a DICOM modality code.
  */
 export function modalityCoding(modalityCode) {
-    const code = asString(modalityCode);
+    const code = toStringFirst(modalityCode);
     if (!code) {
         return null;
     }
@@ -366,38 +253,6 @@ export function modalityCoding(modalityCode) {
         code,
         display: MODALITY_DISPLAY[code] || code
     };
-}
-
-/**
- * Uint8Array → base64 string without Node's Buffer (this package ships in
- * the browser bundle). Chunked to stay under argument-length limits.
- */
-export function bytesToBase64(bytes) {
-    const CHUNK = 0x8000;
-    let binary = "";
-    for (let offset = 0; offset < bytes.length; offset += CHUNK) {
-        binary += String.fromCharCode(
-            ...bytes.subarray(offset, offset + CHUNK)
-        );
-    }
-    if (typeof btoa === "function") {
-        return btoa(binary);
-    }
-    // Manual encoder for runtimes without btoa
-    const ALPHABET =
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-    let result = "";
-    for (let i = 0; i < binary.length; i += 3) {
-        const a = binary.charCodeAt(i);
-        const b = i + 1 < binary.length ? binary.charCodeAt(i + 1) : 0;
-        const c = i + 2 < binary.length ? binary.charCodeAt(i + 2) : 0;
-        result += ALPHABET[a >> 2];
-        result += ALPHABET[((a & 3) << 4) | (b >> 4)];
-        result +=
-            i + 1 < binary.length ? ALPHABET[((b & 15) << 2) | (c >> 6)] : "=";
-        result += i + 2 < binary.length ? ALPHABET[c & 63] : "=";
-    }
-    return result;
 }
 
 /**

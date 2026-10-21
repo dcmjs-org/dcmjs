@@ -17,7 +17,12 @@
 // uint64) records the exact stream length so the required trailing pad byte
 // on an odd-length final fragment can be dropped on extraction.
 
-import { DicomMetaDictionary, isVideoTransferSyntax } from "@dcmjs-org/core";
+import {
+    combineBases,
+    createInstance,
+    defaultInstanceBase,
+    isVideoTransferSyntax
+} from "@dcmjs-org/core";
 import { parseMp4Info } from "../image/mp4Info.js";
 
 const VIDEO_PHOTOGRAPHIC_SOP_CLASS_UID = "1.2.840.10008.5.1.4.1.1.77.1.4.1";
@@ -69,19 +74,65 @@ function unsupportedCodecError(info) {
 }
 
 /**
+ * The Video Photographic Image attributes that do not depend on the stream:
+ * XC modality, and the Image Pixel values that every MPEG-4 AVC transfer
+ * syntax mandates (PS3.5 §8.2.6); the stream carries the real subsampling.
+ */
+const videoPhotographicBase = {
+    SOPClassUID: VIDEO_PHOTOGRAPHIC_SOP_CLASS_UID,
+    Modality: "XC",
+    SamplesPerPixel: 3,
+    PhotometricInterpretation: "YBR_PARTIAL_420",
+    PlanarConfiguration: 0,
+    BitsAllocated: 8,
+    BitsStored: 8,
+    HighBit: 7,
+    PixelRepresentation: 0,
+    LossyImageCompression: "01"
+};
+
+/**
+ * The default base of `buildVideoDataset`: core instance defaults and the
+ * Video Photographic Image block. It has no `predecessorBase`, so
+ * `predecessor: true` has no effect; use
+ * `combineBases(videoBase, predecessorBase)` for a predecessor
+ * (CORE-USR-9). Use `.items` to build a variant.
+ */
+const videoBase = combineBases(defaultInstanceBase, videoPhotographicBase);
+
+/**
  * Build the naturalized dataset shell for a Video Photographic Image
  * instance — everything except PixelData, which the caller supplies either
- * buffered (encapsulateVideo) or as a fragment event stream (fromVideo).
+ * buffered (encapsulateVideo) or as a fragment event stream
+ * (createVideoEventSource).
  *
- * Element list mirrors the Supplement 225 reference fixture: XC modality,
- * CineRate/FrameTime from the measured frame rate, YBR_PARTIAL_420 8-bit
- * geometry, LossyImageCompression 01, and the (7FE0,0003) total length as a
- * BigInt (VR UV is a uint64). Every UID defaults to a freshly minted one;
- * pass StudyInstanceUID/SeriesInstanceUID to attach into an existing study.
+ * The dataset comes from {@link createInstance} with `videoBase`; the
+ * options follow CORE-USR-1 (`packages/core/README.md`), and the video rules
+ * are VID-USR-n in `packages/video/README.md`. The options object holds the
+ * controls; the DICOM attributes go in `options.overrides` (a naturalized
+ * DICOM provider with the forms of `baseDicom`). An extra option key has no
+ * effect (CORE-USR-7). With `dataLevel: "series"`, `instance` is the sample
+ * instance in the series (CORE-USR-5).
+ *
+ * The stream attributes are set last, and replace an override from each
+ * form of `overrides` (VID-USR-2): CineRate and FrameTime from the measured
+ * frame rate, NumberOfFrames, Rows, Columns, `_meta.TransferSyntaxUID`, and
+ * the (7FE0,0003) total length as a BigInt (VR UV is a uint64). A field
+ * that `mp4Info` does not give writes no attribute. The element list
+ * mirrors the Supplement 225 fixture.
+ *
+ * @example
+ * buildVideoDataset(mp4Info, {
+ *     instance,
+ *     overrides: { SeriesDescription: "Endoscopy" }
+ * });
  *
  * @param {Object} mp4Info - parseMp4Info result
- * @param {Object} [options] - naturalized keyword overrides (PatientName,
- *   PatientID, StudyInstanceUID, ...)
+ * @param {Object} [options] - the createInstance options (`baseDicom`
+ *   defaults to `videoBase`; `overrides` holds the DICOM attributes;
+ *   createInstance calls `postProcess` before the builder sets the stream
+ *   attributes), plus the control option of the callers (`fragmentBytes`),
+ *   which is ignored here
  * @returns {Object} naturalized dataset with _meta/_vrMap, no PixelData
  */
 function buildVideoDataset(mp4Info, options = {}) {
@@ -89,75 +140,33 @@ function buildVideoDataset(mp4Info, options = {}) {
         throw unsupportedCodecError(mp4Info);
     }
 
-    const date = DicomMetaDictionary.date();
-    const time = DicomMetaDictionary.time();
+    // fragmentBytes is a control key of the callers (CORE-IMP-9).
+    const { baseDicom = videoBase, fragmentBytes, ...rest } = options;
+    const dataset = createInstance({ baseDicom, ...rest });
 
-    const dataset = {
-        // SOP Common
-        SpecificCharacterSet: "ISO_IR 192",
-        SOPClassUID: VIDEO_PHOTOGRAPHIC_SOP_CLASS_UID,
-        SOPInstanceUID: options.SOPInstanceUID || DicomMetaDictionary.uid(),
-
-        // General Study (Type 2 attributes always present)
-        StudyInstanceUID: options.StudyInstanceUID || DicomMetaDictionary.uid(),
-        StudyDate: options.StudyDate || date,
-        StudyTime: options.StudyTime || time,
-        ReferringPhysicianName: options.ReferringPhysicianName || "",
-        StudyID: options.StudyID || "1",
-        AccessionNumber: options.AccessionNumber || "",
-
-        // Patient
-        PatientName: options.PatientName || "",
-        PatientID: options.PatientID || "",
-        PatientBirthDate: options.PatientBirthDate || "",
-        PatientSex: options.PatientSex || "",
-
-        // Series
-        Modality: "XC",
-        SeriesInstanceUID:
-            options.SeriesInstanceUID || DicomMetaDictionary.uid(),
-        SeriesNumber: options.SeriesNumber || 1,
-
-        // Cine
+    const streamAttributes = {
         CineRate: mp4Info.cineRate,
         FrameTime: mp4Info.frameTime,
-
-        // Image Pixel — the values every MPEG-4 AVC transfer syntax mandates
-        // (PS3.5 §8.2.6): the stream itself carries the real subsampling.
-        InstanceNumber: options.InstanceNumber || 1,
-        SamplesPerPixel: 3,
-        PhotometricInterpretation: "YBR_PARTIAL_420",
-        PlanarConfiguration: 0,
         NumberOfFrames: mp4Info.numberOfFrames,
         Rows: mp4Info.rows,
-        Columns: mp4Info.columns,
-        BitsAllocated: 8,
-        BitsStored: 8,
-        HighBit: 7,
-        PixelRepresentation: 0,
-        LossyImageCompression: "01",
-
-        // Exact stream length, excluding the trailing pad byte on an
-        // odd-length final fragment (Sup 225). UV is a uint64 → BigInt.
-        EncapsulatedPixelDataValueTotalLength: BigInt(mp4Info.mp4ByteLength),
-
-        _meta: {
-            TransferSyntaxUID: {
-                Value: [mp4Info.transferSyntaxUID]
-            }
-        },
-        _vrMap: {
-            PixelData: "OB"
-        }
+        Columns: mp4Info.columns
     };
-
-    if (options.SeriesDescription) {
-        dataset.SeriesDescription = options.SeriesDescription;
+    for (const [keyword, value] of Object.entries(streamAttributes)) {
+        if (value !== undefined) {
+            dataset[keyword] = value;
+        }
     }
-    if (options.StudyDescription) {
-        dataset.StudyDescription = options.StudyDescription;
-    }
-
+    // Exact stream length, without the pad byte of an odd-length final
+    // fragment (Sup 225).
+    dataset.EncapsulatedPixelDataValueTotalLength = BigInt(
+        mp4Info.mp4ByteLength
+    );
+    // A copy that keeps the other _meta keys (CORE-USR-13).
+    dataset._meta = {
+        ...(dataset._meta || {}),
+        TransferSyntaxUID: { Value: [mp4Info.transferSyntaxUID] }
+    };
+    dataset._vrMap = { ...(dataset._vrMap || {}), PixelData: "OB" };
     return dataset;
 }
 
@@ -165,10 +174,11 @@ function buildVideoDataset(mp4Info, options = {}) {
  * Wrap MP4 bytes into a naturalized video instance, buffered: PixelData is an
  * array of fragment-sized ArrayBuffer slices ready for datasetToDict /
  * datasetToBuffer. For files too large to buffer, use
- * DicomEventStream.fromVideoStream instead.
+ * createVideoEventSource instead.
  *
  * @param {ArrayBuffer|Uint8Array} mp4Bytes
- * @param {Object} [options] - buildVideoDataset overrides + { fragmentBytes }
+ * @param {Object} [options] - the buildVideoDataset options (the DICOM
+ *   attributes go in `overrides`), plus `fragmentBytes`
  * @returns {Promise<Object>} naturalized dataset
  */
 async function encapsulateVideo(mp4Bytes, options = {}) {
@@ -267,7 +277,8 @@ function metaTransferSyntax(dataset) {
  * (7FE0,0003) total length, which drops the pad byte a Part 10 writer adds
  * to an odd-length final fragment. When the element is absent (older
  * producers), nothing is trimmed and `declaredLength` is null so the caller
- * can decide how loudly to warn.
+ * can decide how loudly to warn. A dataset that is not a video throws an
+ * error (VID-USR-6).
  *
  * @param {Object} dataset - naturalized video instance
  * @returns {{ bytes: Uint8Array, transferSyntaxUID: string|undefined,
@@ -287,8 +298,8 @@ function extractEncapsulatedVideo(dataset) {
                 (transferSyntaxUID
                     ? `Found transfer syntax ${transferSyntaxUID}. `
                     : "") +
-                "For an Encapsulated PDF use toPdf(); for pixel images use " +
-                "toNaturalized()/toPart10()."
+                "For an Encapsulated PDF use extractEncapsulatedPdf; for " +
+                "pixel images read the dataset with NaturalizedListener."
         );
     }
 
@@ -316,6 +327,8 @@ function extractEncapsulatedVideo(dataset) {
 }
 
 export {
+    videoBase,
+    videoPhotographicBase,
     buildVideoDataset,
     encapsulateVideo,
     extractEncapsulatedVideo,

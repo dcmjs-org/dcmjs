@@ -1,7 +1,7 @@
 // src/eventStream/fromVideo.js
 //
 // MP4 → event stream (Supplement 225 video encapsulation). The dataset shell
-// is built eagerly (stable UIDs across re-runs, like fromImage); running the
+// is built eagerly (stable UIDs across re-runs); running the
 // stream replays the shell, then emits the MP4 as encapsulated PixelData
 // fragments read one at a time from a random-access reader — so a 21.8 GB
 // file streams with at most one fragment in memory, and the same code path
@@ -12,7 +12,7 @@
 // even-padded items, sequence delimiter). Backpressure is honored between
 // fragments via listener.awaitDrain().
 
-import { DicomMetaDictionary } from "@dcmjs-org/core";
+import { DicomMetaDictionary, EXPLICIT_LITTLE_ENDIAN } from "@dcmjs-org/core";
 import { fromDataSet, EVENT_STREAM_VOCABULARY } from "@dcmjs-org/parser";
 import { parseMp4Info } from "../image/mp4Info.js";
 import {
@@ -29,30 +29,44 @@ const IMPLEMENTATION_CLASS_UID =
  * Denaturalize a dataset into the plain `{ meta, dict }` shape fromDataSet
  * consumes: the file meta group is minted from the dataset identity exactly
  * the way legacy's datasetToDict does it, minus the DicomDict wrapper —
- * nothing here writes bytes, so no writer object is needed.
+ * nothing here writes bytes, so no writer object is needed. The meta group
+ * is a local object: the `_meta` of `dataset` does not change
+ * (CORE-USR-13, CORE-IMP-7).
+ *
+ * Each other `_meta` key (its `Value[0]`) goes into the file meta group
+ * (VID-USR-2). The defaults of `FileMetaInformationVersion`,
+ * `ImplementationClassUID`, and `ImplementationVersionName` apply only when
+ * `_meta` has no value. `MediaStorageSOPClassUID`,
+ * `MediaStorageSOPInstanceUID`, and `TransferSyntaxUID` always come from the
+ * dataset.
  */
 function datasetToMetaDict(dataset) {
     const fileMetaInformationVersionArray = new Uint8Array(2);
     fileMetaInformationVersionArray[1] = 1;
 
     const TransferSyntaxUID =
-        dataset._meta.TransferSyntaxUID &&
-        dataset._meta.TransferSyntaxUID.Value &&
-        dataset._meta.TransferSyntaxUID.Value[0]
-            ? dataset._meta.TransferSyntaxUID.Value[0]
-            : "1.2.840.10008.1.2.1";
+        dataset._meta?.TransferSyntaxUID?.Value?.[0] || EXPLICIT_LITTLE_ENDIAN;
 
-    dataset._meta = {
+    const callerMeta = {};
+    for (const [keyword, entry] of Object.entries(dataset._meta || {})) {
+        const value = Array.isArray(entry?.Value) ? entry.Value[0] : entry;
+        if (value !== undefined && value !== null && value !== "") {
+            callerMeta[keyword] = value;
+        }
+    }
+
+    const meta = {
+        FileMetaInformationVersion: fileMetaInformationVersionArray.buffer,
+        ImplementationClassUID: IMPLEMENTATION_CLASS_UID,
+        ImplementationVersionName: "dcmjs-0.0",
+        ...callerMeta,
         MediaStorageSOPClassUID: dataset.SOPClassUID,
         MediaStorageSOPInstanceUID: dataset.SOPInstanceUID,
-        ImplementationVersionName: "dcmjs-0.0",
-        TransferSyntaxUID,
-        ImplementationClassUID: IMPLEMENTATION_CLASS_UID,
-        FileMetaInformationVersion: fileMetaInformationVersionArray.buffer
+        TransferSyntaxUID
     };
 
     return {
-        meta: DicomMetaDictionary.denaturalizeDataset(dataset._meta),
+        meta: DicomMetaDictionary.denaturalizeDataset(meta),
         dict: DicomMetaDictionary.denaturalizeDataset(dataset)
     };
 }
@@ -124,11 +138,15 @@ function sortDict(dict) {
 }
 
 /**
- * Create the video event source.
+ * Create the video event source. The function is async, because
+ * `parseMp4Info` reads the MP4 header through the reader. The returned
+ * `dataset` is the result of `buildVideoDataset`, without `PixelData`;
+ * `run(listener)` emits the dataset, then the MP4 as `PixelData` fragments.
  *
  * @param {Uint8Array|ArrayBuffer|{size, read(offset, length)}} input - MP4
  *   bytes or a random-access reader over them
- * @param {Object} [options] - buildVideoDataset overrides + { fragmentBytes }
+ * @param {Object} [options] - the buildVideoDataset options (the DICOM
+ *   attributes go in `overrides`), plus `fragmentBytes`
  * @returns {Promise<{ run: (listener) => Promise<void>, info: Object,
  *   dataset: Object }>}
  */

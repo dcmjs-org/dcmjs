@@ -1,3 +1,5 @@
+import { base64ToArrayBuffer } from "@dcmjs-org/core";
+
 /**
  * fromDicomWebJson — slice C: a DICOMweb JSON (DICOM JSON model) ->
  * event-stream generator.
@@ -94,19 +96,5 @@ function isMetaTag(tag) {
     return tag.slice(0, 4) === "0002";
 }
 
-/** Decode a base64 string into an ArrayBuffer (Node and browser). */
-export function base64ToArrayBuffer(b64) {
-    if (typeof Buffer !== "undefined") {
-        const buf = Buffer.from(b64, "base64");
-        return buf.buffer.slice(
-            buf.byteOffset,
-            buf.byteOffset + buf.byteLength
-        );
-    }
-    const binary = atob(b64);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) {
-        bytes[i] = binary.charCodeAt(i);
-    }
-    return bytes.buffer;
-}
+// Re-exported for the existing parser import path.
+export { base64ToArrayBuffer };

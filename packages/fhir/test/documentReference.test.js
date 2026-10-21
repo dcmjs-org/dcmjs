@@ -1,10 +1,9 @@
 // packages/fhir/test/documentReference.test.js
 //
 // FHIR DocumentReference from Encapsulated PDF instances — the "PDF out of
-// PACS" mapping. The v2 original built its input datasets with
-// dcmjs.encapsulated.encapsulatePdf; that module belongs to the pdfs wave
-// and is not on this branch yet, so buildPdfDataset constructs the same
-// naturalized shape directly. The round-trip case still serializes and
+// PACS" mapping. buildPdfDataset constructs the naturalized shape of
+// @dcmjs-org/encapsulated's encapsulatePdf directly, with fixed UIDs and
+// payload shapes for each case. The round-trip case still serializes and
 // re-reads through @dcmjs-org/legacy (test-only; the package itself never
 // imports legacy), and the image fixture naturalizes through
 // @dcmjs-org/parser as in toFhir.test.js.
@@ -20,7 +19,6 @@ import {
     toBundle,
     documentReferenceFromDataset
 } from "../src/index.js";
-import { bytesToBase64 } from "../src/helpers.js";
 
 validationLog.setLevel(5);
 
@@ -78,16 +76,10 @@ function buildPdfDataset(options = {}) {
         DocumentTitle: "Discharge Summary",
         ContentDate: "20260803",
         ContentTime: "101500",
+        TimezoneOffsetFromUTC: "-0600",
         ...options
     };
 }
-
-describe("bytesToBase64", () => {
-    test("encodes bytes without Buffer", () => {
-        const encoded = bytesToBase64(new TextEncoder().encode("dcmjs!"));
-        expect(encoded).toEqual("ZGNtanMh");
-    });
-});
 
 describe("documentReferenceFromDataset", () => {
     test("maps an Encapsulated PDF dataset to a DocumentReference", () => {
@@ -101,7 +93,7 @@ describe("documentReferenceFromDataset", () => {
             value: `urn:oid:${dataset.SOPInstanceUID}`
         });
         expect(documentReference.description).toBe("Discharge Summary");
-        expect(documentReference.date).toMatch(/^2026-08-03T10:15:00/);
+        expect(documentReference.date).toBe("2026-08-03T10:15:00-06:00");
 
         const attachment = documentReference.content[0].attachment;
         expect(attachment.contentType).toBe("application/pdf");
@@ -117,6 +109,13 @@ describe("documentReferenceFromDataset", () => {
             system: "urn:dicom:uid",
             value: "urn:oid:1.2.3.4.5"
         });
+    });
+
+    test("omits date when the dataset has no timezone (an instant needs one)", () => {
+        const documentReference = documentReferenceFromDataset(
+            buildPdfDataset({ TimezoneOffsetFromUTC: undefined })
+        );
+        expect(documentReference.date).toBeUndefined();
     });
 
     test("honors subject and includeData options", () => {
@@ -281,5 +280,38 @@ describe("toFhir / toBundle integration", () => {
         expect(resourceTypes).toContain("Patient");
         expect(resourceTypes).toContain("DocumentReference");
         expect(bundle.total).toBe(bundle.entry.length);
+    });
+
+    test("toBundle skips a document of another patient (FHIR-USR-3)", () => {
+        const bundle = toBundle([
+            buildPdfDataset(),
+            buildPdfDataset({
+                PatientID: "OTHER",
+                SOPInstanceUID: "1.2.3.4.5.6.8"
+            })
+        ]);
+        const documents = bundle.entry.filter(
+            entry => entry.resource.resourceType === "DocumentReference"
+        );
+        expect(documents).toHaveLength(1);
+        expect(documents[0].resource.subject).toEqual({
+            reference: "./entry/0"
+        });
+    });
+});
+
+describe("a document that is not in the dataset", () => {
+    test("a { BulkDataURI } payload gives attachment.url, and no size or data", () => {
+        const documentReference = documentReferenceFromDataset(
+            buildPdfDataset({
+                EncapsulatedDocument: { BulkDataURI: "http://x/bulk/1" },
+                EncapsulatedDocumentLength: undefined
+            })
+        );
+        expect(documentReference.content[0].attachment).toEqual({
+            contentType: "application/pdf",
+            title: "Discharge Summary",
+            url: "http://x/bulk/1"
+        });
     });
 });

@@ -14,53 +14,20 @@
 // resolution belongs to the access layer, not the core library.
 //
 // This module is wrapper-level glue (the same home as api.js): it composes
-// the pdfs, video, fhir, parser, and core packages, so it belongs to none
-// of them — it moves into the step-7 wrapper package with the facade.
+// the encapsulated, imaging, fhir, and core packages, so it belongs to
+// none of them — it moves into the step-7 wrapper package with the facade.
 
-import { DicomMetaDictionary } from "@dcmjs-org/core";
-import { encapsulatePdf } from "@dcmjs-org/pdfs";
-import { buildImageDataset, parseJpegInfo } from "@dcmjs-org/video";
-import { base64ToArrayBuffer } from "@dcmjs-org/parser";
+import { encapsulatePdf, PDF_MIME_TYPE } from "@dcmjs-org/encapsulated";
+import { buildImageDataset, parseJpegInfo } from "@dcmjs-org/imaging";
+import {
+    base64ToArrayBuffer,
+    patientTags,
+    toStringFirst
+} from "@dcmjs-org/core";
 import { patientToDataset } from "@dcmjs-org/fhir";
+import { datasetToDict } from "../datasetToBlob.js";
 
 const CONTENT_TYPES = new Set(["DocumentReference", "Media"]);
-
-const IMPLEMENTATION_CLASS_UID =
-    "2.25.80302813137786398554742050926734630921603366648225212145404";
-
-/**
- * Denaturalize a dataset into the plain `{ meta, dict }` shape fromDataSet
- * consumes: the file meta group is minted from the dataset identity exactly
- * the way legacy's datasetToDict does it, minus the DicomDict wrapper —
- * nothing here writes bytes, so no writer object is needed. (A local copy
- * of the video package's datasetToMetaDict, which is not exported; both
- * copies retire into the step-7 wrapper.)
- */
-function datasetToMetaDict(dataset) {
-    const fileMetaInformationVersionArray = new Uint8Array(2);
-    fileMetaInformationVersionArray[1] = 1;
-
-    const TransferSyntaxUID =
-        dataset._meta.TransferSyntaxUID &&
-        dataset._meta.TransferSyntaxUID.Value &&
-        dataset._meta.TransferSyntaxUID.Value[0]
-            ? dataset._meta.TransferSyntaxUID.Value[0]
-            : "1.2.840.10008.1.2.1";
-
-    dataset._meta = {
-        MediaStorageSOPClassUID: dataset.SOPClassUID,
-        MediaStorageSOPInstanceUID: dataset.SOPInstanceUID,
-        ImplementationVersionName: "dcmjs-0.0",
-        TransferSyntaxUID,
-        ImplementationClassUID: IMPLEMENTATION_CLASS_UID,
-        FileMetaInformationVersion: fileMetaInformationVersionArray.buffer
-    };
-
-    return {
-        meta: DicomMetaDictionary.denaturalizeDataset(dataset._meta),
-        dict: DicomMetaDictionary.denaturalizeDataset(dataset)
-    };
-}
 
 function attachmentOf(resource) {
     if (resource.resourceType === "DocumentReference") {
@@ -75,11 +42,96 @@ function attachmentOf(resource) {
     return resource.content || null;
 }
 
-/** Unwrap a Bundle into { contentResource, patientResource }. */
+/**
+ * The Patient entries that a FHIR `reference` names. An exact `fullUrl`
+ * match wins. Only a relative reference ("Patient/123", with an optional
+ * "/_history/n") also matches by `id`; an absolute reference never matches
+ * an entry of another server by `id` alone.
+ */
+function referencedEntries(reference, patientEntries) {
+    const exact = patientEntries.filter(entry => entry.fullUrl === reference);
+    if (exact.length > 0) {
+        return exact;
+    }
+    const relative = reference.match(/^Patient\/([^/]+)(\/_history\/[^/]+)?$/);
+    if (!relative) {
+        return [];
+    }
+    return patientEntries.filter(entry => entry.resource.id === relative[1]);
+}
+
+/**
+ * The Patient of the content resource in a Bundle. With a
+ * `subject.reference`, the one Patient entry it references; else the only
+ * Patient. A reference that matches no Patient or more than one, or more
+ * than one Patient with no reference, throws, so the demographics never go
+ * to the wrong patient (FHIR-USR-9). No Patient in the Bundle gives
+ * undefined.
+ */
+function selectPatient(patientEntries, contentResource) {
+    if (patientEntries.length === 0) {
+        return undefined;
+    }
+    const reference = contentResource.subject?.reference;
+    if (reference) {
+        const matches = referencedEntries(reference, patientEntries);
+        if (matches.length !== 1) {
+            throw new Error(
+                `fromFhir: the subject ${reference} of the ` +
+                    `${contentResource.resourceType} matches ` +
+                    `${matches.length === 0 ? "no" : matches.length} ` +
+                    `Patients in the Bundle — pass the Patient as ` +
+                    `options.patient`
+            );
+        }
+        return matches[0].resource;
+    }
+    if (patientEntries.length > 1) {
+        throw new Error(
+            `fromFhir: the Bundle contains ${patientEntries.length} Patient ` +
+                `resources and the ${contentResource.resourceType} has no ` +
+                `subject reference — pass the Patient as options.patient`
+        );
+    }
+    return patientEntries[0].resource;
+}
+
+/**
+ * The patient overrides for a FHIR Patient (FHIR-USR-8). The Patient
+ * replaces the whole patient module: the four mapped attributes, and an
+ * `undefined` (removed) value for each other patient-level attribute of
+ * `instance`. An `instance` with a different, non-empty PatientID throws,
+ * because the new instance would join the study of another patient.
+ */
+function patientOverrides(patientResource, instance) {
+    if (!patientResource) {
+        return {};
+    }
+    const demographics = patientToDataset(patientResource);
+    for (const sample of [].concat(instance ?? [])) {
+        const instancePatientId = toStringFirst(sample?.PatientID);
+        if (instancePatientId && instancePatientId !== demographics.PatientID) {
+            throw new Error(
+                `fromFhir: options.instance belongs to PatientID ` +
+                    `${instancePatientId}, but the FHIR Patient has PatientID ` +
+                    `"${demographics.PatientID}" — pass an instance of the ` +
+                    `same patient, or no instance`
+            );
+        }
+    }
+    const cleared = Object.fromEntries(
+        [...patientTags].map(keyword => [keyword, undefined])
+    );
+    return { ...cleared, ...demographics };
+}
+
+/**
+ * Unwrap a Bundle into { contentResource, patientEntries }. The Patient is
+ * selected later, because options.patient replaces the Bundle Patients.
+ */
 function selectFromBundle(bundle) {
-    const resources = (bundle.entry || [])
-        .map(entry => entry?.resource)
-        .filter(Boolean);
+    const entries = (bundle.entry || []).filter(entry => entry?.resource);
+    const resources = entries.map(entry => entry.resource);
     const content = resources.filter(r => CONTENT_TYPES.has(r.resourceType));
     if (content.length === 0) {
         throw new Error(
@@ -97,33 +149,70 @@ function selectFromBundle(bundle) {
     }
     return {
         contentResource: content[0],
-        patientResource: resources.find(r => r.resourceType === "Patient")
+        patientEntries: entries.filter(
+            entry => entry.resource.resourceType === "Patient"
+        )
     };
 }
 
+const LOSSY_JPEG_TRANSFER_SYNTAXES = new Set([
+    "1.2.840.10008.1.2.4.50",
+    "1.2.840.10008.1.2.4.51"
+]);
+
 /**
- * Build a plain { meta, dict } dataset from a content-carrying FHIR
- * resource.
+ * The lossy compression attributes (PS3.3 C.7.6.1.1.5) for a JPEG that
+ * uses a lossy process (baseline or extended); none for lossless.
+ */
+function lossyOverrides(info) {
+    return LOSSY_JPEG_TRANSFER_SYNTAXES.has(info.transferSyntaxUID)
+        ? {
+              LossyImageCompression: "01",
+              LossyImageCompressionMethod: "ISO_10918_1"
+          }
+        : {};
+}
+
+/**
+ * Build a { meta, dict } dataset from a content-carrying FHIR resource.
  *
+ * The options other than `patient` are the {@link createInstance} options of
+ * `@dcmjs-org/core` (`instance`, `dataLevel`, `levels`, `predecessor`,
+ * `postProcess`, `baseDicom`, `overrides`), and pass to encapsulatePdf or
+ * buildImageDataset. The values that come from FHIR (the patient
+ * demographics, and the DocumentTitle from the resource description or the
+ * attachment title) go in front of `options.overrides`, so the caller
+ * overrides win, and the FHIR values win over the base and inherited values.
+ *
+ * @example
+ * dicomDictFromFhir(documentReference, {
+ *     patient,
+ *     instance: priorStudyInstance,
+ *     overrides: { SeriesDescription: "Scanned reports" }
+ * });
+ *
+ * @experimental Preliminary, with the fhir package (packages/fhir/README.md).
  * @param {Object} resource - DocumentReference | Media | Bundle
  * @param {Object} [options]
  * @param {Object} [options.patient] - FHIR Patient supplying demographics
- *   (wins over a Patient found inside a Bundle)
- * @param {Object} [options.overrides] - naturalized keyword overrides
- *   passed through to the underlying builder
+ *   (replaces the Patients of a Bundle). In a Bundle without this option,
+ *   the `subject` of the content resource selects the Patient; see
+ *   selectPatient.
  * @returns {{ dicomDict: {meta: Object, dict: Object}, encapsulated: boolean }}
  */
 export function dicomDictFromFhir(resource, options = {}) {
     if (!resource || typeof resource !== "object" || !resource.resourceType) {
         throw new Error("fromFhir: expected a FHIR resource object");
     }
+    const { patient, overrides, ...instanceOptions } = options;
 
     let contentResource = resource;
-    let patientResource = options.patient;
+    let patientResource = patient;
     if (resource.resourceType === "Bundle") {
         const selected = selectFromBundle(resource);
         contentResource = selected.contentResource;
-        patientResource = options.patient || selected.patientResource;
+        patientResource =
+            patient || selectPatient(selected.patientEntries, contentResource);
     }
 
     if (contentResource.resourceType === "Patient") {
@@ -157,21 +246,23 @@ export function dicomDictFromFhir(resource, options = {}) {
 
     const bytes = base64ToArrayBuffer(attachment.data);
     const contentType = (attachment.contentType || "").toLowerCase();
-    const demographics = patientResource
-        ? patientToDataset(patientResource)
-        : {};
-    const overrides = { ...demographics, ...(options.overrides || {}) };
+    const demographics = patientOverrides(
+        patientResource,
+        instanceOptions.instance
+    );
 
-    if (contentType === "application/pdf") {
+    if (contentType === PDF_MIME_TYPE) {
+        // No FHIR title keeps the base or inherited DocumentTitle.
+        const title = contentResource.description || attachment.title;
         const dataset = encapsulatePdf(bytes, {
-            ...overrides,
-            DocumentTitle:
-                overrides.DocumentTitle ||
-                contentResource.description ||
-                attachment.title ||
-                ""
+            ...instanceOptions,
+            overrides: [
+                title ? { DocumentTitle: title } : {},
+                demographics,
+                overrides
+            ]
         });
-        return { dicomDict: datasetToMetaDict(dataset), encapsulated: false };
+        return { dicomDict: datasetToDict(dataset), encapsulated: false };
     }
 
     if (contentType === "image/jpeg" || contentType === "image/jpg") {
@@ -184,24 +275,34 @@ export function dicomDictFromFhir(resource, options = {}) {
                     "JPEG first, or decode and use DicomEventStream.fromImage"
             );
         }
+        if (!info.photometricInterpretation) {
+            throw new Error(
+                `fromFhir: a JPEG with ${info.samplesPerPixel} components ` +
+                    `has no DICOM photometric interpretation — convert it to ` +
+                    `RGB or greyscale JPEG first`
+            );
+        }
         const dataset = buildImageDataset(
             {
                 rows: info.rows,
                 columns: info.columns,
                 samplesPerPixel: info.samplesPerPixel,
                 bitsAllocated: info.bitsAllocated,
-                photometricInterpretation:
-                    info.samplesPerPixel === 3 ? "YBR_FULL_422" : "MONOCHROME2"
+                bitsStored: info.bitsStored,
+                pixelRepresentation: 0,
+                planarConfiguration: 0,
+                photometricInterpretation: info.photometricInterpretation
             },
             {
-                ...overrides,
+                ...instanceOptions,
+                overrides: [lossyOverrides(info), demographics, overrides],
                 encapsulated: {
                     transferSyntaxUID: info.transferSyntaxUID,
                     frames: [bytes]
                 }
             }
         );
-        const dicomDict = datasetToMetaDict(dataset);
+        const dicomDict = datasetToDict(dataset);
         if (dicomDict.dict["7FE00010"]) {
             dicomDict.dict["7FE00010"].encapsulatedPixelData = true;
         }

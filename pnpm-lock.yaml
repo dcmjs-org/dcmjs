@@ -6,9 +6,6 @@ importers:
   .:
     configDependencies: {}
     packageManagerDependencies:
-      '@pnpm/exe':
-        specifier: 12.9.1
-        version: 12.9.1
       pnpm:
         specifier: 12.9.1
         version: 12.9.1
@@ -92,11 +89,6 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@pnpm/exe@12.9.1':
-    resolution: {integrity: sha512-TZOVvYq8nwzmw8IR3P1GKZk87tV7vDPCT3oJlL7IhgYNZfLGov4jX0J8RJxuAXxIT3uxg/uiconrLLBv+X5KyA==}
-    engines: {node: '>=18.*'}
-    hasBin: true
-
   pnpm@12.9.1:
     resolution: {integrity: sha512-BrBV//XNINwSeB3hc87TMQzglRvy7GICEaFgRdVETVyTpmMhB2TvKaZTphBFm6A2jw50+E2AxUcjz5Wq57wNbQ==}
     engines: {node: '>=18.*'}
@@ -145,23 +137,6 @@ snapshots:
 
   '@pnpm/exe.win32-x64@12.9.1':
     optional: true
-
-  '@pnpm/exe@12.9.1':
-    optionalDependencies:
-      '@pnpm/exe.android-arm64': 12.9.1
-      '@pnpm/exe.android-x64': 12.9.1
-      '@pnpm/exe.darwin-arm64': 12.9.1
-      '@pnpm/exe.darwin-x64': 12.9.1
-      '@pnpm/exe.freebsd-x64': 12.9.1
-      '@pnpm/exe.linux-arm64': 12.9.1
-      '@pnpm/exe.linux-arm64-musl': 12.9.1
-      '@pnpm/exe.linux-ppc64': 12.9.1
-      '@pnpm/exe.linux-riscv64': 12.9.1
-      '@pnpm/exe.linux-s390x': 12.9.1
-      '@pnpm/exe.linux-x64': 12.9.1
-      '@pnpm/exe.linux-x64-musl': 12.9.1
-      '@pnpm/exe.win32-arm64': 12.9.1
-      '@pnpm/exe.win32-x64': 12.9.1
 
   pnpm@12.9.1:
     optionalDependencies:
@@ -212,24 +187,21 @@ importers:
       '@dcmjs-org/core':
         specifier: workspace:*
         version: link:packages/core
-      '@dcmjs-org/dicomdir':
+      '@dcmjs-org/encapsulated':
         specifier: workspace:*
-        version: link:packages/dicomdir
+        version: link:packages/encapsulated
       '@dcmjs-org/fhir':
         specifier: workspace:*
         version: link:packages/fhir
-      '@dcmjs-org/generator':
+      '@dcmjs-org/imaging':
         specifier: workspace:*
-        version: link:packages/generator
+        version: link:packages/imaging
       '@dcmjs-org/media':
         specifier: workspace:*
         version: link:packages/media
       '@dcmjs-org/parser':
         specifier: workspace:*
         version: link:packages/parser
-      '@dcmjs-org/pdfs':
-        specifier: workspace:*
-        version: link:packages/pdfs
       '@dcmjs-org/video':
         specifier: workspace:*
         version: link:packages/video
@@ -371,11 +343,20 @@ importers:
         specifier: workspace:*
         version: link:../parser
 
+  packages/encapsulated:
+    dependencies:
+      '@dcmjs-org/core':
+        specifier: workspace:*
+        version: link:../core
+
   packages/fhir:
     dependencies:
       '@dcmjs-org/core':
         specifier: workspace:*
         version: link:../core
+      '@dcmjs-org/encapsulated':
+        specifier: workspace:*
+        version: link:../encapsulated
     devDependencies:
       '@dcmjs-org/legacy':
         specifier: workspace:*
@@ -395,6 +376,12 @@ importers:
         specifier: workspace:*
         version: link:../parser
 
+  packages/imaging:
+    dependencies:
+      '@dcmjs-org/core':
+        specifier: workspace:*
+        version: link:../core
+
   packages/legacy:
     dependencies:
       '@dcmjs-org/core':
@@ -409,9 +396,12 @@ importers:
       '@dcmjs-org/dicomdir':
         specifier: workspace:*
         version: link:../dicomdir
-      '@dcmjs-org/pdfs':
+      '@dcmjs-org/encapsulated':
         specifier: workspace:*
-        version: link:../pdfs
+        version: link:../encapsulated
+      '@dcmjs-org/imaging':
+        specifier: workspace:*
+        version: link:../imaging
       '@dcmjs-org/video':
         specifier: workspace:*
         version: link:../video
@@ -424,12 +414,6 @@ importers:
       pako:
         specifier: 2.1.0
         version: 2.1.0
-
-  packages/pdfs:
-    dependencies:
-      '@dcmjs-org/core':
-        specifier: workspace:*
-        version: link:../core
 
   packages/schemas: {}
 
@@ -449,6 +433,9 @@ importers:
       '@dcmjs-org/core':
         specifier: workspace:*
         version: link:../core
+      '@dcmjs-org/imaging':
+        specifier: workspace:*
+        version: link:../imaging
       '@dcmjs-org/parser':
         specifier: workspace:*
         version: link:../parser

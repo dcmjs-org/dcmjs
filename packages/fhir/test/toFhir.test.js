@@ -7,19 +7,16 @@
 //
 // The v2 original read test/sample-dicom.dcm through the dcmjs umbrella;
 // here the fixture comes from packages/fixtures/dicom (same bytes, but
-// its upstream provenance is still being traced) and the package-level
-// suites parse through the event-stream reader. The facade half of the
-// v2 "dcmjs.fhir umbrella namespace" tests (an ArrayBuffer straight to
-// FHIR) landed with the event-stream slice as
-// DicomEventStream.fromPart10(bytes).toFhir() — see
-// test/eventStream/fhirPdfEventStream.test.js at the repo root. The
-// namespace half returned with the step-7 wrapper: the final describe
-// block below exercises dcmjs.fhir on the assembled umbrella surface.
+// its upstream provenance is still being traced) and the parse goes
+// through the event-stream reader so the package tests stay off
+// @dcmjs-org/legacy. The facade half of the v2 "dcmjs.fhir umbrella
+// namespace" tests (an ArrayBuffer straight to FHIR) landed with the
+// event-stream slice as DicomEventStream.fromPart10(bytes).toFhir() —
+// see test/eventStream/fhirPdfEventStream.test.js at the repo root.
 
 import fs from "fs";
 import path from "path";
 
-import dcmjs from "../../../src/index.js";
 import { fromPart10, NaturalizedListener } from "@dcmjs-org/parser";
 import {
     toFhir,
@@ -70,12 +67,21 @@ describe("@dcmjs-org/fhir helpers", () => {
         expect(parsePersonName([])).toBeNull();
     });
 
-    test("dicomDateTimeToIso formats DA and DA+TM", () => {
+    test("dicomDateTimeToIso writes the time only with a timezone", () => {
         expect(dicomDateTimeToIso("20010101")).toBe("2001-01-01");
-        expect(dicomDateTimeToIso("20010101", "102231")).toBe(
-            "2001-01-01T10:22:31"
+        expect(dicomDateTimeToIso("20010101", "102231")).toBe("2001-01-01");
+        expect(dicomDateTimeToIso("20010101", "102231", "+0130")).toBe(
+            "2001-01-01T10:22:31+01:30"
         );
         expect(dicomDateTimeToIso(null)).toBeNull();
+        // Legacy ACR-NEMA forms, and values that are not a date
+        expect(dicomDateTimeToIso("1980.05.17", "10:22:31", "+0100")).toBe(
+            "1980-05-17T10:22:31+01:00"
+        );
+        expect(dicomDateTimeToIso("1980-5-17")).toBeNull();
+        expect(dicomDateTimeToIso("20010101", "10h22", "+0100")).toBe(
+            "2001-01-01"
+        );
     });
 
     test("sexToGender maps DICOM codes", () => {
@@ -102,9 +108,11 @@ describe("@dcmjs-org/fhir sink", () => {
         expect(["male", "female", "other", "unknown"]).toContain(
             patient.gender
         );
-        // No deployment-specific fields ever
+        // No deployment-specific fields ever, and no sex extension that
+        // DICOM does not record (FHIR-USR-3)
         expect(patient.id).toBeUndefined();
         expect(patient.meta).toBeUndefined();
+        expect(patient.extension).toBeUndefined();
     });
 
     test("toFhir returns { patient, imagingStudy } with DICOM identity intact", () => {
@@ -121,7 +129,8 @@ describe("@dcmjs-org/fhir sink", () => {
         expect(imagingStudy.numberOfSeries).toBe(1);
         expect(imagingStudy.numberOfInstances).toBe(1);
         expect(imagingStudy.modality[0].code).toBe("MR");
-        expect(imagingStudy.started).toMatch(/^2001-01-01T/);
+        // The fixture has no TimezoneOffsetFromUTC, so only the date.
+        expect(imagingStudy.started).toBe("2001-01-01");
 
         const series = imagingStudy.series[0];
         expect(series.modality.code).toBe("MR");
@@ -130,6 +139,11 @@ describe("@dcmjs-org/fhir sink", () => {
         expect(series.instance[0].number).toBe(10);
         expect(series.instance[0].sopClass.system).toBe("urn:ietf:rfc:3986");
         expect(series.instance[0].sopClass.code).toMatch(/^urn:oid:/);
+    });
+
+    test("without options.subject, the ImagingStudy references the returned patient", () => {
+        const { imagingStudy } = toFhir(dataset);
+        expect(imagingStudy.subject).toEqual({ reference: "./patient" });
     });
 
     test("options.subject passes through as ImagingStudy.subject", () => {
@@ -149,6 +163,19 @@ describe("@dcmjs-org/fhir sink", () => {
         expect(study.series[0].instance).toHaveLength(2);
     });
 
+    test("imagingStudyFromDatasets skips a dataset of another study", () => {
+        const other = {
+            ...dataset,
+            StudyInstanceUID: "9.9.9",
+            SeriesInstanceUID: "9.9.9.1",
+            SOPInstanceUID: "9.9.9.1.1"
+        };
+        const study = imagingStudyFromDatasets([dataset, other]);
+        expect(study.identifier[0].value).toBe(`urn:oid:${STUDY_UID}`);
+        expect(study.numberOfSeries).toBe(1);
+        expect(study.numberOfInstances).toBe(1);
+    });
+
     test("toBundle emits one Patient and one aggregated ImagingStudy", () => {
         const bundle = toBundle([dataset, dataset]);
 
@@ -159,6 +186,49 @@ describe("@dcmjs-org/fhir sink", () => {
         const types = bundle.entry.map(entry => entry.resource.resourceType);
         expect(types).toEqual(["Patient", "ImagingStudy"]);
         expect(bundle.entry[1].resource.numberOfInstances).toBe(2);
+        // Relative fullUrls link the ImagingStudy to the Patient entry.
+        expect(bundle.entry.map(entry => entry.fullUrl)).toEqual([
+            "./entry/0",
+            "./entry/1"
+        ]);
+        expect(bundle.entry[1].resource.subject).toEqual({
+            reference: "./entry/0"
+        });
+    });
+
+    test("series and instances hold only valid FHIR values", () => {
+        const base = {
+            StudyInstanceUID: "1.2.3",
+            SOPClassUID: "1.2.840.10008.5.1.4.1.1.4"
+        };
+        const study = imagingStudyFromDatasets([
+            {
+                ...base,
+                SeriesInstanceUID: "1.2.3.1",
+                SOPInstanceUID: "1.2.3.1.1",
+                Modality: "MR",
+                SeriesNumber: -1,
+                InstanceNumber: 2.5,
+                BodyPartExamined: "CHEST",
+                Laterality: "L"
+            },
+            // No Modality: series.modality is 1..1, so the dataset is skipped.
+            {
+                ...base,
+                SeriesInstanceUID: "1.2.3.2",
+                SOPInstanceUID: "1.2.3.2.1"
+            }
+        ]);
+        expect(study.numberOfSeries).toBe(1);
+        const [series] = study.series;
+        expect(series.number).toBeUndefined();
+        expect(series.instance[0].number).toBeUndefined();
+        expect(series.bodySite).toEqual({ display: "CHEST" });
+        expect(series.laterality).toEqual({
+            system: "http://snomed.info/sct",
+            code: "7771000",
+            display: "Left"
+        });
     });
 
     test("unsupported fhirVersion throws (strict-out)", () => {
@@ -188,7 +258,8 @@ describe("@dcmjs-org/fhir sink", () => {
             {
                 StudyInstanceUID: "1.2.3",
                 SeriesInstanceUID: "1.2.3.1",
-                SOPInstanceUID: "1.2.3.4"
+                SOPInstanceUID: "1.2.3.4",
+                Modality: "OT"
             }
         ]);
         const json = JSON.stringify(study);
@@ -207,7 +278,8 @@ describe("@dcmjs-org/fhir sink", () => {
                 StudyInstanceUID: "1.2.3",
                 SeriesInstanceUID: "1.2.3.1",
                 SOPClassUID: "1.2.840.10008.5.1.4.1.1.4",
-                SOPInstanceUID: "1.2.3.4"
+                SOPInstanceUID: "1.2.3.4",
+                Modality: "MR"
             },
             // Two datasets from genuinely different series, both without
             // SeriesInstanceUID — these must not merge into one series.
@@ -232,27 +304,10 @@ describe("@dcmjs-org/fhir sink", () => {
 
 // The v2 suite ends with a "dcmjs.fhir umbrella namespace" block
 // (dcmjs.fhir.fromPart10 straight to FHIR, and the namespace re-exports).
-// Deferred by PR #579 until the step-7 wrapper assembled the scoped
-// packages; the wrapper exists now, so the two namespace tests are back,
-// exercising the real dcmjs default export from the root src/index.js.
-describe("dcmjs.fhir umbrella namespace", () => {
-    test("fromPart10 maps an ArrayBuffer straight to FHIR", () => {
-        const buffer = fs.readFileSync(FIXTURE);
-        const arrayBuffer = buffer.buffer.slice(
-            buffer.byteOffset,
-            buffer.byteOffset + buffer.byteLength
-        );
-
-        const { patient, imagingStudy } = dcmjs.fhir.fromPart10(arrayBuffer);
-
-        expect(patient.identifier[0].value).toBe("11791306742903");
-        expect(imagingStudy.identifier[0].value).toBe(`urn:oid:${STUDY_UID}`);
-    });
-
-    test("namespace re-exports the sink API", () => {
-        expect(typeof dcmjs.fhir.toFhir).toBe("function");
-        expect(typeof dcmjs.fhir.toBundle).toBe("function");
-        expect(typeof dcmjs.fhir.patientFromDataset).toBe("function");
-        expect(typeof dcmjs.fhir.imagingStudyFromDatasets).toBe("function");
-    });
-});
+// The facade integration landed with the event-stream slice: the
+// bytes-to-FHIR composition is DicomEventStream.fromPart10(x).toFhir(),
+// pinned in test/eventStream/fhirPdfEventStream.test.js at the repo root.
+// The dcmjs.fhir NAMESPACE itself (the spread of this package's exports
+// plus the fromPart10 convenience onto the dcmjs default export) is the
+// step-7 wrapper's surface; its two tests are in test/fhirNamespace.test.js
+// at the repo root.

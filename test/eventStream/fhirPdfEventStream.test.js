@@ -10,7 +10,7 @@
 //
 // Ported from v2's test/eventStream/fhirPdfEventStream.test.js with two
 // deltas: the parseJpegInfo block lives with its code in
-// packages/video/test/jpegInfo.test.js (a superset — not duplicated
+// packages/imaging/test/jpegInfo.test.js (a superset — not duplicated
 // here), and fromFhir is now LAZY (finding 14), so the corrective-error
 // tests assert rejection from the sink rather than a throw from the
 // factory.
@@ -164,6 +164,15 @@ describe("fromFhir", () => {
         expect(dataset.Rows).toBe(2);
         expect(dataset.Columns).toBe(3);
         expect(dataset.PhotometricInterpretation).toBe("MONOCHROME2");
+        expect(dataset.BitsAllocated).toBe(8);
+        expect(dataset.BitsStored).toBe(8);
+        expect(dataset.HighBit).toBe(7);
+        expect(dataset.PixelRepresentation).toBe(0);
+        expect(dataset.LossyImageCompression).toBe("01");
+        // VM 1-n, so the value reads back as an array
+        expect([].concat(dataset.LossyImageCompressionMethod)).toEqual([
+            "ISO_10918_1"
+        ]);
         expect(dataset.PatientID).toBe("22446688");
 
         let payload = dataset.PixelData;
@@ -186,6 +195,38 @@ describe("fromFhir", () => {
         expect(bytes.length - JPEG_BYTES.length).toBeLessThanOrEqual(1);
     });
 
+    test("createInstance options: instance gives the study, overrides win over the FHIR values", async () => {
+        const prior = {
+            StudyInstanceUID: "1.2.3.4",
+            PatientID: "22446688",
+            IssuerOfPatientID: "OLD-ISSUER",
+            SOPInstanceUID: "1.2.3.4.5.6"
+        };
+        const events = DicomEventStream.fromFhir(documentReference(), {
+            patient: JANE_FOX,
+            instance: prior,
+            overrides: { DocumentTitle: "Override title" }
+        });
+        const { dataset } = readBack(await events.toPart10());
+
+        expect(dataset.StudyInstanceUID).toBe("1.2.3.4");
+        expect(dataset.PatientID).toBe("22446688");
+        // The FHIR Patient replaces the whole patient module (FHIR-USR-8).
+        expect(dataset.IssuerOfPatientID).toBeUndefined();
+        expect(dataset.DocumentTitle).toBe("Override title");
+        expect(dataset.SOPInstanceUID).not.toBe("1.2.3.4.5.6");
+    });
+
+    test("an instance of another patient throws, never mixes two patients", async () => {
+        const events = DicomEventStream.fromFhir(documentReference(), {
+            patient: JANE_FOX,
+            instance: { StudyInstanceUID: "1.2.3.4", PatientID: "OTHER" }
+        });
+        await expect(events.toPart10()).rejects.toThrow(
+            /belongs to PatientID OTHER/
+        );
+    });
+
     test("fromFhir streams are re-runnable with stable identity", async () => {
         const events = DicomEventStream.fromFhir(documentReference(), {
             patient: JANE_FOX
@@ -206,6 +247,83 @@ describe("fromFhir", () => {
         );
         expect(dataset.PatientID).toBe("22446688");
         expect(dataset.SOPClassUID).toBe("1.2.840.10008.5.1.4.1.1.104.1");
+    });
+
+    describe("Bundle with more than one Patient", () => {
+        const OTHER = {
+            ...JANE_FOX,
+            id: "other",
+            identifier: [{ value: "99999999" }]
+        };
+        const JANE = { ...JANE_FOX, id: "jane" };
+
+        test("the subject reference selects the Patient", async () => {
+            const bundle = {
+                resourceType: "Bundle",
+                type: "collection",
+                entry: [
+                    { fullUrl: "urn:uuid:other", resource: OTHER },
+                    { fullUrl: "urn:uuid:jane", resource: JANE },
+                    {
+                        resource: documentReference({
+                            subject: { reference: "Patient/jane" }
+                        })
+                    }
+                ]
+            };
+            const { dataset } = readBack(
+                await DicomEventStream.fromFhir(bundle).toPart10()
+            );
+            expect(dataset.PatientID).toBe("22446688");
+        });
+
+        test("an absolute reference matches by fullUrl, not by id of another server", async () => {
+            const bundle = {
+                resourceType: "Bundle",
+                type: "collection",
+                entry: [
+                    {
+                        fullUrl: "http://a/fhir/Patient/1",
+                        resource: { ...OTHER, id: "1" }
+                    },
+                    {
+                        fullUrl: "http://b/fhir/Patient/1",
+                        resource: { ...JANE, id: "1" }
+                    },
+                    {
+                        resource: documentReference({
+                            subject: { reference: "http://b/fhir/Patient/1" }
+                        })
+                    }
+                ]
+            };
+            const { dataset } = readBack(
+                await DicomEventStream.fromFhir(bundle).toPart10()
+            );
+            expect(dataset.PatientID).toBe("22446688");
+        });
+
+        test.each([
+            ["no subject reference", undefined, /2 Patient resources/],
+            [
+                "a subject that matches no Patient",
+                { reference: "Patient/nobody" },
+                /matches no Patients/
+            ]
+        ])("throws for %s", async (_, subject, message) => {
+            const bundle = {
+                resourceType: "Bundle",
+                type: "collection",
+                entry: [
+                    { resource: OTHER },
+                    { resource: JANE },
+                    { resource: documentReference({ subject }) }
+                ]
+            };
+            await expect(
+                DicomEventStream.fromFhir(bundle).toPart10()
+            ).rejects.toThrow(message);
+        });
     });
 
     test("Patient alone is rejected with guidance", async () => {
@@ -255,9 +373,11 @@ describe("fromFhir", () => {
 describe("fromPdf / toPdf / toFhir", () => {
     test("fromPdf wraps and toPdf recovers the bytes", async () => {
         const events = DicomEventStream.fromPdf(PDF_BYTES, {
-            PatientName: "FOX^JANE",
-            PatientID: "22446688",
-            DocumentTitle: "Discharge Summary"
+            overrides: {
+                PatientName: "FOX^JANE",
+                PatientID: "22446688",
+                DocumentTitle: "Discharge Summary"
+            }
         });
         const extracted = await events.toPdf();
         expect(new TextDecoder().decode(extracted.bytes)).toBe(PDF_STRING);
@@ -277,9 +397,11 @@ describe("fromPdf / toPdf / toFhir", () => {
         const events = DicomEventStream.fromImage(
             { pixels: new Uint8Array(16), rows: 4, columns: 4 },
             {
-                PatientName: "FOX^JANE",
-                PatientID: "22446688",
-                Modality: "MR"
+                overrides: {
+                    PatientName: "FOX^JANE",
+                    PatientID: "22446688",
+                    Modality: "MR"
+                }
             }
         );
         const {
@@ -295,7 +417,7 @@ describe("fromPdf / toPdf / toFhir", () => {
 
     test("toFhir on a PDF instance yields a DocumentReference", async () => {
         const events = DicomEventStream.fromPdf(PDF_BYTES, {
-            PatientID: "22446688"
+            overrides: { PatientID: "22446688" }
         });
         const { imagingStudy, documentReference: doc } = await events.toFhir();
         expect(doc.resourceType).toBe("DocumentReference");
@@ -306,8 +428,7 @@ describe("fromPdf / toPdf / toFhir", () => {
     // maps an ArrayBuffer straight to FHIR" test (deferred by PR #579):
     // the composition now lives on the event stream —
     // fromPart10(bytes).toFhir(). The dcmjs.fhir namespace itself landed
-    // with the step-7 wrapper; its tests are back in
-    // packages/fhir/test/toFhir.test.js.
+    // with the step-7 wrapper; its tests are in test/fhirNamespace.test.js.
     test("fromPart10 → toFhir maps a .dcm ArrayBuffer straight to FHIR", async () => {
         const buffer = fs.readFileSync(
             path.join(
