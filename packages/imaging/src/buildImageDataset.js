@@ -13,8 +13,7 @@ import {
     combineBases,
     createInstance,
     defaultInstanceBase,
-    EXPLICIT_LITTLE_ENDIAN,
-    predecessorBase
+    EXPLICIT_LITTLE_ENDIAN
 } from "@dcmjs-org/core";
 import { derivedImageBase } from "./derivedImageAttributes.js";
 
@@ -37,15 +36,13 @@ function secondaryCaptureImageBase(context) {
 }
 
 /**
- * The default base of `buildImageDataset`: core instance defaults, the
- * Secondary Capture block, and `predecessorBase` (for `predecessor: true`).
- * Use `.items` to build a variant.
+ * The default base of `buildImageDataset`: core instance defaults and the
+ * Secondary Capture block. It has no `predecessorBase`, so
+ * `predecessor: true` has no effect; use
+ * `combineBases(imageBase, predecessorBase)` for a predecessor
+ * (CORE-USR-9). Use `.items` to build a variant.
  */
-const imageBase = combineBases(
-    defaultInstanceBase,
-    secondaryCaptureImageBase,
-    predecessorBase
-);
+const imageBase = combineBases(defaultInstanceBase, secondaryCaptureImageBase);
 
 // The decodedImage field of each geometry keyword (IMG-USR-2).
 const GEOMETRY_FIELDS = {

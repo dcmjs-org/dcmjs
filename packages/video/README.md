@@ -38,7 +38,9 @@ them are options. `overrides` is a naturalized DICOM provider with the
 forms of `baseDicom`, and holds only DICOM attributes. A control key never
 goes in `overrides`. An extra option key has no effect (CORE-USR-7).
 
--   `baseDicom` (default `videoBase`) — base blocks.
+-   `baseDicom` (default `videoBase`) — base blocks. `videoBase` has no
+    `predecessorBase`, so `predecessor: true` needs a custom base
+    (VID-USR-8).
 -   `fragmentBytes` (default 256 MiB) — the size of each `PixelData`
     fragment. `buildVideoDataset` ignores it.
 
@@ -112,13 +114,19 @@ approach, and can change freely. Do not renumber an identifier.
     read (CORE-IMP-11): no `ftyp` box first, a malformed box, no `moov`
     box, no video track, a video track without `mdhd` or a sample
     description, a malformed `stts` box, or no frame rate.
+-   **VID-USR-8** `videoBase` does not include `predecessorBase`
+    (CORE-USR-9). With the default base, `predecessor: true` has no effect:
+    the result has no `PredecessorDocumentsSequence`, and the builder throws
+    no predecessor error. For a predecessor, give
+    `baseDicom: combineBases(videoBase, predecessorBase)`, with
+    `predecessorBase` from `@dcmjs-org/core`.
 
 ## § Implementation requirements
 
 -   **VID-IMP-1** `videoBase` is `defaultInstanceBase`,
     `videoPhotographicBase` (SOP class, Modality `XC`, the Image Pixel values
-    of VID-USR-3, `LossyImageCompression` `"01"`), and `predecessorBase`
-    (CORE-IMP-3).
+    of VID-USR-3, `LossyImageCompression` `"01"`) (CORE-IMP-3). `videoBase`
+    has no `predecessorBase` (VID-USR-8).
 -   **VID-IMP-2** `buildVideoDataset` removes its control key `fragmentBytes`
     before it calls `createInstance` (CORE-IMP-9), and passes `overrides`
     and `postProcess` through.

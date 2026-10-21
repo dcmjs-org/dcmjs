@@ -108,8 +108,9 @@ Do not renumber an identifier. A new requirement gets the next free number.
     blocks set the identity: a new `SOPInstanceUID`, the `SOPClassUID` of
     the builder, and the `InstanceNumber` of CORE-USR-5. A copied value and
     an override replace a base value, in the order of CORE-USR-6. With
-    `predecessor: true`, the identity of `instance` goes into
-    `PredecessorDocumentsSequence` (CORE-USR-9).
+    `predecessor: true` and a base that includes `predecessorBase`, the
+    identity of `instance` goes into `PredecessorDocumentsSequence`
+    (CORE-USR-9).
 -   **CORE-USR-5** With `dataLevel: "series"` (or a deeper custom level),
     `instance` is the sample instance in the series. The new
     `InstanceNumber` is the `InstanceNumber` of the sample instance, plus 1.
@@ -146,15 +147,26 @@ Do not renumber an identifier. A new requirement gets the next free number.
     value in the resolved `overrides` gives a Type 2 empty value. The
     builders do not invent a value: an attribute without a source is empty
     or absent.
--   **CORE-USR-9** With `predecessor: true`, the new object lists each
-    `instance` in `PredecessorDocumentsSequence (0040,A360)`, when the base
-    has `predecessorBase`. The default base of each builder has it. The new
-    object replaces the older ones, and the older objects do not change. Use
-    `dataLevel: "series"` to put the new version in the series of the old
-    one. Each `instance` must have `StudyInstanceUID`, `SeriesInstanceUID`,
-    `SOPClassUID`, and `SOPInstanceUID`, else the call throws an error that
-    names each absent keyword. `hierarchicalReferences` throws the same
-    error for an instance without one of these keywords.
+-   **CORE-USR-9** `predecessorBase` is an optional base block. It is one
+    more way to add default attributes. With `predecessor: true`, the block
+    lists each `instance` in `PredecessorDocumentsSequence (0040,A360)`.
+    -   `predecessor: true` has an effect only when the base includes
+        `predecessorBase`. Without the block, `predecessor: true` adds no
+        attribute and throws no error.
+    -   The default bases of the encapsulated documents include the block:
+        `encapsulatedBase` and `encapsulatedPdfBase`. The other default
+        bases, for example `imageBase` and `videoBase`, do not include it.
+    -   A caller can add the block to another base, for example
+        `combineBases(imageBase, predecessorBase)`. A future document type
+        can also add it to its default base.
+    -   The new object replaces the older ones, and the older objects do not
+        change. Use `dataLevel: "series"` to put the new version in the
+        series of the old one.
+    -   When the base includes the block, each `instance` must have
+        `StudyInstanceUID`, `SeriesInstanceUID`, `SOPClassUID`, and
+        `SOPInstanceUID`. Else the call throws an error that names each
+        absent keyword. `hierarchicalReferences` throws the same error for an
+        instance without one of these keywords.
 -   **CORE-USR-10** When an inherited `Modality` differs from the base
     `Modality`, and `overrides` does not give `Modality`, `createInstance`
     logs a warning and keeps the inherited value. An override of `Modality`
@@ -234,7 +246,8 @@ Do not renumber an identifier. A new requirement gets the next free number.
 -   **CORE-IMP-3** The default bases are compositions, not extensions.
     `defaultInstanceBase` is `patientBase`, `studyBase`, `seriesBase`,
     `instanceBase`, and `equipmentBase`. The base of each builder adds its
-    own blocks and `predecessorBase` to `defaultInstanceBase`.
+    own blocks to `defaultInstanceBase`. Only the encapsulated document
+    bases also add `predecessorBase` (CORE-USR-9).
 -   **CORE-IMP-4** A function block gets a context with these keys:
     `dataLevel`, `levels`, `instance`, `predecessor`, `inherits(levelName)`,
     `date`, `time`, `dateTime`, and `options`. `context.options` is the
@@ -274,7 +287,9 @@ Do not renumber an identifier. A new requirement gets the next free number.
     same internal reference builder, so the sequence has the shape of
     `hierarchicalReferences`: one item for each study, then each series, then
     each SOP instance. Each function gives its own error text.
-    `predecessorBase` is not in `defaultInstanceBase`.
+    `predecessorBase` is not in `defaultInstanceBase`. The `predecessor`
+    control has no other reader: only `predecessorBase` reads
+    `context.predecessor`.
 -   **CORE-IMP-9** A builder removes its control keys before it calls
     `createInstance`, for example with destructuring
     (`const { mimeType, ...rest } = options`). The builder passes `overrides`

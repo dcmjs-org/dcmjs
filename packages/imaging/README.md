@@ -35,7 +35,9 @@ them are options. `overrides` is a naturalized DICOM provider with the
 forms of `baseDicom`, and holds only DICOM attributes. A control key never
 goes in `overrides`. An extra option key has no effect (CORE-USR-7).
 
--   `baseDicom` (default `imageBase`) — base blocks.
+-   `baseDicom` (default `imageBase`) — base blocks. `imageBase` has no
+    `predecessorBase`, so `predecessor: true` needs a custom base
+    (IMG-USR-10).
 -   `derivedFrom` — a naturalized instance, or an array of them, that the
     image is derived from. Each needs `SOPClassUID` and `SOPInstanceUID`. An
     empty array is the same as no `derivedFrom`.
@@ -200,6 +202,13 @@ approach, and can change freely. Do not renumber an identifier.
     the errors of `derivedFrom`. The input type of `pixels` is a typed array
     (CORE-USR-7).
 
+-   **IMG-USR-10** `imageBase` does not include `predecessorBase`
+    (CORE-USR-9). With the default base, `predecessor: true` has no effect:
+    the result has no `PredecessorDocumentsSequence`, and the builder throws
+    no predecessor error. For a predecessor, give
+    `baseDicom: combineBases(imageBase, predecessorBase)`, with
+    `predecessorBase` from `@dcmjs-org/core`.
+
 ## § Implementation requirements
 
 -   **IMG-IMP-1** `buildImageDataset` calls `createInstance`. For a non-empty
@@ -217,8 +226,8 @@ approach, and can change freely. Do not renumber an identifier.
     gets its own `SourceImageSequence`.
 -   **IMG-IMP-3** `imageBase` is `defaultInstanceBase`,
     `secondaryCaptureImageBase` (SOP class, Modality `OT`, `ConversionType`
-    `WSD`, `ImageType`, `ContentDate`, `ContentTime`), and
-    `predecessorBase`. The builder writes no default after
+    `WSD`, `ImageType`, `ContentDate`, `ContentTime`). `imageBase` has no
+    `predecessorBase` (IMG-USR-10). The builder writes no default after
     `createInstance`.
 -   **IMG-IMP-4** NumberOfFrames: a single-frame IOD, for example Secondary
     Capture, has no `NumberOfFrames`. For this reason a count of 1 from

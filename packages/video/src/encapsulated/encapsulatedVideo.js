@@ -21,8 +21,7 @@ import {
     combineBases,
     createInstance,
     defaultInstanceBase,
-    isVideoTransferSyntax,
-    predecessorBase
+    isVideoTransferSyntax
 } from "@dcmjs-org/core";
 import { parseMp4Info } from "../image/mp4Info.js";
 
@@ -93,15 +92,13 @@ const videoPhotographicBase = {
 };
 
 /**
- * The default base of `buildVideoDataset`: core instance defaults, the
- * Video Photographic Image block, and `predecessorBase` (for
- * `predecessor: true`). Use `.items` to build a variant.
+ * The default base of `buildVideoDataset`: core instance defaults and the
+ * Video Photographic Image block. It has no `predecessorBase`, so
+ * `predecessor: true` has no effect; use
+ * `combineBases(videoBase, predecessorBase)` for a predecessor
+ * (CORE-USR-9). Use `.items` to build a variant.
  */
-const videoBase = combineBases(
-    defaultInstanceBase,
-    videoPhotographicBase,
-    predecessorBase
-);
+const videoBase = combineBases(defaultInstanceBase, videoPhotographicBase);
 
 /**
  * Build the naturalized dataset shell for a Video Photographic Image

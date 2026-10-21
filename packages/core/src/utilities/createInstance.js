@@ -221,8 +221,9 @@ function buildReferences(instances, missingText) {
 /**
  * Predecessor: when `context.predecessor` is set, every source instance goes
  * in `PredecessorDocumentsSequence (0040,A360)`. The new instance then
- * replaces the older ones, and the older ones stay as they are. Not in
- * `defaultInstanceBase`; the document builders add it.
+ * replaces the older ones, and the older ones stay as they are. An optional
+ * block (CORE-USR-9): not in `defaultInstanceBase`; the encapsulated
+ * document bases add it, and a caller can add it to another base.
  */
 export function predecessorBase(context) {
     if (!context.predecessor || !context.instance) {
@@ -354,7 +355,8 @@ const CONSISTENCY_KEYS = ["Modality"];
  * @param {string} [options.dataLevel="study"]
  * @param {Object[]} [options.levels=DATA_LEVELS]
  * @param {boolean} [options.predecessor=false] - reference each `instance` as
- *   a predecessor (see {@link predecessorBase})
+ *   a predecessor; no effect unless the base includes
+ *   {@link predecessorBase}
  * @param {Object|Function|Array} [options.overrides] - a naturalized DICOM
  *   provider (the forms of `baseDicom`) whose attributes replace the base and
  *   inherited values

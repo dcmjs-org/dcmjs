@@ -10,6 +10,7 @@ import {
     DATA_LEVELS,
     extendDataLevels,
     log,
+    predecessorBase,
     validationLog
 } from "@dcmjs-org/core";
 import {
@@ -52,12 +53,23 @@ describe("createInstance options", () => {
         expect(dataset.StudyInstanceUID).toBe("2.25.1");
         expect(dataset.SeriesInstanceUID).toBe("2.25.2");
         expect(dataset.SOPInstanceUID).not.toBe("2.25.3");
-        expect(
-            dataset.PredecessorDocumentsSequence[0].ReferencedSeriesSequence[0]
-                .ReferencedSOPSequence[0].ReferencedSOPInstanceUID
-        ).toBe("2.25.3");
+        // imageBase has no predecessorBase (IMG-USR-10).
+        expect(dataset).not.toHaveProperty("PredecessorDocumentsSequence");
         expect(dataset.instance).toBeUndefined();
         expect(dataset.dataLevel).toBeUndefined();
+
+        // A caller adds predecessorBase to the base (CORE-USR-9).
+        const replacement = buildImageDataset(grayPixels(), {
+            baseDicom: combineBases(imageBase, predecessorBase),
+            instance: source,
+            dataLevel: "series",
+            predecessor: true
+        });
+        expect(
+            replacement.PredecessorDocumentsSequence[0]
+                .ReferencedSeriesSequence[0].ReferencedSOPSequence[0]
+                .ReferencedSOPInstanceUID
+        ).toBe("2.25.3");
     });
 });
 

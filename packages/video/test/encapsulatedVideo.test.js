@@ -43,10 +43,8 @@ describe("buildVideoDataset", () => {
         expect(dataset.PatientID).toBe("JD-001");
         expect(dataset.StudyInstanceUID).toBe("2.25.1");
         expect(dataset.SeriesInstanceUID).not.toBe("2.25.2");
-        expect(
-            dataset.PredecessorDocumentsSequence[0].ReferencedSeriesSequence[0]
-                .ReferencedSOPSequence[0].ReferencedSOPInstanceUID
-        ).toBe("2.25.3");
+        // videoBase has no predecessorBase (VID-USR-8).
+        expect(dataset).not.toHaveProperty("PredecessorDocumentsSequence");
         expect(dataset.Rows).toBe(48);
         expect(dataset.fragmentBytes).toBeUndefined();
     });
