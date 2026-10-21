@@ -122,8 +122,9 @@ export class DicomEventStream {
     }
 
     /**
-     * A naturalized dataset source (the inverse of toNaturalized); a `_meta`
-     * member becomes the file meta information.
+     * A naturalized dataset source; a `_meta` member becomes the file meta
+     * information. toNaturalized() gives no `_meta`, so add one to keep the
+     * transfer syntax of the source.
      */
     static fromNaturalized(dataset) {
         return new DicomEventStream(listener =>

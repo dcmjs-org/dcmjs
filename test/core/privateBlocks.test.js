@@ -66,27 +66,85 @@ describe("private reserved blocks", () => {
         }
     });
 
-    it("a creator read as UN bytes gives its text as the block key", () => {
-        const naturalized = DicomMetaDictionary.naturalizeDataset({
+    it("a creator read as UN bytes, or as InlineBinary, gives its text as the block key", async () => {
+        const unCreatorDict = () => ({
             "7FDD0010": {
                 vr: "UN",
                 Value: [new TextEncoder().encode("TSC Private Group ").buffer]
             },
-            "7FDD1001": { vr: "UN", Value: [new ArrayBuffer(2)] }
+            "7FDD1001": { vr: "UN", Value: [new ArrayBuffer(2)] },
+            "7FDF0010": { vr: "UN", InlineBinary: "QUNNRQ==" }, // "ACME"
+            // a malformed 2 MB creator value must not stop the naturalizer
+            "7FE10010": { vr: "UN", Value: [new ArrayBuffer(2 ** 21)] }
         });
-        expect(Object.keys(naturalized["7FDD:TSC Private Group"])).toEqual([
+        const fromDict = DicomMetaDictionary.naturalizeDataset(unCreatorDict());
+        const fromEvents = await listenerNaturalize(unCreatorDict());
+
+        expect(Object.keys(fromDict["7FDD:TSC Private Group"])).toEqual([
             "creator",
             "reservedBlock",
             "x01"
         ]);
+        expect(fromDict["7FDF:ACME"]).toBeDefined();
+        expect(Object.keys(fromEvents)).toEqual(Object.keys(fromDict));
     });
 
-    it("a hex alias writes through to its block", () => {
+    it("a hex alias writes through to its block, also after the block is replaced", () => {
         const naturalized = DicomMetaDictionary.naturalizeDataset(sourceDict());
         naturalized["00291001"] = 9;
         expect(naturalized["0029:ACME"].x01).toBe(9);
+        naturalized["0029:ACME"] = { ...naturalized["0029:ACME"], x01: 10 };
+        expect(naturalized["00291001"]).toBe(10);
         const dict = DicomMetaDictionary.denaturalizeDataset(naturalized);
-        expect(Number(dict["00291001"].Value[0])).toBe(9);
+        expect(Number(dict["00291001"].Value[0])).toBe(10);
+    });
+
+    it("a delete of a hex alias removes the element, and of a creator alias the block", () => {
+        const naturalized = DicomMetaDictionary.naturalizeDataset(sourceDict());
+        delete naturalized["00291001"];
+        delete naturalized["00090010"];
+        const dict = DicomMetaDictionary.denaturalizeDataset(naturalized);
+
+        expect(dict["00291001"]).toBeUndefined();
+        expect(dict["00290010"].Value).toEqual(["ACME"]);
+        expect(dict["00090010"]).toBeUndefined();
+        expect(dict["00091001"]).toBeUndefined();
+    });
+
+    it("a flat element in the range of a block joins it, and a flat keyword holds its block", () => {
+        const { registerTag } = require("../../src/dictionary.fast.js");
+        registerTag("00331001", { name: "FlatPrivateKeyword", vr: "LO" });
+        const naturalized = DicomMetaDictionary.naturalizeDataset(sourceDict());
+        naturalized["00291002"] = "added";
+        naturalized._vrMap["00291002"] = "LO";
+        naturalized.FlatPrivateKeyword = "flat";
+        naturalized["0033:NEW"] = {
+            creator: "NEW",
+            reservedBlock: 0x10,
+            x01: "new"
+        };
+        naturalized._vrMap["0033:NEW"] = { x01: "LO" };
+        const dict = DicomMetaDictionary.denaturalizeDataset(naturalized);
+
+        // 00291002 is in block 0x10 of "0029:ACME", so it stays at 0x10
+        expect(dict["00290010"].Value).toEqual(["ACME"]);
+        expect(dict["00291002"].Value).toEqual(["added"]);
+        // the keyword holds 0x10 of group 0033, so "0033:NEW" moves to 0x11
+        expect(dict["00331001"].Value).toEqual(["flat"]);
+        expect(dict["00330011"].Value).toEqual(["NEW"]);
+        expect(dict["00331101"].Value).toEqual(["new"]);
+    });
+
+    it("a creator that reserves two blocks in one group gives a warning", () => {
+        const warn = jest.spyOn(dcmjs.log, "warn").mockImplementation(() => {});
+        DicomMetaDictionary.naturalizeDataset({
+            "00290010": { vr: "LO", Value: ["ACME"] },
+            "00290011": { vr: "LO", Value: ["ACME"] }
+        });
+        expect(warn.mock.calls.flat().join(" ")).toMatch(
+            /"ACME" reserves two blocks in group 0029/
+        );
+        warn.mockRestore();
     });
 
     it("denaturalize keeps a free reservedBlock and moves a taken one", () => {

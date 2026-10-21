@@ -72,7 +72,7 @@ export const envelope = {
     personName: "componentObject", // {Alphabetic,Ideographic,Phonetic}
     sequences: "datasetArrayOrItem", // SQ -> dataset[] | the single item
     privateTags: "creatorGrouped", // '<group>:<creator>' keys
-    unknownTags: "preserved", // { vr, Value, rawValue }
+    unknownTags: "preserved", // hex-tag key, VR in _vrMap
     rawRetention: "inexactOnly", // raw kept when round-trip inexact
     bulk: "referenceOrBinary" // {BulkDataURI} | {InlineBinary} | frame list
 };

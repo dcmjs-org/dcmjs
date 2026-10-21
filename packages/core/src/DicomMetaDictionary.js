@@ -14,6 +14,7 @@ import {
     placePrivateElements,
     expandPrivateBlocks
 } from "./utilities/privateBlocks.js";
+import { recordVr } from "./utilities/vrMap.js";
 
 /**
  * The naturalized value of one DICOM JSON element (see naturalizeDataset).
@@ -198,20 +199,10 @@ export class DicomMetaDictionary {
                 });
                 return;
             }
-            let naturalName = tag;
-
-            if (entry) {
-                naturalName = entry.name;
-
-                if (entry.vr == "ox" || data.vr !== entry.vr) {
-                    // keep the actual VR when it is data-dependent or differs
-                    naturalDataset._vrMap[naturalName] = data.vr;
-                }
-            } else if (data.vr) {
-                // no dictionary entry: the tag stays the key, and the VR
-                // goes into _vrMap so denaturalizeDataset can rebuild it
-                naturalDataset._vrMap[naturalName] = data.vr;
-            }
+            // no dictionary entry: the tag stays the key, and the VR goes
+            // into _vrMap so denaturalizeDataset can rebuild it
+            const naturalName = entry ? entry.name : tag;
+            recordVr(naturalDataset._vrMap, naturalName, entry, data.vr);
 
             naturalDataset[naturalName] = naturalizeElement(
                 data,

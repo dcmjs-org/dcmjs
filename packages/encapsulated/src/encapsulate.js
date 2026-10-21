@@ -84,10 +84,10 @@ export function encapsulate(bytes, options = {}) {
  * instance of any type (PDF, CDA, STL, OBJ, MTL). No SOP class check; see
  * extractEncapsulatedPdf for the PDF form.
  *
- * Accepts every payload shape a naturalized dataset produces: an ArrayBuffer
- * or a view, an array that wraps one, or the event-stream naturalizer's
- * `{ InlineBinary }` wrapper around a base64 string, an ArrayBuffer, or a
- * view.
+ * Accepts every payload shape a naturalized dataset can hold: an ArrayBuffer
+ * or a view, a list of fragments (the naturalized form), or an
+ * `{ InlineBinary }` wrapper (from DICOM JSON) around a base64 string, an
+ * ArrayBuffer, or a view.
  *
  * The Part 10 writer pads odd-length OB values with a trailing NUL. When
  * `EncapsulatedDocumentLength (0042,0015)` is present (encapsulate always

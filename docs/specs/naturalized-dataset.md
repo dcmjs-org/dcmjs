@@ -179,6 +179,13 @@ naturalizes to
   creator comes after the block elements in the source.
 - **NAT-U-PRIV-8.** The block key is the authority for the creator string.
   When `block.creator` differs from the key, the key wins on write.
+- **NAT-U-PRIV-9.** PS3.5 7.8.1 permits one block per creator in a group. When
+  a source has the same creator for two blocks of one group, the producers
+  merge the two blocks into one block and log a warning. An element number
+  that is in both blocks keeps the last value. The other value is lost.
+- **NAT-U-PRIV-10.** The creator string has no LO padding (leading spaces,
+  trailing spaces and NULs). A creator that the source holds as bytes (UN,
+  or DICOM JSON `InlineBinary`) gives the same string as an LO creator.
 
 ### NAT-U-HIST — historical names
 
@@ -194,6 +201,16 @@ naturalizes to
   example `CSAImageHeaderInfo` for `(0029,"SIEMENS CSA HEADER",10)`, is
   readable and writable in the block only. The dataset does not get that
   name, because different creators use the same names.
+- **NAT-U-HIST-7.** A `delete` of an element alias on the dataset (the hex
+  tag or the `registerTag()` keyword) removes that element from the
+  denaturalized output. A `delete` of a creator alias removes the creator
+  and every element of its block. So code that removes private tags by hex
+  key (de-identification) continues to remove them. The block object keeps
+  the value until the denaturalize; `delete dataset[blockKey].xEE` removes
+  it from the naturalized dataset too.
+- **NAT-U-HIST-8.** An alias reads and writes the block that the dataset
+  holds under the block key when the alias is used, also after the user
+  replaces the block object.
 - **NAT-U-HIST-5.** The historical names are not enumerable. `Object.keys`,
   `for...in`, `JSON.stringify` and the denaturalizers do not see them.
   `"00291001" in dataset` is true.
@@ -204,7 +221,11 @@ naturalizes to
 ### NAT-U-RT — conversion back to DICOM
 
 - **NAT-U-RT-1.** `denaturalizeDataset` and `fromNaturalized` accept the
-  block form and the hex-tag form, also in one dataset.
+  block form and the hex-tag form, also in one dataset. A flat hex-tag
+  element that has no flat creator and is in the reserved range of a block
+  is written in that block (for example an element that the user adds with
+  `dataset["00291002"] = ...`). When the block already holds that element
+  number, the flat element keeps its own tag, and the block moves.
 - **NAT-U-RT-2.** naturalize, then denaturalize, then write, then read gives
   the same private creators, block elements and values as the source.
 - **NAT-U-RT-3.** A block keeps its `reservedBlock` when that `xx` is free in
@@ -233,7 +254,10 @@ naturalizes to
 - **NAT-I-CODE-1.** `packages/core/src/utilities/privateBlocks.js` holds the
   private-block rules. Both producers and `denaturalizeDataset` call it. A
   producer does not keep a local copy of these rules.
-  - `isPrivateTag(tag)`: an odd group, element `0x0010` or above.
+  - `isPrivateTag(tag)`: `Tag.isPrivateCreator()` or `Tag.isPrivateValue()`.
+  - `registeredTagEntry(tag)`: the `registerTag()` entry of a hex tag.
+  - `recordVr(vrMap, key, entry, vr)` in `vrMap.js`: the `_vrMap` rule
+    (NAT-I-VR-1), for both producers.
   - `placePrivateElements(target, vrMap, elements)`: places the private
     elements of one level, then calls `definePrivateAliases`.
   - `definePrivateAliases(target)`: derives every alias from the blocks.
@@ -253,9 +277,10 @@ naturalizes to
 - **NAT-I-PLACE-2.** The creators of a level are found first, so the order
   of the source does not matter (NAT-U-PRIV-7).
 - **NAT-I-PLACE-3.** A creator with an empty value is not a creator. Its
-  element keeps its hex tag. A creator value that holds bytes (read as UN)
-  decodes as LO text without its trailing NUL or space padding, and
-  denaturalize writes the creator as LO.
+  element keeps its hex tag. A creator value that holds bytes (UN, or an
+  `{ InlineBinary }` with base64 or bytes) decodes with the latin1 decoder of
+  core, from the first 64 bytes only (the LO maximum), so a malformed large
+  value cannot stop the naturalizer. Denaturalize writes the creator as LO.
 - **NAT-I-PLACE-4.** The blocks come after the standard attributes in key
   order.
 - **NAT-I-PLACE-5.** Each producer shapes values with its own rules before
@@ -275,8 +300,13 @@ naturalizes to
 
 - **NAT-I-ALIAS-1.** An alias is an accessor property from
   `Object.defineProperty` with `enumerable: false` and
-  `configurable: true`. An element alias has a getter and a setter on the
-  block value. A creator alias has a getter only.
+  `configurable: true`. A dataset alias reads `dataset[blockKey]` when it is
+  used. An element alias has a getter and a setter. A creator alias has a
+  getter only, so a write throws `TypeError` in strict-mode code.
+- **NAT-I-ALIAS-4.** `definePrivateAliases` records each dataset alias in a
+  non-enumerable `Symbol.for("dcmjs.privateAliases")` map. `expandPrivateBlocks`
+  leaves out an element or block whose recorded alias is no longer an own
+  property (NAT-U-HIST-7). A clone has no record, so it keeps every element.
 - **NAT-I-ALIAS-2.** An alias never replaces an own property that is
   already there.
 - **NAT-I-ALIAS-3.** The private dictionary lookup uses the `dictionary`
@@ -296,7 +326,9 @@ naturalizes to
 ### NAT-I-RT — block number assignment
 
 - **NAT-I-RT-1.** The used block numbers of a group are the `xx` of each
-  flat private creator and of each flat private element in that group.
+  flat private creator and of each flat private element in that group that
+  does not join a block (NAT-U-RT-1). A flat key is an 8-digit hex key, or a
+  `registerTag()` keyword of a private tag.
 - **NAT-I-RT-2.** The first pass gives each block its `reservedBlock` when
   that number is free. The second pass gives the remaining blocks the first
   free number. So a block that must move never takes the number of a block
@@ -325,7 +357,8 @@ block form, and they apply to standard attributes too.
 
 | Requirement | Test |
 | --- | --- |
-| NAT-U-PRIV, NAT-U-HIST-1/2, NAT-U-PROD-1 | `test/core/privateBlocks.test.js` |
+| NAT-U-PRIV, NAT-U-HIST-1/2/7/8, NAT-U-PROD-1 | `test/core/privateBlocks.test.js` |
+| NAT-U-PRIV-9/10, NAT-U-RT-1 (flat elements) | `test/core/privateBlocks.test.js` |
 | NAT-U-RT-3, NAT-U-RT-4 | `test/core/privateBlocks.test.js` |
 | NAT-U-RT-2 (writer path) | `test/core/privateBlocks.test.js` |
 | NAT-U-HIST-3, NAT-U-RT-2 | `test/issues/issue388-private-tags.test.js` |

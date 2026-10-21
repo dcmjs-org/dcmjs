@@ -195,8 +195,14 @@ Six things changed relative to 0.x:
 
    - The 8-digit hex tags (`dataset["00290010"]`, `dataset["00291001"]`)
      remain as non-enumerable aliases. A read works as before, and a write
-     to an element alias goes to the block. The creator alias is read-only.
-     `Object.keys` and `JSON.stringify` no longer show the hex keys.
+     to an element alias goes to the block. The creator alias is read-only:
+     a write to it throws `TypeError` in strict-mode code. A `delete` of an
+     element alias still removes the element from the written output, and a
+     `delete` of the creator alias removes the whole block, so code that
+     removes private tags by hex key keeps working. `Object.keys` and
+     `JSON.stringify` no longer show the hex keys.
+   - A source that gives one creator two blocks in a group (PS3.5 7.8.1
+     does not permit this) gets one merged block and a warning.
    - A `registerTag()` keyword for a private tag is a non-enumerable alias
      on the dataset and in the block. A private dictionary keyword (for
      example `CSAImageHeaderInfo`) is an alias in the block only.

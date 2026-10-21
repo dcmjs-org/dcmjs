@@ -62,8 +62,10 @@ export {
     isPrivateTag,
     placePrivateElements,
     definePrivateAliases,
-    expandPrivateBlocks
+    expandPrivateBlocks,
+    registeredTagEntry
 } from "./utilities/privateBlocks.js";
+export { recordVr } from "./utilities/vrMap.js";
 export {
     DicomMetadataListener,
     createInformationFilter

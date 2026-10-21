@@ -4,12 +4,13 @@ import {
 } from "./EventStreamListener.js";
 import {
     lookupTagHex,
-    dictionary,
     addAccessors,
     isMultiVM,
     dicomJson,
     isPrivateTag,
     placePrivateElements,
+    registeredTagEntry,
+    recordVr,
     checkBinaryAs,
     naturalBinaryFragment,
     log
@@ -24,12 +25,11 @@ import {
  * source-agnostic contract, the SAME naturalized object is produced from Part 10
  * bytes, a dcmjs dict, or DICOMweb JSON.
  *
- * Scope (D1): keyword naming, VM cardinality, single-item sequences with hidden
- * length (§12, via core addAccessors, no Proxy), empty→null/[], binary
- * assembly (InlineBinary/BulkDataURI), and the cardinality-violation policy
- * (§15.2, default warnAndPreserve). Deferred to D2: the PN proxy/toString sugar
- * (§17), private-tag grouping (§18), and precision/raw retention (§16/§27, which
- * needs the contract to carry raw values).
+ * It gives the same object as DicomMetaDictionary.naturalizeDataset:
+ * docs/specs/naturalized-dataset.md is the specification of both (keys, VM
+ * cardinality, single-item sequences, `_vrMap`, private blocks, binary values
+ * as a list of fragments). It also applies the cardinality-violation policy
+ * (default warnAndPreserve) and keeps the source string of an inexact number.
  *
  * Sequence note: a DICOM sequence's declared VM ("1") constrains how many times
  * the attribute appears, NOT its item count — multi-item sequences (e.g.
@@ -153,7 +153,7 @@ export class NaturalizedListener extends EventStreamListener {
         }
 
         if (isPrivateTag(frame.tag)) {
-            const entry = registeredEntry(frame.tag);
+            const entry = registeredTagEntry(frame.tag);
             let value = frame.binary;
             if (value === undefined) {
                 value = entry
@@ -174,7 +174,7 @@ export class NaturalizedListener extends EventStreamListener {
 
         const entry = lookupTagHex(frame.tag);
         const key = (entry && entry.name) || frame.tag;
-        recordVr(targetFrame, key, entry, frame.vr);
+        recordVr(targetFrame.obj._vrMap, key, entry, frame.vr);
         if (frame.binary !== undefined) {
             targetFrame.obj[key] = frame.binary;
             return;
@@ -205,7 +205,7 @@ export class NaturalizedListener extends EventStreamListener {
         const frame = this._stack.pop();
         const targetFrame = this._objectFrame();
         if (isPrivateTag(frame.tag)) {
-            const entry = registeredEntry(frame.tag);
+            const entry = registeredTagEntry(frame.tag);
             const shaped = this._shapeSequence(frame, entry);
             targetFrame.privates.push({
                 tag: frame.tag,
@@ -218,7 +218,7 @@ export class NaturalizedListener extends EventStreamListener {
         const entry = lookupTagHex(frame.tag);
         const shaped = this._shapeSequence(frame, entry);
         const key = (entry && entry.name) || frame.tag;
-        recordVr(targetFrame, key, entry, frame.vr);
+        recordVr(targetFrame.obj._vrMap, key, entry, frame.vr);
         targetFrame.obj[key] = shaped;
     }
 
@@ -299,18 +299,6 @@ function objectFrame(obj) {
 function endObject(frame) {
     placePrivateElements(frame.obj, frame.obj._vrMap, frame.privates);
     frame.privates = [];
-}
-
-/** The _vrMap rule of DicomMetaDictionary.naturalizeDataset. */
-function recordVr(frame, key, entry, vr) {
-    if (vr && (!entry || entry.vr === "ox" || entry.vr !== vr)) {
-        frame.obj._vrMap[key] = vr;
-    }
-}
-
-/** A registerTag() entry for a private tag, or undefined. */
-function registeredEntry(tag) {
-    return dictionary[`(${tag.slice(0, 4)},${tag.slice(4, 8)})`];
 }
 
 /**

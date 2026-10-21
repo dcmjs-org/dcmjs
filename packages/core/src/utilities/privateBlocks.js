@@ -1,4 +1,8 @@
-import { dictionary } from "../dictionary.fast.js";
+import { dictionary, lookupRegisteredTagByName } from "../dictionary.fast.js";
+import { Tag } from "../Tag.js";
+import { createLatin1Decoder } from "../charset/latin1.js";
+import { base64ToArrayBuffer } from "./base64.js";
+import { recordVr } from "./vrMap.js";
 import log from "../log.js";
 
 /**
@@ -14,32 +18,46 @@ import log from "../log.js";
  * - `xEE` is the element number within the reserved block, as 2 hex digits.
  * - `creator` repeats the creator string of the key; the key is the authority.
  * - `reservedBlock` is the xx of the source; denaturalize keeps it when free.
- * - Non-enumerable aliases keep the older names readable: the 8-digit hex tag
- *   of each element and of the creator on the dataset, a registerTag() keyword
- *   on the dataset and in the block, and a private dictionary keyword in the
- *   block. Object.keys, JSON and denaturalize see only the block form.
+ * - Non-enumerable aliases keep the older names: the 8-digit hex tag of each
+ *   element and of the creator on the dataset, a registerTag() keyword on the
+ *   dataset and in the block, and a private dictionary keyword in the block.
+ *   Each alias reads the block through its key when it is used. A `delete` of
+ *   a dataset alias removes that element (for the creator alias: the block)
+ *   from the denaturalized output. Object.keys, JSON and denaturalize see only
+ *   the block form.
  * - A private element without a creator keeps its 8-digit hex tag as the key,
  *   with its VR in _vrMap under that tag.
+ *
+ * docs/specs/naturalized-dataset.md (NAT-U-PRIV, NAT-U-HIST, NAT-U-RT) is
+ * the specification.
  */
 
 const BLOCK_KEY = /^([0-9A-Fa-f]{4}):(.+)$/;
 const ELEMENT_KEY = /^x([0-9A-Fa-f]{2})$/;
 const HEX_TAG = /^[0-9A-Fa-f]{8}$/;
+// The dataset aliases that definePrivateAliases defined, by name:
+// { key, elementKey } (elementKey is null for a creator alias).
+const DATASET_ALIASES = Symbol.for("dcmjs.privateAliases");
+// LO holds at most 64 characters.
+const CREATOR_MAX_BYTES = 64;
+
+const latin1 = createLatin1Decoder();
 
 function hex2(n) {
     return n.toString(16).toUpperCase().padStart(2, "0");
 }
 
+function tagOf(hexTag) {
+    return HEX_TAG.test(hexTag) ? Tag.fromString(hexTag) : undefined;
+}
+
 /**
- * True for an 8-digit hex tag in an odd group at element 0x0010 or above:
- * a private creator or a private data element. Odd-group elements
- * 0x0000-0x000F keep the standard handling.
+ * True for an 8-digit hex tag of a private creator (gggg,0010-00FF) or a
+ * private data element (Tag.isPrivateCreator / Tag.isPrivateValue).
  */
-export function isPrivateTag(tag) {
-    if (typeof tag !== "string" || !HEX_TAG.test(tag)) return false;
-    const group = parseInt(tag.slice(0, 4), 16);
-    const element = parseInt(tag.slice(4, 8), 16);
-    return (group & 1) === 1 && element >= 0x0010;
+export function isPrivateTag(hexTag) {
+    const tag = typeof hexTag === "string" ? tagOf(hexTag) : undefined;
+    return !!tag && (tag.isPrivateCreator() || tag.isPrivateValue());
 }
 
 /** The group and creator of a reserved block key, or undefined. */
@@ -57,13 +75,15 @@ function privateDictionaryEntry(group, creator, ee) {
     return dictionary[`(${group},"${creator}",${ee})`];
 }
 
-function registeredEntry(tag) {
-    return dictionary[`(${tag.slice(0, 4)},${tag.slice(4, 8)})`];
+/** The registerTag() entry (or the dictionary entry) of an 8-digit hex tag. */
+export function registeredTagEntry(hexTag) {
+    return dictionary[`(${hexTag.slice(0, 4)},${hexTag.slice(4, 8)})`];
 }
 
 function defineAlias(target, name, get, set) {
-    if (Object.prototype.hasOwnProperty.call(target, name)) return;
+    if (Object.prototype.hasOwnProperty.call(target, name)) return false;
     Object.defineProperty(target, name, { get, set, configurable: true });
+    return true;
 }
 
 /**
@@ -72,31 +92,52 @@ function defineAlias(target, name, get, set) {
  * caller can call this again on a clone.
  */
 export function definePrivateAliases(target) {
+    let aliases = target[DATASET_ALIASES];
+    if (!aliases) {
+        aliases = new Map();
+        Object.defineProperty(target, DATASET_ALIASES, { value: aliases });
+    }
+    const onDataset = (name, record, get, set) => {
+        if (defineAlias(target, name, get, set)) aliases.set(name, record);
+    };
     for (const key of Object.keys(target)) {
         const block = target[key];
         const parsed = parsePrivateBlockKey(key, block);
         if (!parsed || typeof block.reservedBlock !== "number") continue;
         const { group, creator } = parsed;
         const xx = hex2(block.reservedBlock);
-        defineAlias(target, `${group}00${xx}`, () => creator);
+        onDataset(`${group}00${xx}`, { key, elementKey: null }, () =>
+            target[key] ? creator : undefined
+        );
         for (const elementKey of Object.keys(block)) {
             const match = ELEMENT_KEY.exec(elementKey);
             if (!match) continue;
             const ee = match[1].toUpperCase();
             const tag = `${group}${xx}${ee}`;
-            const get = () => block[elementKey];
+            const record = { key, elementKey };
+            const get = () => target[key]?.[elementKey];
             const set = v => {
-                block[elementKey] = v;
+                if (target[key]) target[key][elementKey] = v;
             };
-            defineAlias(target, tag, get, set);
-            const registered = registeredEntry(tag);
+            onDataset(tag, record, get, set);
+            const registered = registeredTagEntry(tag);
             if (registered && registered.name) {
-                defineAlias(target, registered.name, get, set);
-                defineAlias(block, registered.name, get, set);
+                onDataset(registered.name, record, get, set);
+                defineAlias(
+                    block,
+                    registered.name,
+                    () => block[elementKey],
+                    v => (block[elementKey] = v)
+                );
             }
             const known = privateDictionaryEntry(group, creator, ee);
             if (known && known.name && known.name !== "Unknown") {
-                defineAlias(block, known.name, get, set);
+                defineAlias(
+                    block,
+                    known.name,
+                    () => block[elementKey],
+                    v => (block[elementKey] = v)
+                );
             }
         }
     }
@@ -115,12 +156,28 @@ export function definePrivateAliases(target) {
 export function placePrivateElements(target, vrMap, elements) {
     if (!elements.length) return;
     const creators = new Map();
+    const blockOfCreator = new Map();
     for (const { tag, value } of elements) {
-        const element = parseInt(tag.slice(4, 8), 16);
-        const creator = element <= 0x00ff ? creatorText(value) : "";
-        if (creator !== "") {
-            creators.set(tag.toUpperCase(), creator);
+        if (!tagOf(tag).isPrivateCreator()) continue;
+        const creator = creatorText(value);
+        if (creator === "") continue;
+        const hexTag = tag.toUpperCase();
+        const key = `${hexTag.slice(0, 4)}:${creator}`;
+        if (blockOfCreator.has(key)) {
+            // PS3.5 7.8.1 permits one block per creator in a group
+            log.warn(
+                `Private creator "${creator}" reserves two blocks in group ${hexTag.slice(
+                    0,
+                    4
+                )} (${blockOfCreator.get(key)} and ${hexTag.slice(
+                    6,
+                    8
+                )}); their elements merge into one block, and an element in both keeps the last value`
+            );
+        } else {
+            blockOfCreator.set(key, hexTag.slice(6, 8));
         }
+        creators.set(hexTag, creator);
     }
 
     for (const { tag: rawTag, vr, value, entry } of elements) {
@@ -135,7 +192,7 @@ export function placePrivateElements(target, vrMap, elements) {
             // no creator: the hex tag (or a registerTag() keyword) is the key
             const name = entry?.name || tag;
             target[name] = value;
-            if (vr && (!entry || entry.vr !== vr)) vrMap[name] = vr;
+            recordVr(vrMap, name, entry, vr);
             continue;
         }
         const key = `${group}:${creator}`;
@@ -151,19 +208,27 @@ export function placePrivateElements(target, vrMap, elements) {
 }
 
 /**
- * The creator string of a private creator value. A creator that was read as
- * UN (implicit VR, or a gateway that converts unknown VRs) holds bytes; they
- * decode as LO text, without the trailing NUL or space padding.
+ * The creator string of a private creator value, without the LO padding. A
+ * creator that was read as UN (implicit VR, or a gateway that converts
+ * unknown VRs) holds bytes, or an `{ InlineBinary }` from DICOM JSON; the
+ * first 64 bytes decode as LO text.
  */
 function creatorText(value) {
-    const v = Array.isArray(value) ? value[0] : value;
+    let v = Array.isArray(value) ? value[0] : value;
+    if (v && typeof v === "object" && v.InlineBinary !== undefined) {
+        v = Array.isArray(v.InlineBinary) ? v.InlineBinary[0] : v.InlineBinary;
+        if (typeof v === "string") v = base64ToArrayBuffer(v);
+    }
+    let text;
     if (v instanceof ArrayBuffer || ArrayBuffer.isView(v)) {
         const bytes = ArrayBuffer.isView(v)
             ? new Uint8Array(v.buffer, v.byteOffset, v.byteLength)
             : new Uint8Array(v);
-        return String.fromCharCode(...bytes).replace(/[\0 ]+$/, "");
+        text = latin1.decode(bytes.subarray(0, CREATOR_MAX_BYTES));
+    } else {
+        text = v == null ? "" : String(v);
     }
-    return v == null ? "" : String(v);
+    return text.replace(/^ +|[\0 ]+$/g, "");
 }
 
 function blockFor(target, group, creator, xx) {
@@ -186,39 +251,94 @@ function firstFreeBlock(used) {
 }
 
 /**
+ * The 8-digit hex tag of a flat private key: an 8-digit hex key, or a
+ * registerTag() keyword of a private tag. Undefined for other keys.
+ */
+function flatPrivateTag(key) {
+    if (isPrivateTag(key)) return key.toUpperCase();
+    const registered = lookupRegisteredTagByName(key);
+    if (!registered) return undefined;
+    const hexTag = registered.tag.replace(/[(),]/g, "").toUpperCase();
+    return isPrivateTag(hexTag) ? hexTag : undefined;
+}
+
+/** The elements and blocks that a `delete` of a dataset alias removed. */
+function deletedByAlias(dataset) {
+    const deleted = { blocks: new Set(), elements: new Set() };
+    const aliases = dataset[DATASET_ALIASES];
+    if (!aliases) return deleted;
+    for (const [name, { key, elementKey }] of aliases) {
+        if (Object.prototype.hasOwnProperty.call(dataset, name)) continue;
+        if (elementKey === null) deleted.blocks.add(key);
+        else deleted.elements.add(`${key}\n${elementKey}`);
+    }
+    return deleted;
+}
+
+/**
  * The inverse of placePrivateElements: a shallow view of `dataset` where each
  * reserved block is a private creator plus 8-digit hex keys, with their VRs
  * in a flat _vrMap, so the hex-key path of denaturalizeDataset writes them.
- * A block keeps its reservedBlock when that xx is free in the group, and gets
- * the first free xx otherwise. Returns `dataset` when it has no blocks.
+ *
+ * - A block keeps its reservedBlock when that xx is free in the group, and
+ *   gets the first free xx otherwise. A flat private key (hex tag or
+ *   registerTag() keyword) holds its xx.
+ * - A flat private data element with no flat creator, in the reserved range
+ *   of a block, joins that block, unless the block already holds that
+ *   element number; then it holds the xx, and the block moves.
+ * - An element or block whose dataset alias was deleted is left out.
+ *
+ * Returns `dataset` when it has no blocks.
  */
 export function expandPrivateBlocks(dataset) {
     const keys = Object.keys(dataset);
     const blocks = [];
+    const flat = [];
+    for (const key of keys) {
+        const parsed = parsePrivateBlockKey(key, dataset[key]);
+        if (parsed) {
+            blocks.push({ key, ...parsed, block: dataset[key], joined: [] });
+        } else {
+            const hexTag = flatPrivateTag(key);
+            if (hexTag) flat.push({ key, hexTag });
+        }
+    }
+    if (!blocks.length) return dataset;
+
+    const sourceVrMap = dataset._vrMap || {};
+    const deleted = deletedByAlias(dataset);
     const used = new Map();
     const usedIn = group => {
         if (!used.has(group)) used.set(group, new Set());
         return used.get(group);
     };
-    for (const key of keys) {
-        const parsed = parsePrivateBlockKey(key, dataset[key]);
-        if (parsed) {
-            blocks.push({ key, ...parsed, block: dataset[key] });
-        } else if (isPrivateTag(key)) {
-            // a flat private element or creator holds its xx
-            const element = parseInt(key.slice(4, 8), 16);
-            usedIn(key.slice(0, 4).toUpperCase()).add(
-                element <= 0x00ff ? element : element >> 8
-            );
+    const flatCreators = new Set(
+        flat.filter(f => tagOf(f.hexTag).isPrivateCreator()).map(f => f.hexTag)
+    );
+    const joinedKeys = new Set();
+    for (const { key, hexTag } of flat) {
+        const group = hexTag.slice(0, 4);
+        const element = parseInt(hexTag.slice(4, 8), 16);
+        const xx = element <= 0x00ff ? element : element >> 8;
+        const ee = hexTag.slice(6, 8);
+        const owner =
+            element > 0x00ff &&
+            !flatCreators.has(`${group}00${hexTag.slice(4, 6)}`) &&
+            blocks.find(b => b.group === group && b.block.reservedBlock === xx);
+        // join the block, unless the block already holds that element
+        if (owner && !(`x${ee}` in owner.block)) {
+            owner.joined.push({ key, ee });
+            joinedKeys.add(key);
+        } else {
+            usedIn(group).add(xx);
         }
     }
-    if (!blocks.length) return dataset;
 
     // the blocks whose reservedBlock is free keep it; the others move
     const assigned = new Map();
     for (const pass of [true, false]) {
         for (const b of blocks) {
-            if (assigned.has(b)) continue;
+            if (assigned.has(b) || deleted.blocks.has(b.key)) continue;
             const inGroup = usedIn(b.group);
             const preferred = b.block.reservedBlock;
             let xx;
@@ -230,7 +350,6 @@ export function expandPrivateBlocks(dataset) {
         }
     }
 
-    const sourceVrMap = dataset._vrMap || {};
     const view = {};
     const vrMap = {};
     for (const key of Object.keys(sourceVrMap)) {
@@ -240,12 +359,13 @@ export function expandPrivateBlocks(dataset) {
     }
     const byKey = new Map(blocks.map(b => [b.key, b]));
     for (const key of keys) {
-        if (key === "_vrMap") continue;
+        if (key === "_vrMap" || joinedKeys.has(key)) continue;
         const b = byKey.get(key);
         if (!b) {
             view[key] = dataset[key];
             continue;
         }
+        if (deleted.blocks.has(key)) continue;
         const xx = assigned.get(b);
         if (xx === undefined) {
             log.warn(`No free private block in group ${b.group} for`, key);
@@ -256,10 +376,20 @@ export function expandPrivateBlocks(dataset) {
                 `Private block ${key} has creator "${b.block.creator}"; the key creator "${b.creator}" is used`
             );
         }
-        const block = `${b.group}00${hex2(xx)}`;
-        view[block] = b.creator;
-        vrMap[block] = "LO";
+        const creatorTag = `${b.group}00${hex2(xx)}`;
+        view[creatorTag] = b.creator;
+        vrMap[creatorTag] = "LO";
         const blockVrs = sourceVrMap[key] || {};
+        const emit = (ee, value, vr, name) => {
+            vr = vr || privateDictionaryEntry(b.group, b.creator, ee)?.vr;
+            if (!vr || !/^[A-Z]{2}$/.test(vr)) {
+                log.warn(`No VR for ${name} in private block`, key);
+                return;
+            }
+            const tag = `${b.group}${hex2(xx)}${ee}`;
+            view[tag] = value;
+            vrMap[tag] = vr;
+        };
         for (const elementKey of Object.keys(b.block)) {
             if (elementKey === "creator" || elementKey === "reservedBlock") {
                 continue;
@@ -269,17 +399,21 @@ export function expandPrivateBlocks(dataset) {
                 log.warn(`Unknown name in private block ${key}:`, elementKey);
                 continue;
             }
-            const ee = match[1].toUpperCase();
-            const vr =
-                blockVrs[elementKey] ||
-                privateDictionaryEntry(b.group, b.creator, ee)?.vr;
-            if (!vr || !/^[A-Z]{2}$/.test(vr)) {
-                log.warn(`No VR for ${elementKey} in private block`, key);
-                continue;
-            }
-            const tag = `${b.group}${hex2(xx)}${ee}`;
-            view[tag] = b.block[elementKey];
-            vrMap[tag] = vr;
+            if (deleted.elements.has(`${key}\n${elementKey}`)) continue;
+            emit(
+                match[1].toUpperCase(),
+                b.block[elementKey],
+                blockVrs[elementKey],
+                elementKey
+            );
+        }
+        for (const { key: flatKey, ee } of b.joined) {
+            emit(
+                ee,
+                dataset[flatKey],
+                sourceVrMap[flatKey] || lookupRegisteredTagByName(flatKey)?.vr,
+                flatKey
+            );
         }
     }
     view._vrMap = vrMap;
