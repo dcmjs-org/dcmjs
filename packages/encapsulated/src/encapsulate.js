@@ -3,7 +3,7 @@
 // The generic Encapsulated Document builder. The per-type wrappers
 // (encapsulatePdf, and CDA/STL/... as they land) supply the base blocks.
 
-import { createInstance } from "@dcmjs-org/core";
+import { base64ToArrayBuffer, createInstance } from "@dcmjs-org/core";
 import { encapsulatedBase } from "./defaults/encapsulatedDocumentBase.js";
 
 /**
@@ -77,4 +77,100 @@ export function encapsulate(bytes, options = {}) {
     }
 
     return dataset;
+}
+
+/**
+ * Recover the document bytes from a naturalized Encapsulated Document
+ * instance of any type (PDF, CDA, STL, OBJ, MTL). No SOP class check; see
+ * extractEncapsulatedPdf for the PDF form.
+ *
+ * Accepts every payload shape a naturalized dataset produces: an ArrayBuffer
+ * or a view, an array that wraps one, or the event-stream naturalizer's
+ * `{ InlineBinary }` wrapper around a base64 string, an ArrayBuffer, or a
+ * view.
+ *
+ * The Part 10 writer pads odd-length OB values with a trailing NUL. When
+ * `EncapsulatedDocumentLength (0042,0015)` is present (encapsulate always
+ * writes it), the payload is sliced to that exact length, so an even-length
+ * original that ends in a zero byte survives. Without
+ * the element, a single trailing 0x00 on an even stored length is trimmed
+ * as pad only for a document type that never ends in 0x00: PDF, a text or
+ * XML type (CDA, OBJ, MTL), or no MIME type (the PDF default). A binary
+ * type such as STL keeps every byte.
+ *
+ * @param {Object} dataset - naturalized Encapsulated Document instance
+ * @returns {Uint8Array|null} the document bytes, or null when the dataset
+ *   holds no bytes: no EncapsulatedDocument, or a reference such as
+ *   `{ BulkDataURI }`
+ */
+export function extractEncapsulated(dataset) {
+    let payload = dataset.EncapsulatedDocument;
+    if (Array.isArray(payload)) {
+        payload = payload[0];
+    }
+    if (payload === undefined || payload === null) {
+        return null;
+    }
+    if (
+        typeof payload === "object" &&
+        !(payload instanceof ArrayBuffer) &&
+        !ArrayBuffer.isView(payload) &&
+        payload.InlineBinary !== undefined
+    ) {
+        payload = Array.isArray(payload.InlineBinary)
+            ? payload.InlineBinary[0]
+            : payload.InlineBinary;
+    }
+    if (typeof payload === "string") {
+        payload = base64ToArrayBuffer(payload);
+    }
+    if (!(payload instanceof ArrayBuffer) && !ArrayBuffer.isView(payload)) {
+        // For example { BulkDataURI }: the bytes are not in the dataset.
+        return null;
+    }
+    const bytes = ArrayBuffer.isView(payload)
+        ? new Uint8Array(payload.buffer, payload.byteOffset, payload.byteLength)
+        : new Uint8Array(payload);
+
+    let declaredLength = dataset.EncapsulatedDocumentLength;
+    if (Array.isArray(declaredLength)) {
+        declaredLength = declaredLength[0];
+    }
+    if (
+        Number.isInteger(declaredLength) &&
+        declaredLength >= 0 &&
+        declaredLength <= bytes.byteLength
+    ) {
+        return bytes.subarray(0, declaredLength);
+    }
+    if (
+        isPaddableMimeType(dataset.MIMETypeOfEncapsulatedDocument) &&
+        bytes.byteLength > 0 &&
+        bytes.byteLength % 2 === 0 &&
+        bytes[bytes.byteLength - 1] === 0x00
+    ) {
+        return bytes.subarray(0, bytes.byteLength - 1);
+    }
+    return bytes;
+}
+
+// The types whose content never ends in 0x00 (see extractEncapsulated).
+const PADDABLE_MIME_TYPES = new Set([
+    "application/pdf",
+    "application/xml",
+    "model/obj",
+    "model/mtl"
+]);
+
+function isPaddableMimeType(mimeType) {
+    const type = (Array.isArray(mimeType) ? mimeType[0] : mimeType)
+        ?.split(";")[0]
+        .trim()
+        .toLowerCase();
+    return (
+        !type ||
+        PADDABLE_MIME_TYPES.has(type) ||
+        type.startsWith("text/") ||
+        type.endsWith("+xml")
+    );
 }

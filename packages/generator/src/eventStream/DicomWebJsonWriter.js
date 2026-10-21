@@ -1,3 +1,4 @@
+import { encodeBase64 } from "@dcmjs-org/core";
 import { EventStreamListener } from "@dcmjs-org/parser";
 
 /**
@@ -138,19 +139,4 @@ function concatFragments(fragments) {
         off += p.length;
     }
     return out;
-}
-
-function encodeBase64(uint8) {
-    if (typeof Buffer !== "undefined") {
-        return Buffer.from(
-            uint8.buffer,
-            uint8.byteOffset,
-            uint8.byteLength
-        ).toString("base64");
-    }
-    let binary = "";
-    for (let i = 0; i < uint8.length; i++) {
-        binary += String.fromCharCode(uint8[i]);
-    }
-    return btoa(binary);
 }

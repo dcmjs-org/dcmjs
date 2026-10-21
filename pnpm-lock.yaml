@@ -26,12 +26,21 @@ importers:
       '@babel/runtime-corejs3':
         specifier: 7.29.2
         version: 7.29.2
+      '@dcmjs-org/core':
+        specifier: workspace:*
+        version: link:packages/core
       '@dcmjs-org/encapsulated':
         specifier: workspace:*
         version: link:packages/encapsulated
+      '@dcmjs-org/fhir':
+        specifier: workspace:*
+        version: link:packages/fhir
       '@dcmjs-org/imaging':
         specifier: workspace:*
         version: link:packages/imaging
+      '@dcmjs-org/parser':
+        specifier: workspace:*
+        version: link:packages/parser
       '@dcmjs-org/video':
         specifier: workspace:*
         version: link:packages/video
@@ -178,6 +187,22 @@ importers:
       '@dcmjs-org/core':
         specifier: workspace:*
         version: link:../core
+
+  packages/fhir:
+    dependencies:
+      '@dcmjs-org/core':
+        specifier: workspace:*
+        version: link:../core
+      '@dcmjs-org/encapsulated':
+        specifier: workspace:*
+        version: link:../encapsulated
+    devDependencies:
+      '@dcmjs-org/legacy':
+        specifier: workspace:*
+        version: link:../legacy
+      '@dcmjs-org/parser':
+        specifier: workspace:*
+        version: link:../parser
 
   packages/fixtures: {}
 

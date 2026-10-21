@@ -1,7 +1,7 @@
 // The public surface of @dcmjs-org/encapsulated: the generic Encapsulated
 // Document builder, its base blocks, and the Encapsulated PDF builder and
 // extractor. The other document types (CDA, STL, OBJ, MTL) share this package.
-export { encapsulate } from "./encapsulate.js";
+export { encapsulate, extractEncapsulated } from "./encapsulate.js";
 export {
     encapsulatedDocumentBase,
     encapsulatedBase

@@ -11,6 +11,7 @@ import {
     encapsulatedPdfBase,
     pdfBase,
     encapsulatePdf,
+    extractEncapsulated,
     extractEncapsulatedPdf
 } from "../src/index.js";
 import {
@@ -122,4 +123,23 @@ describe("encapsulate — the generic builder", () => {
         expect(bytesToString(extracted.bytes)).toBe(PDF_STRING);
         expect(extracted.title).toBe("Discharge Summary");
     });
+});
+
+describe("extractEncapsulated — no EncapsulatedDocumentLength", () => {
+    const evenWithTrailingZero = Uint8Array.from([0x50, 0x00]).buffer;
+
+    it.each([
+        ["text/xml", 1],
+        [undefined, 1],
+        ["model/stl", 2]
+    ])(
+        "MIME type %s keeps %i byte(s): only a text or PDF type loses the pad",
+        (mimeType, expectedLength) => {
+            const bytes = extractEncapsulated({
+                MIMETypeOfEncapsulatedDocument: mimeType,
+                EncapsulatedDocument: evenWithTrailingZero
+            });
+            expect(bytes.byteLength).toBe(expectedLength);
+        }
+    );
 });

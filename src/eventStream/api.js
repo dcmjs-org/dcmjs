@@ -8,6 +8,7 @@ import { fromDicomWebJson } from "./fromDicomWebJson.js";
 import { fromDataSet } from "./fromDataSet.js";
 import { createEventAsyncIterable } from "./asyncIterator.js";
 import { datasetToDict } from "../datasetToBlob.js";
+import { dicomDictFromFhir } from "./fromFhir.js";
 import {
     encapsulatePdf,
     extractEncapsulatedPdf
@@ -17,6 +18,7 @@ import {
     createVideoEventSource,
     extractEncapsulatedVideo
 } from "@dcmjs-org/video";
+import { toFhir as mapToFhir } from "@dcmjs-org/fhir";
 
 /**
  * The recommended public source/sink API (spec §32) — thin, ergonomic wrappers
@@ -31,15 +33,16 @@ import {
  * `events.process(listener)`.
  *
  * Scope: the byte, dataset, and DICOMweb JSON sources and sinks (the core
- * wave), plus the media factories (fromImage, fromPdf, fromVideo,
- * fromVideoStream, toPdf, toVideo — this wave). The FHIR pair (fromFhir,
- * toFhir) lands with the FHIR wave.
+ * wave), the media factories (fromImage, fromPdf, fromVideo,
+ * fromVideoStream, toPdf, toVideo — the media wave), and the FHIR pair
+ * (fromFhir, toFhir — this wave).
  *
  * The media source factories pass `options` unchanged to their builder,
  * which takes the `createInstance` options of `@dcmjs-org/core` (`instance`,
  * `dataLevel`, `levels`, `predecessor`, `postProcess`, `baseDicom`,
  * `overrides`). The DICOM attributes go in `overrides`, for example
  * `fromPdf(bytes, { instance, overrides: { DocumentTitle: "Report" } })`.
+ * fromFhir takes the same options plus `patient`.
  */
 export class DicomEventStream {
     /**
@@ -139,6 +142,38 @@ export class DicomEventStream {
         return new DicomEventStream(listener =>
             fromDataSet(dicomDict, listener)
         );
+    }
+
+    /**
+     * A content-carrying FHIR resource source: a DocumentReference or
+     * Media whose attachment embeds inline data (or a Bundle holding one,
+     * plus optionally a Patient for demographics). An embedded PDF becomes
+     * an Encapsulated PDF instance; an embedded JPEG (the key-image case)
+     * is carried verbatim as encapsulated PixelData — JPEG is a DICOM
+     * transfer syntax, so only the frame header is read, never the pixels.
+     * Context-only resources are rejected with corrective errors.
+     *
+     * Lazy like fromVideo (finding 14): the dataset is built on the first
+     * consumption and cached — so a bad resource cannot throw from the
+     * factory before the caller drives the stream (the corrective error
+     * surfaces from .process() or whichever sink runs first), while
+     * minted UIDs stay stable across re-runs of the same stream.
+     *
+     * @experimental Preliminary: the options and the behaviour can change in
+     *   a minor release (packages/fhir/README.md).
+     * @param {Object} resource - DocumentReference | Media | Bundle
+     * @param {Object} [options] - `patient` (a FHIR Patient) plus the
+     *   createInstance options; see dicomDictFromFhir
+     * @returns {DicomEventStream}
+     */
+    static fromFhir(resource, options = {}) {
+        let dicomDict = null;
+        return new DicomEventStream(async listener => {
+            if (!dicomDict) {
+                ({ dicomDict } = dicomDictFromFhir(resource, options));
+            }
+            return fromDataSet(dicomDict, listener);
+        });
     }
 
     /**
@@ -261,6 +296,21 @@ export class DicomEventStream {
         const collector = new CollectorListener();
         await this._run(collector);
         return collector.result;
+    }
+
+    /**
+     * Map this instance to FHIR resources (@dcmjs-org/fhir toFhir over the
+     * naturalized dataset): { patient, imagingStudy, documentReference }.
+     * Covers ONE instance — aggregating a whole study into a single
+     * ImagingStudy is a multi-stream operation: collect naturalized
+     * datasets and use fhir.imagingStudyFromDatasets / fhir.toBundle.
+     *
+     * @experimental Preliminary: the output shape can change in a minor
+     *   release (packages/fhir/README.md).
+     * @param {Object} [options] - toFhir options (fhirVersion, subject, ...)
+     */
+    async toFhir(options = {}) {
+        return mapToFhir(await this.toNaturalized(), options);
     }
 
     /**

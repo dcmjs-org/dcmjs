@@ -10,6 +10,8 @@ is encapsulated _pixel data_, not a document — it lives in
     `createInstance` from `@dcmjs-org/core`, then sets the document payload.
 -   `encapsulatePdf(pdfBytes, options)` — checks the PDF magic, then calls
     `encapsulate` with `encapsulatedPdfBase`.
+-   `extractEncapsulated(dataset)` — recovers the document bytes of any
+    encapsulated document type, without a SOP class check.
 -   `extractEncapsulatedPdf(dataset)` — recovers the PDF bytes, MIME type, and
     document title from a parsed (naturalized) Encapsulated PDF instance.
 -   `ENCAPSULATED_PDF_SOP_CLASS_UID` and `PDF_MIME_TYPE` — the constants of
@@ -46,9 +48,11 @@ approach, and can change freely. Do not renumber an identifier.
 -   **ENC-USR-5** When an inherited `Modality` differs from the base
     `Modality` (`DOC` for PDF), and `overrides` does not give `Modality`, the
     builder logs a warning and keeps the inherited value (CORE-USR-10).
--   **ENC-USR-6** `extractEncapsulatedPdf` returns the bytes that were
-    encapsulated, byte for byte. This rule also applies to an even-length
-    document that ends in a zero byte.
+-   **ENC-USR-6** `extractEncapsulatedPdf` and `extractEncapsulated` return
+    the bytes that were encapsulated, byte for byte. This rule also applies
+    to an even-length document that ends in a zero byte. `extractEncapsulated`
+    returns `null` when the dataset holds no bytes (no
+    `EncapsulatedDocument`, or a reference such as `{ BulkDataURI }`).
 -   **ENC-USR-9** With the default levels, the result does not get the
     `SOPInstanceUID`, `SOPClassUID`, `InstanceNumber`,
     `MediaStorageSOPInstanceUID`, or `MediaStorageSOPClassUID` of `instance`
@@ -103,7 +107,9 @@ reserved:
 -   **ENC-IMP-8** `EncapsulatedDocumentLength (0042,0015)` records the exact
     length, and extraction slices to it. Without the element, extraction
     removes one NUL at the end of an even-length payload, as the pad byte of
-    the writer.
+    the writer, only for a type whose content never ends in a NUL: PDF, a
+    `text/*` or XML type, `model/obj`, `model/mtl`, or no MIME type. A
+    binary type (for example `model/stl`) keeps every byte.
 -   **ENC-IMP-9** The Encapsulated Document module does not define
     `PredecessorDocumentsSequence`, but does not forbid it. The attribute is a
     Standard Extended SOP Class attribute (CORE-IMP-8).
