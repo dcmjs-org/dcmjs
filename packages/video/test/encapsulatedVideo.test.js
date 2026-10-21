@@ -14,7 +14,6 @@ import {
     VIDEO_PHOTOGRAPHIC_SOP_CLASS_UID,
     DEFAULT_FRAGMENT_BYTES
 } from "../src/encapsulated/encapsulatedVideo.js";
-import { log } from "@dcmjs-org/core";
 import { parseMp4Info } from "../src/image/mp4Info.js";
 import { makeTinyMp4 } from "./utils/makeTinyMp4.js";
 
@@ -26,8 +25,7 @@ describe("buildVideoDataset", () => {
         info = await parseMp4Info(makeTinyMp4());
     });
 
-    it("joins the study of a source instance, and only attributes reach the dataset", () => {
-        const warn = jest.spyOn(log, "warn").mockImplementation(() => {});
+    it("joins the study of a source instance, and control keys stay out", () => {
         const source = {
             PatientID: "JD-001",
             StudyInstanceUID: "2.25.1",
@@ -39,9 +37,8 @@ describe("buildVideoDataset", () => {
         const dataset = buildVideoDataset(info, {
             instance: source,
             predecessor: true,
-            Rows: 1,
             fragmentBytes: 2,
-            onProgress: () => {}
+            overrides: { Rows: 1 }
         });
         expect(dataset.PatientID).toBe("JD-001");
         expect(dataset.StudyInstanceUID).toBe("2.25.1");
@@ -52,18 +49,11 @@ describe("buildVideoDataset", () => {
         ).toBe("2.25.3");
         expect(dataset.Rows).toBe(48);
         expect(dataset.fragmentBytes).toBeUndefined();
-        expect(dataset.onProgress).toBeUndefined();
-        expect(warn).toHaveBeenCalledTimes(1);
-        expect(warn).toHaveBeenCalledWith(
-            expect.stringMatching(/"onProgress" is not a DICOM attribute/)
-        );
-        warn.mockRestore();
     });
 
     it("mirrors the Supplement 225 reference element list", () => {
         const dataset = buildVideoDataset(info, {
-            PatientName: "DOE^JANE",
-            PatientID: "JD-001"
+            overrides: { PatientName: "DOE^JANE", PatientID: "JD-001" }
         });
         expect(dataset.SOPClassUID).toBe(VIDEO_PHOTOGRAPHIC_SOP_CLASS_UID);
         expect(dataset.Modality).toBe("XC");
@@ -96,11 +86,20 @@ describe("buildVideoDataset", () => {
         const b = buildVideoDataset(info);
         expect(a.SOPInstanceUID).not.toBe(b.SOPInstanceUID);
         const pinned = buildVideoDataset(info, {
-            StudyInstanceUID: "1.2.3.4",
-            SeriesInstanceUID: "1.2.3.4.5"
+            overrides: {
+                StudyInstanceUID: "1.2.3.4",
+                SeriesInstanceUID: "1.2.3.4.5"
+            }
         });
         expect(pinned.StudyInstanceUID).toBe("1.2.3.4");
         expect(pinned.SeriesInstanceUID).toBe("1.2.3.4.5");
+        // API: an _meta key other than TransferSyntaxUID stays (VID-USR-2).
+        const meta = buildVideoDataset(info, {
+            overrides: {
+                _meta: { ImplementationVersionName: { Value: ["X"] } }
+            }
+        });
+        expect(meta._meta.ImplementationVersionName).toEqual({ Value: ["X"] });
     });
 
     it("throws the transcode corrective error for unsupported codecs", async () => {

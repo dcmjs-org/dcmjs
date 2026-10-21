@@ -12,21 +12,23 @@ is encapsulated _pixel data_, not a document — it lives in
     `encapsulate` with `encapsulatedPdfBase`.
 -   `extractEncapsulatedPdf(dataset)` — recovers the PDF bytes, MIME type, and
     document title from a parsed (naturalized) Encapsulated PDF instance.
+-   `ENCAPSULATED_PDF_SOP_CLASS_UID` and `PDF_MIME_TYPE` — the constants of
+    the PDF base, for `mimeType` and for a custom base.
 
 ```js
 const pdfInstance = encapsulatePdf(pdfBytes, {
     instance: existingNaturalizedInstance, // or an array (CORE-USR-14)
     dataLevel: "study", // the default
-    DocumentTitle: "Discharge Summary"
+    overrides: { DocumentTitle: "Discharge Summary" }
 });
 ```
 
 ## Scope and change rule
 
 The options and the merge of `encapsulate` follow the shared requirements of
-`createInstance`: CORE-USR-1 to CORE-USR-14 and CORE-IMP-1 to CORE-IMP-10 in
-`packages/core/README.md`. This README lists only the requirements of this
-package.
+`createInstance`: CORE-USR-1 to CORE-USR-15 and CORE-IMP-1 to CORE-IMP-11 in
+`packages/core/README.md` (CORE-IMP-10 is removed). This README lists only
+the requirements of this package.
 
 The change rule of the core README applies. Change a user requirement
 (ENC-USR-n) only when it describes the behaviour wrongly, or when the
@@ -36,28 +38,43 @@ approach, and can change freely. Do not renumber an identifier.
 
 ## § User requirements
 
--   **ENC-USR-4** The MIME type is `mimeType`, else the override or inherited
-    `MIMETypeOfEncapsulatedDocument`, else the base value. The control key
-    `mimeType` replaces an override of `MIMETypeOfEncapsulatedDocument`.
+-   **ENC-USR-4** The MIME type is `mimeType`, else the
+    `MIMETypeOfEncapsulatedDocument` override, else the inherited value,
+    else the base value. The option `mimeType` replaces the
+    `MIMETypeOfEncapsulatedDocument` override, from each form of `overrides`
+    (an object, a function, an array, or a combined block).
 -   **ENC-USR-5** When an inherited `Modality` differs from the base
-    `Modality` (`DOC` for PDF), the builder logs a warning and keeps the
-    inherited value (CORE-USR-10).
+    `Modality` (`DOC` for PDF), and `overrides` does not give `Modality`, the
+    builder logs a warning and keeps the inherited value (CORE-USR-10).
 -   **ENC-USR-6** `extractEncapsulatedPdf` returns the bytes that were
     encapsulated, byte for byte. This rule also applies to an even-length
     document that ends in a zero byte.
--   **ENC-USR-9** The result never gets the `SOPInstanceUID`, `SOPClassUID`,
-    `InstanceNumber`, `MediaStorageSOPInstanceUID`, or
-    `MediaStorageSOPClassUID` of `instance`, also with a custom `levels`
-    (CORE-USR-4). An override sets a value of the identity. Without an
-    override, the base blocks set the identity: a new `SOPInstanceUID`, the
+-   **ENC-USR-9** With the default levels, the result does not get the
+    `SOPInstanceUID`, `SOPClassUID`, `InstanceNumber`,
+    `MediaStorageSOPInstanceUID`, or `MediaStorageSOPClassUID` of `instance`
+    (CORE-USR-4). A custom `levels` copies each of these keywords that it
+    lists. The base blocks set the identity: a new `SOPInstanceUID`, the
     `SOPClassUID` of the document class (Encapsulated PDF for
-    `encapsulatedPdfBase`), and the `InstanceNumber` of CORE-USR-5.
+    `encapsulatedPdfBase`), and the `InstanceNumber` of CORE-USR-5. A copied
+    value and an override replace a base value (CORE-USR-6).
 -   **ENC-USR-10** The payload attributes are `EncapsulatedDocument` and
     `EncapsulatedDocumentLength`. `encapsulate` sets them from `bytes` after
     `createInstance`, and replaces an override of them. `encapsulate` adds
     `EncapsulatedDocument: "OB"` to the `_vrMap` of the result, and keeps the
-    other `_vrMap` entries. The only control key of `encapsulate` is
-    `mimeType` (CORE-USR-1).
+    other `_vrMap` entries. The result `_meta` is a copy of the merged
+    `_meta`, and `encapsulate` changes no `_meta` key (CORE-USR-13). The
+    only control key of `encapsulate` is `mimeType` (CORE-USR-1).
+-   **ENC-USR-11** The functions throw an error for these input values
+    (CORE-IMP-11):
+
+    -   `encapsulatePdf`: bytes that do not start with the PDF magic
+        `%PDF-`.
+    -   `extractEncapsulatedPdf`: a dataset that is not an Encapsulated PDF.
+        The dataset must have the Encapsulated PDF `SOPClassUID` or the MIME
+        type `application/pdf`, and an `EncapsulatedDocument`.
+
+    The input types of the bytes are an `ArrayBuffer` and a typed-array
+    view (CORE-USR-7).
 
 These user requirements moved to `@dcmjs-org/core`. The identifiers stay
 reserved:
@@ -91,7 +108,8 @@ reserved:
     `PredecessorDocumentsSequence`, but does not forbid it. The attribute is a
     Standard Extended SOP Class attribute (CORE-IMP-8).
 -   **ENC-IMP-10** `encapsulate` removes its control key `mimeType` before it
-    calls `createInstance` (CORE-IMP-9).
+    calls `createInstance` (CORE-IMP-9), and passes `overrides` and
+    `postProcess` through.
 
 These implementation requirements moved to `@dcmjs-org/core`:
 

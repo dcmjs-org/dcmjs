@@ -1,10 +1,9 @@
 // packages/core/src/utilities/createInstance.js
 //
 // Build a naturalized instance from base blocks, context inherited from a
-// source instance, and explicit overrides.
+// source instance, and overrides.
 
 import { DicomMetaDictionary } from "../DicomMetaDictionary.js";
-import { lookupRegisteredTagByName } from "../dictionary.fast.js";
 import { EXPLICIT_LITTLE_ENDIAN } from "../constants/dicom.js";
 import log from "../log.js";
 import {
@@ -29,13 +28,35 @@ export function combineBases(...items) {
     return combined;
 }
 
-/** Resolve one base item to a fresh plain object for this context. */
+/** True for an object whose prototype is `Object.prototype` (any realm). */
+function isPlainObject(value) {
+    if (typeof value !== "object" || value === null) {
+        return false;
+    }
+    const proto = Object.getPrototypeOf(value);
+    return proto === null || Object.getPrototypeOf(proto) === null;
+}
+
+/**
+ * Resolve one naturalized DICOM provider to a fresh plain object for this
+ * context (CORE-IMP-2). A provider is a plain object, a function
+ * `(context) => provider`, an array of providers (a later entry wins), or a
+ * block from {@link combineBases}. `undefined` and `null` give `{}`. Each
+ * other value is copied into a new object (CORE-IMP-11).
+ *
+ * @param {Object|Function|Array|undefined|null} item - the provider
+ * @param {Object} context - the context of {@link createInstance}
+ * @returns {Object}
+ */
 export function resolveBase(item, context) {
     if (item === undefined || item === null) {
         return {};
     }
     if (Array.isArray(item)) {
-        return combineBases(...item)(context);
+        return Object.assign(
+            {},
+            ...item.map(entry => resolveBase(entry, context))
+        );
     }
     if (typeof item === "function") {
         return resolveBase(item(context), context);
@@ -106,33 +127,18 @@ function integerValue(value) {
 }
 
 /**
- * The InstanceNumber after the prior instances in the target series
- * (CORE-USR-5). An item counts when its `SeriesInstanceUID` is the target
- * series; an item without one counts only when the target series is the
- * series of the first item.
+ * The InstanceNumber of the sample instance + 1 when the series is inherited,
+ * else 1 (CORE-USR-5). The sample is `instance`, or its first item when
+ * `instance` is an array. A sample value that is not an integer, is negative,
+ * or is at the IS maximum gives 1.
  */
 function nextInstanceNumber(context = {}) {
     if (!context.inherits?.("series")) {
         return 1;
     }
-    const instances = [].concat(context.instance);
-    const inheritedSeries = instances[0]?.SeriesInstanceUID;
-    const override = context.options?.SeriesInstanceUID;
-    const hasOverride = override !== undefined && override !== null;
-    const series = hasOverride ? override : inheritedSeries;
-    const sameAsFirst = !hasOverride || override === inheritedSeries;
-    let max;
-    for (const instance of instances) {
-        const other = instance?.SeriesInstanceUID;
-        if (other ? other !== series : !sameAsFirst) {
-            continue;
-        }
-        const value = integerValue(instance?.InstanceNumber);
-        if (value >= 0 && (max === undefined || value > max)) {
-            max = value;
-        }
-    }
-    return max !== undefined && max < IS_MAX ? max + 1 : 1;
+    const sample = [].concat(context.instance)[0];
+    const value = integerValue(sample?.InstanceNumber);
+    return value >= 0 && value < IS_MAX ? value + 1 : 1;
 }
 
 /** Instance: a new SOP instance and the encoding defaults. */
@@ -275,20 +281,21 @@ export function nextSeriesNumberBase(seriesList, filter = () => true) {
 }
 
 /**
- * True for a key that can be a dataset attribute: a dictionary keyword, a
- * keyword added with `registerTag`, an 8-hex-digit tag, or an `_` key such as
- * `_meta` or `_vrMap`.
+ * The default `postProcess` of {@link createInstance} (CORE-USR-15). It
+ * deletes each top-level key whose value is `undefined`, and returns the same
+ * dataset. It does not change nested values: the items of a sequence keep
+ * their `undefined` values.
+ *
+ * @param {Object} dataset - a naturalized dataset
+ * @returns {Object} the same dataset
  */
-function isAttributeKey(key) {
-    return (
-        key.startsWith("_") ||
-        /^[0-9A-Fa-f]{8}$/.test(key) ||
-        Object.prototype.hasOwnProperty.call(
-            DicomMetaDictionary.nameMap,
-            key
-        ) ||
-        lookupRegisteredTagByName(key) !== undefined
-    );
+export function removeUndefinedAttributes(dataset) {
+    for (const key of Object.keys(dataset)) {
+        if (dataset[key] === undefined) {
+            delete dataset[key];
+        }
+    }
+    return dataset;
 }
 
 // Attributes where an inherited value that differs from the base is legal
@@ -296,72 +303,64 @@ function isAttributeKey(key) {
 const CONSISTENCY_KEYS = ["Modality"];
 
 /**
- * The identity of the source instance itself (CORE-USR-4). `createInstance`
- * never inherits these from `instance`, whatever `levels` lists; an override
- * or the base blocks set them.
- */
-const INSTANCE_IDENTITY_KEYS = Object.freeze([
-    "SOPInstanceUID",
-    "SOPClassUID",
-    "InstanceNumber",
-    "MediaStorageSOPInstanceUID",
-    "MediaStorageSOPClassUID"
-]);
-
-/**
- * True when an instance is DICOM JSON (CORE-IMP-10): every key is an
- * 8-hex-digit tag, and at least one value is an object with `vr`. A
- * naturalized dataset has keyword keys, also when it keeps a private element
- * as `{ vr, Value }` under its tag.
- */
-function isDicomJson(instance) {
-    const keys = Object.keys(instance);
-    return (
-        keys.length > 0 &&
-        keys.every(key => /^[0-9A-Fa-f]{8}$/.test(key)) &&
-        keys.some(key => {
-            const value = instance[key];
-            return (
-                value !== null &&
-                typeof value === "object" &&
-                !Array.isArray(value) &&
-                "vr" in value
-            );
-        })
-    );
-}
-
-/**
  * Create a naturalized instance. The user requirements are CORE-USR-1 to
- * CORE-USR-14 in `packages/core/README.md`; the implementation requirements
+ * CORE-USR-15 in `packages/core/README.md`; the implementation requirements
  * are CORE-IMP-n there. The merge is
  *
  *     baseDicom  <  inherited  <  overrides
  *
- * - `baseDicom` is a base block (see {@link combineBases}). Function blocks
- *   get a context: `{ dataLevel, levels, instance, predecessor,
- *   inherits(levelName), date, time, dateTime, options }`, where
- *   `inherits(name)` is true when the level comes from `instance`.
- * - `inherited` is `copyAttributesByLevel(instance, dataLevel)` without the
- *   identity of `instance` (CORE-USR-4). Its object values are shared with
- *   `instance` (CORE-IMP-6).
- * - `overrides` is every other option that is a DICOM attribute: a
- *   dictionary keyword, a `registerTag` keyword, an 8-hex-digit tag, or an
- *   `_` key (CORE-USR-7, CORE-USR-8). An 8-hex key needs a `_vrMap` entry;
- *   the hex form of a standard tag does not replace its keyword form.
+ * - `baseDicom` is a naturalized DICOM provider: a base block (see
+ *   {@link combineBases}). Function blocks get a context: `{ dataLevel,
+ *   levels, instance, predecessor, inherits(levelName), date, time,
+ *   dateTime, options }`, where `inherits(name)` is true when the level
+ *   comes from `instance`.
+ * - `inherited` is `copyAttributesByLevel(instance, dataLevel, { levels })`.
+ *   The default levels hold no identity of `instance` (CORE-USR-4). Its
+ *   object values are shared with `instance` (CORE-IMP-6).
+ * - `overrides` is a naturalized DICOM provider with the same forms as
+ *   `baseDicom`. `resolveBase(options.overrides, context)` resolves it. Each
+ *   key goes into the merge (CORE-USR-7), also a key with an `undefined`
+ *   value. An 8-hex key needs a `_vrMap` entry; the hex form of a standard
+ *   tag does not replace its keyword form.
+ *
+ * The resolution order (CORE-IMP-1): the context is built first; then
+ * `baseDicom` resolves, then `overrides` resolves once, with the same
+ * context. Then the merge runs, and then `postProcess(result, context)`.
+ * The return value of `postProcess` is the return value of `createInstance`.
+ * The default `postProcess` is {@link removeUndefinedAttributes}, so an
+ * `undefined` value removes the attribute (CORE-USR-8). Use `""` or `null`
+ * for a Type 2 empty value.
+ *
+ * The options object holds the control keys below; attributes go in
+ * `overrides`. Another top-level key has no effect (CORE-USR-7). An unknown
+ * `dataLevel` throws (CORE-USR-3).
  *
  * With `dataLevel: "series"` (or a deeper custom level), `instance` is the
- * prior instance in the series (CORE-USR-5).
+ * sample instance in the series, and the new InstanceNumber is the sample
+ * InstanceNumber + 1 (CORE-USR-5).
+ *
+ * @example
+ * createInstance({
+ *     instance: prior,
+ *     dataLevel: "series",
+ *     overrides: { SeriesDescription: "Report" }
+ * });
  *
  * @param {Object} [options]
  * @param {*} [options.baseDicom=defaultInstanceBase]
- * @param {Object|Object[]} [options.instance] - naturalized source instance(s);
- *   DICOM JSON throws (naturalize it first with
- *   `DicomMetaDictionary.naturalizeDataset`)
+ * @param {Object|Object[]} [options.instance] - naturalized source
+ *   instance(s); naturalize DICOM JSON first with
+ *   `DicomMetaDictionary.naturalizeDataset`
  * @param {string} [options.dataLevel="study"]
  * @param {Object[]} [options.levels=DATA_LEVELS]
  * @param {boolean} [options.predecessor=false] - reference each `instance` as
  *   a predecessor (see {@link predecessorBase})
+ * @param {Object|Function|Array} [options.overrides] - a naturalized DICOM
+ *   provider (the forms of `baseDicom`) whose attributes replace the base and
+ *   inherited values
+ * @param {Function} [options.postProcess=removeUndefinedAttributes] -
+ *   `(dataset, context) => dataset`, called on the merged result; its
+ *   return value is the result (CORE-USR-15)
  * @returns {Object} naturalized dataset
  */
 export function createInstance(options = {}) {
@@ -371,33 +370,8 @@ export function createInstance(options = {}) {
         dataLevel = "study",
         levels = DATA_LEVELS,
         predecessor = false,
-        ...rest
+        postProcess = removeUndefinedAttributes
     } = options;
-
-    const overrides = {};
-    for (const key of Object.keys(rest)) {
-        if (rest[key] === undefined) {
-            continue;
-        }
-        if (isAttributeKey(key)) {
-            overrides[key] = rest[key];
-        } else {
-            log.warn(
-                `createInstance: option "${key}" is not a DICOM attribute ` +
-                    `and is not written to the dataset`
-            );
-        }
-    }
-
-    for (const item of [].concat(instance ?? [])) {
-        if (item && typeof item === "object" && isDicomJson(item)) {
-            throw new Error(
-                "createInstance: instance is DICOM JSON (tag keys with " +
-                    "{ vr, Value }); naturalize it first with " +
-                    "DicomMetaDictionary.naturalizeDataset"
-            );
-        }
-    }
 
     const levelIndex = dataLevelIndex(dataLevel, levels);
     const hasInstance = instance !== undefined && instance !== null;
@@ -417,16 +391,13 @@ export function createInstance(options = {}) {
     };
 
     const base = resolveBase(baseDicom, context);
+    const overrides = resolveBase(options.overrides, context);
     const inherited = copyAttributesByLevel(instance, dataLevel, { levels });
-    for (const key of INSTANCE_IDENTITY_KEYS) {
-        delete inherited[key];
-    }
-
     for (const key of CONSISTENCY_KEYS) {
         if (
             base[key] &&
             inherited[key] &&
-            !overrides[key] &&
+            !Object.hasOwn(overrides, key) &&
             base[key] !== inherited[key]
         ) {
             log.warn(
@@ -436,5 +407,14 @@ export function createInstance(options = {}) {
         }
     }
 
-    return { ...base, ...inherited, ...overrides };
+    const result = { ...base, ...inherited, ...overrides };
+    // An `_meta` override merges key by key (CORE-USR-6).
+    if (isPlainObject(overrides._meta)) {
+        result._meta = {
+            ...(isPlainObject(base._meta) ? base._meta : {}),
+            ...(isPlainObject(inherited._meta) ? inherited._meta : {}),
+            ...overrides._meta
+        };
+    }
+    return postProcess(result, context);
 }

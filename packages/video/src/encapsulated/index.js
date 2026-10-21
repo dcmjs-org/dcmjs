@@ -6,7 +6,6 @@ import {
     buildVideoDataset,
     encapsulateVideo,
     extractEncapsulatedVideo,
-    normalizeFragmentBytes,
     VIDEO_PHOTOGRAPHIC_SOP_CLASS_UID,
     DEFAULT_FRAGMENT_BYTES
 } from "./encapsulatedVideo.js";
@@ -17,7 +16,6 @@ export {
     buildVideoDataset,
     encapsulateVideo,
     extractEncapsulatedVideo,
-    normalizeFragmentBytes,
     VIDEO_PHOTOGRAPHIC_SOP_CLASS_UID,
     DEFAULT_FRAGMENT_BYTES
 };

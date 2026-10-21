@@ -12,7 +12,6 @@ import {
     defaultInstanceBase,
     nextSeriesNumberBase,
     predecessorBase,
-    registerTag,
     log
 } from "../src/index.js";
 
@@ -66,39 +65,58 @@ describe("createInstance", () => {
         expect(ds.SeriesDescription).toBe("AX T1");
         expect(ds.SOPInstanceUID).not.toBe("1.2.3.4.5.6.7.100");
         expect(warn).toHaveBeenCalledWith(expect.stringMatching(/Modality/));
+
+        // An override of any value decides Modality, so no warning.
+        warn.mockClear();
+        createInstance({
+            baseDicom: docBase,
+            instance: source,
+            dataLevel: "series",
+            overrides: { Modality: undefined }
+        });
+        expect(warn).not.toHaveBeenCalled();
         warn.mockRestore();
     });
 
-    it("explicit overrides win, and carry instance-level values", () => {
+    it("overrides win, and carry instance-level values", () => {
         const ds = createInstance({
             instance: source,
-            PatientName: "Override^Name",
-            SeriesNumber: 42,
-            SOPInstanceUID: "1.2.3.4.5.6.7.200"
+            overrides: {
+                PatientName: "Override^Name",
+                SeriesNumber: 42,
+                SOPInstanceUID: "1.2.3.4.5.6.7.200"
+            }
         });
         expect(ds.PatientName).toBe("Override^Name");
         expect(ds.SeriesNumber).toBe(42);
         expect(ds.SOPInstanceUID).toBe("1.2.3.4.5.6.7.200");
+
+        // A _meta override merges into the base _meta.
+        const meta = createInstance({
+            overrides: { _meta: { ImplementationVersionName: "x" } }
+        })._meta;
+        expect(meta.ImplementationVersionName).toBe("x");
+        expect(meta.TransferSyntaxUID.Value[0]).toBe("1.2.840.10008.1.2.1");
     });
 
-    it("writes only DICOM attributes, and warns for any other key", () => {
-        const warn = jest.spyOn(log, "warn").mockImplementation(() => {});
-        registerTag("00111010", { name: "TestRegisteredName", vr: "LO" });
-        const ds = createInstance({
-            PatientID: "P1",
-            "00091010": "private",
-            _vrMap: { "00091010": "LO" },
-            TestRegisteredName: "registered",
-            onProgress: () => {}
+    // API: overrides takes the provider forms of baseDicom (CORE-USR-1).
+    it("resolves overrides as a function of the context and as an array", () => {
+        const fromContext = createInstance({
+            instance: source,
+            overrides: context => ({
+                SeriesDescription: context.inherits("study") ? "same" : "new"
+            })
         });
-        expect(ds.PatientID).toBe("P1");
-        expect(ds["00091010"]).toBe("private");
-        expect(ds.TestRegisteredName).toBe("registered");
-        expect(ds.onProgress).toBeUndefined();
-        expect(warn).toHaveBeenCalledWith(
-            expect.stringMatching(/"onProgress" is not a DICOM attribute/)
-        );
-        warn.mockRestore();
+        expect(fromContext.SeriesDescription).toBe("same");
+
+        const fromArray = createInstance({
+            overrides: [
+                { PatientID: "A", PatientName: "X" },
+                { PatientID: "B" }
+            ]
+        });
+        expect(fromArray.PatientID).toBe("B");
+        expect(fromArray.PatientName).toBe("X");
     });
 
     it("an inherited study or series gets Type 2 empty values, and a source value wins", () => {
@@ -118,37 +136,59 @@ describe("createInstance", () => {
         expect(full.SeriesNumber).toBe(3);
     });
 
-    it("an undefined override keeps the base value; null stays empty", () => {
+    // API: CORE-USR-8 and CORE-USR-15.
+    it("an undefined override removes the attribute; null and '' stay", () => {
         const ds = createInstance({
-            PatientName: undefined,
-            Manufacturer: undefined,
-            StudyID: null
+            overrides: {
+                PatientName: undefined,
+                StudyID: null,
+                AccessionNumber: ""
+            }
         });
-        expect(ds.PatientName).toBe("");
-        expect(ds.Manufacturer).toBe("dcmjs");
+        expect(ds).not.toHaveProperty("PatientName");
         expect(ds.StudyID).toBeNull();
+        expect(ds.AccessionNumber).toBe("");
         expect(
             createInstance({
                 instance: source,
                 dataLevel: "series",
-                SeriesNumber: undefined
-            }).SeriesNumber
-        ).toBe(3);
+                overrides: { SeriesNumber: undefined }
+            })
+        ).not.toHaveProperty("SeriesNumber");
+
+        // A custom postProcess replaces the default, and gets the context.
+        const postProcess = jest.fn(dataset => dataset);
+        const kept = createInstance({
+            dataLevel: "patient",
+            overrides: { PatientName: undefined },
+            postProcess
+        });
+        expect(kept).toHaveProperty("PatientName", undefined);
+        expect(postProcess).toHaveBeenCalledWith(
+            kept,
+            expect.objectContaining({ dataLevel: "patient" })
+        );
     });
 
-    it("never inherits the source identity, also with a custom levels list", () => {
-        const levels = extendDataLevels(DATA_LEVELS, {
-            series: ["SOPInstanceUID", "SOPClassUID", "InstanceNumber"]
-        });
-        const options = { instance: source, dataLevel: "series", levels };
+    // API: the level list decides what is copied (CORE-USR-4).
+    it("the default levels do not copy the source identity", () => {
+        const options = { instance: source, dataLevel: "series" };
         const ds = createInstance(options);
         expect(ds.SOPInstanceUID).not.toBe(source.SOPInstanceUID);
         expect(ds.SOPClassUID).toBeUndefined();
         expect(ds.InstanceNumber).toBe(8);
 
+        // A custom levels list copies what it lists.
+        const levels = extendDataLevels(DATA_LEVELS, {
+            series: ["SOPInstanceUID"]
+        });
+        expect(createInstance({ ...options, levels }).SOPInstanceUID).toBe(
+            source.SOPInstanceUID
+        );
+
         const set = createInstance({
             ...options,
-            SOPInstanceUID: "1.2.3.4.5.6.7.200"
+            overrides: { SOPInstanceUID: "1.2.3.4.5.6.7.200" }
         });
         expect(set.SOPInstanceUID).toBe("1.2.3.4.5.6.7.200");
 
@@ -165,51 +205,28 @@ describe("createInstance", () => {
         ).toBe(source.SOPInstanceUID);
     });
 
-    // User experience: a new instance in a series follows the prior one.
-    it("at 'series', InstanceNumber is the prior InstanceNumber + 1", () => {
+    // User experience: a new instance in a series follows the sample one.
+    it("at 'series', InstanceNumber is the sample InstanceNumber + 1", () => {
         const next = options =>
             createInstance({ instance: source, ...options });
         expect(next({ dataLevel: "series" }).InstanceNumber).toBe(8);
+        // Only the first item is the sample.
         expect(
             next({
-                instance: { ...source, InstanceNumber: ["7"] },
+                instance: [source, { ...source, InstanceNumber: 20 }],
                 dataLevel: "series"
             }).InstanceNumber
         ).toBe(8);
         expect(next({ dataLevel: "study" }).InstanceNumber).toBe(1);
+        const bare = { ...source };
+        delete bare.InstanceNumber;
         expect(
-            next({ dataLevel: "series", InstanceNumber: 3 }).InstanceNumber
-        ).toBe(3);
-        // Several instances: the largest number in the target series.
-        expect(
-            next({
-                instance: [
-                    { ...source, InstanceNumber: 2 },
-                    { ...source, InstanceNumber: 9 },
-                    { ...source, SeriesInstanceUID: "9.9", InstanceNumber: 50 }
-                ],
-                dataLevel: "series"
-            }).InstanceNumber
-        ).toBe(10);
-        // A value outside the IS range does not count; the others do.
-        expect(
-            next({
-                instance: [
-                    { ...source, InstanceNumber: 5 },
-                    { ...source, InstanceNumber: 3e9 }
-                ],
-                dataLevel: "series"
-            }).InstanceNumber
-        ).toBe(6);
-        // A new target series starts at 1, also with an item without a
-        // SeriesInstanceUID.
-        expect(
-            next({
-                instance: { StudyInstanceUID: "1.2.3.4", InstanceNumber: 5 },
-                dataLevel: "series",
-                SeriesInstanceUID: "7.7"
-            }).InstanceNumber
+            next({ instance: bare, dataLevel: "series" }).InstanceNumber
         ).toBe(1);
+        expect(
+            next({ dataLevel: "series", overrides: { InstanceNumber: 3 } })
+                .InstanceNumber
+        ).toBe(3);
         // The IS maximum has no next value.
         expect(
             next({
@@ -217,25 +234,6 @@ describe("createInstance", () => {
                 dataLevel: "series"
             }).InstanceNumber
         ).toBe(1);
-    });
-
-    // API: instance must be naturalized; DICOM JSON gets a clear error.
-    it("rejects a DICOM JSON instance", () => {
-        expect(() =>
-            createInstance({
-                instance: { "0020000D": { vr: "UI", Value: ["1.2.3"] } }
-            })
-        ).toThrow(/DICOM JSON.*naturalizeDataset/);
-        // The parser keeps a private element without a creator as
-        // { vr, Value } in a naturalized dataset.
-        expect(
-            createInstance({
-                instance: {
-                    ...source,
-                    "00191010": { vr: "LO", Value: ["x"] }
-                }
-            }).StudyInstanceUID
-        ).toBe(source.StudyInstanceUID);
     });
 
     it("has no instance level", () => {
@@ -330,6 +328,15 @@ describe("base blocks", () => {
         expect(
             createInstance({ instance: older, predecessor: true })
         ).not.toHaveProperty("PredecessorDocumentsSequence");
+        // API: an instance without SOPInstanceUID throws (CORE-USR-9).
+        const { SOPInstanceUID: _omit, ...noUid } = source;
+        expect(() =>
+            createInstance({
+                baseDicom: base,
+                instance: noUid,
+                predecessor: true
+            })
+        ).toThrow(/missing SOPInstanceUID/);
     });
 
     it("nextSeriesNumberBase counts naturalized and DICOM JSON series", () => {

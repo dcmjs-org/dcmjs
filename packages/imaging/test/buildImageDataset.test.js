@@ -87,15 +87,21 @@ describe("defaults (no instance)", () => {
         }
     });
 
-    test("geometry from the pixels; 8-bit mono", () => {
+    // API: the builder writes only the geometry that the decoded input
+    // gives, and invents no default (IMG-USR-2).
+    test("only the decoded geometry, with no invented defaults", () => {
         expect(dataset.Rows).toBe(4);
         expect(dataset.Columns).toBe(4);
-        expect(dataset.SamplesPerPixel).toBe(1);
-        expect(dataset.PhotometricInterpretation).toBe("MONOCHROME2");
         expect(dataset.BitsAllocated).toBe(8);
-        expect(dataset.BitsStored).toBe(8);
-        expect(dataset.HighBit).toBe(7);
-        expect(dataset.PixelRepresentation).toBe(0);
+        for (const keyword of [
+            "SamplesPerPixel",
+            "PhotometricInterpretation",
+            "BitsStored",
+            "HighBit",
+            "PixelRepresentation"
+        ]) {
+            expect(dataset[keyword]).toBeUndefined();
+        }
         expect(dataset.PlanarConfiguration).toBeUndefined();
         expect(dataset.NumberOfFrames).toBeUndefined();
         expect(dataset._vrMap.PixelData).toBe("OB");
@@ -103,36 +109,83 @@ describe("defaults (no instance)", () => {
     });
 });
 
-describe("geometry always wins", () => {
-    // API: geometry that a custom level inherits from the prior instance
-    // does not reach the result.
-    test("the geometry of the prior instance does not reach the result", () => {
+describe("decoded geometry replaces, absent geometry stays", () => {
+    // User experience: a caller that decodes only the size and the pixels
+    // keeps the photometric attributes of the series or of an override,
+    // and the decoded values replace the overrides (IMG-USR-2).
+    test("decoded Rows/Columns/BitsAllocated replace; the rest stays", () => {
         const dataset = buildImageDataset(grayPixels(4, 4), {
             instance: {
                 StudyInstanceUID: "1.2.3.4",
                 SeriesInstanceUID: "1.2.3.4.1",
                 Rows: 999,
-                NumberOfFrames: 7,
-                PlanarConfiguration: 1
+                PhotometricInterpretation: "MONOCHROME1"
             },
             dataLevel: "series",
             levels: extendDataLevels(DATA_LEVELS, {
-                series: ["Rows", "NumberOfFrames", "PlanarConfiguration"]
-            })
+                series: ["Rows", "PhotometricInterpretation"]
+            }),
+            overrides: {
+                Columns: 8,
+                BitsAllocated: 16,
+                SamplesPerPixel: 1,
+                BitsStored: 7
+            }
         });
-        expect(dataset.Rows).toBe(4);
-        expect(dataset.NumberOfFrames).toBeUndefined();
-        expect(dataset.PlanarConfiguration).toBeUndefined();
+        expect([
+            dataset.Rows,
+            dataset.Columns,
+            dataset.BitsAllocated,
+            dataset.PhotometricInterpretation,
+            dataset.SamplesPerPixel,
+            dataset.BitsStored,
+            dataset.HighBit
+        ]).toEqual([4, 4, 8, "MONOCHROME1", 1, 7, undefined]);
     });
 
-    test("geometry keyword override throws", () => {
-        expect(() => buildImageDataset(grayPixels(), { Rows: 8 })).toThrow(
-            /comes from the decoded image/
+    // API: an override or a base value without a decoded value stays, and
+    // the decoded values replace the base values (IMG-USR-2).
+    test("overrides MONOCHROME1 and BitsStored 12 stay over 16-bit pixels", () => {
+        const dataset = buildImageDataset(
+            { pixels: new Uint16Array(2 * 3), rows: 2, columns: 3 },
+            {
+                baseDicom: combineBases(imageBase, {
+                    Rows: 512,
+                    BitsAllocated: 8,
+                    SamplesPerPixel: 1,
+                    PixelRepresentation: 0
+                }),
+                overrides: {
+                    PhotometricInterpretation: "MONOCHROME1",
+                    BitsStored: 12
+                }
+            }
         );
+        expect([
+            dataset.Rows,
+            dataset.Columns,
+            dataset.BitsAllocated,
+            dataset.PhotometricInterpretation,
+            dataset.BitsStored,
+            dataset.SamplesPerPixel,
+            dataset.PixelRepresentation,
+            dataset.HighBit,
+            dataset._vrMap.PixelData
+        ]).toEqual([2, 3, 16, "MONOCHROME1", 12, 1, 0, undefined, "OW"]);
+    });
+
+    // API: the checks use the final values, also the values of overrides.
+    test("an override SamplesPerPixel that disagrees with the pixels throws", () => {
+        expect(() =>
+            buildImageDataset(grayPixels(4, 4), {
+                overrides: { SamplesPerPixel: 3 }
+            })
+        ).toThrow(/16 bytes but 4x4x3 at 8 bits needs 48/);
     });
 });
 
 describe("16-bit and color", () => {
+    // API: a decoded bitsStored without highBit gives HighBit = bitsStored - 1.
     test("Uint16Array yields 16-bit OW", () => {
         const dataset = buildImageDataset({
             pixels: new Uint16Array(4 * 4),
@@ -153,6 +206,14 @@ describe("16-bit and color", () => {
             columns: 2
         });
         expect(dataset.PixelRepresentation).toBe(1);
+        // API: a signed 32-bit array is also signed (IMG-USR-2).
+        expect(
+            buildImageDataset({
+                pixels: new Int32Array(4),
+                rows: 2,
+                columns: 2
+            }).PixelRepresentation
+        ).toBe(1);
     });
 
     test("RGB emits PlanarConfiguration", () => {
@@ -160,7 +221,9 @@ describe("16-bit and color", () => {
             pixels: new Uint8Array(2 * 2 * 3),
             rows: 2,
             columns: 2,
-            samplesPerPixel: 3
+            samplesPerPixel: 3,
+            photometricInterpretation: "RGB",
+            planarConfiguration: 0
         });
         expect(dataset.PhotometricInterpretation).toBe("RGB");
         expect(dataset.PlanarConfiguration).toBe(0);
@@ -173,7 +236,8 @@ describe("validation", () => {
             buildImageDataset({
                 pixels: new Uint8Array(10),
                 rows: 4,
-                columns: 4
+                columns: 4,
+                samplesPerPixel: 1
             })
         ).toThrow(/10 bytes but 4x4x1 at 8 bits needs 16/);
     });
@@ -187,6 +251,14 @@ describe("validation", () => {
                 bitsAllocated: 16
             })
         ).toThrow(/does not match the 8-bit typed array/);
+        // API: float pixels throw, and write no integer pixels (IMG-USR-9).
+        expect(() =>
+            buildImageDataset({
+                pixels: new Float32Array(4),
+                rows: 2,
+                columns: 2
+            })
+        ).toThrow(/needs an integer typed array/);
     });
 
     test("photometric vs samplesPerPixel mismatch throws", () => {
@@ -195,6 +267,7 @@ describe("validation", () => {
                 pixels: new Uint8Array(16),
                 rows: 4,
                 columns: 4,
+                samplesPerPixel: 1,
                 photometricInterpretation: "RGB"
             })
         ).toThrow(/RGB requires samplesPerPixel 3/);
@@ -217,12 +290,25 @@ describe("overrides", () => {
     test("keyword overrides beat instance", () => {
         const dataset = buildImageDataset(grayPixels(), {
             instance: { PatientID: "998877", StudyInstanceUID: "1.2.3.4" },
-            PatientID: "22446688",
-            PatientName: "FOX^JANE"
+            overrides: { PatientID: "22446688", PatientName: "FOX^JANE" }
         });
         expect(dataset.StudyInstanceUID).toBe("1.2.3.4");
         expect(dataset.PatientID).toBe("22446688");
         expect(dataset.PatientName).toBe("FOX^JANE");
+        // API: an undefined override removes ConversionType (IMG-USR-5).
+        expect(
+            buildImageDataset(grayPixels(), {
+                overrides: { ConversionType: undefined }
+            })
+        ).not.toHaveProperty("ConversionType");
+        // API: Rows and Columns come from the merged dataset when the
+        // decoded image does not give them (IMG-USR-9).
+        expect(
+            buildImageDataset(
+                { pixels: new Uint8Array(6) },
+                { overrides: { Rows: 2, Columns: 3 } }
+            ).Rows
+        ).toBe(2);
     });
 });
 
@@ -258,7 +344,7 @@ describe("derived-instance conformance", () => {
     test("an override ImageType wins with derivedFrom", () => {
         const dataset = buildImageDataset(grayPixels(), {
             derivedFrom: [source],
-            ImageType: ["DERIVED", "PRIMARY"]
+            overrides: { ImageType: ["DERIVED", "PRIMARY"] }
         });
         expect(dataset.ImageType).toEqual(["DERIVED", "PRIMARY"]);
         expect(dataset.SourceImageSequence).toHaveLength(1);
@@ -311,7 +397,7 @@ describe("derived-instance conformance", () => {
         const dataset = buildImageDataset(grayPixels(), {
             instance: source,
             derivedFrom: source,
-            SOPInstanceUID: "2.25.42"
+            overrides: { SOPInstanceUID: "2.25.42" }
         });
         expect(dataset.SOPInstanceUID).toBe("2.25.42");
     });

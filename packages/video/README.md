@@ -5,19 +5,26 @@ reads the MP4 header without a decode, and puts the H.264 stream of the MP4
 into a Video Photographic Image instance. The stream goes into the pixel data
 fragments without a change, so the round trip is byte-identical.
 
--   `parseMp4Info(bytes | reader)` — the geometry, the timing, and the
-    transfer syntax of an MP4, without a decode.
--   `buildVideoDataset(mp4Info, options)` — the dataset without
+-   `parseMp4Info(bytes | reader)` (async) — the geometry, the timing, and
+    the transfer syntax of an MP4, without a decode.
+-   `buildVideoDataset(mp4Info, options)` (sync) — the dataset without
     `PixelData`. It calls `createInstance` from `@dcmjs-org/core`, then sets
     the stream attributes.
--   `encapsulateVideo(mp4Bytes, options)` — the buffered path: the dataset
-    plus `PixelData` as fragments.
--   `createVideoEventSource(input, options)` — the streaming path: the
-    dataset and the fragments as events, with one fragment in memory at a
-    time.
+-   `encapsulateVideo(mp4Bytes, options)` (async) — the buffered path. It
+    returns a `Promise` of the dataset with `PixelData` as fragments.
+-   `createVideoEventSource(input, options)` (async) — the streaming path.
+    It returns a `Promise` of `{ run, info, dataset }`:
+    -   `run(listener)` emits the dataset and the fragments as events, with
+        one fragment in memory at a time. It returns a `Promise`.
+    -   `info` is the `parseMp4Info` result.
+    -   `dataset` is the `buildVideoDataset` result, without `PixelData`.
 -   `extractEncapsulatedVideo(dataset)` — gets the MP4 stream back from a
     naturalized video instance.
 -   `videoBase` and `videoPhotographicBase` — the default base blocks.
+
+The functions that read an MP4 are async, because `parseMp4Info` accepts a
+random-access reader. `input` of `createVideoEventSource` is MP4 bytes or
+such a reader.
 
 The codec-free image builder (`buildImageDataset`) and the JPEG and H.264
 header inspection are in `@dcmjs-org/imaging`.
@@ -26,7 +33,10 @@ header inspection are in `@dcmjs-org/imaging`.
 
 The options of `buildVideoDataset`, `encapsulateVideo`, and
 `createVideoEventSource` follow CORE-USR-1 in `packages/core/README.md`: the
-`createInstance` options, DICOM attribute overrides, and these control keys.
+`createInstance` controls, `overrides`, and these control keys. All of
+them are options. `overrides` is a naturalized DICOM provider with the
+forms of `baseDicom`, and holds only DICOM attributes. A control key never
+goes in `overrides`. An extra option key has no effect (CORE-USR-7).
 
 -   `baseDicom` (default `videoBase`) — base blocks.
 -   `fragmentBytes` (default 256 MiB) — the size of each `PixelData`
@@ -36,7 +46,7 @@ The options of `buildVideoDataset`, `encapsulateVideo`, and
 const video = await encapsulateVideo(mp4Bytes, {
     instance: priorInstanceInSeries,
     dataLevel: "series",
-    SeriesDescription: "Endoscopy"
+    overrides: { SeriesDescription: "Endoscopy" }
 });
 ```
 
@@ -55,18 +65,33 @@ approach, and can change freely. Do not renumber an identifier.
 ## § User requirements
 
 -   **VID-USR-1** `instance` is where the new video goes (CORE-USR-3). The
-    result never gets the identity of `instance` (CORE-USR-4). Without an
-    override, `videoBase` sets the Video Photographic Image `SOPClassUID`.
+    default levels do not copy the identity of `instance` (CORE-USR-4).
+    Without a `SOPClassUID` override, and without a custom `levels` that
+    lists `SOPClassUID`, `videoBase` sets the Video Photographic Image
+    `SOPClassUID`.
 -   **VID-USR-2** The stream attributes come from the MP4: `CineRate`,
     `FrameTime`, `NumberOfFrames`, `Rows`, `Columns`,
     `EncapsulatedPixelDataValueTotalLength (7FE0,0003)`, and
     `_meta.TransferSyntaxUID`. `buildVideoDataset` sets them after
-    `createInstance`, and replaces an override of them with no warning. The
-    builder replaces all of `_meta`, so an override `_meta` does not stay.
-    `encapsulateVideo` and `createVideoEventSource` set `PixelData` from the
-    stream.
--   **VID-USR-3** A caller can override the Image Pixel values that the
-    MPEG-4 AVC transfer syntaxes mandate (`SamplesPerPixel`,
+    `createInstance`, and replaces an override of them with no warning.
+    This rule applies to each form of `overrides`. A field that `mp4Info`
+    does not give writes no attribute, so the value of the base, of
+    `instance`, or of `overrides` stays. The `_meta` rule of CORE-USR-13
+    applies: the builder always sets `_meta.TransferSyntaxUID`, and keeps
+    the other `_meta` keys. `encapsulateVideo` and `createVideoEventSource`
+    set `PixelData` from the stream. `createVideoEventSource` does not
+    change the `_meta` of the dataset that it returns. It makes the file
+    meta group of its events in a separate object. The file meta group
+    gets each key of the dataset `_meta`, for example
+    `ImplementationVersionName`. `createVideoEventSource` always sets
+    `TransferSyntaxUID`, `MediaStorageSOPClassUID`, and
+    `MediaStorageSOPInstanceUID` from the dataset. It sets
+    `FileMetaInformationVersion`, `ImplementationClassUID`, and
+    `ImplementationVersionName` only when the dataset `_meta` has no value.
+    Thus a caller can set these three keys and other file meta keys in
+    `overrides._meta`.
+-   **VID-USR-3** A caller can set in `overrides` the Image Pixel values
+    that the MPEG-4 AVC transfer syntaxes mandate (`SamplesPerPixel`,
     `PhotometricInterpretation`, `PlanarConfiguration`, `BitsAllocated`,
     `BitsStored`, `HighBit`, `PixelRepresentation`), and
     `LossyImageCompression`. The builder permits this on purpose. A
@@ -79,7 +104,14 @@ approach, and can change freely. Do not renumber an identifier.
     other value throws an error.
 -   **VID-USR-6** `extractEncapsulatedVideo` returns the stream that was
     encapsulated, byte for byte. It removes the pad byte of an odd-length
-    last fragment through the declared total length.
+    last fragment through the declared total length. A dataset that is not
+    a video throws an error. A video dataset has the Video Photographic
+    Image `SOPClassUID` or a video transfer syntax, and has `PixelData`.
+-   **VID-USR-7** `parseMp4Info`, and thus `encapsulateVideo` and
+    `createVideoEventSource`, throw an error for an MP4 that they cannot
+    read (CORE-IMP-11): no `ftyp` box first, a malformed box, no `moov`
+    box, no video track, a video track without `mdhd` or a sample
+    description, a malformed `stts` box, or no frame rate.
 
 ## § Implementation requirements
 
@@ -88,7 +120,8 @@ approach, and can change freely. Do not renumber an identifier.
     of VID-USR-3, `LossyImageCompression` `"01"`), and `predecessorBase`
     (CORE-IMP-3).
 -   **VID-IMP-2** `buildVideoDataset` removes its control key `fragmentBytes`
-    before it calls `createInstance` (CORE-IMP-9).
+    before it calls `createInstance` (CORE-IMP-9), and passes `overrides`
+    and `postProcess` through.
 -   **VID-IMP-3** `EncapsulatedPixelDataValueTotalLength` is a BigInt,
     because VR UV is a 64-bit unsigned integer.
 -   **VID-IMP-4** `extractEncapsulatedVideo` keeps all of the bytes when the
