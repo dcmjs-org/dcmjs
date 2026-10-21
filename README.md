@@ -65,9 +65,24 @@ pnpm add dcmjs@dev   # latest code merged to master
 
 The same versions can be installed with `npm install` or Yarn in **your** project; those clients are fine for consuming the published package. **Building this repository** is pnpm-only (see below).
 
+## The 1.0 beta (`@dcmjs-org/dcmjs`)
+
+The 1.0 beta publishes as `@dcmjs-org/dcmjs` on the npm `beta` tag. Its default export has exactly the 0.52 names. The new engines are subpath imports, so the default bundle does not contain them:
+
+```js
+import dcmjs from "@dcmjs-org/dcmjs"; // the 0.52 surface
+import { DicomEventStream } from "@dcmjs-org/dcmjs/eventStream";
+import { writeDicomDir } from "@dcmjs-org/dcmjs/media";
+import { encapsulatePdf } from "@dcmjs-org/dcmjs/encapsulated";
+import { buildImageDataset } from "@dcmjs-org/dcmjs/image";
+import { toFhir, fromPart10 } from "@dcmjs-org/dcmjs/fhir";
+```
+
+The subpaths are ES modules only. `build/dcmjs.js` (UMD, for a script tag) has the default export only.
+
 ## For Developers
 
-Building and testing this repository requires **[pnpm](https://pnpm.io/)** and **Node.js 22.13 or newer** (pnpm 12 and this repo’s tooling expect that baseline; Rollup’s dependency chain expects a modern `crypto` global). CI runs tests on Node 22 and 24, and runs the production Rollup build on Node 24. The pnpm version is pinned under `packageManager` in `package.json`. Enable [Corepack](https://nodejs.org/api/corepack.html) (`corepack enable`) and use pnpm for every install and script:
+Building and testing this repository requires **[pnpm](https://pnpm.io/)** and **Node.js 22.13 or newer** (pnpm 12 and this repo’s tooling expect that baseline; Rollup’s dependency chain expects a modern `crypto` global). CI runs tests on Node 22 and 24, and runs the production Rollup build on Node 24. The test job also builds `build/dcmjs.js` and the ESM entries (`build/*.es.js`), because `test/bundle-size.test.js` measures them; that suite rebuilds them whenever `build/` is absent or older than its sources. The pnpm version is pinned under `packageManager` in `package.json`. Enable [Corepack](https://nodejs.org/api/corepack.html) (`corepack enable`) and use pnpm for every install and script:
 
 ```bash
 corepack enable

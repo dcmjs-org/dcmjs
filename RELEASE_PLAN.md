@@ -181,8 +181,107 @@ the packages it depends on:
 | 4    | Green regression tests onto `release/1.0-beta-core`                                                                                                                                           | The subset of the rewrite's test bank that already passes against today's code lands first, as safety netting before anything moves — see section 7.                                                    |
 | 5    | The 33 review findings, fixed one PR each, then the engine packages (`@dcmjs-org/core`, `@dcmjs-org/legacy`, `@dcmjs-org/parser`, `@dcmjs-org/generator`), each code slice arriving with its tests            | The heart of the release. The four engines migrate together on one staging branch and split into package folders at the end (see the staging note in section 3).                                        |
 | 6    | `@dcmjs-org/dicomdir`, `@dcmjs-org/encapsulated`, `@dcmjs-org/imaging`, `@dcmjs-org/video` (which depends on imaging), then the `@dcmjs-org/media` bundle over them; `@dcmjs-org/fhir` (FHIR provides additional JSON schema to support and extend DicomWeb functionality) | Independent of each other once the engines exist; can proceed in parallel. Imaging lands with/just before video, which depends on it. The media bundle lands after its constituents.                                                                         |
-| 7    | The `@dcmjs-org/dcmjs` wrapper                                                                                                                                                                    | Reproduces the 0.52 surface from legacy + core; includes a bundle-size check against 0.52 to demonstrate the growth is gone.                                                                            |
+| 7    | The `@dcmjs-org/dcmjs` wrapper                                                                                                                                                                    | Reproduces the 0.52 surface from legacy + core; includes a bundle-size check against 0.52; the new engines are subpath imports (see "Step 7: the wrapper package" below).                             |
 | 8    | `@dcmjs-org/tests`, `@dcmjs-org/validator` scaffold                                                                                                                                                   | Cross-package suites and the placeholder for future validation work.                                                                                                                                    |
+
+Step 8 landed before step 7. The wrapper (step 7, PR #595) is the last
+feature PR into `1.0-beta`. After it, `1.0-beta` takes only build fixes and
+at most one TypeScript fix. Then the beta testing starts, and after the
+testing the release is 1.0 (section 10). The beta testing checks the
+export layout of WRAP-USR-1 and WRAP-USR-3.
+
+### Step 7: the wrapper package
+
+The root package `@dcmjs-org/dcmjs` is the package that a 0.52 user
+installs. This section holds its requirements. Change a user requirement
+(WRAP-USR-n) only when it describes the behaviour wrongly, or when the
+intended user-facing behaviour changes, and name the change in the pull
+request; the implementation requirements (WRAP-IMP-n) can change freely.
+
+#### § User requirements
+
+-   **WRAP-USR-1** The default export of `@dcmjs-org/dcmjs` has exactly the
+    top-level names of dcmjs 0.52.0 (`data`, `sr`, `adapters`,
+    `derivations`, `normalizers`, `utilities`, `anonymizer`, `async`,
+    `constants`, `DICOMWEB`, `log`). Each 0.52 namespace keeps every 0.52
+    name; a namespace can add names. A 0.52 user changes only the import
+    name. `test/compat-052.test.js` checks this.
+-   **WRAP-USR-2** Each default bundle stays at most ×1.05 of the same
+    0.52.0 bundle: `build/dcmjs.js` (UMD) and `build/dcmjs.es.js` (ESM).
+    `test/bundle-size.test.js` enforces both ceilings.
+-   **WRAP-USR-3** The new engines are available only through subpath
+    imports, never on the default export:
+    `@dcmjs-org/dcmjs/eventStream` (the event-stream contract, sources,
+    writers and the `DicomEventStream` facade), `@dcmjs-org/dcmjs/media`
+    (DICOMDIR), `@dcmjs-org/dcmjs/encapsulated` (PDF and video),
+    `@dcmjs-org/dcmjs/image` (codec-free images) and
+    `@dcmjs-org/dcmjs/fhir` (the FHIR sink plus `fromPart10`). Each subpath
+    gives its names as named exports and as the default export; the
+    `media`, `encapsulated`, `image` and `fhir` subpaths have the names of
+    the dcmjs v2 namespaces. The subpaths are ES modules only.
+-   **WRAP-USR-4** `build/dcmjs.js` and `build/dcmjs.min.js` work from a
+    script tag with no other file.
+
+#### § Implementation requirements
+
+-   **WRAP-IMP-1** Rollup inlines every dependency into the UMD builds
+    (`dcmjs.js`, `dcmjs.min.js`). The UMD builds have the default entry only.
+-   **WRAP-IMP-2** The ESM build keeps every `@dcmjs-org/*` import external,
+    and `package.json` lists each of those packages in `dependencies`. A
+    bundler then resolves one shared copy of `@dcmjs-org/core`, also when
+    the app imports it directly. Other dependencies stay inlined, as in
+    0.52.
+-   **WRAP-IMP-3** One rollup ESM build has six entries: `src/index.js`
+    (`build/dcmjs.es.js`), and `src/eventStream.js`, `src/media.js`,
+    `src/encapsulated.js`, `src/image.js` and `src/fhir.js`
+    (`build/<name>.es.js`). The `package.json` `exports` map gives each
+    subpath its file.
+-   **WRAP-IMP-4** The 0.52 namespaces come from the legacy `src/`. The
+    `eventStream` subpath re-exports `src/eventStream/index.js`. The
+    `media`, `encapsulated` and `image` subpaths re-export the namespace
+    objects of `@dcmjs-org/media`. The `fhir` subpath re-exports
+    `@dcmjs-org/fhir` and adds `fromPart10`. The `eventStream` and `fhir`
+    subpaths import `src/index.js`, so they share the reader state of the
+    default entry.
+-   **WRAP-IMP-5** The code that `dcmjs.es.js`, `eventStream.es.js` and
+    `fhir.es.js` share is in one chunk, `build/dcmjs.shared-<hash>.js`.
+    Each entry file exports only its public names; the chunk is in the
+    published `build/` directory, and `exports` does not name it. The size
+    check of WRAP-USR-2 measures an entry together with every chunk that it
+    imports.
+
+**The size ceiling.** The aim is "no more than ×1.05 of 0.52", and the
+default bundles now meet it. The new engines (the streaming reader and
+writers, the event-stream facade, the FHIR mapping, and the DICOMDIR, PDF
+and video builders) are subpath entries, so the default bundles do not
+contain them. The legacy `src/` still imports `@dcmjs-org/core`, so the
+UMD bundle inlines that package.
+
+**Baseline provenance.** `dcmjs@0.52.0` from npm
+(<https://registry.npmjs.org/dcmjs/-/dcmjs-0.52.0.tgz>), measured
+2026-10-02: `build/dcmjs.js` 1,384,431 bytes, `build/dcmjs.es.js`
+1,357,418 bytes, `build/dcmjs.min.js` 709,566 bytes.
+
+**Current measurements**, 2026-10-21, with the subpath entries and the
+external `@dcmjs-org/*` imports in the ESM build:
+
+| Bundle | Bytes | Ratio to 0.52 | Ceiling |
+| --- | --- | --- | --- |
+| `build/dcmjs.js` (UMD) | 1,426,671 | ×1.031 | ×1.05 |
+| `build/dcmjs.es.js` (ESM, with its chunk) | 1,376,551 | ×1.014 | ×1.05 |
+| `build/dcmjs.min.js` (UMD, minified) | 719,641 | ×1.014 | not enforced |
+| `build/dcmjs.es.js` alone | 279 | | |
+| `build/dcmjs.shared-<hash>.js` | 1,376,272 | | |
+| `build/eventStream.es.js` (plus the shared chunk) | 226,152 | | |
+| `build/media.es.js` | 513 | | |
+| `build/encapsulated.es.js` | 1,311 | | |
+| `build/image.es.js` | 720 | | |
+| `build/fhir.es.js` (plus the shared chunk) | 1,374 | | |
+
+Earlier states of the wrapper, for the record: with the four v2 engine
+namespaces and `eventStream` on the default export, the UMD bundle was
+1,841,872 bytes (×1.330); with only `eventStream` on the default export,
+it was 1,775,572 bytes (×1.283).
 
 ## 7. Tests travel with code, green tests lead
 
@@ -340,8 +439,10 @@ Named here so their absence is a decision, not an oversight:
    follows. `scripts/bootstrap-trusted-publishing.sh` does both steps: it
    publishes a `0.0.0-bootstrap.0` placeholder under the `bootstrap` tag
    for each package that does not exist yet, then runs `npm trust github`.
-   It finds every non-private package under `packages/`, so run it again
-   after a merge that adds a public package.
+   It finds the root package (`@dcmjs-org/dcmjs`, once it is not private)
+   and every non-private package under `packages/`, so run it again after
+   a merge that adds a public package, and before the first release that
+   includes the wrapper.
 5. Clean up the stale npm dist-tags when convenient (section 10).
 
 ---

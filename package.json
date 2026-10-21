@@ -9,6 +9,11 @@
             "import": "./build/dcmjs.es.js",
             "require": "./build/dcmjs.js"
         },
+        "./eventStream": "./build/eventStream.es.js",
+        "./media": "./build/media.es.js",
+        "./encapsulated": "./build/encapsulated.es.js",
+        "./image": "./build/image.es.js",
+        "./fhir": "./build/fhir.es.js",
         "./dictionary": "./generate/dictionary.mjs"
     },
     "files": [

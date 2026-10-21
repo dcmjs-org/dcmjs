@@ -204,13 +204,14 @@ the standard and a way forward for code that relied on the old behavior:
 
 Everything above concerns the classic whole-buffer engine, which remains
 the default and the only thing `DicomMessage.readFile` uses. The new
-engine lives under `dcmjs.eventStream` and runs only when called. It reads
+engine lives in the `@dcmjs-org/dcmjs/eventStream` subpath and runs only
+when called. It reads
 a file the way you read a book, one piece at a time, instead of
 photocopying the whole book first, so the same code that handles a 500 KB
 slice handles a multi-gigabyte video instance in bounded memory.
 
 ```js
-const { DicomEventStream } = dcmjs.eventStream;
+import { DicomEventStream } from "@dcmjs-org/dcmjs/eventStream";
 
 const dataset = await DicomEventStream.fromPart10Stream(
     fs.createReadStream("large-file.dcm")
@@ -226,7 +227,7 @@ including the memory measurements. `AsyncDicomReader` also remains
 available, unchanged in how you call it.
 
 Nothing routes through this engine implicitly. A project that never
-imports `dcmjs.eventStream` runs the same code paths it ran on 0.x, give
+imports `@dcmjs-org/dcmjs/eventStream` runs the same code paths it ran on 0.x, give
 or take the fixes and the deliberate changes listed above.
 
 ## Package names

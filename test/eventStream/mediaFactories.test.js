@@ -11,12 +11,12 @@
 // first two tests pin that contract via process.on("unhandledRejection").
 
 import dcmjs from "../../src/index.js";
+import { DicomEventStream } from "../../src/eventStream.js";
 import { validationLog } from "../../src/log.js";
 import { makeTinyMp4 } from "../../packages/video/test/utils/makeTinyMp4.js";
 
 validationLog.setLevel(5);
 
-const { DicomEventStream } = dcmjs.eventStream;
 const { DicomMessage, DicomMetaDictionary } = dcmjs.data;
 
 const VIDEO_PHOTOGRAPHIC_SOP_CLASS_UID = "1.2.840.10008.5.1.4.1.1.77.1.4.1";

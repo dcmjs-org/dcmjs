@@ -21,12 +21,14 @@ pnpm run build
 The snippets are ES modules. Save each one as a `.mjs` file in the repo root
 and run it with `node` from there — they import the built bundle as
 `./build/dcmjs.es.js`. (From an application that depends on the published
-package you would write `import dcmjs from "dcmjs"` instead; the API surface
-is identical.) Everything streaming lives under `dcmjs.eventStream`:
+package you would write `import dcmjs from "@dcmjs-org/dcmjs"` instead; the
+API surface is identical.) Everything streaming lives in the `eventStream`
+subpath: `./build/eventStream.es.js` here, `@dcmjs-org/dcmjs/eventStream`
+from the published package:
 
 ```js
 import dcmjs from "./build/dcmjs.es.js";
-const { DicomEventStream, NaturalizedListener, StreamingPart10Writer } = dcmjs.eventStream;
+import { DicomEventStream, NaturalizedListener, StreamingPart10Writer } from "./build/eventStream.es.js";
 ```
 
 The examples read data from `/tmp/dcmjs-examples-data`; the
@@ -92,7 +94,7 @@ parser sees chunks, never the whole file:
 ```js
 import fs from "node:fs";
 import dcmjs from "./build/dcmjs.es.js";
-const { DicomEventStream } = dcmjs.eventStream;
+import { DicomEventStream } from "./build/eventStream.es.js";
 
 const events = DicomEventStream.fromPart10Stream(
   fs.createReadStream("/tmp/dcmjs-examples-data/multiframe-ultrasound.dcm")
@@ -119,7 +121,7 @@ report), drive it explicitly — `toNaturalized()` is just sugar over
 `NaturalizedListener`:
 
 ```js
-const { NaturalizedListener } = dcmjs.eventStream;
+import { NaturalizedListener } from "./build/eventStream.es.js";
 const listener = await events.process(new NaturalizedListener());
 console.log(listener.result.Modality, listener.meta.TransferSyntaxUID);
 // US 1.2.840.10008.1.2.4.50
@@ -135,7 +137,7 @@ full pass:
 ```js
 import fs from "node:fs";
 import dcmjs from "./build/dcmjs.es.js";
-const { DicomEventStream } = dcmjs.eventStream;
+import { DicomEventStream } from "./build/eventStream.es.js";
 
 const events = DicomEventStream.fromPart10Stream(
   fs.createReadStream("/tmp/dcmjs-examples-data/multiframe-ultrasound.dcm")
@@ -161,7 +163,7 @@ which gates the parser:
 ```js
 import fs from "node:fs";
 import dcmjs from "./build/dcmjs.es.js";
-const { DicomEventStream, StreamingPart10Writer } = dcmjs.eventStream;
+import { DicomEventStream, StreamingPart10Writer } from "./build/eventStream.es.js";
 
 const src = "/tmp/dcmjs-examples-data/multiframe-ultrasound.dcm";
 const dst = "/tmp/dcmjs-examples-data/copy.dcm";
@@ -198,7 +200,7 @@ A listener is a plain object of `method(next, ...args)` filters — call
 ```js
 import fs from "node:fs";
 import dcmjs from "./build/dcmjs.es.js";
-const { DicomEventStream, EventStreamListener } = dcmjs.eventStream;
+import { DicomEventStream, EventStreamListener } from "./build/eventStream.es.js";
 
 let tag = null, bot = null; const sizes = [];
 const listener = new EventStreamListener({
@@ -225,7 +227,7 @@ again:
 ```js
 import fs from "node:fs";
 import dcmjs from "./build/dcmjs.es.js";
-const { DicomEventStream } = dcmjs.eventStream;
+import { DicomEventStream } from "./build/eventStream.es.js";
 
 const bytes = fs.readFileSync("/tmp/dcmjs-examples-data/multiframe-ultrasound.dcm").buffer;
 const json = await DicomEventStream.fromPart10Stream(bytes).toDicomWebJson();
@@ -253,7 +255,7 @@ metadata naturalizes in milliseconds because pixel data stays behind
 
 ```js
 import dcmjs from "./build/dcmjs.es.js";
-const { DicomEventStream } = dcmjs.eventStream;
+import { DicomEventStream } from "./build/eventStream.es.js";
 
 const base = "https://d14fa38qiwhyfd.cloudfront.net/dicomweb";
 const study = "2.25.103659964951665749659160840573802789777";
@@ -312,7 +314,7 @@ pixel-data fragment 48 times — event-stream surgery on the way to a
 // make-big.mjs
 import fs from "node:fs";
 import dcmjs from "./build/dcmjs.es.js";
-const { DicomEventStream, StreamingPart10Writer } = dcmjs.eventStream;
+import { DicomEventStream, StreamingPart10Writer } from "./build/eventStream.es.js";
 
 const out = fs.createWriteStream("/tmp/dcmjs-examples-data/big-cine.dcm");
 let pending = Promise.resolve();
@@ -340,7 +342,7 @@ uncollected garbage — hence the `--expose-gc` flag):
 // bounded-read.mjs
 import fs from "node:fs";
 import dcmjs from "./build/dcmjs.es.js";
-const { DicomEventStream, EventStreamListener } = dcmjs.eventStream;
+import { DicomEventStream, EventStreamListener } from "./build/eventStream.es.js";
 
 const file = "/tmp/dcmjs-examples-data/big-cine.dcm";
 let peak = 0, fragments = 0, payload = 0;

@@ -45,11 +45,12 @@ jobs:
       - name: Install packages
         run: pnpm install
 
-      - name: Run tests
-        run: pnpm test
-
+      # Build first, so the bundle-size suite measures the published bundles.
       - name: Run build
         run: pnpm build
+
+      - name: Run tests
+        run: pnpm test
 
       # semantic-release and its plugins are exact-pinned devDependencies
       # installed from the lockfile above — nothing is fetched at release time.

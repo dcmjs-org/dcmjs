@@ -31,37 +31,59 @@ const sharedPlugins = [
     json()
 ];
 
-export default [
-    {
-        input: "src/index.js",
-        output: {
-            dir: "build",
-            format: "es",
-            entryFileNames: "dcmjs.es.js",
-            chunkFileNames: "dcmjs.[name]-[hash].js",
-            sourcemap: true
-        },
-        plugins: sharedPlugins
+// The ESM build imports the @dcmjs-org/* packages (listed in dependencies),
+// so a bundler keeps one shared copy. The UMD builds inline them.
+const isWorkspacePackage = id => id.startsWith("@dcmjs-org/");
+
+// `rollup -c --environment BUNDLES_ONLY` skips the minified build
+// (test/bundle-size.test.js builds only what it measures).
+const bundlesOnly = process.env.BUNDLES_ONLY === "true";
+
+// The default entry and the subpath entries (@dcmjs-org/dcmjs/media, ...).
+// The subpaths are ESM only. The code that the default entry shares with
+// eventStream.es.js and fhir.es.js goes in one dcmjs.shared-<hash>.js chunk,
+// so each entry exports only its own public names.
+const esm = {
+    input: {
+        "dcmjs.es": "src/index.js",
+        "eventStream.es": "src/eventStream.js",
+        "media.es": "src/media.js",
+        "encapsulated.es": "src/encapsulated.js",
+        "image.es": "src/image.js",
+        "fhir.es": "src/fhir.js"
     },
-    {
-        input: "src/index.js",
-        output: {
-            file: pkg.main,
-            format: "umd",
-            name: "dcmjs",
-            sourcemap: true
-        },
-        plugins: sharedPlugins
+    external: isWorkspacePackage,
+    output: {
+        dir: "build",
+        format: "es",
+        entryFileNames: "[name].js",
+        chunkFileNames: "dcmjs.shared-[hash].js",
+        sourcemap: true
     },
-    {
-        input: "src/index.js",
-        output: {
-            file: pkg.main.replace(/\.js$/, ".min.js"),
-            format: "umd",
-            name: "dcmjs",
-            sourcemap: true,
-            plugins: [terser()]
-        },
-        plugins: sharedPlugins
-    }
-];
+    plugins: sharedPlugins
+};
+
+const umd = {
+    input: "src/index.js",
+    output: {
+        file: pkg.main,
+        format: "umd",
+        name: "dcmjs",
+        sourcemap: true
+    },
+    plugins: sharedPlugins
+};
+
+const umdMin = {
+    input: "src/index.js",
+    output: {
+        file: pkg.main.replace(/\.js$/, ".min.js"),
+        format: "umd",
+        name: "dcmjs",
+        sourcemap: true,
+        plugins: [terser()]
+    },
+    plugins: sharedPlugins
+};
+
+export default bundlesOnly ? [esm, umd] : [esm, umd, umdMin];

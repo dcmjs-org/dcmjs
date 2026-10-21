@@ -19,11 +19,11 @@ import fs from "fs";
 import path from "path";
 
 import dcmjs from "../../src/index.js";
+import { DicomEventStream } from "../../src/eventStream.js";
 import { validationLog } from "../../src/log.js";
 
 validationLog.setLevel(5);
 
-const { DicomEventStream } = dcmjs.eventStream;
 const { DicomMessage, DicomMetaDictionary } = dcmjs.data;
 
 const PDF_STRING =
@@ -427,8 +427,9 @@ describe("fromPdf / toPdf / toFhir", () => {
     // The facade form of v2's "dcmjs.fhir umbrella namespace / fromPart10
     // maps an ArrayBuffer straight to FHIR" test (deferred by PR #579):
     // the composition now lives on the event stream —
-    // fromPart10(bytes).toFhir(). The dcmjs.fhir namespace itself landed
-    // with the step-7 wrapper; its tests are in test/fhirNamespace.test.js.
+    // fromPart10(bytes).toFhir(). The v2 dcmjs.fhir namespace is now the
+    // @dcmjs-org/dcmjs/fhir subpath; its tests are in
+    // test/fhirNamespace.test.js.
     test("fromPart10 → toFhir maps a .dcm ArrayBuffer straight to FHIR", async () => {
         const buffer = fs.readFileSync(
             path.join(
