@@ -19,7 +19,11 @@
 
 import { encapsulatePdf, PDF_MIME_TYPE } from "@dcmjs-org/encapsulated";
 import { buildImageDataset, parseJpegInfo } from "@dcmjs-org/imaging";
-import { base64ToArrayBuffer } from "@dcmjs-org/core";
+import {
+    base64ToArrayBuffer,
+    patientTags,
+    toStringFirst
+} from "@dcmjs-org/core";
 import { patientToDataset } from "@dcmjs-org/fhir";
 import { datasetToDict } from "../datasetToBlob.js";
 
@@ -39,27 +43,30 @@ function attachmentOf(resource) {
 }
 
 /**
- * True when the FHIR `reference` (relative "Patient/123", absolute, or a
- * urn:uuid fullUrl) points to this Bundle entry.
+ * The Patient entries that a FHIR `reference` names. An exact `fullUrl`
+ * match wins. Only a relative reference ("Patient/123", with an optional
+ * "/_history/n") also matches by `id`; an absolute reference never matches
+ * an entry of another server by `id` alone.
  */
-function referencesEntry(reference, entry) {
-    if (entry.fullUrl && reference === entry.fullUrl) {
-        return true;
+function referencedEntries(reference, patientEntries) {
+    const exact = patientEntries.filter(entry => entry.fullUrl === reference);
+    if (exact.length > 0) {
+        return exact;
     }
-    const id = entry.resource.id;
-    if (!id) {
-        return false;
+    const relative = reference.match(/^Patient\/([^/]+)(\/_history\/[^/]+)?$/);
+    if (!relative) {
+        return [];
     }
-    const relative = `Patient/${id}`;
-    return reference === relative || reference.endsWith(`/${relative}`);
+    return patientEntries.filter(entry => entry.resource.id === relative[1]);
 }
 
 /**
  * The Patient of the content resource in a Bundle. With a
- * `subject.reference`, the Patient entry it references; else the only
- * Patient. A reference that matches no Patient, or more than one Patient
- * with no reference, throws, so the demographics never go to the wrong
- * patient. No Patient in the Bundle gives undefined.
+ * `subject.reference`, the one Patient entry it references; else the only
+ * Patient. A reference that matches no Patient or more than one, or more
+ * than one Patient with no reference, throws, so the demographics never go
+ * to the wrong patient (FHIR-USR-9). No Patient in the Bundle gives
+ * undefined.
  */
 function selectPatient(patientEntries, contentResource) {
     if (patientEntries.length === 0) {
@@ -67,17 +74,17 @@ function selectPatient(patientEntries, contentResource) {
     }
     const reference = contentResource.subject?.reference;
     if (reference) {
-        const match = patientEntries.find(entry =>
-            referencesEntry(reference, entry)
-        );
-        if (!match) {
+        const matches = referencedEntries(reference, patientEntries);
+        if (matches.length !== 1) {
             throw new Error(
                 `fromFhir: the subject ${reference} of the ` +
-                    `${contentResource.resourceType} matches no Patient in ` +
-                    `the Bundle — pass the Patient as options.patient`
+                    `${contentResource.resourceType} matches ` +
+                    `${matches.length === 0 ? "no" : matches.length} ` +
+                    `Patients in the Bundle — pass the Patient as ` +
+                    `options.patient`
             );
         }
-        return match.resource;
+        return matches[0].resource;
     }
     if (patientEntries.length > 1) {
         throw new Error(
@@ -87,6 +94,35 @@ function selectPatient(patientEntries, contentResource) {
         );
     }
     return patientEntries[0].resource;
+}
+
+/**
+ * The patient overrides for a FHIR Patient (FHIR-USR-8). The Patient
+ * replaces the whole patient module: the four mapped attributes, and an
+ * `undefined` (removed) value for each other patient-level attribute of
+ * `instance`. An `instance` with a different, non-empty PatientID throws,
+ * because the new instance would join the study of another patient.
+ */
+function patientOverrides(patientResource, instance) {
+    if (!patientResource) {
+        return {};
+    }
+    const demographics = patientToDataset(patientResource);
+    for (const sample of [].concat(instance ?? [])) {
+        const instancePatientId = toStringFirst(sample?.PatientID);
+        if (instancePatientId && instancePatientId !== demographics.PatientID) {
+            throw new Error(
+                `fromFhir: options.instance belongs to PatientID ` +
+                    `${instancePatientId}, but the FHIR Patient has PatientID ` +
+                    `"${demographics.PatientID}" — pass an instance of the ` +
+                    `same patient, or no instance`
+            );
+        }
+    }
+    const cleared = Object.fromEntries(
+        [...patientTags].map(keyword => [keyword, undefined])
+    );
+    return { ...cleared, ...demographics };
 }
 
 /**
@@ -117,6 +153,24 @@ function selectFromBundle(bundle) {
             entry => entry.resource.resourceType === "Patient"
         )
     };
+}
+
+const LOSSY_JPEG_TRANSFER_SYNTAXES = new Set([
+    "1.2.840.10008.1.2.4.50",
+    "1.2.840.10008.1.2.4.51"
+]);
+
+/**
+ * The lossy compression attributes (PS3.3 C.7.6.1.1.5) for a JPEG that
+ * uses a lossy process (baseline or extended); none for lossless.
+ */
+function lossyOverrides(info) {
+    return LOSSY_JPEG_TRANSFER_SYNTAXES.has(info.transferSyntaxUID)
+        ? {
+              LossyImageCompression: "01",
+              LossyImageCompressionMethod: "ISO_10918_1"
+          }
+        : {};
 }
 
 /**
@@ -192,9 +246,10 @@ export function dicomDictFromFhir(resource, options = {}) {
 
     const bytes = base64ToArrayBuffer(attachment.data);
     const contentType = (attachment.contentType || "").toLowerCase();
-    const demographics = patientResource
-        ? patientToDataset(patientResource)
-        : {};
+    const demographics = patientOverrides(
+        patientResource,
+        instanceOptions.instance
+    );
 
     if (contentType === PDF_MIME_TYPE) {
         // No FHIR title keeps the base or inherited DocumentTitle.
@@ -240,7 +295,7 @@ export function dicomDictFromFhir(resource, options = {}) {
             },
             {
                 ...instanceOptions,
-                overrides: [demographics, overrides],
+                overrides: [lossyOverrides(info), demographics, overrides],
                 encapsulated: {
                     transferSyntaxUID: info.transferSyntaxUID,
                     frames: [bytes]

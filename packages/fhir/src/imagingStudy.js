@@ -22,10 +22,6 @@ function instanceFromDataset(dataset) {
         return null;
     }
 
-    // ImagingStudy.series.instance.sopClass is 1..1 in FHIR R4B. A dataset
-    // with no (0008,0016) used to fabricate the CT Image Storage UID here
-    // (review finding 17); skipping the instance keeps the resource valid
-    // without asserting an identity the bytes never carried.
     const sopClassUrn = uidToUrn(dataset.SOPClassUID);
     if (!sopClassUrn) {
         validationLog.warn(
@@ -43,11 +39,11 @@ function instanceFromDataset(dataset) {
         }
     };
 
-    const number = toFloatFirst(dataset.InstanceNumber);
+    const number = unsignedIntFirst(dataset.InstanceNumber);
     if (number !== null) {
         instance.number = number;
     }
-    const numberOfFrames = toFloatFirst(dataset.NumberOfFrames);
+    const numberOfFrames = unsignedIntFirst(dataset.NumberOfFrames);
     if (numberOfFrames !== null) {
         instance.numberOfFrames = numberOfFrames;
     }
@@ -67,14 +63,12 @@ function seriesShellFromDataset(dataset) {
         instance: []
     };
 
-    const number = toFloatFirst(dataset.SeriesNumber);
+    const number = unsignedIntFirst(dataset.SeriesNumber);
     if (number !== null) {
         series.number = number;
     }
-    const modality = modalityCoding(dataset.Modality);
-    if (modality) {
-        series.modality = modality;
-    }
+    // The caller skips a dataset with no Modality (series.modality is 1..1).
+    series.modality = modalityCoding(dataset.Modality);
     const description = toStringFirst(dataset.SeriesDescription);
     if (description) {
         series.description = description;
@@ -87,17 +81,14 @@ function seriesShellFromDataset(dataset) {
     if (started) {
         series.started = started;
     }
+    // A DICOM defined term is not a SNOMED display, so it has no system.
     const bodyPart = toStringFirst(dataset.BodyPartExamined);
     if (bodyPart) {
-        series.bodySite = {
-            system: "http://snomed.info/sct",
-            display: bodyPart
-        };
+        series.bodySite = { display: bodyPart };
     }
     const laterality = toStringFirst(dataset.Laterality);
     if (laterality) {
-        series.laterality = {
-            system: "http://snomed.info/sct",
+        series.laterality = LATERALITY_CODING[laterality] || {
             display: laterality
         };
     }
@@ -105,13 +96,43 @@ function seriesShellFromDataset(dataset) {
     return series;
 }
 
+/** DICOM Laterality (0020,0060) → SNOMED CT (PS3.16 CID 244). */
+const LATERALITY_CODING = {
+    L: { system: "http://snomed.info/sct", code: "7771000", display: "Left" },
+    R: { system: "http://snomed.info/sct", code: "24028007", display: "Right" },
+    B: {
+        system: "http://snomed.info/sct",
+        code: "51440002",
+        display: "Right and left"
+    }
+};
+
+function warnSkip(dataset, reason) {
+    validationLog.warn(
+        "@dcmjs-org/fhir: skipping dataset " +
+            `${
+                toStringFirst(dataset.SOPInstanceUID) || "<no SOPInstanceUID>"
+            } — ${reason}`
+    );
+}
+
+/** The first value as a FHIR unsignedInt, or null. */
+function unsignedIntFirst(value) {
+    const number = toFloatFirst(value);
+    return Number.isInteger(number) && number >= 0 ? number : null;
+}
+
 /**
  * Build one FHIR ImagingStudy from one or more naturalized datasets
  * belonging to the same study. Instances are grouped by
  * SeriesInstanceUID. The first dataset with a StudyInstanceUID anchors the
- * study-level identity; a dataset with a different StudyInstanceUID is
- * skipped with a validationLog warning, so one ImagingStudy never holds
- * the series of another study.
+ * study-level identity.
+ *
+ * The mapper never fabricates a value that FHIR requires (FHIR-USR-3). It
+ * skips, with a validationLog warning: a dataset of another study, a
+ * dataset with no SeriesInstanceUID or no Modality (series.uid and
+ * series.modality are 1..1), and an instance with no SOPClassUID
+ * (instance.sopClass is 1..1).
  *
  * @param {Object[]} datasets - naturalized datasets (same StudyInstanceUID)
  * @param {Object} [options]
@@ -131,13 +152,9 @@ export function imagingStudyFromDatasets(datasets, options = {}) {
     const list = all.filter(dataset => {
         const studyUid = toStringFirst(dataset.StudyInstanceUID);
         if (studyUid && studyUid !== anchorStudyUid) {
-            validationLog.warn(
-                "@dcmjs-org/fhir: skipping dataset " +
-                    `${
-                        toStringFirst(dataset.SOPInstanceUID) ||
-                        "<no SOPInstanceUID>"
-                    } — ` +
-                    `StudyInstanceUID ${studyUid} is not the study ` +
+            warnSkip(
+                dataset,
+                `StudyInstanceUID ${studyUid} is not the study ` +
                     `${anchorStudyUid} of this ImagingStudy`
             );
             return false;
@@ -156,23 +173,15 @@ export function imagingStudyFromDatasets(datasets, options = {}) {
         return null;
     }
 
-    // Group instances by series. ImagingStudy.series.uid is 1..1 in FHIR
-    // R4B: a dataset with no (0020,000E) used to produce uid: null, and
-    // every such dataset merged under one "unknown" key (review finding
-    // 18). Those datasets are now skipped with a warning, consistent with
-    // the missing-SOPClassUID handling above.
     const seriesMap = new Map();
     list.forEach(dataset => {
         const seriesUid = toStringFirst(dataset.SeriesInstanceUID);
         if (!seriesUid) {
-            validationLog.warn(
-                "@dcmjs-org/fhir: skipping dataset " +
-                    `${
-                        toStringFirst(dataset.SOPInstanceUID) ||
-                        "<no SOPInstanceUID>"
-                    } — ` +
-                    "no SeriesInstanceUID (series.uid is required 1..1)"
-            );
+            warnSkip(dataset, "no SeriesInstanceUID (series.uid is 1..1)");
+            return;
+        }
+        if (!toStringFirst(dataset.Modality)) {
+            warnSkip(dataset, "no Modality (series.modality is 1..1)");
             return;
         }
         if (!seriesMap.has(seriesUid)) {

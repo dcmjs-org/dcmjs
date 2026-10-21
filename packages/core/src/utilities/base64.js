@@ -4,7 +4,8 @@
 const CHUNK = 0x8000;
 
 /**
- * Encode bytes as a base64 string. Uses Node's Buffer when present, else
+ * Encode bytes as a base64 string. Uses the native
+ * `Uint8Array.prototype.toBase64` when present, else Node's Buffer, else
  * btoa over chunks that stay under the argument-length limit.
  *
  * @param {ArrayBuffer|ArrayBufferView} bytes
@@ -14,6 +15,9 @@ export function encodeBase64(bytes) {
     const view = ArrayBuffer.isView(bytes)
         ? new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength)
         : new Uint8Array(bytes);
+    if (typeof view.toBase64 === "function") {
+        return view.toBase64();
+    }
     if (typeof Buffer !== "undefined") {
         return Buffer.from(
             view.buffer,
@@ -21,21 +25,26 @@ export function encodeBase64(bytes) {
             view.byteLength
         ).toString("base64");
     }
-    let binary = "";
+    const parts = [];
     for (let offset = 0; offset < view.length; offset += CHUNK) {
-        binary += String.fromCharCode(...view.subarray(offset, offset + CHUNK));
+        parts.push(
+            String.fromCharCode(...view.subarray(offset, offset + CHUNK))
+        );
     }
-    return btoa(binary);
+    return btoa(parts.join(""));
 }
 
 /**
- * Decode a base64 string into an exact ArrayBuffer. Uses Node's Buffer
- * when present, else atob.
+ * Decode a base64 string into an exact ArrayBuffer. Uses the native
+ * `Uint8Array.fromBase64` when present, else Node's Buffer, else atob.
  *
  * @param {string} b64
  * @returns {ArrayBuffer}
  */
 export function base64ToArrayBuffer(b64) {
+    if (typeof Uint8Array.fromBase64 === "function") {
+        return Uint8Array.fromBase64(b64).buffer;
+    }
     if (typeof Buffer !== "undefined") {
         const buf = Buffer.from(b64, "base64");
         return buf.buffer.slice(

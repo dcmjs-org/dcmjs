@@ -92,7 +92,7 @@ export function encapsulate(bytes, options = {}) {
  * The Part 10 writer pads odd-length OB values with a trailing NUL. When
  * `EncapsulatedDocumentLength (0042,0015)` is present (encapsulate always
  * writes it), the payload is sliced to that exact length, so an even-length
- * original that ends in a zero byte survives (review finding 16). Without
+ * original that ends in a zero byte survives. Without
  * the element, a single trailing 0x00 on an even stored length is trimmed
  * as pad only for a document type that never ends in 0x00: PDF, a text or
  * XML type (CDA, OBJ, MTL), or no MIME type (the PDF default). A binary
@@ -100,7 +100,8 @@ export function encapsulate(bytes, options = {}) {
  *
  * @param {Object} dataset - naturalized Encapsulated Document instance
  * @returns {Uint8Array|null} the document bytes, or null when the dataset
- *   has no EncapsulatedDocument
+ *   holds no bytes: no EncapsulatedDocument, or a reference such as
+ *   `{ BulkDataURI }`
  */
 export function extractEncapsulated(dataset) {
     let payload = dataset.EncapsulatedDocument;
@@ -122,6 +123,10 @@ export function extractEncapsulated(dataset) {
     }
     if (typeof payload === "string") {
         payload = base64ToArrayBuffer(payload);
+    }
+    if (!(payload instanceof ArrayBuffer) && !ArrayBuffer.isView(payload)) {
+        // For example { BulkDataURI }: the bytes are not in the dataset.
+        return null;
     }
     const bytes = ArrayBuffer.isView(payload)
         ? new Uint8Array(payload.buffer, payload.byteOffset, payload.byteLength)

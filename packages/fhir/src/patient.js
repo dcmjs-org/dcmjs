@@ -10,9 +10,7 @@ import {
     dicomDateTimeToIso,
     parsePersonName,
     personNameToHumanName,
-    sexToGender,
-    birthSexExtension,
-    sexExtension
+    sexToGender
 } from "./helpers.js";
 
 /**
@@ -67,16 +65,7 @@ export function patientFromDataset(dataset) {
         patient.birthDate = birthDate;
     }
 
-    const dicomSex = toStringFirst(dataset.PatientSex);
-    patient.gender = sexToGender(dicomSex);
-
-    const extensions = [
-        birthSexExtension(dicomSex),
-        sexExtension(dicomSex)
-    ].filter(Boolean);
-    if (extensions.length > 0) {
-        patient.extension = extensions;
-    }
+    patient.gender = sexToGender(dataset.PatientSex);
 
     return patient;
 }

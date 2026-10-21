@@ -74,6 +74,14 @@ describe("@dcmjs-org/fhir helpers", () => {
             "2001-01-01T10:22:31+01:30"
         );
         expect(dicomDateTimeToIso(null)).toBeNull();
+        // Legacy ACR-NEMA forms, and values that are not a date
+        expect(dicomDateTimeToIso("1980.05.17", "10:22:31", "+0100")).toBe(
+            "1980-05-17T10:22:31+01:00"
+        );
+        expect(dicomDateTimeToIso("1980-5-17")).toBeNull();
+        expect(dicomDateTimeToIso("20010101", "10h22", "+0100")).toBe(
+            "2001-01-01"
+        );
     });
 
     test("sexToGender maps DICOM codes", () => {
@@ -100,9 +108,11 @@ describe("@dcmjs-org/fhir sink", () => {
         expect(["male", "female", "other", "unknown"]).toContain(
             patient.gender
         );
-        // No deployment-specific fields ever
+        // No deployment-specific fields ever, and no sex extension that
+        // DICOM does not record (FHIR-USR-3)
         expect(patient.id).toBeUndefined();
         expect(patient.meta).toBeUndefined();
+        expect(patient.extension).toBeUndefined();
     });
 
     test("toFhir returns { patient, imagingStudy } with DICOM identity intact", () => {
@@ -129,6 +139,11 @@ describe("@dcmjs-org/fhir sink", () => {
         expect(series.instance[0].number).toBe(10);
         expect(series.instance[0].sopClass.system).toBe("urn:ietf:rfc:3986");
         expect(series.instance[0].sopClass.code).toMatch(/^urn:oid:/);
+    });
+
+    test("without options.subject, the ImagingStudy references the returned patient", () => {
+        const { imagingStudy } = toFhir(dataset);
+        expect(imagingStudy.subject).toEqual({ reference: "./patient" });
     });
 
     test("options.subject passes through as ImagingStudy.subject", () => {
@@ -171,6 +186,49 @@ describe("@dcmjs-org/fhir sink", () => {
         const types = bundle.entry.map(entry => entry.resource.resourceType);
         expect(types).toEqual(["Patient", "ImagingStudy"]);
         expect(bundle.entry[1].resource.numberOfInstances).toBe(2);
+        // Relative fullUrls link the ImagingStudy to the Patient entry.
+        expect(bundle.entry.map(entry => entry.fullUrl)).toEqual([
+            "./entry/0",
+            "./entry/1"
+        ]);
+        expect(bundle.entry[1].resource.subject).toEqual({
+            reference: "./entry/0"
+        });
+    });
+
+    test("series and instances hold only valid FHIR values", () => {
+        const base = {
+            StudyInstanceUID: "1.2.3",
+            SOPClassUID: "1.2.840.10008.5.1.4.1.1.4"
+        };
+        const study = imagingStudyFromDatasets([
+            {
+                ...base,
+                SeriesInstanceUID: "1.2.3.1",
+                SOPInstanceUID: "1.2.3.1.1",
+                Modality: "MR",
+                SeriesNumber: -1,
+                InstanceNumber: 2.5,
+                BodyPartExamined: "CHEST",
+                Laterality: "L"
+            },
+            // No Modality: series.modality is 1..1, so the dataset is skipped.
+            {
+                ...base,
+                SeriesInstanceUID: "1.2.3.2",
+                SOPInstanceUID: "1.2.3.2.1"
+            }
+        ]);
+        expect(study.numberOfSeries).toBe(1);
+        const [series] = study.series;
+        expect(series.number).toBeUndefined();
+        expect(series.instance[0].number).toBeUndefined();
+        expect(series.bodySite).toEqual({ display: "CHEST" });
+        expect(series.laterality).toEqual({
+            system: "http://snomed.info/sct",
+            code: "7771000",
+            display: "Left"
+        });
     });
 
     test("unsupported fhirVersion throws (strict-out)", () => {
@@ -200,7 +258,8 @@ describe("@dcmjs-org/fhir sink", () => {
             {
                 StudyInstanceUID: "1.2.3",
                 SeriesInstanceUID: "1.2.3.1",
-                SOPInstanceUID: "1.2.3.4"
+                SOPInstanceUID: "1.2.3.4",
+                Modality: "OT"
             }
         ]);
         const json = JSON.stringify(study);
@@ -219,7 +278,8 @@ describe("@dcmjs-org/fhir sink", () => {
                 StudyInstanceUID: "1.2.3",
                 SeriesInstanceUID: "1.2.3.1",
                 SOPClassUID: "1.2.840.10008.5.1.4.1.1.4",
-                SOPInstanceUID: "1.2.3.4"
+                SOPInstanceUID: "1.2.3.4",
+                Modality: "MR"
             },
             // Two datasets from genuinely different series, both without
             // SeriesInstanceUID — these must not merge into one series.

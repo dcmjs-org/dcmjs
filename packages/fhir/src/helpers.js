@@ -31,10 +31,17 @@ export function uidToUrn(uid) {
  * only with a valid `timezoneOffset` (TimezoneOffsetFromUTC (0008,0201),
  * "+HHMM" or "-HHMM"); without it the result is the date only, which is
  * a valid dateTime that asserts no zone.
+ *
+ * The date must be YYYYMMDD (the ACR-NEMA form YYYY.MM.DD is accepted), else
+ * the result is null. The time must start with HHMMSS (the form HH:MM:SS is
+ * accepted), else the result is the date only.
  */
 export function dicomDateTimeToIso(dicomDate, dicomTime, timezoneOffset) {
-    const date = toStringFirst(dicomDate);
-    if (!date || date.length < 8) {
+    const rawDate = toStringFirst(dicomDate);
+    const date = /^\d{4}\.\d{2}\.\d{2}$/.test(rawDate || "")
+        ? rawDate.replace(/\./g, "")
+        : rawDate;
+    if (!date || !/^\d{8}$/.test(date)) {
         return null;
     }
 
@@ -43,9 +50,12 @@ export function dicomDateTimeToIso(dicomDate, dicomTime, timezoneOffset) {
         8
     )}`;
 
-    const time = toStringFirst(dicomTime);
+    const rawTime = toStringFirst(dicomTime);
+    const time = /^\d{2}:\d{2}:\d{2}/.test(rawTime || "")
+        ? rawTime.replace(/:/g, "")
+        : rawTime;
     const offset = toStringFirst(timezoneOffset);
-    if (time && time.length >= 6 && offset && /^[+-]\d{4}$/.test(offset)) {
+    if (time && /^\d{6}/.test(time) && offset && /^[+-]\d{4}$/.test(offset)) {
         iso +=
             `T${time.substring(0, 2)}:${time.substring(2, 4)}:` +
             `${time.substring(4, 6)}${offset.substring(0, 3)}:` +
@@ -122,7 +132,9 @@ export function personNameToHumanName(parsed) {
 }
 
 /**
- * DICOM PatientSex (M/F/O) → FHIR administrative gender.
+ * DICOM PatientSex (M/F/O) → FHIR administrative gender. PatientSex is an
+ * administrative value, so the Patient gets no birth-sex or clinical-sex
+ * extension from it (FHIR-USR-3).
  */
 export function sexToGender(dicomSex) {
     const mapping = { M: "male", F: "female", O: "other" };
@@ -130,57 +142,9 @@ export function sexToGender(dicomSex) {
 }
 
 /**
- * DICOM PatientSex → US Core birthsex code (M/F/UNK).
- */
-export function sexToBirthSex(dicomSex) {
-    const mapping = { M: "M", F: "F", O: "UNK" };
-    return mapping[toStringFirst(dicomSex)] || "UNK";
-}
-
-/**
- * US Core birthsex extension for a DICOM PatientSex value.
- */
-export function birthSexExtension(dicomSex) {
-    if (!toStringFirst(dicomSex)) {
-        return null;
-    }
-    return {
-        url: "http://hl7.org/fhir/us/core/StructureDefinition/us-core-birthsex",
-        valueCode: sexToBirthSex(dicomSex)
-    };
-}
-
-/**
- * US Core sex extension (sex-for-clinical-use) for a DICOM PatientSex value.
- */
-export function sexExtension(dicomSex) {
-    const sex = toStringFirst(dicomSex);
-    if (!sex) {
-        return null;
-    }
-    const mapping = {
-        M: "male-typical",
-        F: "female-typical",
-        O: "specified"
-    };
-    return {
-        url: "http://hl7.org/fhir/us/core/StructureDefinition/us-core-sex",
-        valueCodeableConcept: {
-            coding: [
-                {
-                    system: "http://terminology.hl7.org/CodeSystem/sex-for-clinical-use",
-                    code: mapping[sex] || "unknown",
-                    display: mapping[sex] || "Unknown"
-                }
-            ]
-        }
-    };
-}
-
-/**
  * FHIR administrative gender → DICOM PatientSex (0010,0040).
  *
- * QUICKSAND, TREAD SLOWLY. FHIR `Patient.gender` is *administrative
+ * FHIR `Patient.gender` is *administrative
  * gender*; DICOM PatientSex is a three-letter administrative repertoire
  * (M / F / O, Type 2 so empty is legal). These are not the same concept as
  * clinical sex or gender identity, and this mapping deliberately consults

@@ -16,9 +16,9 @@ package.
 -   `derivedImageAttributes(derivedFrom, { lossy })` — the plain function
     under `derivedImageBase`: `ImageType`, `SourceImageSequence`, and the
     Lossy Image Compression attributes.
--   `parseJpegInfo(bytes)` — gets the geometry and the matching DICOM
-    transfer syntax from the SOF segment of a JPEG. It does not decode the
-    pixels.
+-   `parseJpegInfo(bytes)` — gets the geometry, the photometric
+    interpretation, and the matching DICOM transfer syntax from the frame
+    header of a JPEG (IMG-USR-11). It does not decode the pixels.
 -   `h264TransferSyntaxUID(profileIdc, levelIdc)` — gives the DICOM transfer
     syntax that can carry an AVC profile and level (Supplement 225), or
     `null`.
@@ -208,6 +208,18 @@ approach, and can change freely. Do not renumber an identifier.
     no predecessor error. For a predecessor, give
     `baseDicom: combineBases(imageBase, predecessorBase)`, with
     `predecessorBase` from `@dcmjs-org/core`.
+-   **IMG-USR-11** `parseJpegInfo` gives DICOM values that go directly into
+    the `decodedImage` of `buildImageDataset`:
+    -   `bitsAllocated` is 8 for a sample precision of 8 or less, else 16.
+        `bitsStored` is the sample precision. (Before this rule,
+        `bitsAllocated` was the sample precision.)
+    -   `photometricInterpretation` follows PS3.5 8.2.1: `MONOCHROME2` for
+        1 component; for 3 components `RGB` when the data has no colour
+        transform (Adobe APP14 transform 0, the component IDs R, G, B, or a
+        lossless process), else `YBR_FULL` without chroma subsampling and
+        `YBR_FULL_422` with it. Another component count gives `null`.
+    -   `transferSyntaxUID` is the baseline (SOF0), extended (SOF1), or
+        lossless (SOF3) transfer syntax, else `null`.
 
 ## § Implementation requirements
 

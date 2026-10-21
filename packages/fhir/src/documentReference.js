@@ -65,6 +65,12 @@ function conceptNameToCodeableConcept(conceptName) {
     return codeableConcept;
 }
 
+/** The BulkDataURI of a naturalized `{ BulkDataURI }` payload, or null. */
+function bulkDataUriOf(payload) {
+    const value = Array.isArray(payload) ? payload[0] : payload;
+    return toStringFirst(value?.BulkDataURI);
+}
+
 /**
  * Build a FHIR DocumentReference from a naturalized Encapsulated Document
  * dataset.
@@ -132,13 +138,16 @@ export function documentReferenceFromDataset(dataset, options = {}) {
     if (title) {
         attachment.title = title;
     }
-    // Review findings 8 (InlineBinary unwrap) and 16 (declared length).
     const bytes = extractEncapsulated(dataset);
+    const bulkDataUri = bulkDataUriOf(dataset.EncapsulatedDocument);
     if (bytes) {
         attachment.size = bytes.byteLength;
-        if (includeData) {
+        // FHIR does not permit an empty string value.
+        if (includeData && bytes.byteLength > 0) {
             attachment.data = encodeBase64(bytes);
         }
+    } else if (bulkDataUri) {
+        attachment.url = bulkDataUri;
     }
     documentReference.content = [{ attachment }];
 

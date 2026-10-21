@@ -281,4 +281,37 @@ describe("toFhir / toBundle integration", () => {
         expect(resourceTypes).toContain("DocumentReference");
         expect(bundle.total).toBe(bundle.entry.length);
     });
+
+    test("toBundle skips a document of another patient (FHIR-USR-3)", () => {
+        const bundle = toBundle([
+            buildPdfDataset(),
+            buildPdfDataset({
+                PatientID: "OTHER",
+                SOPInstanceUID: "1.2.3.4.5.6.8"
+            })
+        ]);
+        const documents = bundle.entry.filter(
+            entry => entry.resource.resourceType === "DocumentReference"
+        );
+        expect(documents).toHaveLength(1);
+        expect(documents[0].resource.subject).toEqual({
+            reference: "./entry/0"
+        });
+    });
+});
+
+describe("a document that is not in the dataset", () => {
+    test("a { BulkDataURI } payload gives attachment.url, and no size or data", () => {
+        const documentReference = documentReferenceFromDataset(
+            buildPdfDataset({
+                EncapsulatedDocument: { BulkDataURI: "http://x/bulk/1" },
+                EncapsulatedDocumentLength: undefined
+            })
+        );
+        expect(documentReference.content[0].attachment).toEqual({
+            contentType: "application/pdf",
+            title: "Discharge Summary",
+            url: "http://x/bulk/1"
+        });
+    });
 });

@@ -1,6 +1,7 @@
 /**
- * DICOM Modality (0008,0060) code → display name, from the DICOM
- * Controlled Terminology (PS3.16 CID 29 and CID 33).
+ * DICOM Modality (0008,0060) code → display name, for a subset of the DICOM
+ * Controlled Terminology (PS3.16 CID 29 and CID 33). A code that is not
+ * here has no entry (CORE-USR-18).
  * Coding system: http://dicom.nema.org/resources/ontology/DCM
  */
 export const MODALITY_DISPLAY = {

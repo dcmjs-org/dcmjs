@@ -168,6 +168,11 @@ describe("fromFhir", () => {
         expect(dataset.BitsStored).toBe(8);
         expect(dataset.HighBit).toBe(7);
         expect(dataset.PixelRepresentation).toBe(0);
+        expect(dataset.LossyImageCompression).toBe("01");
+        // VM 1-n, so the value reads back as an array
+        expect([].concat(dataset.LossyImageCompressionMethod)).toEqual([
+            "ISO_10918_1"
+        ]);
         expect(dataset.PatientID).toBe("22446688");
 
         let payload = dataset.PixelData;
@@ -193,7 +198,8 @@ describe("fromFhir", () => {
     test("createInstance options: instance gives the study, overrides win over the FHIR values", async () => {
         const prior = {
             StudyInstanceUID: "1.2.3.4",
-            PatientID: "OLD-ID",
+            PatientID: "22446688",
+            IssuerOfPatientID: "OLD-ISSUER",
             SOPInstanceUID: "1.2.3.4.5.6"
         };
         const events = DicomEventStream.fromFhir(documentReference(), {
@@ -205,8 +211,20 @@ describe("fromFhir", () => {
 
         expect(dataset.StudyInstanceUID).toBe("1.2.3.4");
         expect(dataset.PatientID).toBe("22446688");
+        // The FHIR Patient replaces the whole patient module (FHIR-USR-8).
+        expect(dataset.IssuerOfPatientID).toBeUndefined();
         expect(dataset.DocumentTitle).toBe("Override title");
         expect(dataset.SOPInstanceUID).not.toBe("1.2.3.4.5.6");
+    });
+
+    test("an instance of another patient throws, never mixes two patients", async () => {
+        const events = DicomEventStream.fromFhir(documentReference(), {
+            patient: JANE_FOX,
+            instance: { StudyInstanceUID: "1.2.3.4", PatientID: "OTHER" }
+        });
+        await expect(events.toPart10()).rejects.toThrow(
+            /belongs to PatientID OTHER/
+        );
     });
 
     test("fromFhir streams are re-runnable with stable identity", async () => {
@@ -259,12 +277,38 @@ describe("fromFhir", () => {
             expect(dataset.PatientID).toBe("22446688");
         });
 
+        test("an absolute reference matches by fullUrl, not by id of another server", async () => {
+            const bundle = {
+                resourceType: "Bundle",
+                type: "collection",
+                entry: [
+                    {
+                        fullUrl: "http://a/fhir/Patient/1",
+                        resource: { ...OTHER, id: "1" }
+                    },
+                    {
+                        fullUrl: "http://b/fhir/Patient/1",
+                        resource: { ...JANE, id: "1" }
+                    },
+                    {
+                        resource: documentReference({
+                            subject: { reference: "http://b/fhir/Patient/1" }
+                        })
+                    }
+                ]
+            };
+            const { dataset } = readBack(
+                await DicomEventStream.fromFhir(bundle).toPart10()
+            );
+            expect(dataset.PatientID).toBe("22446688");
+        });
+
         test.each([
             ["no subject reference", undefined, /2 Patient resources/],
             [
                 "a subject that matches no Patient",
                 { reference: "Patient/nobody" },
-                /matches no Patient/
+                /matches no Patients/
             ]
         ])("throws for %s", async (_, subject, message) => {
             const bundle = {

@@ -5,12 +5,8 @@
 // patient.js's patientFromDataset, and the primitive behind demographics
 // injection ("apply this Patient to these instances").
 //
-// Contract: the result ALWAYS carries all four keys — PatientName,
-// PatientID, PatientBirthDate, PatientSex — with "" for anything the
-// resource doesn't provide. Deterministic overwrite is the point: applying
-// a Patient must replace the whole patient module, not leave stale values
-// from the previous identity behind. Callers that want merge-not-replace
-// can filter the empties themselves.
+// The result rules are FHIR-USR-6 in packages/fhir/README.md. fromFhir
+// also removes the other patient-module attributes (FHIR-USR-8).
 
 import {
     genderToSex,

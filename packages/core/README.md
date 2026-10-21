@@ -316,3 +316,38 @@ Do not renumber an identifier. A new requirement gets the next free number.
     another source. An input of a wrong type fails where the code uses it,
     or gives no error. Each check of this rule has a user requirement
     (CORE-USR-7).
+
+## Value helpers
+
+Helpers for naturalized values that every package can use. The change rule
+of "Scope and change rule" applies, and the identifiers continue the
+numbers above.
+
+-   `toStringFirst(value)` and `toFloatFirst(value)` — the first value of a
+    naturalized attribute in one plain type.
+-   `encodeBase64(bytes)` and `base64ToArrayBuffer(b64)` — base64 for
+    binary values (DICOM JSON `InlineBinary`, FHIR attachment data).
+-   `MODALITY_DISPLAY` — the display name of a DICOM Modality code.
+
+### § User requirements
+
+-   **CORE-USR-16** `toStringFirst` returns the first value as a trimmed
+    string, the string form of a number, or `null` for an absent, empty,
+    blank, or non-string value (for example a PN object). `toFloatFirst`
+    returns the first value as a finite number (with `toFloat`), or `null`.
+    A multi-value array gives its first value.
+-   **CORE-USR-17** `encodeBase64` takes an `ArrayBuffer` or a view, and
+    encodes only the bytes of the view. `base64ToArrayBuffer` returns an
+    `ArrayBuffer` that holds exactly the decoded bytes. Both work in Node
+    and in the browser, for values of hundreds of megabytes.
+-   **CORE-USR-18** `MODALITY_DISPLAY` maps a subset of the Modality codes
+    of PS3.16 CID 29 and CID 33 to a display name. A code that is not in the
+    table has no entry; a caller uses the code itself as the display.
+
+### § Implementation requirements
+
+-   **CORE-IMP-12** The base64 functions use the native
+    `Uint8Array.prototype.toBase64` and `Uint8Array.fromBase64` when they
+    exist, else Node's `Buffer`, else `btoa`/`atob`. The `btoa` path converts
+    32768 bytes at a time, so a large value does not exceed the argument
+    limit of `String.fromCharCode`.
