@@ -26,6 +26,15 @@ importers:
       '@babel/runtime-corejs3':
         specifier: 7.29.2
         version: 7.29.2
+      '@dcmjs-org/encapsulated':
+        specifier: workspace:*
+        version: link:packages/encapsulated
+      '@dcmjs-org/imaging':
+        specifier: workspace:*
+        version: link:packages/imaging
+      '@dcmjs-org/video':
+        specifier: workspace:*
+        version: link:packages/video
       adm-zip:
         specifier: '>=0.6.1'
         version: 0.6.1
@@ -195,6 +204,21 @@ importers:
       pako:
         specifier: 2.1.0
         version: 2.1.0
+
+  packages/media:
+    dependencies:
+      '@dcmjs-org/dicomdir':
+        specifier: workspace:*
+        version: link:../dicomdir
+      '@dcmjs-org/encapsulated':
+        specifier: workspace:*
+        version: link:../encapsulated
+      '@dcmjs-org/imaging':
+        specifier: workspace:*
+        version: link:../imaging
+      '@dcmjs-org/video':
+        specifier: workspace:*
+        version: link:../video
 
   packages/parser:
     dependencies:
