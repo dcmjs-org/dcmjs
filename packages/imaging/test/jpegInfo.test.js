@@ -5,7 +5,7 @@
 // truncation cases pin review finding 9: a JPEG cut inside the SOF field
 // span must throw, never return zero-coerced geometry.
 
-import { parseJpegInfo } from "../src/image/jpegInfo.js";
+import { parseJpegInfo } from "../src/jpegInfo.js";
 
 const JPEG_BASELINE_TS = "1.2.840.10008.1.2.4.50";
 const JPEG_EXTENDED_TS = "1.2.840.10008.1.2.4.51";

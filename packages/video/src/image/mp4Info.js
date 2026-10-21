@@ -13,37 +13,9 @@
 // 20 GB file). Plain Uint8Array/ArrayBuffer input is wrapped in an in-memory
 // reader so both call styles share one code path.
 
-// Fragmentable MPEG-4 AVC/H.264 High Profile transfer syntaxes (Sup 225).
-// The fragmentable ".1" family is always chosen because the encapsulation
-// writer emits the stream as N >= 1 fragments.
-const H264_HIGH_41_FRAGMENTABLE = "1.2.840.10008.1.2.4.102.1";
-const H264_HIGH_42_FRAGMENTABLE = "1.2.840.10008.1.2.4.104.1";
-
-// AVC profile_idc values that fit inside the "High Profile" transfer
-// syntaxes: Baseline (66) and Main (77) are strict subsets of High (100).
-const H264_SUPPORTED_PROFILES = new Set([66, 77, 100]);
-
-/**
- * Map an AVC profile/level pair to the DICOM transfer syntax that carries it,
- * or null when no defined syntax fits (High-10/422/444 profiles, levels above
- * 4.2, HEVC, ...). level_idc is the H.264 level times ten (41 = Level 4.1).
- *
- * @param {number} profileIdc
- * @param {number} levelIdc
- * @returns {string|null}
- */
-export function h264TransferSyntaxUID(profileIdc, levelIdc) {
-    if (!H264_SUPPORTED_PROFILES.has(profileIdc)) {
-        return null;
-    }
-    if (levelIdc <= 41) {
-        return H264_HIGH_41_FRAGMENTABLE;
-    }
-    if (levelIdc === 42) {
-        return H264_HIGH_42_FRAGMENTABLE;
-    }
-    return null;
-}
+// The AVC profile/level → transfer syntax mapping moved to @dcmjs-org/imaging
+// (it's shared, codec-free lookup). parseMp4Info uses it to label the stream.
+import { h264TransferSyntaxUID } from "@dcmjs-org/imaging";
 
 /** Wrap in-memory bytes in the random-access reader contract. */
 function memoryReader(input) {

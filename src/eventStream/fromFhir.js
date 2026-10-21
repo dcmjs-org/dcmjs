@@ -18,8 +18,8 @@
 // of them — it moves into the step-7 wrapper package with the facade.
 
 import { DicomMetaDictionary } from "@dcmjs-org/core";
-import { encapsulatePdf } from "@dcmjs-org/pdfs";
-import { buildImageDataset, parseJpegInfo } from "@dcmjs-org/video";
+import { encapsulatePdf } from "@dcmjs-org/encapsulated";
+import { buildImageDataset, parseJpegInfo } from "@dcmjs-org/imaging";
 import { base64ToArrayBuffer } from "@dcmjs-org/parser";
 import { patientToDataset } from "@dcmjs-org/fhir";
 

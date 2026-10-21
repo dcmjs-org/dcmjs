@@ -50,7 +50,7 @@ export const patientStudyTags = new Set([...patientTags, ...studyTags]);
 /**
  * The default level hierarchy, broadest first. Each entry is
  * `{ name, tags }`. There is no instance level: instance attributes have no
- * fixed list, so the caller sets them as overrides.
+ * fixed list, so the caller sets them in `overrides`.
  *
  * A change to these entries or Sets changes the default for every caller. To
  * change one call only, pass a new list (see {@link extendDataLevels}) as the
@@ -81,7 +81,8 @@ export function extendDataLevels(levels, extraTags) {
 }
 
 /**
- * Index of `dataLevel` in `levels`; throws for an unknown level name.
+ * Index of `dataLevel` in `levels`; throws for an unknown level name
+ * (CORE-USR-3).
  *
  * @param {string} dataLevel
  * @param {Object[]} [levels=DATA_LEVELS]
@@ -130,12 +131,6 @@ export function copyAttributesByLevel(
     const source = Array.isArray(sourceInstance)
         ? sourceInstance[0]
         : sourceInstance;
-    if (!source || typeof source !== "object" || Array.isArray(source)) {
-        throw new Error(
-            "copyAttributesByLevel: instance must be a naturalized " +
-                "dataset (or a non-empty array of them)"
-        );
-    }
 
     const levelIndex = dataLevelIndex(dataLevel, levels);
     const result = {};

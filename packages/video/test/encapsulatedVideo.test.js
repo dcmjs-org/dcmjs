@@ -25,15 +25,39 @@ describe("buildVideoDataset", () => {
         info = await parseMp4Info(makeTinyMp4());
     });
 
+    it("joins the study of a source instance, and control keys stay out", () => {
+        const source = {
+            PatientID: "JD-001",
+            StudyInstanceUID: "2.25.1",
+            SeriesInstanceUID: "2.25.2",
+            SOPClassUID: VIDEO_PHOTOGRAPHIC_SOP_CLASS_UID,
+            SOPInstanceUID: "2.25.3",
+            Modality: "XC"
+        };
+        const dataset = buildVideoDataset(info, {
+            instance: source,
+            predecessor: true,
+            fragmentBytes: 2,
+            overrides: { Rows: 1 }
+        });
+        expect(dataset.PatientID).toBe("JD-001");
+        expect(dataset.StudyInstanceUID).toBe("2.25.1");
+        expect(dataset.SeriesInstanceUID).not.toBe("2.25.2");
+        // videoBase has no predecessorBase (VID-USR-8).
+        expect(dataset).not.toHaveProperty("PredecessorDocumentsSequence");
+        expect(dataset.Rows).toBe(48);
+        expect(dataset.fragmentBytes).toBeUndefined();
+    });
+
     it("mirrors the Supplement 225 reference element list", () => {
         const dataset = buildVideoDataset(info, {
-            PatientName: "DOE^JANE",
-            PatientID: "JD-001"
+            overrides: { PatientName: "DOE^JANE", PatientID: "JD-001" }
         });
         expect(dataset.SOPClassUID).toBe(VIDEO_PHOTOGRAPHIC_SOP_CLASS_UID);
         expect(dataset.Modality).toBe("XC");
         expect(dataset.PatientName).toBe("DOE^JANE");
         expect(dataset.PatientID).toBe("JD-001");
+        expect(dataset.StudyID).toBe("");
         expect(dataset.CineRate).toBe(60);
         expect(dataset.FrameTime).toBe("16.666667");
         expect(dataset.SamplesPerPixel).toBe(3);
@@ -60,11 +84,20 @@ describe("buildVideoDataset", () => {
         const b = buildVideoDataset(info);
         expect(a.SOPInstanceUID).not.toBe(b.SOPInstanceUID);
         const pinned = buildVideoDataset(info, {
-            StudyInstanceUID: "1.2.3.4",
-            SeriesInstanceUID: "1.2.3.4.5"
+            overrides: {
+                StudyInstanceUID: "1.2.3.4",
+                SeriesInstanceUID: "1.2.3.4.5"
+            }
         });
         expect(pinned.StudyInstanceUID).toBe("1.2.3.4");
         expect(pinned.SeriesInstanceUID).toBe("1.2.3.4.5");
+        // API: an _meta key other than TransferSyntaxUID stays (VID-USR-2).
+        const meta = buildVideoDataset(info, {
+            overrides: {
+                _meta: { ImplementationVersionName: { Value: ["X"] } }
+            }
+        });
+        expect(meta._meta.ImplementationVersionName).toEqual({ Value: ["X"] });
     });
 
     it("throws the transcode corrective error for unsupported codecs", async () => {

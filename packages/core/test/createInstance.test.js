@@ -6,7 +6,9 @@
 import {
     createInstance,
     combineBases,
+    DATA_LEVELS,
     deepCloneInstance,
+    extendDataLevels,
     defaultInstanceBase,
     nextSeriesNumberBase,
     predecessorBase,
@@ -62,21 +64,176 @@ describe("createInstance", () => {
         expect(ds.SeriesNumber).toBe(3);
         expect(ds.SeriesDescription).toBe("AX T1");
         expect(ds.SOPInstanceUID).not.toBe("1.2.3.4.5.6.7.100");
-        expect(ds.InstanceNumber).toBe(1);
         expect(warn).toHaveBeenCalledWith(expect.stringMatching(/Modality/));
+
+        // An override of any value decides Modality, so no warning.
+        warn.mockClear();
+        createInstance({
+            baseDicom: docBase,
+            instance: source,
+            dataLevel: "series",
+            overrides: { Modality: undefined }
+        });
+        expect(warn).not.toHaveBeenCalled();
         warn.mockRestore();
     });
 
-    it("explicit overrides win, and carry instance-level values", () => {
+    it("overrides win, and carry instance-level values", () => {
         const ds = createInstance({
             instance: source,
-            PatientName: "Override^Name",
-            SeriesNumber: 42,
-            SOPInstanceUID: "1.2.3.4.5.6.7.200"
+            overrides: {
+                PatientName: "Override^Name",
+                SeriesNumber: 42,
+                SOPInstanceUID: "1.2.3.4.5.6.7.200"
+            }
         });
         expect(ds.PatientName).toBe("Override^Name");
         expect(ds.SeriesNumber).toBe(42);
         expect(ds.SOPInstanceUID).toBe("1.2.3.4.5.6.7.200");
+
+        // A _meta override merges into the base _meta.
+        const meta = createInstance({
+            overrides: { _meta: { ImplementationVersionName: "x" } }
+        })._meta;
+        expect(meta.ImplementationVersionName).toBe("x");
+        expect(meta.TransferSyntaxUID.Value[0]).toBe("1.2.840.10008.1.2.1");
+    });
+
+    // API: overrides takes the provider forms of baseDicom (CORE-USR-1).
+    it("resolves overrides as a function of the context and as an array", () => {
+        const fromContext = createInstance({
+            instance: source,
+            overrides: context => ({
+                SeriesDescription: context.inherits("study") ? "same" : "new"
+            })
+        });
+        expect(fromContext.SeriesDescription).toBe("same");
+
+        const fromArray = createInstance({
+            overrides: [
+                { PatientID: "A", PatientName: "X" },
+                { PatientID: "B" }
+            ]
+        });
+        expect(fromArray.PatientID).toBe("B");
+        expect(fromArray.PatientName).toBe("X");
+    });
+
+    it("an inherited study or series gets Type 2 empty values, and a source value wins", () => {
+        const bare = { ...source };
+        delete bare.SeriesNumber;
+        const empty = createInstance({ instance: bare, dataLevel: "series" });
+        expect(empty.StudyDate).toBe("");
+        expect(empty.StudyTime).toBe("");
+        expect(empty.SeriesNumber).toBe("");
+        expect(empty.StudyInstanceUID).toBe("1.2.3.4.5");
+
+        const full = createInstance({
+            instance: { ...source, StudyDate: "20240102" },
+            dataLevel: "series"
+        });
+        expect(full.StudyDate).toBe("20240102");
+        expect(full.SeriesNumber).toBe(3);
+    });
+
+    // API: CORE-USR-8 and CORE-USR-15.
+    it("an undefined override removes the attribute; null and '' stay", () => {
+        const ds = createInstance({
+            overrides: {
+                PatientName: undefined,
+                StudyID: null,
+                AccessionNumber: ""
+            }
+        });
+        expect(ds).not.toHaveProperty("PatientName");
+        expect(ds.StudyID).toBeNull();
+        expect(ds.AccessionNumber).toBe("");
+        expect(
+            createInstance({
+                instance: source,
+                dataLevel: "series",
+                overrides: { SeriesNumber: undefined }
+            })
+        ).not.toHaveProperty("SeriesNumber");
+
+        // A custom postProcess replaces the default, and gets the context.
+        const postProcess = jest.fn(dataset => dataset);
+        const kept = createInstance({
+            dataLevel: "patient",
+            overrides: { PatientName: undefined },
+            postProcess
+        });
+        expect(kept).toHaveProperty("PatientName", undefined);
+        expect(postProcess).toHaveBeenCalledWith(
+            kept,
+            expect.objectContaining({ dataLevel: "patient" })
+        );
+    });
+
+    // API: the level list decides what is copied (CORE-USR-4).
+    it("the default levels do not copy the source identity", () => {
+        const options = { instance: source, dataLevel: "series" };
+        const ds = createInstance(options);
+        expect(ds.SOPInstanceUID).not.toBe(source.SOPInstanceUID);
+        expect(ds.SOPClassUID).toBeUndefined();
+        expect(ds.InstanceNumber).toBe(8);
+
+        // A custom levels list copies what it lists.
+        const levels = extendDataLevels(DATA_LEVELS, {
+            series: ["SOPInstanceUID"]
+        });
+        expect(createInstance({ ...options, levels }).SOPInstanceUID).toBe(
+            source.SOPInstanceUID
+        );
+
+        const set = createInstance({
+            ...options,
+            overrides: { SOPInstanceUID: "1.2.3.4.5.6.7.200" }
+        });
+        expect(set.SOPInstanceUID).toBe("1.2.3.4.5.6.7.200");
+
+        const next = createInstance({
+            ...options,
+            baseDicom: combineBases(defaultInstanceBase, predecessorBase),
+            predecessor: true
+        });
+        expect(next.SOPInstanceUID).not.toBe(source.SOPInstanceUID);
+        const [study] = next.PredecessorDocumentsSequence;
+        expect(
+            study.ReferencedSeriesSequence[0].ReferencedSOPSequence[0]
+                .ReferencedSOPInstanceUID
+        ).toBe(source.SOPInstanceUID);
+    });
+
+    // User experience: a new instance in a series follows the sample one.
+    it("at 'series', InstanceNumber is the sample InstanceNumber + 1", () => {
+        const next = options =>
+            createInstance({ instance: source, ...options });
+        expect(next({ dataLevel: "series" }).InstanceNumber).toBe(8);
+        // Only the first item is the sample.
+        expect(
+            next({
+                instance: [source, { ...source, InstanceNumber: 20 }],
+                dataLevel: "series"
+            }).InstanceNumber
+        ).toBe(8);
+        expect(next({ dataLevel: "study" }).InstanceNumber).toBe(1);
+        const bare = { ...source };
+        delete bare.InstanceNumber;
+        expect(
+            next({ instance: bare, dataLevel: "series" }).InstanceNumber
+        ).toBe(1);
+        expect(
+            next({ dataLevel: "series", overrides: { InstanceNumber: 3 } })
+                .InstanceNumber
+        ).toBe(3);
+        // The IS maximum has no next value.
+        expect(
+            next({
+                instance: { ...source, InstanceNumber: 2147483647 },
+                dataLevel: "series"
+            }).InstanceNumber
+        ).toBe(1);
     });
 
     it("has no instance level", () => {
@@ -171,6 +328,15 @@ describe("base blocks", () => {
         expect(
             createInstance({ instance: older, predecessor: true })
         ).not.toHaveProperty("PredecessorDocumentsSequence");
+        // API: an instance without SOPInstanceUID throws (CORE-USR-9).
+        const { SOPInstanceUID: _omit, ...noUid } = source;
+        expect(() =>
+            createInstance({
+                baseDicom: base,
+                instance: noUid,
+                predecessor: true
+            })
+        ).toThrow(/missing SOPInstanceUID/);
     });
 
     it("nextSeriesNumberBase counts naturalized and DICOM JSON series", () => {
@@ -188,5 +354,12 @@ describe("base blocks", () => {
             baseDicom: [defaultInstanceBase, nextSeriesNumberBase(qido, notCt)]
         });
         expect(ds.SeriesNumber).toBe(10);
+        const atMax = createInstance({
+            baseDicom: [
+                defaultInstanceBase,
+                nextSeriesNumberBase([{ SeriesNumber: 2147483647 }])
+            ]
+        });
+        expect(atMax.SeriesNumber).toBe(1);
     });
 });
