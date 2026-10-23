@@ -83,6 +83,38 @@ describe("naturalized attributes", () => {
         expect(dataset.OtherPatientNames).toHaveLength(2);
     });
 
+    it("setAttribute stores a sequence in the naturalized form", () => {
+        const dataset = {};
+        const item = { CodeValue: "113000" };
+        const one = setAttribute(dataset, "ConceptNameCodeSequence", [item]);
+        expect(one[0]).toBe(item); // the array-like item object
+        expect([...one]).toEqual([item]);
+        expect(setAttribute(dataset, "ConceptNameCodeSequence", [])).toEqual(
+            []
+        );
+    });
+
+    it("a hex key of a flat registerTag() element sets that element", () => {
+        const { registerTag } = require("../../src/dictionary.fast.js");
+        registerTag("00351001", { name: "SetFlatTag", vr: "LO", vm: "1" });
+        const dataset = DicomMetaDictionary.naturalizeDataset({
+            "00351001": { vr: "LO", Value: ["one"] }
+        });
+        setAttribute(dataset, "00351001", "two");
+        expect(dataset.SetFlatTag).toBe("two");
+        expect(
+            DicomMetaDictionary.denaturalizeDataset(dataset)["00351001"].Value
+        ).toEqual(["two"]);
+    });
+
+    it("a private PN element with no creator converts an assigned string", () => {
+        const dataset = DicomMetaDictionary.naturalizeDataset({
+            "00311002": { vr: "PN", Value: [{ Alphabetic: "A^B" }] }
+        });
+        dataset["00311002"] = "X^Y";
+        expect(dataset["00311002"][0].Alphabetic).toBe("X^Y");
+    });
+
     it("setPersonName adds a converting PN attribute; setVr creates _vrMap", () => {
         const dataset = {};
         setPersonName(dataset, "00311010", "Doe^John", 1);

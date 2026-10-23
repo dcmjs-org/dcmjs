@@ -9,10 +9,13 @@ const os = require("os");
 const path = require("path");
 const vm = require("vm");
 const { execFileSync } = require("child_process");
-
-const ROOT = path.join(__dirname, "..");
-const BUILD_DIR = path.join(ROOT, "build");
-const BUILD_TIMEOUT_MS = 300000;
+const {
+    ROOT,
+    BUILD_DIR,
+    BUILD_TIMEOUT_MS,
+    ensureBuild,
+    withChunks
+} = require("./helper/build.js");
 
 // dcmjs@0.52.0 from npm, and the ceiling for each default bundle.
 const BUNDLES = {
@@ -44,80 +47,6 @@ const SUBPATHS = {
     "image.es.js": "buildImageDataset",
     "fhir.es.js": "fromPart10"
 };
-
-// The inputs of the bundles: newer than a bundle means a stale build.
-const BUILD_INPUTS = [
-    "src",
-    "rollup.config.mjs",
-    "package.json",
-    ...fs.readdirSync(path.join(ROOT, "packages")).map(d => `packages/${d}/src`)
-];
-
-function newestMtime(target) {
-    if (!fs.existsSync(target)) {
-        return 0;
-    }
-    const stat = fs.statSync(target);
-    if (!stat.isDirectory()) {
-        return stat.mtimeMs;
-    }
-    return fs
-        .readdirSync(target)
-        .reduce(
-            (newest, entry) =>
-                Math.max(newest, newestMtime(path.join(target, entry))),
-            stat.mtimeMs
-        );
-}
-
-// The local chunks that a built ESM file imports, with the file itself.
-function withChunks(name, seen = new Set()) {
-    if (!seen.has(name)) {
-        seen.add(name);
-        const source = fs.readFileSync(path.join(BUILD_DIR, name), "utf8");
-        for (const match of source.matchAll(
-            /(?:from|import)\s+['"]\.\/([^'"]+)['"]/g
-        )) {
-            withChunks(match[1], seen);
-        }
-    }
-    return [...seen];
-}
-
-function buildAge() {
-    const outputs = [...Object.keys(BUNDLES), ...Object.keys(SUBPATHS)].map(
-        name => path.join(BUILD_DIR, name)
-    );
-    if (!outputs.every(file => fs.existsSync(file))) {
-        return "absent";
-    }
-    const oldestOutput = Math.min(...outputs.map(f => fs.statSync(f).mtimeMs));
-    const newestInput = Math.max(
-        ...BUILD_INPUTS.map(input => newestMtime(path.join(ROOT, input)))
-    );
-    return newestInput > oldestOutput ? "stale" : "current";
-}
-
-// Builds only the ESM entries and the UMD bundle, through node and the
-// rollup CLI script, so no shell is needed (the pnpm shim fails to spawn on
-// Windows).
-function ensureBuild() {
-    const age = buildAge();
-    if (age === "current") {
-        return;
-    }
-    console.log(`bundle-size: build/ is ${age}, building the bundles...`);
-    execFileSync(
-        process.execPath,
-        [
-            require.resolve("rollup/dist/bin/rollup"),
-            "-c",
-            "--environment",
-            "BUNDLES_ONLY"
-        ],
-        { cwd: ROOT, stdio: "inherit", timeout: BUILD_TIMEOUT_MS }
-    );
-}
 
 // The size of what an application bundler gives for an ESM entry: the entry,
 // its chunks, and the @dcmjs-org/* packages that it imports, in one rollup

@@ -1,16 +1,17 @@
 import { dictionary, lookupRegisteredTagByName } from "./dictionary.fast.js";
 import { getAllStandardTagEntries } from "./dicom.lookup.js";
 import log from "./log.js";
-import addAccessors from "./utilities/addAccessors.js";
-import isMultiVM, { valueLength } from "./utilities/isMultiVM.js";
+import { valueLength } from "./utilities/isMultiVM.js";
 import BINARY_VRS from "./utilities/binaryVRs.js";
+import { checkBinaryAs } from "./utilities/binaryFragment.js";
 import {
-    checkBinaryAs,
-    isEmptyBinary,
-    naturalBinaryFragment
-} from "./utilities/binaryFragment.js";
+    binaryValue,
+    sequenceValue,
+    simpleValue
+} from "./utilities/naturalValues.js";
 import { ValueRepresentation } from "./ValueRepresentation.js";
 import {
+    isHexTag,
     isPrivateTag,
     placePrivateElements,
     expandPrivateBlocks
@@ -22,7 +23,6 @@ import { setPersonName } from "./utilities/naturalizedAttributes.js";
  * The naturalized value of one DICOM JSON element (see naturalizeDataset).
  */
 function naturalizeElement(data, entry, options) {
-    const length = valueLength(entry);
     if (data.Value === undefined || data.Value === null) {
         // binary keeps its reference
         if (data.InlineBinary) {
@@ -31,36 +31,25 @@ function naturalizeElement(data, entry, options) {
         if (data.BulkDataURI) {
             return { BulkDataURI: data.BulkDataURI };
         }
-        // present and empty, as for an empty Value (NAT-U-VAL-1/2/4)
-        if (data.vr === "SQ") return [];
-        if (BINARY_VRS.has(data.vr)) return null;
-        return length === 1 ? null : [];
     }
-
+    // a missing Value is empty, as an empty Value is (NAT-U-VAL-2)
+    const values = data.Value ?? [];
     if (data.vr === "SQ") {
-        // one item is the item object (also with no dictionary VM)
-        const items = data.Value.map(item =>
-            DicomMetaDictionary.naturalizeDataset(item, options)
+        return sequenceValue(
+            values.map(item =>
+                DicomMetaDictionary.naturalizeDataset(item, options)
+            ),
+            entry
         );
-        return items.length === 1 && !isMultiVM(entry?.vm)
-            ? addAccessors(items)
-            : items;
     }
-
-    // no dictionary VM (a private or unknown element): a list, as for VM > 1
-    let value = data.Value;
     if (BINARY_VRS.has(data.vr)) {
-        // a binary Value lists frames or fragments, not a VM: keep the list
-        if (isEmptyBinary(value)) return null;
-        return value.map(fragment =>
-            naturalBinaryFragment(fragment, options.binaryAs)
-        );
+        return binaryValue(values, options.binaryAs);
     }
-    if (length === 1) {
-        if (value.length === 0) return null;
-        if (value.length === 1) value = value[0];
-    }
-    return ValueRepresentation.addValueAccessorsFor(data.vr, value);
+    // no dictionary VM (a private or unknown element): a list, as for VM > 1
+    return ValueRepresentation.addValueAccessorsFor(
+        data.vr,
+        simpleValue(values, valueLength(entry))
+    );
 }
 
 export class DicomMetaDictionary {
@@ -279,7 +268,7 @@ export class DicomMetaDictionary {
             }
             if (
                 !entry &&
-                /^[0-9A-Fa-f]{8}$/.test(name) &&
+                isHexTag(name) &&
                 dataset._vrMap &&
                 dataset._vrMap[name]
             ) {

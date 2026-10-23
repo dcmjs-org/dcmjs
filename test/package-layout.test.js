@@ -9,8 +9,12 @@ const fs = require("fs");
 const path = require("path");
 const { parseAst } = require("rollup/dist/parseAst.js");
 
-const ROOT = path.join(__dirname, "..");
-const BUILD_DIR = path.join(ROOT, "build");
+const {
+    ROOT,
+    BUILD_DIR,
+    BUILD_TIMEOUT_MS,
+    ensureBuild
+} = require("./helper/build.js");
 
 const readJson = file => JSON.parse(fs.readFileSync(file, "utf8"));
 const rootPackage = readJson(path.join(ROOT, "package.json"));
@@ -97,27 +101,25 @@ describe("the published packages", () => {
 });
 
 describe("the ESM build", () => {
-    // test/bundle-size.test.js builds build/ when it is absent or stale.
-    const maps = fs.existsSync(BUILD_DIR)
-        ? fs
-              .readdirSync(BUILD_DIR)
-              .filter(f => /\.es\.js\.map$|^dcmjs\.shared-.*\.js\.map$/.test(f))
-        : [];
+    beforeAll(() => {
+        ensureBuild();
+    }, BUILD_TIMEOUT_MS);
 
-    (maps.length ? test : test.skip)(
-        "bundles no code of a runtime package",
-        () => {
-            // The runtime packages stay imports, so a bundler keeps one copy.
-            const runtime = runtimePackages().map(name =>
-                name.slice("@dcmjs-org/".length)
+    test("bundles no code of a runtime package", () => {
+        // The runtime packages stay imports, so a bundler keeps one copy.
+        const runtime = runtimePackages().map(name =>
+            name.slice("@dcmjs-org/".length)
+        );
+        const maps = fs
+            .readdirSync(BUILD_DIR)
+            .filter(f => /.es.js.map$|^dcmjs.shared-.*.js.map$/.test(f));
+        expect(maps.length).toBeGreaterThan(0);
+        for (const map of maps) {
+            const { sources } = readJson(path.join(BUILD_DIR, map));
+            const bundled = sources.filter(source =>
+                runtime.some(name => source.includes(`packages/${name}/`))
             );
-            for (const map of maps) {
-                const { sources } = readJson(path.join(BUILD_DIR, map));
-                const bundled = sources.filter(source =>
-                    runtime.some(name => source.includes(`packages/${name}/`))
-                );
-                expect({ map, bundled }).toEqual({ map, bundled: [] });
-            }
+            expect({ map, bundled }).toEqual({ map, bundled: [] });
         }
-    );
+    });
 });

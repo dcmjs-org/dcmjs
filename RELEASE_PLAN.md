@@ -205,12 +205,11 @@ request; the implementation requirements (WRAP-IMP-n) can change freely.
     `derivations`, `normalizers`, `utilities`, `anonymizer`, `async`,
     `constants`, `DICOMWEB`, `log`). Each 0.52 namespace keeps every 0.52
     name; a namespace can add names. A 0.52 user changes only the import
-    name. `test/compat-052.test.js` checks this.
+    name.
 -   **WRAP-USR-2** What a user loads for the default entry stays at most
     ×1.06 of the same 0.52.0 bundle: `build/dcmjs.js` (UMD), and the bundle
     that an application bundler gives for `build/dcmjs.es.js` (ESM) with the
-    `@dcmjs-org/*` packages that it imports. `test/bundle-size.test.js`
-    enforces both ceilings.
+    `@dcmjs-org/*` packages that it imports.
 -   **WRAP-USR-3** The new engines are available only through subpath
     imports, never on the default export:
     `@dcmjs-org/dcmjs/eventStream` (the event-stream contract, sources,
@@ -250,7 +249,13 @@ request; the implementation requirements (WRAP-IMP-n) can change freely.
     export their names: `src/dicom.packed.js`,
     `src/dictionary.private.data.js`, `src/dictionary.ranges.data.js` and
     `src/core/decodeCore.js`. `test/package-layout.test.js` checks the
-    source maps of `build/`, so a build that imports one of them fails.
+    source maps of `build/` (it builds `build/` when it is absent or
+    stale), so a build that imports one of them fails.
+    `@dcmjs-org/legacy` and `@dcmjs-org/generator` are not runtime
+    dependencies: the build inlines their sources (the eager reader and
+    writer of `dcmjs.data`, and the event-stream writers). An app that also
+    imports one of those packages directly gets a second copy of its
+    classes, so `instanceof` does not work across the two copies.
 -   **WRAP-IMP-3** One rollup ESM build has six entries: `src/index.js`
     (`build/dcmjs.es.js`), and `src/eventStream.js`, `src/media.js`,
     `src/encapsulated.js`, `src/image.js` and `src/fhir.js`
@@ -286,10 +291,18 @@ request; the implementation requirements (WRAP-IMP-n) can change freely.
     first, and the ESM build removes the shared chunks of earlier builds, so
     no old chunk is published.
 -   **WRAP-IMP-8** Core reads `process.env.LOG_LEVEL` in a `try` block, so
-    a missing `process` gives the default level. The root rollup build
-    replaces the expression with the build-time level, also for the UMD
-    build in a browser. `test/bundle-size.test.js` runs the ESM consumer
-    bundle in a vm with no `process` (WRAP-USR-6).
+    a missing `process` gives the default level. The value applies only
+    when it is a loglevel level (a name, case-insensitive, or 0 to 5); any
+    other value, for example "verbose" (winston), gives `warn`, because
+    loglevel 1.9 throws for it (pimterry/loglevel#210 proposes
+    `log.parseLevel` for this check). The ESM entries import core, so they
+    read the variable when they load; the root rollup build replaces the
+    expression with the build-time level for the UMD builds.
+    `test/core/logLevel.test.js` checks the values, and
+    `test/bundle-size.test.js` runs the ESM consumer bundle in a vm with no
+    `process` (WRAP-USR-6).
+-   **WRAP-IMP-9** `test/compat-052.test.js` checks WRAP-USR-1, and
+    `test/bundle-size.test.js` enforces the ceilings of WRAP-USR-2.
 
 **The size ceiling.** The ceiling is ×1.06 of 0.52. It was ×1.05 until
 the naturalized-dataset utilities (`setVr`, `setAttribute`,
@@ -311,16 +324,16 @@ external `@dcmjs-org/*` imports in the ESM build:
 
 | Bundle | Bytes | Ratio to 0.52 | Ceiling |
 | --- | --- | --- | --- |
-| `build/dcmjs.js` (UMD) | 1,457,292 | ×1.053 | ×1.06 |
-| `build/dcmjs.es.js`, consumer bundle with its packages | 1,407,959 | ×1.037 | ×1.06 |
-| `build/dcmjs.min.js` (UMD, minified) | 725,759 | ×1.023 | not enforced |
+| `build/dcmjs.js` (UMD) | 1,459,448 | ×1.054 | ×1.06 |
+| `build/dcmjs.es.js`, consumer bundle with its packages | 1,410,165 | ×1.039 | ×1.06 |
+| `build/dcmjs.min.js` (UMD, minified) | 728,533 | ×1.027 | not enforced |
 | `build/dcmjs.es.js` alone | 282 | | |
-| `build/dcmjs.shared-<hash>.js` | 589,298 | | |
-| `build/eventStream.es.js` | 57,122 | | |
+| `build/dcmjs.shared-<hash>.js` | 589,551 | | |
+| `build/eventStream.es.js` | 57,179 | | |
 | `build/media.es.js` | 513 | | |
 | `build/encapsulated.es.js` | 1,311 | | |
 | `build/image.es.js` | 720 | | |
-| `build/fhir.es.js` | 1,374 | | |
+| `build/fhir.es.js` | 1,401 | | |
 
 An earlier measurement of the ESM entry (×1.014) counted only the files in
 `build/`. That shared chunk held a second copy of `@dcmjs-org/core`, so the

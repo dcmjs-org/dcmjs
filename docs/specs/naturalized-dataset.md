@@ -123,6 +123,12 @@ A private value is a list (NAT-U-VAL-4). An assigned PN string converts:
   `"A^B\C^D"`), component object or list is stored in the component form,
   as one object for a VM of 1 and as a list otherwise. An assigned
   `undefined` stays `undefined`, so denaturalize omits the attribute.
+  - The setter copies an assigned object, gives `null` (VM 1) or `[]` for
+    `""`, and drops an empty name between two `` delimiters.
+  - A private PN element with no creator has the setter too. A PN element in
+    a block converts through its alias (NAT-U-SET-2).
+  - A copy of the dataset (a spread, `deepCloneInstance`) has plain values
+    and no setter.
 - **NAT-U-VAL-6.** An absent element has no key.
 
 ### NAT-U-SQ — sequences
@@ -278,7 +284,9 @@ no dictionary VM is a list.
 
 - **NAT-U-SET-1.** `setAttribute(dataset, key, value, { vr, length })`
   adds or replaces an attribute, for example a private or unknown element.
-  A VR other than PN replaces an earlier PN setter with plain data. A binary VR stores a list
+  A VR other than PN replaces an earlier PN setter with plain data. A
+  sequence (`SQ`) stores its items by NAT-U-SQ: `[]` with no item, and the
+  array-like item object for one item. A binary VR stores a list
   of fragments, or `null` with no bytes (NAT-U-BIN-1). A PN VR goes through
   NAT-U-SET-2. The VR goes into `_vrMap` when the dictionary does not fix
   it (NAT-U-VR-2).
@@ -292,8 +300,11 @@ no dictionary VM is a list.
   `setVr(dataset, blockKey, vr, elementKey)` sets the VR of a block
   element.
 - **NAT-U-SET-4.** A key of these utilities can be a keyword, an 8-digit hex
-  tag, or a private alias. A hex tag is uppercase, and a standard hex tag
-  with a keyword is that keyword (`"00100020"` sets `PatientID`). A private alias (a hex tag or a `registerTag()`
+  tag, or a private alias. A hex tag is uppercase, and a hex tag with a
+  keyword is that keyword: `"00100020"` sets `PatientID`, and the hex tag of
+  a flat `registerTag()` element sets its keyword. A creator alias is
+  read-only: `setAttribute` on it throws a `TypeError` (change the block key
+  to change the creator), and `setVr` on it changes nothing (NAT-U-VR-3). A private alias (a hex tag or a `registerTag()`
   keyword of a block element) stores into its block, and the VR goes into
   the block entry of `_vrMap`.
 
@@ -323,6 +334,10 @@ no dictionary VM is a list.
   - `valueLength(entry)` in `isMultiVM.js`: the value count of an entry
     (1 for a scalar VM, else a list), for both producers and the set
     utilities.
+  - `sequenceValue`, `binaryValue` and `simpleValue` in `naturalValues.js`:
+    the sequence, binary and simple value rules, for both producers and
+    `setAttribute`. The listener keeps its own scalar rule only for the
+    cardinality-violation policy.
   - Both producers look up a tag with the `dictionary` proxy, which gives
     `registerTag()` entries and the repeating groups (50xx, 60xx).
   - `setVr`, `setAttribute` and `setPersonName` in

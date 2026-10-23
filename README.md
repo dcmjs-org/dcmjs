@@ -67,7 +67,13 @@ The same versions can be installed with `npm install` or Yarn in **your** projec
 
 ## The 1.0 beta (`@dcmjs-org/dcmjs`)
 
-The 1.0 beta publishes as `@dcmjs-org/dcmjs` on the npm `beta` tag. Its default export has exactly the 0.52 names. The new engines are subpath imports, so the default bundle does not contain them:
+The 1.0 beta publishes as `@dcmjs-org/dcmjs` on the npm `beta` tag, so install it with the tag:
+
+```bash
+npm install @dcmjs-org/dcmjs@beta
+```
+
+Its default export has exactly the 0.52 names. The new engines are subpath imports, so the default bundle does not contain them:
 
 ```js
 import dcmjs from "@dcmjs-org/dcmjs"; // the 0.52 surface

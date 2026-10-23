@@ -10,7 +10,8 @@ export * from "@dcmjs-org/fhir";
 /**
  * Parse a DICOM Part 10 ArrayBuffer and map it to FHIR resources.
  * Kept for v2 compatibility; the recommended path is
- * `eventStream.DicomEventStream.fromPart10(bytes).toFhir()`.
+ * `DicomEventStream.fromPart10(bytes).toFhir()` from
+ * `@dcmjs-org/dcmjs/eventStream`.
  * @param {ArrayBuffer} arrayBuffer
  * @param {Object} [options] - toFhir options; options.readOptions is
  *   passed through to DicomMessage.readFile

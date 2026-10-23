@@ -261,3 +261,46 @@ describe("private reserved blocks", () => {
         ]);
     });
 });
+
+describe("private reserved blocks on a real file", () => {
+    it("naturalize, denaturalize, write and read keep every private element", () => {
+        const fs = require("fs");
+        const bytes = fs.readFileSync(
+            require("path").join(
+                __dirname,
+                "../../packages/fixtures/testImages/CT1_UNC.explicit_little_endian.dcm"
+            )
+        );
+        const source = DicomMessage.readFile(
+            bytes.buffer.slice(
+                bytes.byteOffset,
+                bytes.byteOffset + bytes.byteLength
+            )
+        );
+        const privateTags = Object.keys(source.dict).filter(
+            tag => parseInt(tag.slice(0, 4), 16) & 1
+        );
+        expect(privateTags.length).toBeGreaterThan(100);
+
+        const naturalized = DicomMetaDictionary.naturalizeDataset(source.dict);
+        source.dict = DicomMetaDictionary.denaturalizeDataset(naturalized);
+        const back = DicomMessage.readFile(source.write()).dict;
+
+        for (const tag of privateTags) {
+            const original = DicomMessage.readFile(
+                bytes.buffer.slice(
+                    bytes.byteOffset,
+                    bytes.byteOffset + bytes.byteLength
+                )
+            ).dict[tag];
+            expect({ tag, vr: back[tag]?.vr }).toEqual({
+                tag,
+                vr: original.vr
+            });
+            expect({ tag, Value: back[tag].Value }).toEqual({
+                tag,
+                Value: original.Value
+            });
+        }
+    });
+});

@@ -15,7 +15,8 @@ changed on purpose to follow the DICOM standard (see
 three ways described below.
 
 ```js
-import dcmjs from "dcmjs";
+// during the beta the package is @dcmjs-org/dcmjs; later it is "dcmjs"
+import dcmjs from "@dcmjs-org/dcmjs";
 const { DicomMessage, DicomDict, DicomMetaDictionary } = dcmjs.data;
 ```
 
@@ -176,8 +177,8 @@ Six things changed relative to 0.x:
    is not an array: `Array.isArray`, `forEach`, `map` and `push` do not
    work on it, and `JSON.stringify` gives the item object. The tag Proxy is
    also gone: the readers and naturalize add the PN value accessors when
-   they store a value, and a PN value that you assign gets its accessors
-   when the dataset is denaturalized. `ValueRepresentation.addTagAccessors`
+   they store a value, and a PN value that you assign is converted at once
+   by the PN setter (change 6). `ValueRepresentation.addTagAccessors`
    remains on the dcmjs surface as a no-op. Pinned by
    `test/issues/issue218-single-item-sq.test.js` and
    `test/core/naturalizeDataset.test.js`.
@@ -313,12 +314,25 @@ through `dcmjs.data`), `@dcmjs-org/parser` (the streaming reading side),
 and `@dcmjs-org/generator` (the streaming writing side). Application code
 does not need to import them directly.
 
-The `dcmjs` package surface itself arrives with the wrapper release: a
-thin package that reproduces the 0.x surface by re-exporting the engine
-packages plus the classic extras. During the beta that wrapper publishes
-as `@dcmjs-org/dcmjs`, so a project can try 1.0 by changing only the
-import name; the unscoped `dcmjs` name starts publishing when the
-maintainers decide it is ready.
+The `dcmjs` package surface is the wrapper `@dcmjs-org/dcmjs`. It
+reproduces the 0.x surface, so a project can try 1.0 by changing only the
+import name. During the beta it publishes on the `beta` tag
+(`npm install @dcmjs-org/dcmjs@beta`); the unscoped `dcmjs` name starts
+publishing when the maintainers decide it is ready.
+
+The new engines are subpath entries, and they are ES modules only:
+`@dcmjs-org/dcmjs/eventStream`, `/media`, `/encapsulated`, `/image` and
+`/fhir`. A `require()` of a subpath fails with
+`ERR_PACKAGE_PATH_NOT_EXPORTED`, and a jest setup must transform
+`node_modules/@dcmjs-org` to load them. Use `import` for the default entry
+too when you use a subpath: a `require()` of the default entry loads the
+UMD build, which has its own copy of the reader state (the log level,
+`registerTag()` entries).
+
+The ESM entries read the `LOG_LEVEL` environment variable when they load:
+a loglevel level (`trace`, `debug`, `info`, `warn`, `error`, `silent`)
+applies, and any other value gives `warn`. The UMD builds use the level
+fixed at build time.
 
 ## What needs no migration, in one list
 

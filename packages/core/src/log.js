@@ -8,7 +8,20 @@ try {
 } catch {
     level = undefined;
 }
-log.setLevel(level || "warn");
+log.setLevel(isLogLevel(level) ? level : "warn");
+
+/**
+ * True for a level that loglevel accepts: a level name (case-insensitive) or
+ * a number from 0 to 5. Another library's level name, for example "verbose"
+ * (winston) or "fatal" (pino), is not one, and loglevel 1.9 throws for it
+ * (pimterry/loglevel#210 proposes log.parseLevel for this check).
+ */
+function isLogLevel(value) {
+    if (typeof value === "string") {
+        return log.levels?.[value.toUpperCase()] !== undefined;
+    }
+    return typeof value === "number" && value >= 0 && value <= 5;
+}
 
 const validationLog = log.getLogger("validation.dcmjs");
 

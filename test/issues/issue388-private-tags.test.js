@@ -26,7 +26,7 @@
  *   - The static path keeps unregistered private tags via the VR that
  *     naturalizeDataset records in _vrMap (pinned green below), and
  *     registerTag()-registered names denaturalize symmetrically via the
- *     registry's own name index (src/dictionary.fast.js
+ *     registry's own name index (packages/core/src/dictionary.fast.js
  *     lookupRegisteredTagByName), which never mutates the shared
  *     DicomMetaDictionary.nameMap — pinned green below (review finding
  *     32 in the PR #512 map).
@@ -64,7 +64,7 @@ function makeBuffer() {
 }
 
 describe("issue #388 — SQ items with private tags naturalize without accessor collision", () => {
-    it("numeric-string keys land on the item; the sequence length stays 1", () => {
+    it("private elements land in a block on the item; the sequence length stays 1", () => {
         const dataset = DicomMetaDictionary.naturalizeDataset(
             DicomMessage.readFile(makeBuffer()).dict
         );
@@ -119,7 +119,7 @@ describe("issue #388 — SQ items with private tags naturalize without accessor 
 });
 
 describe("issue #215 — private/custom tags through naturalize → denaturalize", () => {
-    it("top-level private tags naturalize to numeric-string keys with intact values", () => {
+    it("top-level private tags naturalize to a block, readable through hex aliases", () => {
         const dataset = DicomMetaDictionary.naturalizeDataset(
             DicomMessage.readFile(makeBuffer()).dict
         );

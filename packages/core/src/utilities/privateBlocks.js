@@ -4,7 +4,11 @@ import { createLatin1Decoder } from "../charset/latin1.js";
 import { base64ToArrayBuffer } from "./base64.js";
 import { isBinaryData } from "./binaryFragment.js";
 import { recordVr } from "./vrMap.js";
-import { toPersonNameValue } from "./personNameValue.js";
+import {
+    definePersonNameAccessor,
+    toPersonNameValue
+} from "./personNameValue.js";
+import { valueLength } from "./isMultiVM.js";
 import log from "../log.js";
 
 /**
@@ -37,6 +41,11 @@ import log from "../log.js";
 const BLOCK_KEY = /^([0-9A-Fa-f]{4}):(.+)$/;
 const ELEMENT_KEY = /^x([0-9A-Fa-f]{2})$/;
 const HEX_TAG = /^[0-9A-Fa-f]{8}$/;
+
+/** True for an 8-digit hex tag key, for example "00291001". */
+export function isHexTag(key) {
+    return typeof key === "string" && HEX_TAG.test(key);
+}
 // The dataset aliases that definePrivateAliases defined, by name:
 // { key, elementKey } (elementKey is null for a creator alias).
 const DATASET_ALIASES = Symbol.for("dcmjs.privateAliases");
@@ -233,7 +242,17 @@ export function placePrivateElements(target, vrMap, elements) {
         if (creator === undefined) {
             // no creator: the hex tag (or a registerTag() keyword) is the key
             const name = entry?.name || tag;
-            target[name] = value;
+            if (vr === "PN") {
+                // the converting setter of a PN attribute (NAT-U-VAL-5)
+                definePersonNameAccessor(
+                    target,
+                    name,
+                    valueLength(entry),
+                    value
+                );
+            } else {
+                target[name] = value;
+            }
             recordVr(vrMap, name, entry, vr);
             continue;
         }

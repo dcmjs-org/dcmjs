@@ -3,8 +3,6 @@ import {
     mergeFragmentsPerBotWindow
 } from "./EventStreamListener.js";
 import {
-    addAccessors,
-    isMultiVM,
     BINARY_VRS,
     dicomJson,
     isPrivateTag,
@@ -13,9 +11,10 @@ import {
     recordVr,
     checkBinaryAs,
     naturalBinaryFragment,
-    isEmptyBinary,
     setPersonName,
     valueLength,
+    sequenceValue,
+    binaryValue,
     log
 } from "@dcmjs-org/core";
 
@@ -132,7 +131,7 @@ export class NaturalizedListener extends EventStreamListener {
         if (bot && bot.length) {
             fragments = mergeFragmentsPerBotWindow(fragments, bot);
         }
-        frame.binary = binaryList(
+        frame.binary = binaryValue(
             fragments.map(fragment =>
                 naturalBinaryFragment(fragment, this.binaryAs)
             )
@@ -162,7 +161,7 @@ export class NaturalizedListener extends EventStreamListener {
             let value = frame.binary;
             if (value === undefined && BINARY_VRS.has(frame.vr)) {
                 // a binary VR keeps its list, also of non-buffer values
-                value = binaryList(frame.values);
+                value = binaryValue(frame.values);
             } else if (value === undefined) {
                 value = this._shapeValues(frame, entry, frame.tag);
                 if (frame.vr === "PN" && value !== null) {
@@ -188,7 +187,7 @@ export class NaturalizedListener extends EventStreamListener {
             return;
         }
         if (BINARY_VRS.has(frame.vr)) {
-            targetFrame.obj[key] = binaryList(frame.values);
+            targetFrame.obj[key] = binaryValue(frame.values);
             return;
         }
         const shaped = this._shapeValues(frame, entry, key);
@@ -259,19 +258,9 @@ export class NaturalizedListener extends EventStreamListener {
     }
 
     _shapeSequence(frame, entry) {
-        const items = frame.items;
-        const declaredMulti = isMultiVM(entry && entry.vm);
-
-        if (items.length === 0) {
-            return []; // §12 present-empty
-        }
-        if (items.length === 1 && !declaredMulti) {
-            // §12: the item object itself, with a hidden [0] and length 1
-            return addAccessors(items);
-        }
-        // §13: multiple items -> list-like. Not a violation (declared SQ VM
-        // constrains attribute occurrence, not item count).
-        return items;
+        // a sequence's VM constrains the attribute, not its item count, so
+        // more items are a list, not a violation (NAT-U-SQ)
+        return sequenceValue(frame.items, entry);
     }
 
     _applyViolation(keyword, values, declaredMax) {
@@ -362,11 +351,6 @@ function canonicalDecimal(s) {
     }
     const body = frac ? `${int}.${frac}` : int;
     return neg && body !== "0" ? `-${body}` : body;
-}
-
-/** A binary value: the list of its fragments, or null with no bytes. */
-function binaryList(values) {
-    return isEmptyBinary(values) ? null : values.slice();
 }
 
 /**
