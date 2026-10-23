@@ -267,7 +267,8 @@ A private value is a list (NAT-U-VAL-4). An assigned PN string converts:
 
 ### NAT-U-UPS — utilities to add or replace an attribute
 
-These utilities are exported from `@dcmjs-org/core`. `length` is the value
+These utilities are exported from `@dcmjs-org/core`, and from `dcmjs.data`
+of `@dcmjs-org/dcmjs` (with `definePrivateAliases`). `length` is the value
 count: 1 stores a single value (`null` for no value), and any other length,
 or none, stores a list (`[]` for no value), as for VM > 1.
 

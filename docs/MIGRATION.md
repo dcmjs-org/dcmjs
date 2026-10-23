@@ -240,8 +240,9 @@ Six things changed relative to 0.x:
      `{ Alphabetic: "Doe^John" }`, and `String(dataset.PatientName)` gives
      `"Doe^John"`. Code that compared the attribute with a string after
      the assignment must compare `String(dataset.PatientName)`.
-   - `@dcmjs-org/core` exports `upsertAttribute`, `upsertPersonName` and
-     `setVr` to add or replace an attribute in the naturalized form.
+   - `@dcmjs-org/core` and `dcmjs.data` export `upsertAttribute`,
+     `upsertPersonName` and `setVr` to add or replace an attribute in the
+     naturalized form, and `definePrivateAliases`.
 
    [specs/naturalized-dataset.md](specs/naturalized-dataset.md) gives the
    full rules. Pinned by `test/core/privateBlocks.test.js` and

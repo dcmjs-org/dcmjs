@@ -7,7 +7,13 @@ import { DicomDict } from "./DicomDict.js";
 import { DicomMessage } from "./DicomMessage.js";
 import { DicomMetaDictionary } from "./DicomMetaDictionary.js";
 import { registerPrivatesModule } from "./dictionary.fast.js";
-import { lookupPrivateTag } from "@dcmjs-org/core";
+import {
+    lookupPrivateTag,
+    setVr,
+    upsertAttribute,
+    upsertPersonName,
+    definePrivateAliases
+} from "@dcmjs-org/core";
 import { DICOMWEB } from "./dicomweb.js";
 
 // the private dictionary module needs only its lookup function
@@ -65,7 +71,12 @@ const data = {
     Colors,
     datasetToDict,
     datasetToBuffer,
-    datasetToBlob
+    datasetToBlob,
+    // naturalized-dataset utilities (docs/specs/naturalized-dataset.md)
+    setVr,
+    upsertAttribute,
+    upsertPersonName,
+    definePrivateAliases
 };
 
 const async = {

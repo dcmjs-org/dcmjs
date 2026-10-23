@@ -207,7 +207,7 @@ request; the implementation requirements (WRAP-IMP-n) can change freely.
     name; a namespace can add names. A 0.52 user changes only the import
     name. `test/compat-052.test.js` checks this.
 -   **WRAP-USR-2** What a user loads for the default entry stays at most
-    ×1.05 of the same 0.52.0 bundle: `build/dcmjs.js` (UMD), and the bundle
+    ×1.06 of the same 0.52.0 bundle: `build/dcmjs.js` (UMD), and the bundle
     that an application bundler gives for `build/dcmjs.es.js` (ESM) with the
     `@dcmjs-org/*` packages that it imports. `test/bundle-size.test.js`
     enforces both ceilings.
@@ -291,8 +291,11 @@ request; the implementation requirements (WRAP-IMP-n) can change freely.
     build in a browser. `test/bundle-size.test.js` runs the ESM consumer
     bundle in a vm with no `process` (WRAP-USR-6).
 
-**The size ceiling.** The aim is "no more than ×1.05 of 0.52", and the
-default bundles now meet it. The new engines (the streaming reader and
+**The size ceiling.** The ceiling is ×1.06 of 0.52. It was ×1.05 until
+the naturalized-dataset utilities (`setVr`, `upsertAttribute`,
+`upsertPersonName`, `definePrivateAliases`) joined `dcmjs.data`, which
+made the UMD bundle ×1.0504; the maintainer raised the ceiling for them.
+The default bundles meet it. The new engines (the streaming reader and
 writers, the event-stream facade, the FHIR mapping, and the DICOMDIR, PDF
 and video builders) are subpath entries, so the default bundles do not
 contain them. The legacy `src/` still imports `@dcmjs-org/core`, so the
@@ -308,8 +311,8 @@ external `@dcmjs-org/*` imports in the ESM build:
 
 | Bundle | Bytes | Ratio to 0.52 | Ceiling |
 | --- | --- | --- | --- |
-| `build/dcmjs.js` (UMD) | 1,449,038 | ×1.047 | ×1.05 |
-| `build/dcmjs.es.js`, consumer bundle with its packages | 1,400,541 | ×1.032 | ×1.05 |
+| `build/dcmjs.js` (UMD) | 1,454,588 | ×1.051 | ×1.06 |
+| `build/dcmjs.es.js`, consumer bundle with its packages | 1,405,738 | ×1.036 | ×1.06 |
 | `build/dcmjs.min.js` (UMD, minified) | 725,759 | ×1.023 | not enforced |
 | `build/dcmjs.es.js` alone | 282 | | |
 | `build/dcmjs.shared-<hash>.js` | 589,298 | | |

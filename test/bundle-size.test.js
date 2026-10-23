@@ -16,8 +16,8 @@ const BUILD_TIMEOUT_MS = 300000;
 
 // dcmjs@0.52.0 from npm, and the ceiling for each default bundle.
 const BUNDLES = {
-    "dcmjs.js": { baseline: 1384431, ceiling: 1.05 },
-    "dcmjs.es.js": { baseline: 1357418, ceiling: 1.05 }
+    "dcmjs.js": { baseline: 1384431, ceiling: 1.06 },
+    "dcmjs.es.js": { baseline: 1357418, ceiling: 1.06 }
 };
 
 // The public names of build/dcmjs.es.js: the named exports of src/index.js.
