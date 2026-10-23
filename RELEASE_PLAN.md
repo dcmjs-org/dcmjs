@@ -333,8 +333,8 @@ external `@dcmjs-org/*` imports in the ESM build:
 
 | Bundle | Bytes | Ratio to 0.52 | Ceiling |
 | --- | --- | --- | --- |
-| `build/dcmjs.js` (UMD) | 1,461,824 | ×1.056 | ×1.06 |
-| `build/dcmjs.es.js`, consumer bundle with its packages | 1,412,418 | ×1.041 | ×1.06 |
+| `build/dcmjs.js` (UMD) | 1,462,151 | ×1.056 | ×1.06 |
+| `build/dcmjs.es.js`, consumer bundle with its packages | 1,412,612 | ×1.041 | ×1.06 |
 | `build/dcmjs.min.js` (UMD, minified) | 729,032 | ×1.027 | not enforced |
 | `build/dcmjs.es.js` alone | 282 | | |
 | `build/dcmjs.shared-<hash>.js` | 589,551 | | |

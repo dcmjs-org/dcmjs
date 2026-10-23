@@ -254,8 +254,10 @@ Six things changed relative to 0.x:
      empty DS read as `Value: [null]`) now denaturalizes, and every writer
      writes it as an empty value: empty text for a string VR (before, LO,
      SH, ST, LT, UC and UT wrote the text `null`), an empty name in its
-     position for PN, and `0` with a warning for a binary number VR, which
-     has no empty value. Before, `denaturalizeDataset` threw on it.
+     position for PN, and `0` with a warning for a binary number VR (US,
+     SS, UL, SL, FL, FD, UV, AT), which has no empty value. Before,
+     `denaturalizeDataset` threw on it. An element with no value (`null`,
+     not in a list) is written with zero length, with no warning.
    - `@dcmjs-org/core` and `dcmjs.data` export `setAttribute`,
      `setPersonName` and `setVr` to add or replace an attribute in the
      naturalized form, and `definePrivateAliases`.

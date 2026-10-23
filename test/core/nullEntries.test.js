@@ -19,12 +19,27 @@ const sourceDict = () => ({
     "00181310": { vr: "US", Value: [null, 3] } // AcquisitionMatrix
 });
 
-function writeDict(dict) {
+function writeBytes(dict) {
     const dicomDict = new DicomDict({
         "00020010": { vr: "UI", Value: ["1.2.840.10008.1.2.1"] }
     });
     dicomDict.dict = dict;
-    return DicomMessage.readFile(dicomDict.write()).dict;
+    return dicomDict.write();
+}
+
+function writeDict(dict) {
+    return DicomMessage.readFile(writeBytes(dict)).dict;
+}
+
+// The 16-bit value length of an explicit-VR element with a short header.
+function elementLength(buffer, tagBytes) {
+    const bytes = new Uint8Array(buffer);
+    for (let i = 132; i <= bytes.length - 8; i++) {
+        if (tagBytes.every((b, k) => bytes[i + k] === b)) {
+            return bytes[i + 6] | (bytes[i + 7] << 8);
+        }
+    }
+    return undefined;
 }
 
 describe("null entries in a value list", () => {
@@ -49,6 +64,36 @@ describe("null entries in a value list", () => {
         }
         expect(warn.mock.calls.flat().join(" ")).toMatch(
             /US value 0 is empty \(null\); it is written as 0/
+        );
+        warn.mockRestore();
+    });
+
+    it("an element with no value is written with zero length and no warning", () => {
+        // DICOMweb metadata gives an empty Type 2 element with no Value
+        const warn = jest.spyOn(dcmjs.log, "warn").mockImplementation(() => {});
+        const source = () => ({ "00280011": { vr: "US" } }); // Columns
+        const naturalized = DicomMetaDictionary.naturalizeDataset(source());
+        expect(naturalized.Columns).toBeNull();
+        for (const dict of [
+            source(),
+            DicomMetaDictionary.denaturalizeDataset(naturalized)
+        ]) {
+            // explicit VR little endian: tag (0028,0011), "US", length 0
+            // (the reader gives a zero-length US as its default value, 0)
+            expect(elementLength(writeBytes(dict), [0x28, 0, 0x11, 0])).toBe(0);
+        }
+        expect(warn).not.toHaveBeenCalled();
+        warn.mockRestore();
+    });
+
+    it("a null entry of a UV list is written as 0 with a warning", () => {
+        const warn = jest.spyOn(dcmjs.log, "warn").mockImplementation(() => {});
+        const back = writeDict({
+            "00720028": { vr: "UV", Value: [null, 5] } // SelectorUVValue
+        });
+        expect(back["00720028"].Value.map(Number)).toEqual([0, 5]);
+        expect(warn.mock.calls.flat().join(" ")).toMatch(
+            /UV value 0 is empty \(null\); it is written as 0/
         );
         warn.mockRestore();
     });
