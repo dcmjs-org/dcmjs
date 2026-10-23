@@ -9,7 +9,10 @@ import ndarray from "ndarray";
 export default function (matrix) {
     const [rows, cols] = matrix.shape;
 
-    let result = ndarray(new Uint8Array(rows * cols), [cols, rows]);
+    let result = ndarray(new matrix.data.constructor(rows * cols), [
+        cols,
+        rows
+    ]);
 
     let resultColsMinus1 = result.shape[1] - 1;
 
