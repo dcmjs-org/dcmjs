@@ -3,10 +3,19 @@
     "version": "0.0.0",
     "description": "The event-stream reading side of dcmjs: the listener contract and the generators that turn Part 10 bytes or streams, DICOMweb JSON, and parsed datasets into contract events",
     "main": "./src/index.js",
+    "exports": {
+        ".": {
+            "source": "./src/index.js",
+            "import": "./dist/index.mjs",
+            "default": "./src/index.js"
+        },
+        "./package.json": "./package.json"
+    },
     "files": [
         "dist",
         "README.md"
     ],
+    "sideEffects": false,
     "scripts": {
         "build": "rollup -c ../../rollup.packages.config.mjs"
     },

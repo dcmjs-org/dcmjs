@@ -1,2 +1,7 @@
 // Moved to packages/core; this shim keeps the old import path working.
-export * from "../packages/core/src/dicom.lookup.js";
+// It imports @dcmjs-org/core, so the ESM build keeps one copy of it.
+export {
+    getAllStandardTagEntries,
+    lookupTagHex,
+    lookupTagRangeHex
+} from "@dcmjs-org/core";

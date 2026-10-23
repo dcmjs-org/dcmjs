@@ -65,9 +65,31 @@ pnpm add dcmjs@dev   # latest code merged to master
 
 The same versions can be installed with `npm install` or Yarn in **your** project; those clients are fine for consuming the published package. **Building this repository** is pnpm-only (see below).
 
+## The 1.0 beta (`@dcmjs-org/dcmjs`)
+
+The 1.0 beta publishes as `@dcmjs-org/dcmjs` on the npm `beta` tag, so install it with the tag:
+
+```bash
+npm install @dcmjs-org/dcmjs@beta
+```
+
+Its default export has exactly the 0.52 names. The new engines are subpath imports, so the default bundle does not contain them:
+
+```js
+import dcmjs from "@dcmjs-org/dcmjs"; // the 0.52 surface
+import { DicomEventStream } from "@dcmjs-org/dcmjs/eventStream";
+import { writeDicomDir } from "@dcmjs-org/dcmjs/media";
+import { encapsulatePdf } from "@dcmjs-org/dcmjs/encapsulated";
+import { buildImageDataset } from "@dcmjs-org/dcmjs/image";
+```
+
+**FHIR is preliminary.** The DICOM-to-FHIR mapping is the separate package `@dcmjs-org/fhir`. The wrapper does not re-export it as a subpath; install and import `@dcmjs-org/fhir` directly to use it. Its options and output can change in a minor release (see [packages/fhir/README.md](packages/fhir/README.md)). `DicomEventStream` has no FHIR methods: give the result of `toNaturalized()` to `toFhir()` of `@dcmjs-org/fhir`.
+
+The subpaths are ES modules only: a `require()` of a subpath fails with `ERR_PACKAGE_PATH_NOT_EXPORTED`. `build/dcmjs.js` (UMD, for a script tag, or for `require("@dcmjs-org/dcmjs")`) has the default export only. Use `import` for the default entry too when you use a subpath: a `require()` of the default entry loads the UMD build, which is a second copy of the reader state (the log level, `registerTag()` entries). jest resolves with the CommonJS conditions, so a jest config maps the default entry to `build/dcmjs.es.js` and each subpath to its `build/<name>.es.js` file with `moduleNameMapper`; [docs/MIGRATION.md](docs/MIGRATION.md) gives the config.
+
 ## For Developers
 
-Building and testing this repository requires **[pnpm](https://pnpm.io/)** and **Node.js 22.13 or newer** (pnpm 11 and this repo’s tooling expect that baseline; Rollup’s dependency chain expects a modern `crypto` global). CI runs tests on Node 22 and 24, and runs the production Rollup build on Node 24. The pnpm version is pinned under `packageManager` in `package.json`. Enable [Corepack](https://nodejs.org/api/corepack.html) (`corepack enable`) and use pnpm for every install and script:
+Building and testing this repository requires **[pnpm](https://pnpm.io/)** and **Node.js 22.13 or newer** (pnpm 12 and this repo’s tooling expect that baseline; Rollup’s dependency chain expects a modern `crypto` global). CI runs tests on Node 22 and 24, and runs the production Rollup build on Node 24. The test job also builds `build/dcmjs.js` and the ESM entries (`build/*.es.js`), because `test/bundle-size.test.js` measures them; that suite rebuilds them whenever `build/` is absent or older than its sources. The pnpm version is pinned under `packageManager` in `package.json`. Enable [Corepack](https://nodejs.org/api/corepack.html) (`corepack enable`) and use pnpm for every install and script:
 
 ```bash
 corepack enable

@@ -3,9 +3,24 @@
     "version": "0.0.0",
     "description": "The shared building blocks every other dcmjs package uses: the DICOM value types, tags, buffer views, character-set handling, constants, and the runtime dictionary. No readers or writers live here",
     "main": "./src/index.js",
+    "exports": {
+        ".": {
+            "source": "./src/index.js",
+            "import": "./dist/index.mjs",
+            "default": "./src/index.js"
+        },
+        "./package.json": "./package.json"
+    },
     "files": [
         "dist",
         "README.md"
+    ],
+    "sideEffects": [
+        "./src/Tag.js",
+        "./src/DicomMetaDictionary.js",
+        "./src/log.js",
+        "./src/core/writeCore.js",
+        "./dist/*"
     ],
     "scripts": {
         "build": "rollup -c ../../rollup.packages.config.mjs"

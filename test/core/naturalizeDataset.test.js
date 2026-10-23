@@ -51,4 +51,15 @@ describe("core naturalizeDataset (1.0 rules)", () => {
         const two = [{ a: 1 }, { a: 2 }];
         expect(addAccessors(two)).toBe(two);
     });
+    test("an empty DS value (Value [null]) survives denaturalize", () => {
+        // a reader gives an empty DS of VM 1-n as Value: [null]
+        const ds = DicomMetaDictionary.naturalizeDataset({
+            "00282112": { vr: "DS", Value: [null] },
+            "00181310": { vr: "US", Value: [0, 256, 256, 0] }
+        });
+        expect(ds.LossyImageCompressionRatio).toEqual([null]);
+        const back = DicomMetaDictionary.denaturalizeDataset(ds);
+        expect(back["00282112"]).toEqual({ vr: "DS", Value: [null] });
+        expect(back["00181310"].Value).toEqual(["0", "256", "256", "0"]);
+    });
 });

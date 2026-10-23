@@ -1,10 +1,11 @@
 import dcmjs from "../../src/index.js";
+import eventStream from "../../src/eventStream.js";
 
-test("eventStream is exposed on the dcmjs namespace", () => {
-    expect(dcmjs.eventStream).toBeDefined();
-    expect(typeof dcmjs.eventStream.fromDataSet).toBe("function");
-    expect(typeof dcmjs.eventStream.EventStreamListener).toBe("function");
-    expect(typeof dcmjs.eventStream.createEventAsyncIterable).toBe("function");
-    expect(typeof dcmjs.eventStream.DicomEventStream).toBe("function");
-    expect(dcmjs.eventStream.CONTRACT_VERSION).toBe("1.0.0-A");
+test("eventStream is the @dcmjs-org/dcmjs/eventStream subpath", () => {
+    expect(dcmjs.eventStream).toBeUndefined();
+    expect(typeof eventStream.fromDataSet).toBe("function");
+    expect(typeof eventStream.EventStreamListener).toBe("function");
+    expect(typeof eventStream.createEventAsyncIterable).toBe("function");
+    expect(typeof eventStream.DicomEventStream).toBe("function");
+    expect(eventStream.CONTRACT_VERSION).toBe("1.0.0-A");
 });

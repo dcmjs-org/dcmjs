@@ -3,11 +3,17 @@ import {
     mergeFragmentsPerBotWindow
 } from "./EventStreamListener.js";
 import {
-    lookupTagHex,
-    lookupPrivateTag,
-    addAccessors,
-    isMultiVM,
+    BINARY_VRS,
     dicomJson,
+    isPrivateTag,
+    placePrivateElements,
+    registeredTagEntry,
+    recordVr,
+    checkBinaryAs,
+    setPersonName,
+    valueLength,
+    sequenceValue,
+    binaryValue,
     log
 } from "@dcmjs-org/core";
 
@@ -20,12 +26,11 @@ import {
  * source-agnostic contract, the SAME naturalized object is produced from Part 10
  * bytes, a dcmjs dict, or DICOMweb JSON.
  *
- * Scope (D1): keyword naming, VM cardinality, single-item sequences with hidden
- * length (§12, via core addAccessors, no Proxy), empty→null/[], binary
- * assembly (InlineBinary/BulkDataURI), and the cardinality-violation policy
- * (§15.2, default warnAndPreserve). Deferred to D2: the PN proxy/toString sugar
- * (§17), private-tag grouping (§18), and precision/raw retention (§16/§27, which
- * needs the contract to carry raw values).
+ * It gives the same object as DicomMetaDictionary.naturalizeDataset:
+ * docs/specs/naturalized-dataset.md is the specification of both (keys, VM
+ * cardinality, single-item sequences, `_vrMap`, private blocks, binary values
+ * as a list of fragments). It also applies the cardinality-violation policy
+ * (default warnAndPreserve) and keeps the source string of an inexact number.
  *
  * Sequence note: a DICOM sequence's declared VM ("1") constrains how many times
  * the attribute appears, NOT its item count — multi-item sequences (e.g.
@@ -38,10 +43,14 @@ export class NaturalizedListener extends EventStreamListener {
      * @param {string} [options.cardinalityViolationPolicy="warnAndPreserve"]
      *   One of preserve | discardExtra | warnAndPreserve | warnAndDiscardExtra |
      *   recordAndPreserve | recordAndDiscardExtra | throw.
+     * @param {"ArrayBuffer"|"Uint8Array"} [options.binaryAs="ArrayBuffer"]
+     *   The type of each fragment or frame of a binary value, as in
+     *   DicomMetaDictionary.naturalizeDataset.
      */
     constructor(options = {}, ...filters) {
         super(...filters);
         this.policy = options.cardinalityViolationPolicy || "warnAndPreserve";
+        this.binaryAs = checkBinaryAs(options.binaryAs);
         this.result = {};
         this.meta = {};
         this.violations = [];
@@ -62,20 +71,22 @@ export class NaturalizedListener extends EventStreamListener {
     }
 
     _baseStartDataSet() {
-        this.result = {};
-        this.meta = {};
+        this.result = { _vrMap: {} };
+        this.meta = { _vrMap: {} };
         this.violations = [];
-        this._stack = [{ kind: "object", obj: this.result }];
+        this._stack = [objectFrame(this.result)];
     }
 
-    _baseEndDataSet() {}
+    _baseEndDataSet() {
+        endObject(this._stack[0]);
+    }
 
     _baseStartFileMetaInformation() {
-        this._stack.push({ kind: "object", obj: this.meta });
+        this._stack.push(objectFrame(this.meta));
     }
 
     _baseEndFileMetaInformation() {
-        this._stack.pop();
+        endObject(this._stack.pop());
     }
 
     _baseStartElement(tag, info = {}) {
@@ -119,9 +130,7 @@ export class NaturalizedListener extends EventStreamListener {
         if (bot && bot.length) {
             fragments = mergeFragmentsPerBotWindow(fragments, bot);
         }
-        frame.binary = {
-            InlineBinary: fragments.length === 1 ? fragments[0] : fragments
-        };
+        frame.binary = binaryValue(fragments, this.binaryAs);
         frame._fragments = undefined;
         frame._binaryInfo = undefined;
     }
@@ -143,19 +152,44 @@ export class NaturalizedListener extends EventStreamListener {
         }
 
         if (isPrivateTag(frame.tag)) {
-            this._placePrivate(targetFrame, frame);
+            const entry = registeredTagEntry(frame.tag);
+            let value = frame.binary;
+            if (value === undefined && BINARY_VRS.has(frame.vr)) {
+                // a binary VR keeps its list, also of non-buffer values
+                value = binaryValue(frame.values);
+            } else if (value === undefined) {
+                value = this._shapeValues(frame, entry, frame.tag);
+                if (frame.vr === "PN" && value !== null) {
+                    value = addPersonNameAccessors(value);
+                }
+            }
+            targetFrame.privates.push({
+                tag: frame.tag,
+                vr: frame.vr,
+                value,
+                entry
+            });
             return;
         }
 
-        const entry = lookupTagHex(frame.tag);
-        const key = (entry && entry.name) || frame.tag;
+        // the dictionary lookup of naturalizeDataset: repeating groups and
+        // registerTag() entries included
+        const entry = registeredTagEntry(frame.tag);
+        const key = (entry && entry.name) || frame.tag.toUpperCase();
+        recordVr(targetFrame.obj._vrMap, key, entry, frame.vr);
         if (frame.binary !== undefined) {
             targetFrame.obj[key] = frame.binary;
             return;
         }
-        let shaped = this._shapeValues(frame, entry, key);
-        if (frame.vr === "PN" && shaped !== null) {
-            shaped = addPersonNameAccessors(shaped);
+        if (BINARY_VRS.has(frame.vr)) {
+            targetFrame.obj[key] = binaryValue(frame.values);
+            return;
+        }
+        const shaped = this._shapeValues(frame, entry, key);
+        if (frame.vr === "PN") {
+            // one conversion, and the converting setter (NAT-U-VAL-5)
+            setPersonName(targetFrame.obj, key, shaped, valueLength(entry));
+            return;
         }
         targetFrame.obj[key] = shaped;
     }
@@ -165,11 +199,12 @@ export class NaturalizedListener extends EventStreamListener {
     }
 
     _baseStartItem() {
-        this._stack.push({ kind: "object", obj: {} });
+        this._stack.push(objectFrame({ _vrMap: {} }));
     }
 
     _baseEndItem() {
         const itemFrame = this._stack.pop();
+        endObject(itemFrame);
         // The enclosing frame is the sequence.
         this._stack[this._stack.length - 1].items.push(itemFrame.obj);
     }
@@ -177,69 +212,32 @@ export class NaturalizedListener extends EventStreamListener {
     _baseEndSequence() {
         const frame = this._stack.pop();
         const targetFrame = this._objectFrame();
-        const shaped = this._shapeSequence(frame, lookupTagHex(frame.tag));
-
         if (isPrivateTag(frame.tag)) {
-            this._placePrivateValue(targetFrame, frame.tag, frame.vr, shaped);
+            const entry = registeredTagEntry(frame.tag);
+            const shaped = this._shapeSequence(frame, entry);
+            targetFrame.privates.push({
+                tag: frame.tag,
+                vr: frame.vr,
+                value: shaped,
+                entry
+            });
             return;
         }
-        const entry = lookupTagHex(frame.tag);
-        const key = (entry && entry.name) || frame.tag;
+        // the dictionary lookup of naturalizeDataset: repeating groups and
+        // registerTag() entries included
+        const entry = registeredTagEntry(frame.tag);
+        const shaped = this._shapeSequence(frame, entry);
+        const key = (entry && entry.name) || frame.tag.toUpperCase();
+        recordVr(targetFrame.obj._vrMap, key, entry, frame.vr);
         targetFrame.obj[key] = shaped;
-    }
-
-    // --- private-tag grouping (§18) -----------------------------------------
-
-    _placePrivate(targetFrame, frame) {
-        const elem = parseInt(frame.tag.slice(4, 8), 16);
-        // Private creator (gggg,00xx): record it for the block; do NOT emit it
-        // as an ordinary attribute (§18.5).
-        if (elem <= 0x00ff) {
-            const v =
-                frame.values && frame.values.length ? frame.values[0] : null;
-            if (v != null) {
-                targetFrame.creators = targetFrame.creators || {};
-                targetFrame.creators[elem] = String(v);
-            }
-            return;
-        }
-        const value =
-            frame.binary !== undefined
-                ? frame.binary
-                : privateShape(frame.values);
-        this._placePrivateValue(targetFrame, frame.tag, frame.vr, value);
-    }
-
-    _placePrivateValue(targetFrame, tag, vr, value) {
-        const elem = parseInt(tag.slice(4, 8), 16);
-        const slot = elem >> 8; // creator slot (high byte of the element)
-        const offset = elem & 0xff; // block-relative element (low byte)
-        const creator = targetFrame.creators && targetFrame.creators[slot];
-
-        if (creator) {
-            const groupKey = `${hex2(slot)}:${creator}`;
-            let group = targetFrame.obj[groupKey];
-            if (!group) {
-                group = { originalTagOffset: slot };
-                targetFrame.obj[groupKey] = group;
-            }
-            group[privateKeyFor(tag, creator, offset, group)] = value;
-            return;
-        }
-        // §18.4: no identifiable creator -> full tag key, unknown attribute shape.
-        targetFrame.obj[tag] = {
-            vr,
-            Value: Array.isArray(value) ? value : value == null ? [] : [value]
-        };
     }
 
     // --- cardinality shaping ------------------------------------------------
 
     _shapeValues(frame, entry, key) {
         const values = frame.values;
-        const multi = isMultiVM(entry && entry.vm);
-
-        if (multi) {
+        // no dictionary VM (a private or unknown element): as for VM > 1
+        if (valueLength(entry) !== 1) {
             // §10/§11: always list-like; present-empty -> [].
             return values;
         }
@@ -255,19 +253,9 @@ export class NaturalizedListener extends EventStreamListener {
     }
 
     _shapeSequence(frame, entry) {
-        const items = frame.items;
-        const declaredMulti = isMultiVM(entry && entry.vm);
-
-        if (items.length === 0) {
-            return []; // §12 present-empty
-        }
-        if (items.length === 1 && !declaredMulti) {
-            // §12: the item object itself, with a hidden [0] and length 1
-            return addAccessors(items);
-        }
-        // §13: multiple items -> list-like. Not a violation (declared SQ VM
-        // constrains attribute occurrence, not item count).
-        return items;
+        // a sequence's VM constrains the attribute, not its item count, so
+        // more items are a list, not a violation (NAT-U-SQ)
+        return sequenceValue(frame.items, entry);
     }
 
     _applyViolation(keyword, values, declaredMax) {
@@ -300,36 +288,16 @@ export class NaturalizedListener extends EventStreamListener {
 }
 
 /**
- * A private tag has an odd group number and an element at or above 0x0010 (the
- * first usable private creator slot). Group-length (0x0000) and reserved low
- * elements fall through to standard handling.
+ * A dataset or item frame. Its private elements wait in `privates` until the
+ * level ends, so a creator that comes after its data still applies (§18).
  */
-function isPrivateTag(tag) {
-    const group = parseInt(tag.slice(0, 4), 16);
-    const elem = parseInt(tag.slice(4, 8), 16);
-    return (group & 1) === 1 && elem >= 0x0010;
+function objectFrame(obj) {
+    return { kind: "object", obj, privates: [] };
 }
 
-/** Two-hex-digit uppercase, e.g. 0x10 -> "10". */
-function hex2(n) {
-    return n.toString(16).toUpperCase().padStart(2, "0");
-}
-
-/**
- * Block-relative key for a private data element (§18.2): the registered private
- * name when the (creator, offset) is known in the private dictionary and the
- * name is meaningful and non-colliding; otherwise the numeric block-relative
- * offset. Registered names stay scoped to the creator group.
- */
-function privateKeyFor(tag, creator, offset, group) {
-    const numeric = hex2(offset);
-    const reg = lookupPrivateTag(
-        `(${tag.slice(0, 4)},"${creator}",${numeric})`
-    );
-    if (reg && reg.name && reg.name !== "Unknown" && !(reg.name in group)) {
-        return reg.name;
-    }
-    return numeric;
+function endObject(frame) {
+    placePrivateElements(frame.obj, frame.obj._vrMap, frame.privates);
+    frame.privates = [];
 }
 
 /**
@@ -378,14 +346,6 @@ function canonicalDecimal(s) {
     }
     const body = frac ? `${int}.${frac}` : int;
     return neg && body !== "0" ? `-${body}` : body;
-}
-
-/** Shape a private data value with no VM info: scalar if one value, else array. */
-function privateShape(values) {
-    if (values.length === 0) {
-        return null;
-    }
-    return values.length === 1 ? values[0] : values.slice();
 }
 
 /**

@@ -126,10 +126,11 @@ export class DicomWebJsonWriter extends EventStreamListener {
 }
 
 function concatFragments(fragments) {
+    // a view, or a buffer (ArrayBuffer or SharedArrayBuffer)
     const parts = fragments.map(f =>
-        f instanceof ArrayBuffer
-            ? new Uint8Array(f)
-            : new Uint8Array(f.buffer, f.byteOffset, f.byteLength)
+        ArrayBuffer.isView(f)
+            ? new Uint8Array(f.buffer, f.byteOffset, f.byteLength)
+            : new Uint8Array(f)
     );
     const total = parts.reduce((n, p) => n + p.length, 0);
     const out = new Uint8Array(total);

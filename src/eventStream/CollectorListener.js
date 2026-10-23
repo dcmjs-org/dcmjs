@@ -1,2 +1,3 @@
 // Moved to packages/parser; this shim keeps the old import path working.
-export * from "../../packages/parser/src/eventStream/CollectorListener.js";
+// It imports @dcmjs-org/parser, so the ESM build keeps one copy of it.
+export { CollectorListener } from "@dcmjs-org/parser";

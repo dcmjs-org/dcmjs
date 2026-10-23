@@ -256,12 +256,30 @@ class ValueRepresentation {
         }
     }
 
+    /**
+     * Warns for each null entry of a binary number list (NAT-U-RT-7): a
+     * binary number cannot hold an empty value, so the writer writes 0. A
+     * null scalar is an element with no value, written with zero length, so
+     * it gets no warning.
+     */
+    warnNullEntries(value) {
+        if (!this.isBinary() || !Array.isArray(value)) return;
+        value.forEach((entry, index) => {
+            if (entry == null) {
+                log.warn(
+                    `${this.type} value ${index} is empty (null); it is written as 0`
+                );
+            }
+        });
+    }
+
     writeBytes(
         stream,
         value,
         lengths,
         writeOptions = { allowInvalidVRLength: false }
     ) {
+        this.warnNullEntries(value);
         const { allowInvalidVRLength } = writeOptions;
         var valid = true,
             valarr = Array.isArray(value) ? value : [value],
@@ -1398,6 +1416,8 @@ class Unsigned64BitVeryLong extends ValueRepresentation {
                 : BigInt(v);
         let coercedValue = value;
         if (Array.isArray(value)) {
+            // warn before the coercion hides the null entries
+            this.warnNullEntries(value);
             coercedValue = value.map(coerce);
         } else if (value !== null && value !== undefined && value !== "") {
             coercedValue = coerce(value);

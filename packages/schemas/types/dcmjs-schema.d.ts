@@ -10330,7 +10330,7 @@ export interface NaturalizedDataset {
     DigitalSignaturesSequence?: NaturalizedDataset | NaturalizedDataset[] | null;
     /** FFFCFFFC · VR OB · VM 1 */
     DataSetTrailingPadding?: BinaryValue | BinaryValue[] | null;
-    /** Private ('<slot>:<creator>') and unknown-tag keys */
+    /** Private ('<group>:<creator>') and unknown-tag keys */
     [privateOrUnknown: string]: unknown;
 }
 

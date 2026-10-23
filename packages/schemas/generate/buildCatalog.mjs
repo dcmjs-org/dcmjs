@@ -89,7 +89,7 @@ export function typesSource(catalog) {
         lines.push(`    ${tsPropName(entry.keyword)}?: ${type};`);
     }
     lines.push(
-        "    /** Private ('<slot>:<creator>') and unknown-tag keys */"
+        "    /** Private ('<group>:<creator>') and unknown-tag keys */"
     );
     lines.push("    [privateOrUnknown: string]: unknown;");
     lines.push("}");

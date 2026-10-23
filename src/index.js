@@ -7,10 +7,17 @@ import { DicomDict } from "./DicomDict.js";
 import { DicomMessage } from "./DicomMessage.js";
 import { DicomMetaDictionary } from "./DicomMetaDictionary.js";
 import { registerPrivatesModule } from "./dictionary.fast.js";
-import * as privateData from "./dictionary.private.data.js";
+import {
+    lookupPrivateTag,
+    setVr,
+    setAttribute,
+    setPersonName,
+    definePrivateAliases
+} from "@dcmjs-org/core";
 import { DICOMWEB } from "./dicomweb.js";
 
-registerPrivatesModule(privateData);
+// the private dictionary module needs only its lookup function
+registerPrivatesModule({ lookupPrivateTag });
 import { Tag } from "./Tag.js";
 import { ValueRepresentation } from "./ValueRepresentation.js";
 import { Colors } from "./colors.js";
@@ -47,7 +54,6 @@ import { DSRNormalizer } from "./normalizers.js";
 import adapters from "./adapters/index.js";
 import utilities from "./utilities/index.js";
 import sr from "./sr/index.js";
-import eventStream from "./eventStream/index.js";
 import * as constants from "./constants/dicom.js";
 
 import { cleanTags, getTagsNameToEmpty } from "./anonymizer.js";
@@ -65,7 +71,12 @@ const data = {
     Colors,
     datasetToDict,
     datasetToBuffer,
-    datasetToBlob
+    datasetToBlob,
+    // naturalized-dataset utilities (docs/specs/naturalized-dataset.md)
+    setVr,
+    setAttribute,
+    setPersonName,
+    definePrivateAliases
 };
 
 const async = {
@@ -104,7 +115,6 @@ const dcmjs = {
     constants,
     data,
     derivations,
-    eventStream,
     normalizers,
     sr,
     utilities,
@@ -124,7 +134,6 @@ export {
     constants,
     data,
     derivations,
-    eventStream,
     normalizers,
     sr,
     utilities,
@@ -132,3 +141,6 @@ export {
 };
 
 export { dcmjs as default };
+
+// The eventStream, media, encapsulated and image surfaces are subpath
+// entries (src/eventStream.js, ...): the default entry is the 0.52 surface.

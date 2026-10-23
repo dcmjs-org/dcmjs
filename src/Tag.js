@@ -1,2 +1,3 @@
 // Moved to packages/core; this shim keeps the old import path working.
-export * from "../packages/core/src/Tag.js";
+// It imports @dcmjs-org/core, so the ESM build keeps one copy of it.
+export { Tag } from "@dcmjs-org/core";

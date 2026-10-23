@@ -1,7 +1,7 @@
 # Migrating from dcmjs 0.x
 
-This page describes the 1.0 beta as it stands on the `release/1.0-beta-core`
-staging branch. It replaces the migration guide from the earlier 1.0 draft
+This page describes the 1.0 beta (`@dcmjs-org/dcmjs`) as it stands on the
+`1.0-beta` branch. It replaces the migration guide from the earlier 1.0 draft
 (PR #512), which described a lazy read core and a byte-faithful write path
 that the review removed before anything shipped. If you read that guide,
 unlearn it; this page documents only what is on this branch, and every
@@ -12,10 +12,11 @@ new work, a streaming engine that reads and writes files larger than
 memory, sits beside them and runs only when you call it. Three behaviors
 changed on purpose to follow the DICOM standard (see
 [BREAKING_CHANGES.md](BREAKING_CHANGES.md)), and naturalization changed in
-three ways described below.
+the six ways described below.
 
 ```js
-import dcmjs from "dcmjs";
+// during the beta the package is @dcmjs-org/dcmjs; later it is "dcmjs"
+import dcmjs from "@dcmjs-org/dcmjs";
 const { DicomMessage, DicomDict, DicomMetaDictionary } = dcmjs.data;
 ```
 
@@ -120,7 +121,7 @@ file without inflating, it now receives a real deflate stream. Either keep
 writing plain explicit little endian (set the transfer syntax UID to
 `1.2.840.10008.1.2.1` before writing) or teach the consumer to inflate.
 
-## Naturalization: five changes
+## Naturalization: six changes
 
 Naturalization turns the tag-keyed dict into a keyword-keyed dataset
 (`dataset.PatientName` instead of `dict["00100010"]`), and
@@ -131,15 +132,15 @@ naturalize to component objects that still stringify to the raw PN form
 (`dcmjs.data.DicomMetaDictionary`) and `@dcmjs-org/core` share one
 naturalizer, so these changes apply to both.
 
-Five things changed relative to 0.x:
+Six things changed relative to 0.x:
 
 1. **`_vrMap` now carries entries for elements outside the dictionary.**
    A naturalized dataset has always carried a `_vrMap` side table recording
    the actual VR of elements whose on-wire type was ambiguous. It now also
    records the VR of any element that has no dictionary entry at all, such
-   as an unregistered private tag, keyed by the element's 8-digit hex tag.
-   Code that iterates or counts `_vrMap` keys sees entries it did not see
-   in 0.x.
+   as a private element without a creator, keyed by the element's 8-digit
+   hex tag, and the VRs of each private block (change 6). Code that
+   iterates or counts `_vrMap` keys sees entries it did not see in 0.x.
 
 2. **Private elements survive the round trip.** In 0.x,
    `denaturalizeDataset` logged "Unknown name in dataset" for an
@@ -176,11 +177,94 @@ Five things changed relative to 0.x:
    is not an array: `Array.isArray`, `forEach`, `map` and `push` do not
    work on it, and `JSON.stringify` gives the item object. The tag Proxy is
    also gone: the readers and naturalize add the PN value accessors when
-   they store a value, and a PN value that you assign gets its accessors
-   when the dataset is denaturalized. `ValueRepresentation.addTagAccessors`
+   they store a value, and a PN value that you assign is converted at once
+   by the PN setter (change 6). `ValueRepresentation.addTagAccessors`
    remains on the dcmjs surface as a no-op. Pinned by
    `test/issues/issue218-single-item-sq.test.js` and
    `test/core/naturalizeDataset.test.js`.
+
+6. **Private elements group by reserved block.** A private creator
+   (gggg,00xx) reserves the elements (gggg,xx00-xxFF) (PS3.5 7.8.1). The
+   creator and its elements now naturalize to one key,
+   `` `${gggg}:${creator}` ``, and the element number within the block
+   is the key `xEE`:
+
+   ```js
+   dataset["0029:ACME"]; // { creator: "ACME", reservedBlock: 0x10, x01: ["a"] }
+   dataset._vrMap["0029:ACME"]; // { x01: "LO" }
+   ```
+
+   - The 8-digit hex tags (`dataset["00290010"]`, `dataset["00291001"]`)
+     remain as non-enumerable aliases. A read works as before, and a write
+     to an element alias goes to the block. The creator alias is read-only:
+     a write to it throws `TypeError` in strict-mode code. A `delete` of an
+     element alias still removes the element from the written output, and a
+     `delete` of the creator alias removes the whole block, so code that
+     removes private tags by hex key keeps working, through
+     `denaturalizeDataset` and through `fromNaturalized`. A delete always
+     wins, also over a later write into the block; set a value on the
+     deleted hex name to add the element again. A copy of the
+     dataset (an object spread, JSON, `deepCloneInstance`) does not keep
+     such a delete, so delete in the block (`delete
+     dataset["0029:ACME"].x01`) when you copy the dataset later.
+     `Object.keys` and `JSON.stringify` no longer show the hex keys.
+   - A source that gives one creator two blocks in a group (PS3.5 7.8.1
+     does not permit this) gets one merged block and a warning.
+   - A `registerTag()` keyword for a private tag is a non-enumerable alias
+     on the dataset and in the block. A private dictionary keyword (for
+     example `CSAImageHeaderInfo`) is an alias in the block only.
+   - A private element without a creator keeps its hex tag as the key.
+   - A private or unknown element (no dictionary VM) is a list, also for
+     one value, as for VM > 1: `dataset["00311001"]` is `["a"]`, not `"a"`.
+     A private or unknown sequence with one item is the array-like item
+     object, as for a standard sequence.
+   - `denaturalizeDataset` accepts the block form and the hex-tag form. It
+     keeps `reservedBlock` when that block is free in the group, and moves
+     the block to the first free xx when it is not.
+   - `NaturalizedListener` (`toNaturalized()`) gives the same object as
+     `naturalizeDataset`, `_vrMap` included. Its earlier draft keys
+     (`"10:ACME"`, `originalTagOffset`) are gone. Its binary values are a
+     list of `ArrayBuffer`, as `naturalizeDataset` gives, in place of the
+     earlier `{ InlineBinary }` wrapper.
+   - A binary element with no value is `null` in both naturalizers, and a
+     binary element with values is always a list, also of one value.
+   - Both naturalizers take `{ binaryAs: "Uint8Array" }` to give each
+     binary fragment as a `Uint8Array` view with no copy. The default stays
+     `ArrayBuffer`. In the default mode, `toNaturalized()` copies a fragment
+     that is a view into a larger buffer (for example pixel data read from
+     Part 10 bytes) to its own `ArrayBuffer`. Before, it kept the view. Use
+     `Uint8Array` to avoid the copy for large pixel data.
+   - `DicomEventStream.fromNaturalized()` streams a naturalized dataset to
+     any sink, for example `Part10Writer`.
+   - A PN attribute converts an assigned string at once:
+     `dataset.PatientName = "Doe^John"` stores
+     `{ Alphabetic: "Doe^John" }`, and `String(dataset.PatientName)` gives
+     `"Doe^John"`. Code that compared the attribute with a string after
+     the assignment must compare `String(dataset.PatientName)`. The
+     setter copies an assigned object, gives `null` (VM 1) or `[]` for
+     `""`, and drops an
+     empty name between two `\` delimiters. A copy of the dataset (a
+     spread, `deepCloneInstance`) has plain values and no setter, and
+     `Object.freeze` does not stop a write through the setter.
+   - A present element with no `Value`, as DICOMweb JSON gives for an
+     empty element, is `[]` for a list VM (for example `ImageType`) and
+     `null` for a scalar VM, the same as an empty `Value`. Before, it was
+     always `null` from `naturalizeDataset`.
+   - A `null` entry in a value list (an empty value in DICOM JSON, or an
+     empty DS read as `Value: [null]`) now denaturalizes, and every writer
+     writes it as an empty value: empty text for a string VR (before, LO,
+     SH, ST, LT, UC and UT wrote the text `null`), an empty name in its
+     position for PN, and `0` with a warning for a binary number VR (US,
+     SS, UL, SL, FL, FD, UV, AT), which has no empty value. Before,
+     `denaturalizeDataset` threw on it. An element with no value (`null`,
+     not in a list) is written with zero length, with no warning.
+   - `@dcmjs-org/core` and `dcmjs.data` export `setAttribute`,
+     `setPersonName` and `setVr` to add or replace an attribute in the
+     naturalized form, and `definePrivateAliases`.
+
+   [specs/naturalized-dataset.md](specs/naturalized-dataset.md) gives the
+   full rules. Pinned by `test/core/privateBlocks.test.js` and
+   `test/issues/issue388-private-tags.test.js`.
 
 ## Behavior changes made for standard compliance
 
@@ -204,13 +288,14 @@ the standard and a way forward for code that relied on the old behavior:
 
 Everything above concerns the classic whole-buffer engine, which remains
 the default and the only thing `DicomMessage.readFile` uses. The new
-engine lives under `dcmjs.eventStream` and runs only when called. It reads
+engine lives in the `@dcmjs-org/dcmjs/eventStream` subpath and runs only
+when called. It reads
 a file the way you read a book, one piece at a time, instead of
 photocopying the whole book first, so the same code that handles a 500 KB
 slice handles a multi-gigabyte video instance in bounded memory.
 
 ```js
-const { DicomEventStream } = dcmjs.eventStream;
+import { DicomEventStream } from "@dcmjs-org/dcmjs/eventStream";
 
 const dataset = await DicomEventStream.fromPart10Stream(
     fs.createReadStream("large-file.dcm")
@@ -226,7 +311,7 @@ including the memory measurements. `AsyncDicomReader` also remains
 available, unchanged in how you call it.
 
 Nothing routes through this engine implicitly. A project that never
-imports `dcmjs.eventStream` runs the same code paths it ran on 0.x, give
+imports `@dcmjs-org/dcmjs/eventStream` runs the same code paths it ran on 0.x, give
 or take the fixes and the deliberate changes listed above.
 
 ## Package names
@@ -238,12 +323,52 @@ through `dcmjs.data`), `@dcmjs-org/parser` (the streaming reading side),
 and `@dcmjs-org/generator` (the streaming writing side). Application code
 does not need to import them directly.
 
-The `dcmjs` package surface itself arrives with the wrapper release: a
-thin package that reproduces the 0.x surface by re-exporting the engine
-packages plus the classic extras. During the beta that wrapper publishes
-as `@dcmjs-org/dcmjs`, so a project can try 1.0 by changing only the
-import name; the unscoped `dcmjs` name starts publishing when the
-maintainers decide it is ready.
+**FHIR is preliminary.** The DICOM-to-FHIR mapping is the separate
+package `@dcmjs-org/fhir`, and the wrapper does not re-export it as a
+subpath. Import `@dcmjs-org/fhir` directly. Its options and output can
+change in a minor release. `DicomEventStream` has no FHIR methods (an
+earlier beta had `fromFhir()` and `toFhir()`). Give the result of
+`toNaturalized()` to `toFhir()` of `@dcmjs-org/fhir`.
+
+The `dcmjs` package surface is the wrapper `@dcmjs-org/dcmjs`. It
+reproduces the 0.x surface, so a project can try 1.0 by changing only the
+import name. During the beta it publishes on the `beta` tag
+(`npm install @dcmjs-org/dcmjs@beta`); the unscoped `dcmjs` name starts
+publishing when the maintainers decide it is ready.
+
+The new engines are subpath entries, and they are ES modules only:
+`@dcmjs-org/dcmjs/eventStream`, `/media`, `/encapsulated` and `/image`.
+A `require()` of a subpath fails with
+`ERR_PACKAGE_PATH_NOT_EXPORTED`. jest resolves with the CommonJS
+conditions, so it does not find a subpath, and it gives the UMD build for
+the default entry. Map the default entry and each subpath to its ESM file
+in the jest config, so that all of them share one copy of the reader state:
+
+```js
+// jest.config.js
+moduleNameMapper: {
+    "^@dcmjs-org/dcmjs$":
+        "<rootDir>/node_modules/@dcmjs-org/dcmjs/build/dcmjs.es.js",
+    "^@dcmjs-org/dcmjs/(eventStream|media|encapsulated|image)$":
+        "<rootDir>/node_modules/@dcmjs-org/dcmjs/build/$1.es.js"
+},
+transformIgnorePatterns: ["/node_modules/(?!@dcmjs-org)"]
+```
+
+The build files are ES modules, so jest must transform them: use a
+project-wide `babel.config.js` with `@babel/preset-env`. A `.babelrc` does
+not apply to files in `node_modules`.
+
+Use `import` for the default entry
+too when you use a subpath: a `require()` of the default entry loads the
+UMD build, which has its own copy of the reader state (the log level,
+`registerTag()` entries).
+
+The ESM entries read the `LOG_LEVEL` environment variable when they load:
+a loglevel level (`trace`, `debug`, `info`, `warn`, `error`, `silent`, in
+any case, or a number from `0` to `5`) applies, and any other value gives
+`warn`. The UMD builds use the level
+fixed at build time.
 
 ## What needs no migration, in one list
 

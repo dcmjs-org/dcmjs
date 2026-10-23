@@ -9,10 +9,7 @@
 // here the fixture comes from packages/fixtures/dicom (same bytes, but
 // its upstream provenance is still being traced) and the parse goes
 // through the event-stream reader so the package tests stay off
-// @dcmjs-org/legacy. The facade half of the v2 "dcmjs.fhir umbrella
-// namespace" tests (an ArrayBuffer straight to FHIR) landed with the
-// event-stream slice as DicomEventStream.fromPart10(bytes).toFhir() —
-// see test/eventStream/fhirPdfEventStream.test.js at the repo root.
+// @dcmjs-org/legacy.
 
 import fs from "fs";
 import path from "path";
@@ -304,10 +301,6 @@ describe("@dcmjs-org/fhir sink", () => {
 
 // The v2 suite ends with a "dcmjs.fhir umbrella namespace" block
 // (dcmjs.fhir.fromPart10 straight to FHIR, and the namespace re-exports).
-// The facade integration landed with the event-stream slice: the
-// bytes-to-FHIR composition is DicomEventStream.fromPart10(x).toFhir(),
-// pinned in test/eventStream/fhirPdfEventStream.test.js at the repo root.
-// The dcmjs.fhir NAMESPACE itself (the spread of this package's exports
-// plus the fromPart10 convenience onto the dcmjs default export) is the
-// step-7 wrapper package's surface — the two namespace tests return when
-// that wrapper assembles the scoped packages.
+// The dcmjs.fhir namespace of v2 is this package itself: the wrapper
+// @dcmjs-org/dcmjs does not re-export it or depend on it, because the
+// package is preliminary. The tests above already parse bytes to FHIR.

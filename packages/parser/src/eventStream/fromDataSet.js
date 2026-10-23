@@ -17,6 +17,7 @@
  * @param {{ meta?: Object, dict?: Object }} dataset
  * @param {import("./EventStreamListener").EventStreamListener} listener
  */
+import { isBinaryData } from "@dcmjs-org/core";
 import { base64ToArrayBuffer } from "./fromDicomWebJson.js";
 
 export async function fromDataSet(dataset, listener) {
@@ -134,7 +135,7 @@ function emitInlineBinary(listener, tag, entry, values) {
 }
 
 function isBinary(values) {
-    return values.some(v => v instanceof ArrayBuffer || ArrayBuffer.isView(v));
+    return values.some(isBinaryData);
 }
 
 /** True for a naturalized binary wrapper: { InlineBinary: <content> }. */

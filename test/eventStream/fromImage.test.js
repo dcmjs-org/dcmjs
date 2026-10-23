@@ -6,11 +6,11 @@
 // exercises the fragment path end to end.
 
 import dcmjs from "../../src/index.js";
+import { DicomEventStream } from "../../src/eventStream.js";
 import { validationLog } from "../../src/log.js";
 
 validationLog.setLevel(5);
 
-const { DicomEventStream } = dcmjs.eventStream;
 const { DicomMessage, DicomMetaDictionary } = dcmjs.data;
 
 const JPEG_BASELINE_TS = "1.2.840.10008.1.2.4.50";

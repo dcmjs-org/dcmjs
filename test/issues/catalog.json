@@ -1547,7 +1547,7 @@
       "category": "covered",
       "area": "writer",
       "disposition": "pdf2dcm exists: encapsulatePdf round-trip suite (cite encapsulatedPdf.test.js)",
-      "testFile": "existing: test/encapsulatedPdf.test.js + test/eventStream/fhirPdfEventStream.test.js",
+      "testFile": "existing: test/encapsulatedPdf.test.js + test/eventStream/pdfEventStream.test.js",
       "status": "covered",
       "notes": ""
     }

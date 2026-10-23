@@ -1,4 +1,4 @@
-# pnpm 11+ requires an explicit decision for dependencies with install scripts (see allowBuilds).
+# pnpm 12 requires an explicit decision for dependencies with install scripts (see allowBuilds).
 packages:
   - "."
   - "packages/*"
@@ -26,7 +26,7 @@ trustPolicyExclude:
 allowBuilds:
   core-js-pure: false
 
-# pnpm 11 reads overrides here; the package.json "pnpm" field is no longer read.
+# pnpm 12 reads overrides here; the package.json "pnpm" field is no longer read.
 # First group: pins carried over from the old package.json pnpm.overrides
 # (they match the trustPolicyExclude entries above). Second group: minimum
 # patched versions for high-severity audit advisories in dev tooling.

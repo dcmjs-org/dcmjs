@@ -3,6 +3,10 @@
     "version": "0.0.0",
     "description": "DICOM ↔ FHIR R4B mapping for Patient, ImagingStudy and DocumentReference resources from naturalized dcmjs datasets",
     "main": "./src/index.js",
+    "files": [
+        "src",
+        "README.md"
+    ],
     "license": "MIT",
     "repository": {
         "type": "git",

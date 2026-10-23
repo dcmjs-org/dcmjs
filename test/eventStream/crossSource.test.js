@@ -7,18 +7,20 @@ import { fromDicomWebJson } from "../../src/eventStream/fromDicomWebJson";
 import { NaturalizedListener } from "../../src/eventStream/NaturalizedListener";
 import { DicomWebJsonWriter } from "../../src/eventStream/DicomWebJsonWriter";
 
-const { DicomMessage } = dcmjs.data;
+const { DicomMessage, DicomMetaDictionary } = dcmjs.data;
 
 /**
  * Slice G — cross-source equivalence matrix (§31, §4.4).
  *
- * For every local fixture, build the naturalized object via three independent
- * source paths and assert they agree:
+ * For every local fixture, build the naturalized object via four independent
+ * paths and assert they agree:
  *   1. raw Part 10 bytes            -> fromPart10
  *   2. parsed dcmjs dict            -> fromDataSet
  *   3. DICOMweb JSON                -> fromDicomWebJson, where the JSON is itself
  *      produced from the bytes through the writer (bytes -> events ->
  *      DicomWebJsonWriter), exercising the contract as both a source and a sink.
+ *   4. DicomMessage.readFile        -> DicomMetaDictionary.naturalizeDataset, the
+ *      other producer (NAT-U-PROD-1).
  *
  * Comparison is semantic, not byte-identical (§31): binary leaves collapse to a
  * placeholder (raw-fragment vs frame grouping differs by path), single-item
@@ -66,6 +68,9 @@ function normalize(v) {
     if (v === null || typeof v !== "object") return v;
     if (v instanceof ArrayBuffer || ArrayBuffer.isView(v)) return "__bytes";
     if ("InlineBinary" in v || "BulkDataURI" in v) return "__binary";
+    if (Array.isArray(v) && v.some(f => f instanceof ArrayBuffer)) {
+        return "__binary";
+    }
     if (Array.isArray(v)) return v.map(normalize);
     const out = {};
     for (const k of Object.keys(v).sort()) {
@@ -109,8 +114,15 @@ describe("cross-source equivalence matrix (§31)", () => {
                 fromDicomWebJson(writer.result, l)
             );
 
+            // 4. the other producer: readFile -> naturalizeDataset
+            // (NAT-U-PROD-1)
+            const fromNaturalizeDataset = normalize(
+                DicomMetaDictionary.naturalizeDataset(dict.dict)
+            );
+
             expect(fromDict).toEqual(fromBytes);
             expect(fromJson).toEqual(fromBytes);
+            expect(fromNaturalizeDataset).toEqual(fromBytes);
         }
     );
 });

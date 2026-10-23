@@ -16,10 +16,14 @@ MODE="${1:-}"
 DRY=""
 [ "$MODE" = "--dry-run" ] && DRY="--dry-run"
 
-# Every non-private workspace package under packages/, as its directory name.
+# Every non-private workspace package, as its name without the @dcmjs-org/
+# scope: the root package (the @dcmjs-org/dcmjs wrapper, listed as "dcmjs"),
+# then each one under packages/ (its directory name).
 cd "$(dirname "$0")/.."
 PACKAGES="$(node -e '
 const fs = require("fs");
+const root = JSON.parse(fs.readFileSync("package.json", "utf8"));
+if (!root.private && root.name === "@dcmjs-org/dcmjs") console.log("dcmjs");
 for (const d of fs.readdirSync("packages")) {
   const f = `packages/${d}/package.json`;
   if (!fs.existsSync(f)) continue;
@@ -44,6 +48,10 @@ for p in $PACKAGES; do
     echo "== publish placeholder for $name"
     dir="$WORK/$p"
     mkdir -p "$dir"
+    # The root package has no repository.directory.
+    directory=""
+    [ "$p" != "dcmjs" ] && directory=",
+    \"directory\": \"packages/$p\""
     cat > "$dir/package.json" <<EOF
 {
   "name": "$name",
@@ -52,8 +60,7 @@ for p in $PACKAGES; do
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/$REPO.git",
-    "directory": "packages/$p"
+    "url": "git+https://github.com/$REPO.git"$directory
   }
 }
 EOF

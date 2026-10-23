@@ -26,7 +26,7 @@
  *   - The static path keeps unregistered private tags via the VR that
  *     naturalizeDataset records in _vrMap (pinned green below), and
  *     registerTag()-registered names denaturalize symmetrically via the
- *     registry's own name index (src/dictionary.fast.js
+ *     registry's own name index (packages/core/src/dictionary.fast.js
  *     lookupRegisteredTagByName), which never mutates the shared
  *     DicomMetaDictionary.nameMap — pinned green below (review finding
  *     32 in the PR #512 map).
@@ -64,7 +64,7 @@ function makeBuffer() {
 }
 
 describe("issue #388 — SQ items with private tags naturalize without accessor collision", () => {
-    it("numeric-string keys land on the item; the sequence length stays 1", () => {
+    it("private elements land in a block on the item; the sequence length stays 1", () => {
         const dataset = DicomMetaDictionary.naturalizeDataset(
             DicomMessage.readFile(makeBuffer()).dict
         );
@@ -74,19 +74,18 @@ describe("issue #388 — SQ items with private tags naturalize without accessor 
         expect(seq.length).toBe(1);
 
         const item = seq[0];
+        // the private block is one key; the hex tags are hidden aliases
         expect(Object.keys(item)).toEqual(
-            expect.arrayContaining([
-                "00090010",
-                "00091001",
-                "SeriesInstanceUID"
-            ])
+            expect.arrayContaining([`0009:${CREATOR}`, "SeriesInstanceUID"])
         );
+        expect(Object.keys(item)).not.toContain("00091001");
+        expect(item[`0009:${CREATOR}`].x01).toEqual(["private-in-sq"]);
         expect(item["00090010"]).toBe(CREATOR);
-        expect(item["00091001"]).toBe("private-in-sq");
+        expect(item["00091001"]).toEqual(["private-in-sq"]);
         expect(item.SeriesInstanceUID).toBe("1.2.3.4");
 
         // the single-item value is the item, so the keys resolve on it too
-        expect(seq["00091001"]).toBe("private-in-sq");
+        expect(seq["00091001"]).toEqual(["private-in-sq"]);
     });
 
     it("denaturalizing the mixed item does not throw and keeps the standard element", () => {
@@ -120,12 +119,12 @@ describe("issue #388 — SQ items with private tags naturalize without accessor 
 });
 
 describe("issue #215 — private/custom tags through naturalize → denaturalize", () => {
-    it("top-level private tags naturalize to numeric-string keys with intact values", () => {
+    it("top-level private tags naturalize to a block, readable through hex aliases", () => {
         const dataset = DicomMetaDictionary.naturalizeDataset(
             DicomMessage.readFile(makeBuffer()).dict
         );
         expect(dataset["00090010"]).toBe(CREATOR);
-        expect(dataset["00091001"]).toBe("private-top");
+        expect(dataset["00091001"]).toEqual(["private-top"]);
     });
 
     it("instance denaturalizeDataset with a custom dictionary preserves the private element", () => {

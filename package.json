@@ -1,7 +1,6 @@
 {
-    "name": "dcmjs",
+    "name": "@dcmjs-org/dcmjs",
     "version": "0.49.2",
-    "private": true,
     "description": "Javascript implementation of DICOM manipulation",
     "main": "build/dcmjs.js",
     "module": "build/dcmjs.es.js",
@@ -9,6 +8,18 @@
         ".": {
             "import": "./build/dcmjs.es.js",
             "require": "./build/dcmjs.js"
+        },
+        "./eventStream": {
+            "import": "./build/eventStream.es.js"
+        },
+        "./media": {
+            "import": "./build/media.es.js"
+        },
+        "./encapsulated": {
+            "import": "./build/encapsulated.es.js"
+        },
+        "./image": {
+            "import": "./build/image.es.js"
         },
         "./dictionary": "./generate/dictionary.mjs"
     },
@@ -21,7 +32,7 @@
     "directories": {
         "example": "examples"
     },
-    "packageManager": "pnpm@11.1.2",
+    "packageManager": "pnpm@12.9.1",
     "engines": {
         "node": ">=22.13"
     },
@@ -29,7 +40,7 @@
         "prepare": "husky",
         "install:update-lockfile": "pnpm install --no-frozen-lockfile",
         "test": "jest --testTimeout 60000 .",
-        "build": "rollup -c && pnpm run build:packages",
+        "build": "node -e \"require('fs').rmSync('build',{recursive:true,force:true})\" && rollup -c && pnpm run build:packages",
         "build:packages": "pnpm -r --filter \"./packages/*\" run build",
         "build:examples": "pnpm run build && pnpm exec cpy \"build/**/*.js\" \"build/**/*.map\" examples/js --flat",
         "start": "rollup -c -w",
@@ -92,8 +103,8 @@
         "@babel/runtime-corejs3": "7.29.2",
         "@dcmjs-org/core": "workspace:*",
         "@dcmjs-org/encapsulated": "workspace:*",
-        "@dcmjs-org/fhir": "workspace:*",
         "@dcmjs-org/imaging": "workspace:*",
+        "@dcmjs-org/media": "workspace:*",
         "@dcmjs-org/parser": "workspace:*",
         "@dcmjs-org/video": "workspace:*",
         "adm-zip": "0.5.17",

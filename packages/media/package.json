@@ -3,6 +3,10 @@
     "version": "0.0.0",
     "description": "The dcmjs bulk-data bundle: DICOMDIR building (@dcmjs-org/dicomdir), Encapsulated PDF wrapping (@dcmjs-org/encapsulated), image building (@dcmjs-org/imaging), and video encapsulation (@dcmjs-org/video) re-exported under the stable dcmjs media, encapsulated, and image namespaces",
     "main": "./src/index.js",
+    "files": [
+        "src",
+        "README.md"
+    ],
     "license": "MIT",
     "repository": {
         "type": "git",

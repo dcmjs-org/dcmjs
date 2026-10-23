@@ -8,8 +8,7 @@ import {
 
 // Ported from the v2 rewrite with fixture paths reworked to this branch's
 // packages/fixtures layout. The media-source tests (fromImage, fromPdf,
-// fromVideo) and FHIR tests (fromFhir, toFhir) travel with the media and
-// FHIR waves alongside their facade methods.
+// fromVideo) are in their own files beside this one.
 
 const REPO_ROOT = path.join(__dirname, "..", "..");
 function readBuffer(rel) {

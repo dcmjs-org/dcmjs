@@ -1,41 +1,56 @@
 import { dictionary, lookupRegisteredTagByName } from "./dictionary.fast.js";
 import { getAllStandardTagEntries } from "./dicom.lookup.js";
 import log from "./log.js";
-import addAccessors from "./utilities/addAccessors.js";
-import isMultiVM from "./utilities/isMultiVM.js";
+import { valueLength } from "./utilities/isMultiVM.js";
 import BINARY_VRS from "./utilities/binaryVRs.js";
+import { checkBinaryAs } from "./utilities/binaryFragment.js";
+import {
+    binaryValue,
+    sequenceValue,
+    simpleValue
+} from "./utilities/naturalValues.js";
 import { ValueRepresentation } from "./ValueRepresentation.js";
+import {
+    isHexTag,
+    isPrivateTag,
+    placePrivateElements,
+    expandPrivateBlocks
+} from "./utilities/privateBlocks.js";
+import { recordVr } from "./utilities/vrMap.js";
+import { setPersonName } from "./utilities/naturalizedAttributes.js";
 
 /**
  * The naturalized value of one DICOM JSON element (see naturalizeDataset).
  */
-function naturalizeElement(data, entry) {
+function naturalizeElement(data, entry, options) {
     if (data.Value === undefined || data.Value === null) {
-        // type 2 (present, empty) is null; binary keeps its reference
+        // binary keeps its reference
         if (data.InlineBinary) {
             return { InlineBinary: data.InlineBinary };
         }
         if (data.BulkDataURI) {
             return { BulkDataURI: data.BulkDataURI };
         }
-        return null;
     }
-
-    const multi = isMultiVM(entry?.vm);
+    // a missing Value is empty, as an empty Value is (NAT-U-VAL-2)
+    const values = data.Value ?? [];
     if (data.vr === "SQ") {
-        const items = data.Value.map(item =>
-            DicomMetaDictionary.naturalizeDataset(item)
+        return sequenceValue(
+            values.map(item =>
+                DicomMetaDictionary.naturalizeDataset(item, options)
+            ),
+            entry
         );
-        return items.length === 1 && !multi ? addAccessors(items) : items;
     }
-
-    let value = data.Value;
-    // a binary Value lists frames or fragments, not a VM: keep the list
-    if (!multi && !BINARY_VRS.has(data.vr)) {
-        if (value.length === 0) return null;
-        if (value.length === 1) value = value[0];
+    if (BINARY_VRS.has(data.vr)) {
+        return binaryValue(values, options.binaryAs);
     }
-    return ValueRepresentation.addValueAccessorsFor(data.vr, value);
+    // the dictionary VM decides; no VM (a private or unknown element) gives
+    // a list, as for VM > 1
+    return ValueRepresentation.addValueAccessorsFor(
+        data.vr,
+        simpleValue(values, valueLength(entry))
+    );
 }
 
 export class DicomMetaDictionary {
@@ -154,36 +169,63 @@ export class DicomMetaDictionary {
      *   ...) always keeps the list, because its Value lists frames;
      * - a sequence with one item (and a VM of 1) is that item object, with a
      *   hidden [0] and length (see addAccessors); otherwise it is a list;
-     * - PN values get their value accessors here, when the value is built.
+     * - PN values get their value accessors here, when the value is built;
+     * - private elements group by reserved block under `${group}:${creator}`
+     *   keys, with non-enumerable hex-tag aliases (see privateBlocks.js).
      *
      * The result is a plain object: there is no Proxy. The 0.x shapes are in
      * the DicomMetaDictionary of @dcmjs-org/legacy.
+     *
+     * @param {Object} dataset - DICOM JSON Model dataset
+     * @param {Object} [options]
+     * @param {"ArrayBuffer"|"Uint8Array"} [options.binaryAs="ArrayBuffer"] -
+     *   the type of each fragment or frame of a binary value
      */
-    static naturalizeDataset(dataset) {
+    static naturalizeDataset(dataset, options = {}) {
+        options = { ...options, binaryAs: checkBinaryAs(options.binaryAs) };
         const naturalDataset = { _vrMap: {} };
+        const privateElements = [];
 
         Object.keys(dataset).forEach(tag => {
             const data = dataset[tag];
             const punctuatedTag = DicomMetaDictionary.punctuateTag(tag);
             const entry = DicomMetaDictionary.dictionary[punctuatedTag];
-            let naturalName = tag;
-
-            if (entry) {
-                naturalName = entry.name;
-
-                if (entry.vr == "ox" || data.vr !== entry.vr) {
-                    // keep the actual VR when it is data-dependent or differs
-                    naturalDataset._vrMap[naturalName] = data.vr;
-                }
-            } else if (data.vr) {
-                // no dictionary entry: the tag stays the key, and the VR
-                // goes into _vrMap so denaturalizeDataset can rebuild it
-                naturalDataset._vrMap[naturalName] = data.vr;
+            if (isPrivateTag(tag)) {
+                privateElements.push({
+                    tag,
+                    vr: data.vr,
+                    value: naturalizeElement(data, entry, options),
+                    entry
+                });
+                return;
             }
+            // no dictionary entry: the tag stays the key, and the VR goes
+            // into _vrMap so denaturalizeDataset can rebuild it
+            const naturalName = entry ? entry.name : tag.toUpperCase();
+            recordVr(naturalDataset._vrMap, naturalName, entry, data.vr);
 
-            naturalDataset[naturalName] = naturalizeElement(data, entry);
+            if (data.vr === "PN") {
+                // one conversion, and the converting setter (NAT-U-VAL-5)
+                setPersonName(
+                    naturalDataset,
+                    naturalName,
+                    data.Value ?? null,
+                    valueLength(entry)
+                );
+                return;
+            }
+            naturalDataset[naturalName] = naturalizeElement(
+                data,
+                entry,
+                options
+            );
         });
 
+        placePrivateElements(
+            naturalDataset,
+            naturalDataset._vrMap,
+            privateElements
+        );
         return naturalDataset;
     }
 
@@ -203,7 +245,9 @@ export class DicomMetaDictionary {
         }
 
         value = value.map(entry =>
-            entry.constructor.name == "Number" ? String(entry) : entry
+            typeof entry === "number" || entry instanceof Number
+                ? String(entry)
+                : entry
         );
 
         return value;
@@ -212,6 +256,8 @@ export class DicomMetaDictionary {
     // keep the static function to support previous calls to the class
     static denaturalizeDataset(dataset, nameMap = DicomMetaDictionary.nameMap) {
         var unnaturalDataset = {};
+        // reserved private blocks become a creator plus hex-tag elements
+        dataset = expandPrivateBlocks(dataset);
         Object.keys(dataset).forEach(naturalName => {
             // check if it's a sequence
             var name = naturalName;
@@ -225,7 +271,7 @@ export class DicomMetaDictionary {
             }
             if (
                 !entry &&
-                /^[0-9A-Fa-f]{8}$/.test(name) &&
+                isHexTag(name) &&
                 dataset._vrMap &&
                 dataset._vrMap[name]
             ) {
@@ -303,7 +349,7 @@ export class DicomMetaDictionary {
                                 maxLength = vr.rangeMatchingMaxLength;
                             }
 
-                            if (value.length > maxLength) {
+                            if (value != null && value.length > maxLength) {
                                 log.warn(
                                     `Truncating value ${value} of ${naturalName} because it is longer than ${maxLength}`
                                 );

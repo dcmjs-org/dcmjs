@@ -214,8 +214,8 @@ function toFragmentList(payload) {
     if (payload === undefined || payload === null) {
         return [];
     }
-    // The event-stream naturalizer wraps binary as { InlineBinary } (an
-    // ArrayBuffer, a view, a base64 string, or an array of fragments).
+    // A naturalized binary value is a list of fragments; DICOM JSON input
+    // can also give { InlineBinary } (a buffer, a view, base64, or a list).
     if (
         typeof payload === "object" &&
         !(payload instanceof ArrayBuffer) &&
