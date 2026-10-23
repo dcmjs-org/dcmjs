@@ -112,7 +112,7 @@ describe("the ESM build", () => {
         );
         const maps = fs
             .readdirSync(BUILD_DIR)
-            .filter(f => /.es.js.map$|^dcmjs.shared-.*.js.map$/.test(f));
+            .filter(f => /\.es\.js\.map$|^dcmjs\.shared-.*\.js\.map$/.test(f));
         expect(maps.length).toBeGreaterThan(0);
         for (const map of maps) {
             const { sources } = readJson(path.join(BUILD_DIR, map));

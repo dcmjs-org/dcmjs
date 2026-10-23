@@ -1,7 +1,7 @@
 # Migrating from dcmjs 0.x
 
-This page describes the 1.0 beta as it stands on the `release/1.0-beta-core`
-staging branch. It replaces the migration guide from the earlier 1.0 draft
+This page describes the 1.0 beta (`@dcmjs-org/dcmjs`) as it stands on the
+`1.0-beta` branch. It replaces the migration guide from the earlier 1.0 draft
 (PR #512), which described a lazy read core and a byte-faithful write path
 that the review removed before anything shipped. If you read that guide,
 unlearn it; this page documents only what is on this branch, and every
@@ -12,7 +12,7 @@ new work, a streaming engine that reads and writes files larger than
 memory, sits beside them and runs only when you call it. Three behaviors
 changed on purpose to follow the DICOM standard (see
 [BREAKING_CHANGES.md](BREAKING_CHANGES.md)), and naturalization changed in
-three ways described below.
+the six ways described below.
 
 ```js
 // during the beta the package is @dcmjs-org/dcmjs; later it is "dcmjs"
@@ -241,8 +241,9 @@ Six things changed relative to 0.x:
      `{ Alphabetic: "Doe^John" }`, and `String(dataset.PatientName)` gives
      `"Doe^John"`. Code that compared the attribute with a string after
      the assignment must compare `String(dataset.PatientName)`. The
-     setter copies an assigned object, gives `null` for `""`, and drops an
-     empty name between two `` delimiters. A copy of the dataset (a
+     setter copies an assigned object, gives `null` (VM 1) or `[]` for
+     `""`, and drops an
+     empty name between two `\` delimiters. A copy of the dataset (a
      spread, `deepCloneInstance`) has plain values and no setter, and
      `Object.freeze` does not stop a write through the setter.
    - A present element with no `Value`, as DICOMweb JSON gives for an
@@ -323,8 +324,20 @@ publishing when the maintainers decide it is ready.
 The new engines are subpath entries, and they are ES modules only:
 `@dcmjs-org/dcmjs/eventStream`, `/media`, `/encapsulated`, `/image` and
 `/fhir`. A `require()` of a subpath fails with
-`ERR_PACKAGE_PATH_NOT_EXPORTED`, and a jest setup must transform
-`node_modules/@dcmjs-org` to load them. Use `import` for the default entry
+`ERR_PACKAGE_PATH_NOT_EXPORTED`. jest resolves with the CommonJS
+conditions, so it does not find a subpath; map each subpath to its file in
+the jest config:
+
+```js
+// jest.config.js
+moduleNameMapper: {
+    "^@dcmjs-org/dcmjs/(eventStream|media|encapsulated|image|fhir)$":
+        "<rootDir>/node_modules/@dcmjs-org/dcmjs/build/$1.es.js"
+},
+transformIgnorePatterns: ["/node_modules/(?!@dcmjs-org)"]
+```
+
+Use `import` for the default entry
 too when you use a subpath: a `require()` of the default entry loads the
 UMD build, which has its own copy of the reader state (the log level,
 `registerTag()` entries).

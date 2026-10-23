@@ -286,13 +286,15 @@ describe("private reserved blocks on a real file", () => {
         source.dict = DicomMetaDictionary.denaturalizeDataset(naturalized);
         const back = DicomMessage.readFile(source.write()).dict;
 
+        // a second read: source.dict is replaced above
+        const originals = DicomMessage.readFile(
+            bytes.buffer.slice(
+                bytes.byteOffset,
+                bytes.byteOffset + bytes.byteLength
+            )
+        ).dict;
         for (const tag of privateTags) {
-            const original = DicomMessage.readFile(
-                bytes.buffer.slice(
-                    bytes.byteOffset,
-                    bytes.byteOffset + bytes.byteLength
-                )
-            ).dict[tag];
+            const original = originals[tag];
             expect({ tag, vr: back[tag]?.vr }).toEqual({
                 tag,
                 vr: original.vr

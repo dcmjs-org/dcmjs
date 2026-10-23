@@ -8,19 +8,27 @@ try {
 } catch {
     level = undefined;
 }
-log.setLevel(isLogLevel(level) ? level : "warn");
+log.setLevel(toLogLevel(level) ?? "warn");
 
 /**
- * True for a level that loglevel accepts: a level name (case-insensitive) or
- * a number from 0 to 5. Another library's level name, for example "verbose"
- * (winston) or "fatal" (pino), is not one, and loglevel 1.9 throws for it
+ * The loglevel level of a value: a level name (case-insensitive), or a
+ * number from 0 to 5, also as a string ("1"), because an environment
+ * variable is a string. Undefined for any other value, for example
+ * "verbose" (winston) or "fatal" (pino), for which loglevel 1.9 throws
  * (pimterry/loglevel#210 proposes log.parseLevel for this check).
  */
-function isLogLevel(value) {
-    if (typeof value === "string") {
-        return log.levels?.[value.toUpperCase()] !== undefined;
+function toLogLevel(value) {
+    if (typeof value === "string" && /^[0-5]$/.test(value)) {
+        return Number(value);
     }
-    return typeof value === "number" && value >= 0 && value <= 5;
+    if (typeof value === "string") {
+        return log.levels?.[value.toUpperCase()] !== undefined
+            ? value
+            : undefined;
+    }
+    return typeof value === "number" && value >= 0 && value <= 5
+        ? value
+        : undefined;
 }
 
 const validationLog = log.getLogger("validation.dcmjs");

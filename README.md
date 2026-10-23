@@ -84,7 +84,7 @@ import { buildImageDataset } from "@dcmjs-org/dcmjs/image";
 import { toFhir, fromPart10 } from "@dcmjs-org/dcmjs/fhir";
 ```
 
-The subpaths are ES modules only: a `require()` of a subpath fails with `ERR_PACKAGE_PATH_NOT_EXPORTED`. `build/dcmjs.js` (UMD, for a script tag, or for `require("@dcmjs-org/dcmjs")`) has the default export only. Use `import` for the default entry too when you use a subpath: a `require()` of the default entry loads the UMD build, which is a second copy of the reader state (the log level, `registerTag()` entries).
+The subpaths are ES modules only: a `require()` of a subpath fails with `ERR_PACKAGE_PATH_NOT_EXPORTED`. `build/dcmjs.js` (UMD, for a script tag, or for `require("@dcmjs-org/dcmjs")`) has the default export only. Use `import` for the default entry too when you use a subpath: a `require()` of the default entry loads the UMD build, which is a second copy of the reader state (the log level, `registerTag()` entries). jest resolves with the CommonJS conditions, so a jest config maps each subpath to its `build/<name>.es.js` file with `moduleNameMapper`; [docs/MIGRATION.md](docs/MIGRATION.md) gives the config.
 
 ## For Developers
 

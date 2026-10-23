@@ -10,7 +10,6 @@ import {
     registeredTagEntry,
     recordVr,
     checkBinaryAs,
-    naturalBinaryFragment,
     setPersonName,
     valueLength,
     sequenceValue,
@@ -131,11 +130,7 @@ export class NaturalizedListener extends EventStreamListener {
         if (bot && bot.length) {
             fragments = mergeFragmentsPerBotWindow(fragments, bot);
         }
-        frame.binary = binaryValue(
-            fragments.map(fragment =>
-                naturalBinaryFragment(fragment, this.binaryAs)
-            )
-        );
+        frame.binary = binaryValue(fragments, this.binaryAs);
         frame._fragments = undefined;
         frame._binaryInfo = undefined;
     }

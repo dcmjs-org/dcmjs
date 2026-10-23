@@ -32,6 +32,8 @@ describe("the LOG_LEVEL environment variable", () => {
 
     it("a loglevel level applies, and no level gives warn", () => {
         expect(loadWith("debug").getLevel()).toBe(1);
+        expect(loadWith("ERROR").getLevel()).toBe(4); // case-insensitive
+        expect(loadWith("1").getLevel()).toBe(1); // a number as a string
         expect(loadWith(undefined).getLevel()).toBe(3);
     });
 });

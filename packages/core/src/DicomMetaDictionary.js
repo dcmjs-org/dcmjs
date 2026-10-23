@@ -45,7 +45,8 @@ function naturalizeElement(data, entry, options) {
     if (BINARY_VRS.has(data.vr)) {
         return binaryValue(values, options.binaryAs);
     }
-    // no dictionary VM (a private or unknown element): a list, as for VM > 1
+    // the dictionary VM decides; no VM (a private or unknown element) gives
+    // a list, as for VM > 1
     return ValueRepresentation.addValueAccessorsFor(
         data.vr,
         simpleValue(values, valueLength(entry))
@@ -243,8 +244,12 @@ export class DicomMetaDictionary {
             }
         }
 
+        // a null entry is an empty value (DICOM JSON), for example an empty
+        // DS that a reader gives as Value: [null]
         value = value.map(entry =>
-            entry.constructor.name == "Number" ? String(entry) : entry
+            typeof entry === "number" || entry instanceof Number
+                ? String(entry)
+                : entry
         );
 
         return value;
@@ -346,7 +351,7 @@ export class DicomMetaDictionary {
                                 maxLength = vr.rangeMatchingMaxLength;
                             }
 
-                            if (value.length > maxLength) {
+                            if (value != null && value.length > maxLength) {
                                 log.warn(
                                     `Truncating value ${value} of ${naturalName} because it is longer than ${maxLength}`
                                 );

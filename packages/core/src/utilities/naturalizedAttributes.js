@@ -6,6 +6,7 @@ import { binaryValue, sequenceValue, simpleValue } from "./naturalValues.js";
 import {
     isHexTag,
     isPrivateTag,
+    hasPrivateAliasRecord,
     privateAliasTarget,
     registeredTagEntry
 } from "./privateBlocks.js";
@@ -22,16 +23,29 @@ import { vrNeedsRecord } from "./vrMap.js";
 
 /**
  * The naturalized key of `key` in `dataset` (NAT-U-SET-4): an 8-digit hex
- * tag is uppercase. A standard hex tag, or a private one that is not a live
- * block alias, is its keyword when the dictionary or registerTag() has one.
+ * tag is uppercase. A standard hex tag, or a private one with no block alias
+ * (live or deleted), is its keyword when the dictionary or registerTag() has
+ * one. A deleted block alias keeps its hex name, so a set after the delete
+ * makes a new flat element (NAT-U-HIST-7).
  */
 function naturalKey(dataset, key) {
     if (!isHexTag(key)) return key;
     const hexTag = key.toUpperCase();
-    if (isPrivateTag(hexTag) && privateAliasTarget(dataset, hexTag)) {
+    if (isPrivateTag(hexTag) && hasPrivateAliasRecord(dataset, hexTag)) {
         return hexTag;
     }
     return registeredTagEntry(hexTag)?.name || hexTag;
+}
+
+/** Throws for a private creator alias, which is read-only (NAT-U-SET-4). */
+function assertNotCreator(dataset, key) {
+    const alias = privateAliasTarget(dataset, key);
+    if (alias && alias.elementKey === null) {
+        throw new TypeError(
+            `${key} is the creator of private block ${alias.key}; change the block key to change the creator`
+        );
+    }
+    return alias;
 }
 
 /** The dictionary entry of a keyword, a registerTag() keyword or a hex tag. */
@@ -86,16 +100,13 @@ export function setVr(dataset, key, vr, elementKey) {
  * @param {Object} [options]
  * @param {string} [options.vr] - the VR, when the dictionary has none
  * @param {number} [options.length] - the value count
+ * @param {"ArrayBuffer"|"Uint8Array"} [options.binaryAs="ArrayBuffer"] -
+ *   the type of each fragment of a binary value
  * @returns {*} the stored value
  */
 export function setAttribute(dataset, key, value, options = {}) {
     key = naturalKey(dataset, key);
-    const alias = privateAliasTarget(dataset, key);
-    if (alias && alias.elementKey === null) {
-        throw new TypeError(
-            `${key} is the creator of private block ${alias.key}; change the block key to change the creator`
-        );
-    }
+    const alias = assertNotCreator(dataset, key);
     const entry = entryFor(key);
     const vr = options.vr || entry?.vr;
     if (vr === "PN") {
@@ -105,8 +116,9 @@ export function setAttribute(dataset, key, value, options = {}) {
     let shaped;
     if (vr === "SQ") {
         shaped = sequenceValue(values, entry);
-    } else if (BINARY_VRS.has(vr)) {
-        shaped = binaryValue(values);
+    } else if (BINARY_VRS.has(vr) || vr === "ox") {
+        // "ox" (OB or OW, as PixelData) is binary too (NAT-U-BIN-1/2)
+        shaped = binaryValue(values, options.binaryAs || "ArrayBuffer");
     } else {
         const length =
             "length" in options ? options.length : valueLength(entry);
@@ -137,6 +149,7 @@ export function setAttribute(dataset, key, value, options = {}) {
  */
 export function setPersonName(dataset, key, value, length) {
     key = naturalKey(dataset, key);
+    assertNotCreator(dataset, key);
     const entry = entryFor(key);
     if (length === undefined) length = valueLength(entry);
     if (privateAliasTarget(dataset, key)) {
@@ -153,7 +166,8 @@ export function setPersonName(dataset, key, value, length) {
 // The VR goes into _vrMap by the rule of vrNeedsRecord (NAT-I-VR-1); a
 // private block element always records it in its block.
 function storeVr(dataset, key, entry, vr) {
-    if (!vr) return;
+    // a dictionary code such as "ox" is not a VR, so it is not recorded
+    if (!/^[A-Z]{2}$/.test(vr || "")) return;
     if (privateAliasTarget(dataset, key) || vrNeedsRecord(entry, vr)) {
         setVr(dataset, key, vr);
     }

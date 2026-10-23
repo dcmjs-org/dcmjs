@@ -353,6 +353,14 @@ export function privateAliasTarget(dataset, name) {
 }
 
 /**
+ * True when definePrivateAliases defined `name` on `dataset`, also when the
+ * alias was deleted later.
+ */
+export function hasPrivateAliasRecord(dataset, name) {
+    return !!dataset[DATASET_ALIASES]?.has(name);
+}
+
+/**
  * The inverse of placePrivateElements: a shallow view of `dataset` where each
  * reserved block is a private creator plus 8-digit hex keys, with their VRs
  * in a flat _vrMap, so the hex-key path of denaturalizeDataset writes them.

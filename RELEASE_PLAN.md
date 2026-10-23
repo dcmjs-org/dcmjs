@@ -221,11 +221,13 @@ request; the implementation requirements (WRAP-IMP-n) can change freely.
     `media`, `encapsulated`, `image` and `fhir` subpaths have the names of
     the dcmjs v2 namespaces. The subpaths are ES modules only: a
     `require()` of a subpath fails with `ERR_PACKAGE_PATH_NOT_EXPORTED`. A
-    CommonJS user (`require`, or jest without an ESM transform of
-    `node_modules/@dcmjs-org`) gets the default entry only, from the UMD
-    build. Code that takes the default entry with `require()` and a subpath
-    with `import` has two copies of the reader state (the log level, the
-    `registerTag()` entries); such code must use `import` for both.
+    CommonJS user (`require`) gets the default entry only, from the UMD
+    build. jest resolves with the CommonJS conditions too, so a jest user
+    maps each subpath to its `build/<name>.es.js` file with
+    `moduleNameMapper` (docs/MIGRATION.md gives the config). Code that
+    takes the default entry with `require()` and a subpath with `import`
+    has two copies of the reader state (the log level, the `registerTag()`
+    entries); such code must use `import` for both.
 -   **WRAP-USR-4** `build/dcmjs.js` and `build/dcmjs.min.js` work from a
     script tag with no other file.
 -   **WRAP-USR-5** Each subpath works after an install from the registry,
@@ -233,6 +235,11 @@ request; the implementation requirements (WRAP-IMP-n) can change freely.
     examples in `EXAMPLES.md` and for `pnpm bench`.
 -   **WRAP-USR-6** The default ESM entry, bundled for a browser, loads with
     no `process` global, as 0.52 did.
+-   **WRAP-USR-7** In Node, the ESM entries take the log level from the
+    `LOG_LEVEL` environment variable when it is a loglevel level (`trace`,
+    `debug`, `info`, `warn`, `error`, `silent`, any case, or 0 to 5). Any
+    other value gives `warn`, and never stops the import. The UMD builds
+    use the level fixed at build time.
 
 #### § Implementation requirements
 
@@ -292,7 +299,8 @@ request; the implementation requirements (WRAP-IMP-n) can change freely.
     no old chunk is published.
 -   **WRAP-IMP-8** Core reads `process.env.LOG_LEVEL` in a `try` block, so
     a missing `process` gives the default level. The value applies only
-    when it is a loglevel level (a name, case-insensitive, or 0 to 5); any
+    when it is a loglevel level (a name, case-insensitive, or 0 to 5, also
+    as a string such as "1"); any
     other value, for example "verbose" (winston), gives `warn`, because
     loglevel 1.9 throws for it (pimterry/loglevel#210 proposes
     `log.parseLevel` for this check). The ESM entries import core, so they
@@ -324,9 +332,9 @@ external `@dcmjs-org/*` imports in the ESM build:
 
 | Bundle | Bytes | Ratio to 0.52 | Ceiling |
 | --- | --- | --- | --- |
-| `build/dcmjs.js` (UMD) | 1,459,448 | ×1.054 | ×1.06 |
-| `build/dcmjs.es.js`, consumer bundle with its packages | 1,410,165 | ×1.039 | ×1.06 |
-| `build/dcmjs.min.js` (UMD, minified) | 728,533 | ×1.027 | not enforced |
+| `build/dcmjs.js` (UMD) | 1,460,940 | ×1.055 | ×1.06 |
+| `build/dcmjs.es.js`, consumer bundle with its packages | 1,411,518 | ×1.040 | ×1.06 |
+| `build/dcmjs.min.js` (UMD, minified) | 728,818 | ×1.027 | not enforced |
 | `build/dcmjs.es.js` alone | 282 | | |
 | `build/dcmjs.shared-<hash>.js` | 589,551 | | |
 | `build/eventStream.es.js` | 57,179 | | |

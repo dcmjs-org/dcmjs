@@ -124,7 +124,7 @@ A private value is a list (NAT-U-VAL-4). An assigned PN string converts:
   as one object for a VM of 1 and as a list otherwise. An assigned
   `undefined` stays `undefined`, so denaturalize omits the attribute.
   - The setter copies an assigned object, gives `null` (VM 1) or `[]` for
-    `""`, and drops an empty name between two `` delimiters.
+    `""`, and drops an empty name between two `\` delimiters.
   - A private PN element with no creator has the setter too. A PN element in
     a block converts through its alias (NAT-U-SET-2).
   - A copy of the dataset (a spread, `deepCloneInstance`) has plain values
@@ -286,10 +286,13 @@ no dictionary VM is a list.
   adds or replaces an attribute, for example a private or unknown element.
   A VR other than PN replaces an earlier PN setter with plain data. A
   sequence (`SQ`) stores its items by NAT-U-SQ: `[]` with no item, and the
-  array-like item object for one item. A binary VR stores a list
-  of fragments, or `null` with no bytes (NAT-U-BIN-1). A PN VR goes through
+  array-like item object for one item. A binary VR, also the dictionary
+  code `ox` of `PixelData`, stores a list of fragments, or `null` with no
+  bytes (NAT-U-BIN-1). Each fragment is an `ArrayBuffer` (NAT-U-BIN-2), or a
+  `Uint8Array` with `{ binaryAs: "Uint8Array" }`. A PN VR goes through
   NAT-U-SET-2. The VR goes into `_vrMap` when the dictionary does not fix
-  it (NAT-U-VR-2).
+  it (NAT-U-VR-2); a dictionary code such as `ox` is not a VR and is not
+  recorded.
 - **NAT-U-SET-2.** `setPersonName(dataset, key, value, length)` adds or
   replaces a PN attribute in the component form, with the converting setter
   of NAT-U-VAL-5, so a later assignment of a string converts too. For a
@@ -303,10 +306,13 @@ no dictionary VM is a list.
   tag, or a private alias. A hex tag is uppercase, and a hex tag with a
   keyword is that keyword: `"00100020"` sets `PatientID`, and the hex tag of
   a flat `registerTag()` element sets its keyword. A creator alias is
-  read-only: `setAttribute` on it throws a `TypeError` (change the block key
-  to change the creator), and `setVr` on it changes nothing (NAT-U-VR-3). A private alias (a hex tag or a `registerTag()`
+  read-only: `setAttribute` and `setPersonName` on it throw a `TypeError`
+  (change the block key to change the creator), and `setVr` on it changes
+  nothing (NAT-U-VR-3). A private alias (a hex tag or a `registerTag()`
   keyword of a block element) stores into its block, and the VR goes into
-  the block entry of `_vrMap`.
+  the block entry of `_vrMap`. A hex tag whose block alias was deleted
+  stays a hex key, so a set on it makes a new flat element
+  (NAT-U-HIST-7).
 
 ### NAT-U-PROD — the two producers
 

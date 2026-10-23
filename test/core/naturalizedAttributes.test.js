@@ -2,6 +2,8 @@
  * The PN setter and the set utilities of the naturalized form
  * (docs/specs/naturalized-dataset.md, NAT-U-VAL-5 and NAT-U-SET).
  */
+// The registerTag() entries of these tests stay registered only in this
+// file: jest gives each test file its own module registry.
 import dcmjs from "../../src/index.js";
 import { NaturalizedListener } from "../../src/eventStream/NaturalizedListener";
 import { fromDataSet } from "../../src/eventStream/fromDataSet";
@@ -113,6 +115,42 @@ describe("naturalized attributes", () => {
         });
         dataset["00311002"] = "X^Y";
         expect(dataset["00311002"][0].Alphabetic).toBe("X^Y");
+    });
+
+    it("a set on a deleted hex alias makes a new element, also with a registered keyword", () => {
+        const { registerTag } = require("../../src/dictionary.fast.js");
+        registerTag("00431001", { name: "BlockKeywordTag", vr: "LO", vm: "1" });
+        const dataset = DicomMetaDictionary.naturalizeDataset({
+            "00430010": { vr: "LO", Value: ["ACME"] },
+            "00431001": { vr: "LO", Value: ["secret"] }
+        });
+        delete dataset["00431001"];
+        setAttribute(dataset, "00431001", "REDACTED");
+        expect(
+            DicomMetaDictionary.denaturalizeDataset(dataset)["00431001"].Value
+        ).toEqual(["REDACTED"]);
+    });
+
+    it("setAttribute gives a binary attribute a list of ArrayBuffer, also for ox", () => {
+        const dataset = {};
+        const bytes = new Uint8Array([9, 1, 2, 9]);
+        setAttribute(dataset, "PixelData", bytes.subarray(1, 3));
+        expect(dataset.PixelData).toHaveLength(1);
+        expect(dataset.PixelData[0]).toBeInstanceOf(ArrayBuffer);
+        expect([...new Uint8Array(dataset.PixelData[0])]).toEqual([1, 2]);
+        expect(dataset._vrMap?.PixelData).toBeUndefined(); // no "ox" entry
+    });
+
+    it("a private creator alias is read-only for the set utilities", () => {
+        const dataset = DicomMetaDictionary.naturalizeDataset(sourceDict());
+        expect(() => setAttribute(dataset, "00290010", "X")).toThrow(
+            /creator of private block/
+        );
+        expect(() => setPersonName(dataset, "00290010", "X")).toThrow(
+            /creator of private block/
+        );
+        setVr(dataset, "00290010", "UN");
+        expect(dataset._vrMap["00290010"]).toBeUndefined();
     });
 
     it("setPersonName adds a converting PN attribute; setVr creates _vrMap", () => {
