@@ -62,4 +62,13 @@ describe("core naturalizeDataset (1.0 rules)", () => {
         expect(back["00282112"]).toEqual({ vr: "DS", Value: [null] });
         expect(back["00181310"].Value).toEqual(["0", "256", "256", "0"]);
     });
+
+    test("a null entry of a text VR is an empty value, not the text null", () => {
+        // DICOM JSON gives an empty value of a multi-valued element as null
+        const ds = DicomMetaDictionary.naturalizeDataset({
+            "00101000": { vr: "LO", Value: [null, "A"] } // OtherPatientIDs
+        });
+        const back = DicomMetaDictionary.denaturalizeDataset(ds);
+        expect(back["00101000"].Value).toEqual(["", "A"]);
+    });
 });

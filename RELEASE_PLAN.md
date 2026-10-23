@@ -223,8 +223,9 @@ request; the implementation requirements (WRAP-IMP-n) can change freely.
     `require()` of a subpath fails with `ERR_PACKAGE_PATH_NOT_EXPORTED`. A
     CommonJS user (`require`) gets the default entry only, from the UMD
     build. jest resolves with the CommonJS conditions too, so a jest user
-    maps each subpath to its `build/<name>.es.js` file with
-    `moduleNameMapper` (docs/MIGRATION.md gives the config). Code that
+    maps the default entry to `build/dcmjs.es.js` and each subpath to its
+    `build/<name>.es.js` file with `moduleNameMapper` (docs/MIGRATION.md
+    gives the config); then all of them share one reader state. Code that
     takes the default entry with `require()` and a subpath with `import`
     has two copies of the reader state (the log level, the `registerTag()`
     entries); such code must use `import` for both.

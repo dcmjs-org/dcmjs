@@ -139,6 +139,9 @@ describe("naturalized attributes", () => {
         expect(dataset.PixelData[0]).toBeInstanceOf(ArrayBuffer);
         expect([...new Uint8Array(dataset.PixelData[0])]).toEqual([1, 2]);
         expect(dataset._vrMap?.PixelData).toBeUndefined(); // no "ox" entry
+        expect(() =>
+            setAttribute(dataset, "PixelData", bytes, { binaryAs: "Blob" })
+        ).toThrow(TypeError);
     });
 
     it("a private creator alias is read-only for the set utilities", () => {

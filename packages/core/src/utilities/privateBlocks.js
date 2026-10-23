@@ -3,7 +3,7 @@ import { Tag } from "../Tag.js";
 import { createLatin1Decoder } from "../charset/latin1.js";
 import { base64ToArrayBuffer } from "./base64.js";
 import { isBinaryData } from "./binaryFragment.js";
-import { recordVr } from "./vrMap.js";
+import { isVrCode, recordVr } from "./vrMap.js";
 import {
     definePersonNameAccessor,
     toPersonNameValue
@@ -471,7 +471,7 @@ export function expandPrivateBlocks(dataset) {
         const blockVrs = sourceVrMap[key] || {};
         const emit = (ee, value, vr, name) => {
             vr = vr || privateDictionaryEntry(b.group, b.creator, ee)?.vr;
-            if (!vr || !/^[A-Z]{2}$/.test(vr)) {
+            if (!isVrCode(vr)) {
                 log.warn(`No VR for ${name} in private block`, key);
                 return;
             }

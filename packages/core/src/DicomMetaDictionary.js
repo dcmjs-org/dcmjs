@@ -19,6 +19,10 @@ import {
 import { recordVr } from "./utilities/vrMap.js";
 import { setPersonName } from "./utilities/naturalizedAttributes.js";
 
+// The text VRs (EncodedStringRepresentation, without PN), whose writers
+// encode each value with String().
+const TEXT_VRS = new Set(["LO", "LT", "SH", "ST", "UC", "UT"]);
+
 /**
  * The naturalized value of one DICOM JSON element (see naturalizeDataset).
  */
@@ -244,8 +248,6 @@ export class DicomMetaDictionary {
             }
         }
 
-        // a null entry is an empty value (DICOM JSON), for example an empty
-        // DS that a reader gives as Value: [null]
         value = value.map(entry =>
             typeof entry === "number" || entry instanceof Number
                 ? String(entry)
@@ -325,6 +327,11 @@ export class DicomMetaDictionary {
                     dataItem.Value = DicomMetaDictionary.denaturalizeValue(
                         dataItem.Value
                     );
+                    if (TEXT_VRS.has(dataItem.vr)) {
+                        // a null entry is an empty value (DICOM JSON); these
+                        // VRs would write it as the text "null"
+                        dataItem.Value = dataItem.Value.map(v => v ?? "");
+                    }
 
                     if (entry.vr == "SQ") {
                         var unnaturalValues = [];

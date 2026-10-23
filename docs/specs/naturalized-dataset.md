@@ -272,6 +272,10 @@ A private value is a list (NAT-U-VAL-4). An assigned PN string converts:
   warning.
 - **NAT-U-RT-6.** A block with no free `xx` in its group is skipped with a
   warning.
+- **NAT-U-RT-7.** A `null` entry in a value list is an empty value, as in
+  DICOM JSON (for example an empty DS that a reader gives as
+  `Value: [null]`). Denaturalize keeps it, and a writer writes it as an
+  empty value, never as the text `null`.
 
 ### NAT-U-SET — utilities to add or replace an attribute
 

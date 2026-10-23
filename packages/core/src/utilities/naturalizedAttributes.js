@@ -14,7 +14,8 @@ import {
     definePersonNameAccessor,
     toPersonNameValue
 } from "./personNameValue.js";
-import { vrNeedsRecord } from "./vrMap.js";
+import { isVrCode, vrNeedsRecord } from "./vrMap.js";
+import { checkBinaryAs } from "./binaryFragment.js";
 
 /**
  * Utilities that add or replace one attribute of a naturalized dataset in
@@ -118,7 +119,7 @@ export function setAttribute(dataset, key, value, options = {}) {
         shaped = sequenceValue(values, entry);
     } else if (BINARY_VRS.has(vr) || vr === "ox") {
         // "ox" (OB or OW, as PixelData) is binary too (NAT-U-BIN-1/2)
-        shaped = binaryValue(values, options.binaryAs || "ArrayBuffer");
+        shaped = binaryValue(values, checkBinaryAs(options.binaryAs));
     } else {
         const length =
             "length" in options ? options.length : valueLength(entry);
@@ -167,7 +168,7 @@ export function setPersonName(dataset, key, value, length) {
 // private block element always records it in its block.
 function storeVr(dataset, key, entry, vr) {
     // a dictionary code such as "ox" is not a VR, so it is not recorded
-    if (!/^[A-Z]{2}$/.test(vr || "")) return;
+    if (!isVrCode(vr)) return;
     if (privateAliasTarget(dataset, key) || vrNeedsRecord(entry, vr)) {
         setVr(dataset, key, vr);
     }

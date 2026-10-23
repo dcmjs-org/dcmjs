@@ -250,6 +250,9 @@ Six things changed relative to 0.x:
      empty element, is `[]` for a list VM (for example `ImageType`) and
      `null` for a scalar VM, the same as an empty `Value`. Before, it was
      always `null` from `naturalizeDataset`.
+   - A `null` entry in a value list (an empty value in DICOM JSON, or an
+     empty DS read as `Value: [null]`) now denaturalizes and writes as an
+     empty value. Before, `denaturalizeDataset` threw on it.
    - `@dcmjs-org/core` and `dcmjs.data` export `setAttribute`,
      `setPersonName` and `setVr` to add or replace an attribute in the
      naturalized form, and `definePrivateAliases`.
@@ -325,12 +328,15 @@ The new engines are subpath entries, and they are ES modules only:
 `@dcmjs-org/dcmjs/eventStream`, `/media`, `/encapsulated`, `/image` and
 `/fhir`. A `require()` of a subpath fails with
 `ERR_PACKAGE_PATH_NOT_EXPORTED`. jest resolves with the CommonJS
-conditions, so it does not find a subpath; map each subpath to its file in
-the jest config:
+conditions, so it does not find a subpath, and it gives the UMD build for
+the default entry. Map the default entry and each subpath to its ESM file
+in the jest config, so that all of them share one copy of the reader state:
 
 ```js
 // jest.config.js
 moduleNameMapper: {
+    "^@dcmjs-org/dcmjs$":
+        "<rootDir>/node_modules/@dcmjs-org/dcmjs/build/dcmjs.es.js",
     "^@dcmjs-org/dcmjs/(eventStream|media|encapsulated|image|fhir)$":
         "<rootDir>/node_modules/@dcmjs-org/dcmjs/build/$1.es.js"
 },
@@ -343,8 +349,9 @@ UMD build, which has its own copy of the reader state (the log level,
 `registerTag()` entries).
 
 The ESM entries read the `LOG_LEVEL` environment variable when they load:
-a loglevel level (`trace`, `debug`, `info`, `warn`, `error`, `silent`)
-applies, and any other value gives `warn`. The UMD builds use the level
+a loglevel level (`trace`, `debug`, `info`, `warn`, `error`, `silent`, in
+any case, or a number from `0` to `5`) applies, and any other value gives
+`warn`. The UMD builds use the level
 fixed at build time.
 
 ## What needs no migration, in one list
