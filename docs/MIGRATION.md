@@ -251,8 +251,11 @@ Six things changed relative to 0.x:
      `null` for a scalar VM, the same as an empty `Value`. Before, it was
      always `null` from `naturalizeDataset`.
    - A `null` entry in a value list (an empty value in DICOM JSON, or an
-     empty DS read as `Value: [null]`) now denaturalizes and writes as an
-     empty value. Before, `denaturalizeDataset` threw on it.
+     empty DS read as `Value: [null]`) now denaturalizes, and every writer
+     writes it as an empty value: empty text for a string VR (before, LO,
+     SH, ST, LT, UC and UT wrote the text `null`), an empty name in its
+     position for PN, and `0` with a warning for a binary number VR, which
+     has no empty value. Before, `denaturalizeDataset` threw on it.
    - `@dcmjs-org/core` and `dcmjs.data` export `setAttribute`,
      `setPersonName` and `setVr` to add or replace an attribute in the
      naturalized form, and `definePrivateAliases`.
@@ -342,6 +345,10 @@ moduleNameMapper: {
 },
 transformIgnorePatterns: ["/node_modules/(?!@dcmjs-org)"]
 ```
+
+The build files are ES modules, so jest must transform them: use a
+project-wide `babel.config.js` with `@babel/preset-env`. A `.babelrc` does
+not apply to files in `node_modules`.
 
 Use `import` for the default entry
 too when you use a subpath: a `require()` of the default entry loads the

@@ -8,6 +8,19 @@ import {
 import { log, validationLog } from "./log.js";
 import dicomJson from "./utilities/dicomJson.js";
 
+// The VRs that write each value as a binary number; an empty (null) value
+// has no binary form, so it is written as 0 with a warning.
+const BINARY_NUMBER_VRS = new Set([
+    "US",
+    "SS",
+    "UL",
+    "SL",
+    "FL",
+    "FD",
+    "UV",
+    "SV"
+]);
+
 function rtrim(str) {
     return str.replace(/\s*$/g, "");
 }
@@ -272,6 +285,12 @@ class ValueRepresentation {
                 checklen = lengths[i],
                 isString = false,
                 displaylen = checklen;
+            if (checkValue == null && BINARY_NUMBER_VRS.has(this.type)) {
+                // a binary number cannot hold an empty value (NAT-U-RT-7)
+                log.warn(
+                    `${this.type} value ${i} is empty (null); it is written as 0`
+                );
+            }
             if (checkValue === null || allowInvalidVRLength) {
                 valid = true;
             } else if (this.checkLength) {

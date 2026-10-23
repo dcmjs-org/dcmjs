@@ -20,14 +20,18 @@ export function toPersonNameValue(value, length) {
     // undefined stays undefined: denaturalize omits the attribute
     if (value === undefined) return undefined;
     if (value === null) return single ? null : [];
-    // flat(Infinity): a nested list of names is one list of names
+    // flat(Infinity): a nested list of names is one list of names; a null
+    // name is an empty name, so the later names keep their position
     const list = [value]
         .flat(Infinity)
         .flatMap(item =>
-            item == null ? [] : dicomJson.pnConvertToJsonObject(item, true)
+            item == null ? [{}] : dicomJson.pnConvertToJsonObject(item, true)
         );
     if (single && list.length <= 1) {
-        return list.length ? dicomJson.pnAddValueAccessors(list[0]) : null;
+        const name = list[0];
+        return name && Object.keys(name).length
+            ? dicomJson.pnAddValueAccessors(name)
+            : null;
     }
     return dicomJson.pnAddValueAccessors(list);
 }

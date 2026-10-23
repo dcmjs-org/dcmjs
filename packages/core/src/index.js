@@ -74,7 +74,7 @@ export {
     registeredTagEntry,
     privateAliasTarget
 } from "./utilities/privateBlocks.js";
-export { isVrCode, recordVr } from "./utilities/vrMap.js";
+export { recordVr } from "./utilities/vrMap.js";
 export {
     toPersonNameValue,
     definePersonNameAccessor

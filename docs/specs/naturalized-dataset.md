@@ -274,8 +274,14 @@ A private value is a list (NAT-U-VAL-4). An assigned PN string converts:
   warning.
 - **NAT-U-RT-7.** A `null` entry in a value list is an empty value, as in
   DICOM JSON (for example an empty DS that a reader gives as
-  `Value: [null]`). Denaturalize keeps it, and a writer writes it as an
-  empty value, never as the text `null`.
+  `Value: [null]`). Denaturalize keeps it. Every writer (the naturalized
+  form, a DICOM JSON dict, the event stream) writes it by its VR:
+  - a string VR: an empty value, never the text `null`;
+  - PN: an empty name that keeps its position (`[null, "C^D"]` writes
+    `\C^D`); the naturalized form holds it as `{}`, and a PN string read
+    back drops empty names;
+  - a binary number VR (US, SS, UL, SL, FL, FD, UV, SV), which has no
+    empty value: `0`, with a warning.
 
 ### NAT-U-SET — utilities to add or replace an attribute
 
@@ -421,6 +427,15 @@ no dictionary VM is a list.
 - **NAT-I-VR-2.** `expandPrivateBlocks` copies the flat `_vrMap` entries,
   adds `LO` for each creator, and adds the VR of each block element under
   its new hex tag.
+
+### NAT-I-NULL — null entries (NAT-U-RT-7)
+
+- **NAT-I-NULL-1.** The rule is in the writer layer, so every write path
+  follows it: `BufferStream.writeUTF8String` and `writeAsciiString` write
+  `null` as empty text, `dicomJson.pnObjectToString` writes a `null` name as
+  an empty name in its position, and the base `ValueRepresentation`
+  `writeBytes` logs the warning for a binary number VR, whose writer
+  encodes `null` as 0. `denaturalizeValue` keeps `null` entries.
 
 ### NAT-I-RT — block number assignment
 

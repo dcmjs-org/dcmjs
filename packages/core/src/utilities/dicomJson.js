@@ -55,13 +55,12 @@ function pnObjectToString(value) {
         value = [value];
     }
     return value
-        .filter(Boolean)
         .map(function (v) {
-            if (
-                v === undefined ||
-                typeof v === "string" ||
-                v instanceof String
-            ) {
+            // an empty (null) name keeps its position as an empty value
+            if (v === undefined || v === null) {
+                return "";
+            }
+            if (typeof v === "string" || v instanceof String) {
                 return v;
             }
             return [v.Alphabetic ?? "", v.Ideographic ?? "", v.Phonetic ?? ""]

@@ -198,7 +198,8 @@ export class BufferStream {
     }
 
     writeUTF8String(value) {
-        const encodedString = this.encoder.encode(value);
+        // an empty (null) value is empty text, as in writeAsciiString
+        const encodedString = this.encoder.encode(value ?? "");
         this.checkSize(encodedString.byteLength);
         this.view.writeBuffer(encodedString, this.offset);
         return this.increment(encodedString.byteLength);
