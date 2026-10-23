@@ -275,8 +275,8 @@ request; the implementation requirements (WRAP-IMP-n) can change freely.
     `media`, `encapsulated` and `image` subpaths re-export the namespace
     objects of `@dcmjs-org/media`. The `eventStream` subpath imports
     `src/index.js`, so it shares the reader state of the default entry.
-    `@dcmjs-org/fhir` stays a runtime dependency, because the preliminary
-    `DicomEventStream.fromFhir()` and `toFhir()` use it.
+    The wrapper does not depend on `@dcmjs-org/fhir`: `DicomEventStream`
+    has no FHIR methods (an earlier beta had `fromFhir()` and `toFhir()`).
 -   **WRAP-IMP-5** The code that `dcmjs.es.js` and `eventStream.es.js`
     share is in one chunk, `build/dcmjs.shared-<hash>.js`.
     Each entry file exports only its public names; the chunk is in the
@@ -319,17 +319,18 @@ the naturalized-dataset utilities (`setVr`, `setAttribute`,
 `setPersonName`, `definePrivateAliases`) joined `dcmjs.data`, which
 made the UMD bundle ×1.0504; the maintainer raised the ceiling for them.
 The default bundles meet it. The new engines (the streaming reader and
-writers, the event-stream facade, the FHIR mapping, and the DICOMDIR, PDF
-and video builders) are subpath entries, so the default bundles do not
-contain them. The legacy `src/` still imports `@dcmjs-org/core`, so the
-UMD bundle inlines that package, and the ESM consumer bundle holds it once.
+writers, the event-stream facade, and the DICOMDIR, PDF and video
+builders) are subpath entries, so the default bundles do not contain them.
+The FHIR mapping is not in the wrapper. The legacy `src/` still imports
+`@dcmjs-org/core`, so the UMD bundle inlines that package, and the ESM
+consumer bundle holds it once.
 
 **Baseline provenance.** `dcmjs@0.52.0` from npm
 (<https://registry.npmjs.org/dcmjs/-/dcmjs-0.52.0.tgz>), measured
 2026-10-02: `build/dcmjs.js` 1,384,431 bytes, `build/dcmjs.es.js`
 1,357,418 bytes, `build/dcmjs.min.js` 709,566 bytes.
 
-**Current measurements**, 2026-10-21, with the subpath entries and the
+**Current measurements**, 2026-10-23, with the subpath entries and the
 external `@dcmjs-org/*` imports in the ESM build:
 
 | Bundle | Bytes | Ratio to 0.52 | Ceiling |
@@ -339,7 +340,7 @@ external `@dcmjs-org/*` imports in the ESM build:
 | `build/dcmjs.min.js` (UMD, minified) | 729,127 | ×1.027 | not enforced |
 | `build/dcmjs.es.js` alone | 282 | | |
 | `build/dcmjs.shared-<hash>.js` | 589,538 | | |
-| `build/eventStream.es.js` | 57,179 | | |
+| `build/eventStream.es.js` | 41,885 | | |
 | `build/media.es.js` | 513 | | |
 | `build/encapsulated.es.js` | 1,311 | | |
 | `build/image.es.js` | 720 | | |

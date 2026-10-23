@@ -5,8 +5,7 @@
 // patient.js's patientFromDataset, and the primitive behind demographics
 // injection ("apply this Patient to these instances").
 //
-// The result rules are FHIR-USR-6 in packages/fhir/README.md. fromFhir
-// also removes the other patient-module attributes (FHIR-USR-8).
+// The result rules are FHIR-USR-6 in packages/fhir/README.md.
 
 import {
     genderToSex,

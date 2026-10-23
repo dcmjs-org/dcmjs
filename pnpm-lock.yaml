@@ -190,9 +190,6 @@ importers:
       '@dcmjs-org/encapsulated':
         specifier: workspace:*
         version: link:packages/encapsulated
-      '@dcmjs-org/fhir':
-        specifier: workspace:*
-        version: link:packages/fhir
       '@dcmjs-org/imaging':
         specifier: workspace:*
         version: link:packages/imaging

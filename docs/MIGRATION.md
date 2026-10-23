@@ -326,8 +326,9 @@ does not need to import them directly.
 **FHIR is preliminary.** The DICOM-to-FHIR mapping is the separate
 package `@dcmjs-org/fhir`, and the wrapper does not re-export it as a
 subpath. Import `@dcmjs-org/fhir` directly. Its options and output can
-change in a minor release. `DicomEventStream.fromFhir()` and `toFhir()`
-use it and are preliminary too.
+change in a minor release. `DicomEventStream` has no FHIR methods (an
+earlier beta had `fromFhir()` and `toFhir()`). Give the result of
+`toNaturalized()` to `toFhir()` of `@dcmjs-org/fhir`.
 
 The `dcmjs` package surface is the wrapper `@dcmjs-org/dcmjs`. It
 reproduces the 0.x surface, so a project can try 1.0 by changing only the

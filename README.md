@@ -83,7 +83,7 @@ import { encapsulatePdf } from "@dcmjs-org/dcmjs/encapsulated";
 import { buildImageDataset } from "@dcmjs-org/dcmjs/image";
 ```
 
-**FHIR is preliminary.** The DICOM-to-FHIR mapping is the separate package `@dcmjs-org/fhir`. The wrapper does not re-export it as a subpath; install and import `@dcmjs-org/fhir` directly to use it. Its options and output can change in a minor release (see [packages/fhir/README.md](packages/fhir/README.md)). The event-stream methods `DicomEventStream.fromFhir()` and `toFhir()` use that package and are preliminary too.
+**FHIR is preliminary.** The DICOM-to-FHIR mapping is the separate package `@dcmjs-org/fhir`. The wrapper does not re-export it as a subpath; install and import `@dcmjs-org/fhir` directly to use it. Its options and output can change in a minor release (see [packages/fhir/README.md](packages/fhir/README.md)). `DicomEventStream` has no FHIR methods: give the result of `toNaturalized()` to `toFhir()` of `@dcmjs-org/fhir`.
 
 The subpaths are ES modules only: a `require()` of a subpath fails with `ERR_PACKAGE_PATH_NOT_EXPORTED`. `build/dcmjs.js` (UMD, for a script tag, or for `require("@dcmjs-org/dcmjs")`) has the default export only. Use `import` for the default entry too when you use a subpath: a `require()` of the default entry loads the UMD build, which is a second copy of the reader state (the log level, `registerTag()` entries). jest resolves with the CommonJS conditions, so a jest config maps the default entry to `build/dcmjs.es.js` and each subpath to its `build/<name>.es.js` file with `moduleNameMapper`; [docs/MIGRATION.md](docs/MIGRATION.md) gives the config.
 
