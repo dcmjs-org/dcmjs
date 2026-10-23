@@ -3,6 +3,15 @@ const BINARY_AS = new Set(["ArrayBuffer", "Uint8Array"]);
 const isSharedBuffer = v =>
     typeof SharedArrayBuffer !== "undefined" && v instanceof SharedArrayBuffer;
 
+/**
+ * True when a binary value holds no bytes: no fragment, or only fragments of
+ * zero length (a Part 10 reader gives one empty fragment for an empty
+ * element). Such a value naturalizes to null (NAT-U-BIN-1).
+ */
+export function isEmptyBinary(fragments) {
+    return fragments.every(f => isBinaryData(f) && f.byteLength === 0);
+}
+
 /** True for bytes: an ArrayBuffer, a SharedArrayBuffer, or a view. */
 export function isBinaryData(v) {
     return (

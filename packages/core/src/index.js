@@ -57,6 +57,7 @@ export { default as dicomJson } from "./utilities/dicomJson.js";
 export {
     checkBinaryAs,
     isBinaryData,
+    isEmptyBinary,
     naturalBinaryFragment
 } from "./utilities/binaryFragment.js";
 export {
@@ -64,9 +65,19 @@ export {
     placePrivateElements,
     definePrivateAliases,
     expandPrivateBlocks,
-    registeredTagEntry
+    registeredTagEntry,
+    privateAliasTarget
 } from "./utilities/privateBlocks.js";
 export { recordVr } from "./utilities/vrMap.js";
+export {
+    toPersonNameValue,
+    definePersonNameAccessor
+} from "./utilities/personNameValue.js";
+export {
+    setVr,
+    upsertAttribute,
+    upsertPersonName
+} from "./utilities/naturalizedAttributes.js";
 export {
     DicomMetadataListener,
     createInformationFilter

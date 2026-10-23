@@ -189,7 +189,7 @@ Six things changed relative to 0.x:
    is the key `xEE`:
 
    ```js
-   dataset["0029:ACME"]; // { creator: "ACME", reservedBlock: 0x10, x01: "a" }
+   dataset["0029:ACME"]; // { creator: "ACME", reservedBlock: 0x10, x01: ["a"] }
    dataset._vrMap["0029:ACME"]; // { x01: "LO" }
    ```
 
@@ -200,7 +200,9 @@ Six things changed relative to 0.x:
      element alias still removes the element from the written output, and a
      `delete` of the creator alias removes the whole block, so code that
      removes private tags by hex key keeps working, through
-     `denaturalizeDataset` and through `fromNaturalized`. A copy of the
+     `denaturalizeDataset` and through `fromNaturalized`. A delete always
+     wins, also over a later write into the block; set a value on the
+     deleted hex name to add the element again. A copy of the
      dataset (an object spread, JSON, `deepCloneInstance`) does not keep
      such a delete, so delete in the block (`delete
      dataset["0029:ACME"].x01`) when you copy the dataset later.
@@ -211,6 +213,10 @@ Six things changed relative to 0.x:
      on the dataset and in the block. A private dictionary keyword (for
      example `CSAImageHeaderInfo`) is an alias in the block only.
    - A private element without a creator keeps its hex tag as the key.
+   - A private or unknown element (no dictionary VM) is a list, also for
+     one value, as for VM > 1: `dataset["00311001"]` is `["a"]`, not `"a"`.
+     A private or unknown sequence with one item is the array-like item
+     object, as for a standard sequence.
    - `denaturalizeDataset` accepts the block form and the hex-tag form. It
      keeps `reservedBlock` when that block is free in the group, and moves
      the block to the first free xx when it is not.
@@ -229,6 +235,13 @@ Six things changed relative to 0.x:
      `Uint8Array` to avoid the copy for large pixel data.
    - `DicomEventStream.fromNaturalized()` streams a naturalized dataset to
      any sink, for example `Part10Writer`.
+   - A PN attribute converts an assigned string at once:
+     `dataset.PatientName = "Doe^John"` stores
+     `{ Alphabetic: "Doe^John" }`, and `String(dataset.PatientName)` gives
+     `"Doe^John"`. Code that compared the attribute with a string after
+     the assignment must compare `String(dataset.PatientName)`.
+   - `@dcmjs-org/core` exports `upsertAttribute`, `upsertPersonName` and
+     `setVr` to add or replace an attribute in the naturalized form.
 
    [specs/naturalized-dataset.md](specs/naturalized-dataset.md) gives the
    full rules. Pinned by `test/core/privateBlocks.test.js` and

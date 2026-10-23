@@ -1,7 +1,7 @@
 import log from "loglevel";
 
-// The root rollup build replaces process.env.LOG_LEVEL with the build-time
-// level; elsewhere a browser has no `process`, so the read can throw.
+// The root rollup build replaces the read below with the build-time level;
+// elsewhere a browser has no `process`, so the read can throw.
 let level;
 try {
     level = process.env.LOG_LEVEL;

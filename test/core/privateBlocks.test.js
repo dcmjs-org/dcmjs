@@ -49,20 +49,20 @@ describe("private reserved blocks", () => {
         expect(fromDict["0009:ACME"]).toEqual({
             creator: "ACME",
             reservedBlock: 0x10,
-            x01: "nine"
+            x01: ["nine"]
         });
         expect(fromDict["0029:ACME"]).toEqual({
             creator: "ACME",
             reservedBlock: 0x10,
-            x01: 7
+            x01: [7]
         });
         expect(fromDict._vrMap["0029:ACME"]).toEqual({ x01: "US" });
-        expect(fromDict["00291102"]).toBe("orphan");
-        expect(fromDict.ScheduledProcedureStepSequence["0029:ITEM"].x05).toBe(
-            "in-item"
-        );
+        expect(fromDict["00291102"]).toEqual(["orphan"]);
+        expect(
+            fromDict.ScheduledProcedureStepSequence["0029:ITEM"].x05
+        ).toEqual(["in-item"]);
         for (const naturalized of [fromDict, fromEvents]) {
-            expect(naturalized["00291001"]).toBe(7);
+            expect(naturalized["00291001"]).toEqual([7]);
             expect(naturalized["00090010"]).toBe("ACME");
         }
     });
@@ -121,31 +121,28 @@ describe("private reserved blocks", () => {
         expect(back["00091001"]).toBeUndefined();
     });
 
-    it("a delete keeps the source value out, and keeps a later write to the block", () => {
-        const copied = DicomMetaDictionary.naturalizeDataset(sourceDict());
-        delete copied["00291001"];
-        // a block copy still holds the source value: the delete applies
-        copied["0029:ACME"] = { ...copied["0029:ACME"] };
+    it("a delete always wins, also over a rewrite or a copied block", () => {
+        const naturalized = DicomMetaDictionary.naturalizeDataset(sourceDict());
+        naturalized["0029:ACME"].x01 = ["changed"]; // a rewrite before
+        delete naturalized["00291001"];
+        naturalized["0029:ACME"] = { ...naturalized["0029:ACME"], x01: [8] };
         expect(
-            DicomMetaDictionary.denaturalizeDataset(copied)["00291001"]
+            DicomMetaDictionary.denaturalizeDataset(naturalized)["00291001"]
         ).toBeUndefined();
-
-        const rewritten = DicomMetaDictionary.naturalizeDataset(sourceDict());
-        delete rewritten["00291001"];
-        rewritten["0029:ACME"].x01 = 8; // a new value after the delete
-        expect(
-            DicomMetaDictionary.denaturalizeDataset(rewritten)["00291001"].Value
-        ).toEqual(["8"]);
     });
 
-    it("a write to a hex alias after the block is deleted makes a flat element", () => {
+    it("a write to a hex alias after the block or its creator is deleted makes a flat element", () => {
         const naturalized = DicomMetaDictionary.naturalizeDataset(sourceDict());
         delete naturalized["0029:ACME"];
         naturalized["00291001"] = 5;
+        delete naturalized["00090010"]; // the creator alias of "0009:ACME"
+        naturalized["00091001"] = "flat";
         const dict = DicomMetaDictionary.denaturalizeDataset(naturalized);
 
         expect(dict["00291001"]).toEqual({ vr: "US", Value: ["5"] });
         expect(dict["00290010"]).toBeUndefined();
+        expect(dict["00091001"].Value).toEqual(["flat"]);
+        expect(dict["00090010"]).toBeUndefined();
     });
 
     it("a value set on a deleted hex alias replaces the deleted element", () => {

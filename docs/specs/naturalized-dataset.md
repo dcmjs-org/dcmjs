@@ -75,7 +75,7 @@ naturalizes to
   },
   PatientName: { Alphabetic: "Doe^Jane" },   // PN accessors: String(v) is "Doe^Jane"
   ImageType: ["ORIGINAL"],                   // VM 2-n keeps the list
-  "0029:ACME": { creator: "ACME", reservedBlock: 0x10, x01: "a", x02: 7 },
+  "0029:ACME": { creator: "ACME", reservedBlock: 0x10, x01: ["a"], x02: [7] },
   "00311020": [ArrayBuffer]                  // no creator for block 0x10 of group 0031
   // aliases (non-enumerable):
   //   "00290010" -> "ACME"            (read-only)
@@ -83,6 +83,9 @@ naturalizes to
   //   "00291002" -> ["0029:ACME"].x02 (read and write)
 }
 ```
+
+A private value is a list (NAT-U-VAL-4). An assigned PN string converts:
+`dataset.PatientName = "Doe^John"` stores `{ Alphabetic: "Doe^John" }`.
 
 ## § User requirements
 
@@ -108,19 +111,25 @@ naturalizes to
 - **NAT-U-VAL-3.** A scalar-VM attribute with more than one value keeps the
   list.
 - **NAT-U-VAL-4.** An attribute with no dictionary VM (a private or unknown
-  element) has a single value for one value, a list for more than one
-  value, and `null` for no value. A binary VR follows NAT-U-BIN-1 in place
-  of this rule.
+  element) follows NAT-U-VAL-2, as for VM > 1: a list, also for one value,
+  and `[]` when the element is present and empty. A binary VR follows
+  NAT-U-BIN-1, and a sequence follows NAT-U-SQ-1.
 - **NAT-U-VAL-5.** A PN value is the component object
   (`{ Alphabetic, Ideographic, Phonetic }`), or a list of them. `String()`
-  of the value gives the DICOM PN string.
+  of the value gives the DICOM PN string. A PN attribute of a dataset or
+  item has a converting setter: an assigned PN string (`"Doe^John"`,
+  `"A^B\C^D"`), component object or list is stored in the component form,
+  as one object for a VM of 1 and as a list otherwise. An assigned
+  `undefined` stays `undefined`, so denaturalize omits the attribute.
 - **NAT-U-VAL-6.** An absent element has no key.
 
 ### NAT-U-SQ — sequences
 
-- **NAT-U-SQ-1.** A sequence with one item (and a VM of 1) is the item
-  object. `seq.Field`, `seq[0].Field`, `seq.length === 1` and `for...of`
-  work on it. `Array.isArray(seq)` is false.
+- **NAT-U-SQ-1.** A sequence with one item (and a VM of 1, or no dictionary
+  VM) is the item object, made array-like: it has non-enumerable `[0]` (the
+  item), `length` (1) and an iterator. `seq.Field`, `seq[0].Field`,
+  `seq.length === 1` and `for...of` work on it, so code that treats a
+  sequence as an array keeps working. `Array.isArray(seq)` is false.
 - **NAT-U-SQ-2.** A sequence with more items is a list of item objects.
 - **NAT-U-SQ-3.** Each item is a naturalized dataset with its own `_vrMap`
   and its own reserved blocks.
@@ -131,7 +140,8 @@ naturalizes to
   its fragments or frames, so `dataset.PixelData[0]` works. This includes a
   list of one, and a list of values that are not bytes (for example a UN
   element with a string `Value`). A binary element with no value is `null`,
-  not `[]`, in both producers.
+  not `[]`, in both producers. No value includes a value whose fragments
+  all have zero bytes, as a Part 10 reader gives for an empty element.
 - **NAT-U-BIN-2.** By default, each fragment or frame is an `ArrayBuffer`
   that holds only the bytes of that fragment. So
   `new Uint16Array(dataset.PixelData[0])` reads the samples, as in 0.x.
@@ -220,18 +230,13 @@ naturalizes to
   of `denaturalizeDataset` and of `fromNaturalized`. A `delete` of a creator
   alias removes the creator and every element of its block. So code that
   removes private tags by hex key (de-identification) continues to remove
-  them. A deleted alias stays deleted, also after a call of
-  `definePrivateAliases`. A value that the user then sets on the deleted
-  name is a new flat element (NAT-U-RT-1). The block object keeps the
-  deleted value until the write; `delete dataset[blockKey].xEE` removes it
-  from the naturalized dataset too.
-  - The delete removes the element while the block still holds the value
-    that the alias last saw (the source value, or the last write through
-    the alias). So the source value never survives the delete, also in a
-    block object that the user replaced with a copy.
-  - A different value that the user writes into the block after the
-    delete (`dataset[blockKey].xEE = ...`, or in a new block object) is
-    written.
+  them. A delete always wins: the element is left out whatever value the
+  block holds at the write, also after a rewrite of the value or a
+  replaced block object. A deleted alias stays deleted, also after a call
+  of `definePrivateAliases`. To add the element again, set a value on the
+  deleted name: that value is a new flat element (NAT-U-RT-1). The block
+  object keeps the deleted value until the write; `delete
+  dataset[blockKey].xEE` removes it from the naturalized dataset too.
 - **NAT-U-HIST-8.** An alias reads and writes the block that the dataset
   holds under the block key when the alias is used, also after the user
   replaces the block object. After the user deletes the block key, a write
@@ -260,6 +265,30 @@ naturalizes to
 - **NAT-U-RT-6.** A block with no free `xx` in its group is skipped with a
   warning.
 
+### NAT-U-UPS — utilities to add or replace an attribute
+
+These utilities are exported from `@dcmjs-org/core`. `length` is the value
+count: 1 stores a single value (`null` for no value), and any other length,
+or none, stores a list (`[]` for no value), as for VM > 1.
+
+- **NAT-U-UPS-1.** `upsertAttribute(dataset, key, value, { vr, length })`
+  adds or replaces an attribute whose value count the dictionary does not
+  fix, for example a private or unknown element. A binary VR stores a list
+  of fragments, or `null` with no bytes (NAT-U-BIN-1). A PN VR goes through
+  NAT-U-UPS-2. The VR goes into `_vrMap` when the dictionary does not fix
+  it (NAT-U-VR-2).
+- **NAT-U-UPS-2.** `upsertPersonName(dataset, key, value, length)` adds or
+  replaces a PN attribute in the component form, with the converting setter
+  of NAT-U-VAL-5, so a later assignment of a string converts too.
+- **NAT-U-UPS-3.** `setVr(dataset, key, vr)` sets the VR of an attribute in
+  `_vrMap`, and creates `_vrMap` when the dataset has none.
+  `setVr(dataset, blockKey, vr, elementKey)` sets the VR of a block
+  element.
+- **NAT-U-UPS-4.** A key of these utilities can be a keyword, an 8-digit hex
+  tag, or a private alias. A private alias (a hex tag or a `registerTag()`
+  keyword of a block element) stores into its block, and the VR goes into
+  the block entry of `_vrMap`.
+
 ### NAT-U-PROD — the two producers
 
 - **NAT-U-PROD-1.** `naturalizeDataset` and `NaturalizedListener` give equal
@@ -278,6 +307,12 @@ naturalizes to
   - `registeredTagEntry(tag)`: the `registerTag()` entry of a hex tag.
   - `recordVr(vrMap, key, entry, vr)` in `vrMap.js`: the `_vrMap` rule
     (NAT-I-VR-1), for both producers.
+  - `toPersonNameValue` and `definePersonNameAccessor` in
+    `personNameValue.js`: the PN form and setter (NAT-U-VAL-5). Both
+    producers define the setter for each PN attribute of a dataset or item;
+    a PN element in a private block has no setter.
+  - `setVr`, `upsertAttribute` and `upsertPersonName` in
+    `naturalizedAttributes.js` (NAT-U-UPS).
   - `placePrivateElements(target, vrMap, elements)`: places the private
     elements of one level, then calls `definePrivateAliases`.
   - `definePrivateAliases(target)`: derives every alias from the blocks.
@@ -332,12 +367,11 @@ naturalizes to
   its getter, in a non-enumerable `Symbol.for("dcmjs.privateAliases")` map,
   and it never defines a recorded name again. An alias is deleted when the
   own property is gone, or when its getter is no longer the recorded one (a
-  plain value replaced it). Each element record keeps `last`, the value at
-  definition, updated by each write through the alias. `expandPrivateBlocks`
-  leaves out the block of a deleted creator alias, and the element of a
-  deleted element alias while `dataset[blockKey][xEE] === last`. A left-out
-  element does not hold its number in the block. `fromNaturalized`
-  denaturalizes the dataset itself, not a copy, so the record applies.
+  plain value replaced it). `expandPrivateBlocks` leaves out the block of a
+  deleted creator alias and the element of a deleted element alias, with
+  no check of the value. A left-out element does not hold its number in
+  the block. `fromNaturalized` denaturalizes the dataset itself, not a copy,
+  so the record applies.
 
 ### NAT-I-VR — the `_vrMap` rules
 
@@ -390,4 +424,5 @@ block form, and they apply to standard attributes too.
 | NAT-U-HIST-3, NAT-U-RT-2 | `test/issues/issue388-private-tags.test.js` |
 | NAT-U-HIST-4, NAT-U-PRIV-5 | `test/eventStream/NaturalizedListener.test.js` |
 | NAT-U-BIN-1/2/3, NAT-U-PROD-1 (binary) | `test/core/binaryValues.test.js` |
+| NAT-U-VAL-5 (PN setter), NAT-U-UPS | `test/core/naturalizedAttributes.test.js` |
 | NAT-U-VAL, NAT-U-SQ | `test/core/naturalizeDataset.test.js`, `test/issues/issue218-single-item-sq.test.js` |

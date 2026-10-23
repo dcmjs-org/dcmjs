@@ -340,13 +340,13 @@ describe("NaturalizedListener — private-tag grouping (§18)", () => {
             "0029:ACME_PRIVATE_1.0": {
                 creator: "ACME_PRIVATE_1.0",
                 reservedBlock: 0x10,
-                x10: "acme-value",
-                x11: "acme-value-2"
+                x10: ["acme-value"],
+                x11: ["acme-value-2"]
             }
         });
         // the hex tags stay readable as non-enumerable aliases
         expect(l.result["00290010"]).toBe("ACME_PRIVATE_1.0");
-        expect(l.result["00291010"]).toBe("acme-value");
+        expect(l.result["00291010"]).toEqual(["acme-value"]);
     });
 
     test("a private dictionary keyword is a non-enumerable alias in the block (§18.2)", () => {
@@ -393,9 +393,9 @@ describe("NaturalizedListener — private-tag grouping (§18)", () => {
         l.endSequence();
         l.endDataSet();
 
-        expect(l.result["0029:ROOT CREATOR"].x10).toBe("root");
+        expect(l.result["0029:ROOT CREATOR"].x10).toEqual(["root"]);
         const item = l.result.ScheduledProcedureStepSequence;
-        expect(item["0029:ITEM CREATOR"].x10).toBe("item");
+        expect(item["0029:ITEM CREATOR"].x10).toEqual(["item"]);
     });
 });
 

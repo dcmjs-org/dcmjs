@@ -108,15 +108,9 @@ export function definePrivateAliases(target) {
         aliases = new Map();
         Object.defineProperty(target, DATASET_ALIASES, { value: aliases });
     }
-    const onDataset = (name, key, elementKey) => {
+    const onDataset = (name, key, elementKey, creatorName) => {
         if (aliases.has(name)) return;
-        // `last` is the value that the alias last saw: the source value, or
-        // the last write through the alias (see deletedByAlias)
-        const record = {
-            key,
-            elementKey,
-            last: elementKey === null ? undefined : target[key][elementKey]
-        };
+        const record = { key, elementKey };
         record.get =
             elementKey === null
                 ? () =>
@@ -128,13 +122,16 @@ export function definePrivateAliases(target) {
             elementKey === null
                 ? undefined
                 : v => {
-                      record.last = v;
-                      if (target[key]) {
+                      const creator = aliases.get(creatorName);
+                      const creatorDeleted =
+                          creator && aliasDeleted(target, creatorName, creator);
+                      if (target[key] && !creatorDeleted) {
                           target[key][elementKey] = v;
                           return;
                       }
-                      // the block is gone: the value becomes a flat element,
-                      // with the VR that the block had for it
+                      // the block is gone (or its creator alias was deleted):
+                      // the value becomes a flat element, with the VR that
+                      // the block had for it
                       Object.defineProperty(target, name, {
                           value: v,
                           writable: true,
@@ -160,10 +157,10 @@ export function definePrivateAliases(target) {
             if (!match) continue;
             const ee = match[1].toUpperCase();
             const tag = `${group}${xx}${ee}`;
-            onDataset(tag, key, elementKey);
+            onDataset(tag, key, elementKey, `${group}00${xx}`);
             const registered = registeredTagEntry(tag);
             if (registered && registered.name) {
-                onDataset(registered.name, key, elementKey);
+                onDataset(registered.name, key, elementKey, `${group}00${xx}`);
                 defineAlias(
                     block,
                     registered.name,
@@ -305,10 +302,9 @@ function flatPrivateTag(key) {
 }
 
 /**
- * The elements and blocks that a `delete` of a dataset alias removed. An
- * element is removed while its block holds the value that the alias last
- * saw, so the source value never survives a delete, and a value that the
- * user writes into the block after the delete is kept.
+ * The elements and blocks that a `delete` of a dataset alias removed. A
+ * delete always wins: the element (or, for a creator alias, the block) is
+ * left out whatever value the block holds at the write.
  */
 function deletedByAlias(dataset) {
     const deleted = { blocks: new Set(), elements: new Set() };
@@ -317,13 +313,20 @@ function deletedByAlias(dataset) {
     for (const [name, record] of aliases) {
         if (!aliasDeleted(dataset, name, record)) continue;
         const { key, elementKey } = record;
-        if (elementKey === null) {
-            deleted.blocks.add(key);
-        } else if (dataset[key]?.[elementKey] === record.last) {
-            deleted.elements.add(`${key}\n${elementKey}`);
-        }
+        if (elementKey === null) deleted.blocks.add(key);
+        else deleted.elements.add(`${key}\n${elementKey}`);
     }
     return deleted;
+}
+
+/**
+ * The block key and element key of a private alias on `dataset` (a hex tag
+ * or a registerTag() keyword), or undefined when `name` is no live alias.
+ */
+export function privateAliasTarget(dataset, name) {
+    const record = dataset[DATASET_ALIASES]?.get(name);
+    if (!record || aliasDeleted(dataset, name, record)) return undefined;
+    return { key: record.key, elementKey: record.elementKey };
 }
 
 /**
@@ -466,7 +469,9 @@ export function expandPrivateBlocks(dataset) {
             emit(
                 ee,
                 dataset[flatKey],
-                sourceVrMap[flatKey] || lookupRegisteredTagByName(flatKey)?.vr,
+                sourceVrMap[flatKey] ||
+                    blockVrs[`x${ee}`] ||
+                    lookupRegisteredTagByName(flatKey)?.vr,
                 flatKey
             );
         }

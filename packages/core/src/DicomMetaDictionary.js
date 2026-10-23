@@ -6,6 +6,7 @@ import isMultiVM from "./utilities/isMultiVM.js";
 import BINARY_VRS from "./utilities/binaryVRs.js";
 import {
     checkBinaryAs,
+    isEmptyBinary,
     naturalBinaryFragment
 } from "./utilities/binaryFragment.js";
 import { ValueRepresentation } from "./ValueRepresentation.js";
@@ -15,6 +16,7 @@ import {
     expandPrivateBlocks
 } from "./utilities/privateBlocks.js";
 import { recordVr } from "./utilities/vrMap.js";
+import { definePersonNameAccessor } from "./utilities/personNameValue.js";
 
 /**
  * The naturalized value of one DICOM JSON element (see naturalizeDataset).
@@ -31,18 +33,22 @@ function naturalizeElement(data, entry, options) {
         return null;
     }
 
-    const multi = isMultiVM(entry?.vm);
     if (data.vr === "SQ") {
+        // one item is the item object (also with no dictionary VM)
         const items = data.Value.map(item =>
             DicomMetaDictionary.naturalizeDataset(item, options)
         );
-        return items.length === 1 && !multi ? addAccessors(items) : items;
+        return items.length === 1 && !isMultiVM(entry?.vm)
+            ? addAccessors(items)
+            : items;
     }
 
+    // no dictionary VM (a private or unknown element): a list, as for VM > 1
+    const multi = entry ? isMultiVM(entry.vm) : true;
     let value = data.Value;
     if (BINARY_VRS.has(data.vr)) {
         // a binary Value lists frames or fragments, not a VM: keep the list
-        if (value.length === 0) return null;
+        if (isEmptyBinary(value)) return null;
         return value.map(fragment =>
             naturalBinaryFragment(fragment, options.binaryAs)
         );
@@ -210,6 +216,14 @@ export class DicomMetaDictionary {
                 entry,
                 options
             );
+            if (data.vr === "PN") {
+                // an assigned PN string converts to the component form
+                definePersonNameAccessor(
+                    naturalDataset,
+                    naturalName,
+                    entry && !isMultiVM(entry.vm) ? 1 : undefined
+                );
+            }
         });
 
         placePrivateElements(

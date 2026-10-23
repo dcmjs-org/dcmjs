@@ -14,6 +14,8 @@ import {
     recordVr,
     checkBinaryAs,
     naturalBinaryFragment,
+    isEmptyBinary,
+    definePersonNameAccessor,
     log
 } from "@dcmjs-org/core";
 
@@ -162,9 +164,7 @@ export class NaturalizedListener extends EventStreamListener {
                 // a binary VR keeps its list, also of non-buffer values
                 value = binaryList(frame.values);
             } else if (value === undefined) {
-                value = entry
-                    ? this._shapeValues(frame, entry, frame.tag)
-                    : privateShape(frame.values);
+                value = this._shapeValues(frame, entry, frame.tag);
                 if (frame.vr === "PN" && value !== null) {
                     value = addPersonNameAccessors(value);
                 }
@@ -194,6 +194,14 @@ export class NaturalizedListener extends EventStreamListener {
             shaped = addPersonNameAccessors(shaped);
         }
         targetFrame.obj[key] = shaped;
+        if (frame.vr === "PN") {
+            // an assigned PN string converts to the component form
+            definePersonNameAccessor(
+                targetFrame.obj,
+                key,
+                entry && !isMultiVM(entry.vm) ? 1 : undefined
+            );
+        }
     }
 
     _baseStartSequence(tag, info = {}) {
@@ -236,7 +244,8 @@ export class NaturalizedListener extends EventStreamListener {
 
     _shapeValues(frame, entry, key) {
         const values = frame.values;
-        const multi = isMultiVM(entry && entry.vm);
+        // no dictionary VM (a private or unknown element): as for VM > 1
+        const multi = entry ? isMultiVM(entry.vm) : true;
 
         if (multi) {
             // §10/§11: always list-like; present-empty -> [].
@@ -359,17 +368,9 @@ function canonicalDecimal(s) {
     return neg && body !== "0" ? `-${body}` : body;
 }
 
-/** A binary value: the list of its fragments, or null when it has none. */
+/** A binary value: the list of its fragments, or null with no bytes. */
 function binaryList(values) {
-    return values.length ? values.slice() : null;
-}
-
-/** Shape a private data value with no VM info: scalar if one value, else array. */
-function privateShape(values) {
-    if (values.length === 0) {
-        return null;
-    }
-    return values.length === 1 ? values[0] : values.slice();
+    return isEmptyBinary(values) ? null : values.slice();
 }
 
 /**

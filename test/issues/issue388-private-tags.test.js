@@ -79,13 +79,13 @@ describe("issue #388 — SQ items with private tags naturalize without accessor 
             expect.arrayContaining([`0009:${CREATOR}`, "SeriesInstanceUID"])
         );
         expect(Object.keys(item)).not.toContain("00091001");
-        expect(item[`0009:${CREATOR}`].x01).toBe("private-in-sq");
+        expect(item[`0009:${CREATOR}`].x01).toEqual(["private-in-sq"]);
         expect(item["00090010"]).toBe(CREATOR);
-        expect(item["00091001"]).toBe("private-in-sq");
+        expect(item["00091001"]).toEqual(["private-in-sq"]);
         expect(item.SeriesInstanceUID).toBe("1.2.3.4");
 
         // the single-item value is the item, so the keys resolve on it too
-        expect(seq["00091001"]).toBe("private-in-sq");
+        expect(seq["00091001"]).toEqual(["private-in-sq"]);
     });
 
     it("denaturalizing the mixed item does not throw and keeps the standard element", () => {
@@ -124,7 +124,7 @@ describe("issue #215 — private/custom tags through naturalize → denaturalize
             DicomMessage.readFile(makeBuffer()).dict
         );
         expect(dataset["00090010"]).toBe(CREATOR);
-        expect(dataset["00091001"]).toBe("private-top");
+        expect(dataset["00091001"]).toEqual(["private-top"]);
     });
 
     it("instance denaturalizeDataset with a custom dictionary preserves the private element", () => {
