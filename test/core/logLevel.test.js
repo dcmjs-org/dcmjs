@@ -1,6 +1,6 @@
 /**
  * The log level of @dcmjs-org/core comes from LOG_LEVEL when that is a
- * loglevel level, and is "warn" otherwise (WRAP-IMP-8).
+ * loglevel level, and is "warn" otherwise.
  */
 const LOG_MODULE = "../../packages/core/src/log.js";
 

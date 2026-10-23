@@ -1,7 +1,6 @@
 // test/compat-052.test.js
 //
-// WRAP-USR-1 (RELEASE_PLAN.md section 6): the wrapper keeps every export
-// name of dcmjs 0.52.0. The lists below come from the 0.52.0 npm build. A
+// The wrapper keeps every export name of dcmjs 0.52.0. The lists below come from the 0.52.0 npm build. A
 // namespace may add names, but a removed name fails here.
 
 import dcmjs from "../src/index.js";
@@ -93,7 +92,7 @@ const EXPORTS_052 = {
 
 // Top-level names with no namespace keys to compare: DICOMWEB is a class,
 // and log is the loglevel logger. The default export has exactly these;
-// the new engines are subpath entries only (WRAP-USR-3).
+// the new engines are subpath entries only.
 const TOP_LEVEL_052 = [...Object.keys(EXPORTS_052), "DICOMWEB", "log"];
 
 describe("dcmjs 0.52 compatibility", () => {

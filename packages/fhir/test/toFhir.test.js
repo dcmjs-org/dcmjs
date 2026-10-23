@@ -307,6 +307,6 @@ describe("@dcmjs-org/fhir sink", () => {
 // The facade integration landed with the event-stream slice: the
 // bytes-to-FHIR composition is DicomEventStream.fromPart10(x).toFhir(),
 // pinned in test/eventStream/fhirPdfEventStream.test.js at the repo root.
-// The dcmjs.fhir NAMESPACE itself (this package's exports plus the
-// fromPart10 convenience) is the step-7 wrapper's @dcmjs-org/dcmjs/fhir
-// subpath; its two tests are in test/fhirNamespace.test.js at the repo root.
+// The dcmjs.fhir namespace of v2 is this package itself: the wrapper
+// @dcmjs-org/dcmjs does not re-export it, because the package is
+// preliminary.

@@ -142,5 +142,5 @@ export {
 
 export { dcmjs as default };
 
-// The eventStream, media, encapsulated, image and fhir surfaces are subpath
+// The eventStream, media, encapsulated and image surfaces are subpath
 // entries (src/eventStream.js, ...): the default entry is the 0.52 surface.

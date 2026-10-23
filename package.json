@@ -21,9 +21,6 @@
         "./image": {
             "import": "./build/image.es.js"
         },
-        "./fhir": {
-            "import": "./build/fhir.es.js"
-        },
         "./dictionary": "./generate/dictionary.mjs"
     },
     "files": [

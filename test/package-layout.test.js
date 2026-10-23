@@ -1,7 +1,8 @@
 // test/package-layout.test.js
 //
-// The package rules that a packed @dcmjs-org/dcmjs depends on
-// (RELEASE_PLAN.md WRAP-IMP-2, WRAP-IMP-6 and WRAP-IMP-7). A break of one of
+// The package rules that a packed @dcmjs-org/dcmjs depends on: one copy of
+// each runtime package, a files list per package, and the sideEffects list.
+// A break of one of
 // these rules shows only after an install from the registry, so the tests
 // check the rules directly.
 

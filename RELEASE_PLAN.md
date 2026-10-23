@@ -215,12 +215,14 @@ request; the implementation requirements (WRAP-IMP-n) can change freely.
     `@dcmjs-org/dcmjs/eventStream` (the event-stream contract, sources,
     writers and the `DicomEventStream` facade), `@dcmjs-org/dcmjs/media`
     (DICOMDIR), `@dcmjs-org/dcmjs/encapsulated` (PDF and video),
-    `@dcmjs-org/dcmjs/image` (codec-free images) and
-    `@dcmjs-org/dcmjs/fhir` (the FHIR sink plus `fromPart10`). Each subpath
-    gives its names as named exports and as the default export; the
-    `media`, `encapsulated`, `image` and `fhir` subpaths have the names of
-    the dcmjs v2 namespaces. The subpaths are ES modules only: a
-    `require()` of a subpath fails with `ERR_PACKAGE_PATH_NOT_EXPORTED`. A
+    and `@dcmjs-org/dcmjs/image` (codec-free images). Each subpath gives
+    its names as named exports and as the default export; the `media`,
+    `encapsulated` and `image` subpaths have the names of the dcmjs v2
+    namespaces. FHIR is preliminary and has no subpath: a user imports the
+    separate package `@dcmjs-org/fhir` (a maintainer decision; an earlier
+    beta of this branch had a `/fhir` subpath). The subpaths are ES modules
+    only: a `require()` of a subpath fails with
+    `ERR_PACKAGE_PATH_NOT_EXPORTED`. A
     CommonJS user (`require`) gets the default entry only, from the UMD
     build. jest resolves with the CommonJS conditions too, so a jest user
     maps the default entry to `build/dcmjs.es.js` and each subpath to its
@@ -264,20 +266,19 @@ request; the implementation requirements (WRAP-IMP-n) can change freely.
     writer of `dcmjs.data`, and the event-stream writers). An app that also
     imports one of those packages directly gets a second copy of its
     classes, so `instanceof` does not work across the two copies.
--   **WRAP-IMP-3** One rollup ESM build has six entries: `src/index.js`
+-   **WRAP-IMP-3** One rollup ESM build has five entries: `src/index.js`
     (`build/dcmjs.es.js`), and `src/eventStream.js`, `src/media.js`,
-    `src/encapsulated.js`, `src/image.js` and `src/fhir.js`
-    (`build/<name>.es.js`). The `package.json` `exports` map gives each
+    `src/encapsulated.js` and `src/image.js` (`build/<name>.es.js`). The `package.json` `exports` map gives each
     subpath its file.
 -   **WRAP-IMP-4** The 0.52 namespaces come from the legacy `src/`. The
     `eventStream` subpath re-exports `src/eventStream/index.js`. The
     `media`, `encapsulated` and `image` subpaths re-export the namespace
-    objects of `@dcmjs-org/media`. The `fhir` subpath re-exports
-    `@dcmjs-org/fhir` and adds `fromPart10`. The `eventStream` and `fhir`
-    subpaths import `src/index.js`, so they share the reader state of the
-    default entry.
--   **WRAP-IMP-5** The code that `dcmjs.es.js`, `eventStream.es.js` and
-    `fhir.es.js` share is in one chunk, `build/dcmjs.shared-<hash>.js`.
+    objects of `@dcmjs-org/media`. The `eventStream` subpath imports
+    `src/index.js`, so it shares the reader state of the default entry.
+    `@dcmjs-org/fhir` stays a runtime dependency, because the preliminary
+    `DicomEventStream.fromFhir()` and `toFhir()` use it.
+-   **WRAP-IMP-5** The code that `dcmjs.es.js` and `eventStream.es.js`
+    share is in one chunk, `build/dcmjs.shared-<hash>.js`.
     Each entry file exports only its public names; the chunk is in the
     published `build/` directory, and `exports` does not name it. The size
     check of WRAP-USR-2 bundles `build/dcmjs.es.js` with rollup, its chunks
@@ -333,16 +334,15 @@ external `@dcmjs-org/*` imports in the ESM build:
 
 | Bundle | Bytes | Ratio to 0.52 | Ceiling |
 | --- | --- | --- | --- |
-| `build/dcmjs.js` (UMD) | 1,462,151 | ×1.056 | ×1.06 |
-| `build/dcmjs.es.js`, consumer bundle with its packages | 1,412,612 | ×1.041 | ×1.06 |
-| `build/dcmjs.min.js` (UMD, minified) | 729,032 | ×1.027 | not enforced |
+| `build/dcmjs.js` (UMD) | 1,462,138 | ×1.056 | ×1.06 |
+| `build/dcmjs.es.js`, consumer bundle with its packages | 1,412,605 | ×1.041 | ×1.06 |
+| `build/dcmjs.min.js` (UMD, minified) | 729,127 | ×1.027 | not enforced |
 | `build/dcmjs.es.js` alone | 282 | | |
-| `build/dcmjs.shared-<hash>.js` | 589,551 | | |
+| `build/dcmjs.shared-<hash>.js` | 589,538 | | |
 | `build/eventStream.es.js` | 57,179 | | |
 | `build/media.es.js` | 513 | | |
 | `build/encapsulated.es.js` | 1,311 | | |
 | `build/image.es.js` | 720 | | |
-| `build/fhir.es.js` | 1,401 | | |
 
 An earlier measurement of the ESM entry (×1.014) counted only the files in
 `build/`. That shared chunk held a second copy of `@dcmjs-org/core`, so the

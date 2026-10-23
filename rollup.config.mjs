@@ -59,16 +59,15 @@ const bundlesOnly = process.env.BUNDLES_ONLY === "true";
 
 // The default entry and the subpath entries (@dcmjs-org/dcmjs/media, ...).
 // The subpaths are ESM only. The code that the default entry shares with
-// eventStream.es.js and fhir.es.js goes in one dcmjs.shared-<hash>.js chunk,
-// so each entry exports only its own public names.
+// eventStream.es.js goes in one dcmjs.shared-<hash>.js chunk, so each entry
+// exports only its own public names.
 const esm = {
     input: {
         "dcmjs.es": "src/index.js",
         "eventStream.es": "src/eventStream.js",
         "media.es": "src/media.js",
         "encapsulated.es": "src/encapsulated.js",
-        "image.es": "src/image.js",
-        "fhir.es": "src/fhir.js"
+        "image.es": "src/image.js"
     },
     external: isWorkspacePackage,
     output: {

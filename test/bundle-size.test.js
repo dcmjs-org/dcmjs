@@ -1,8 +1,7 @@
 // test/bundle-size.test.js
 //
 // The wrapper bundle-size ceiling against dcmjs 0.52, and smoke tests of the
-// built bundles. RELEASE_PLAN.md section 6 (step 7) holds the threshold
-// policy, the baseline provenance and the current measurements.
+// built bundles. The baselines are the dcmjs@0.52.0 bundles from npm.
 
 const fs = require("fs");
 const os = require("os");
@@ -44,13 +43,12 @@ const SUBPATHS = {
     "eventStream.es.js": "fromPart10",
     "media.es.js": "writeDicomDir",
     "encapsulated.es.js": "encapsulatePdf",
-    "image.es.js": "buildImageDataset",
-    "fhir.es.js": "fromPart10"
+    "image.es.js": "buildImageDataset"
 };
 
 // The size of what an application bundler gives for an ESM entry: the entry,
 // its chunks, and the @dcmjs-org/* packages that it imports, in one rollup
-// bundle (WRAP-IMP-5). The packages resolve to their sources ("source"), so
+// bundle. The packages resolve to their sources ("source"), so
 // no package build is needed.
 function consumerBundleSize(entry) {
     return consumerBundle(entry, "es").length;

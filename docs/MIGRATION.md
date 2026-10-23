@@ -323,6 +323,12 @@ through `dcmjs.data`), `@dcmjs-org/parser` (the streaming reading side),
 and `@dcmjs-org/generator` (the streaming writing side). Application code
 does not need to import them directly.
 
+**FHIR is preliminary.** The DICOM-to-FHIR mapping is the separate
+package `@dcmjs-org/fhir`, and the wrapper does not re-export it as a
+subpath. Import `@dcmjs-org/fhir` directly. Its options and output can
+change in a minor release. `DicomEventStream.fromFhir()` and `toFhir()`
+use it and are preliminary too.
+
 The `dcmjs` package surface is the wrapper `@dcmjs-org/dcmjs`. It
 reproduces the 0.x surface, so a project can try 1.0 by changing only the
 import name. During the beta it publishes on the `beta` tag
@@ -330,8 +336,8 @@ import name. During the beta it publishes on the `beta` tag
 publishing when the maintainers decide it is ready.
 
 The new engines are subpath entries, and they are ES modules only:
-`@dcmjs-org/dcmjs/eventStream`, `/media`, `/encapsulated`, `/image` and
-`/fhir`. A `require()` of a subpath fails with
+`@dcmjs-org/dcmjs/eventStream`, `/media`, `/encapsulated` and `/image`.
+A `require()` of a subpath fails with
 `ERR_PACKAGE_PATH_NOT_EXPORTED`. jest resolves with the CommonJS
 conditions, so it does not find a subpath, and it gives the UMD build for
 the default entry. Map the default entry and each subpath to its ESM file
@@ -342,7 +348,7 @@ in the jest config, so that all of them share one copy of the reader state:
 moduleNameMapper: {
     "^@dcmjs-org/dcmjs$":
         "<rootDir>/node_modules/@dcmjs-org/dcmjs/build/dcmjs.es.js",
-    "^@dcmjs-org/dcmjs/(eventStream|media|encapsulated|image|fhir)$":
+    "^@dcmjs-org/dcmjs/(eventStream|media|encapsulated|image)$":
         "<rootDir>/node_modules/@dcmjs-org/dcmjs/build/$1.es.js"
 },
 transformIgnorePatterns: ["/node_modules/(?!@dcmjs-org)"]

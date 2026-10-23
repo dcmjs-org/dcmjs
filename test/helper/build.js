@@ -18,8 +18,7 @@ const OUTPUTS = [
     "eventStream.es.js",
     "media.es.js",
     "encapsulated.es.js",
-    "image.es.js",
-    "fhir.es.js"
+    "image.es.js"
 ];
 
 // The inputs of the bundles: newer than a bundle means a stale build.
