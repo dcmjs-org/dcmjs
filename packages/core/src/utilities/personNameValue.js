@@ -20,9 +20,12 @@ export function toPersonNameValue(value, length) {
     // undefined stays undefined: denaturalize omits the attribute
     if (value === undefined) return undefined;
     if (value === null) return single ? null : [];
-    const list = (Array.isArray(value) ? value : [value]).flatMap(item =>
-        item == null ? [] : dicomJson.pnConvertToJsonObject(item, true)
-    );
+    // flat(Infinity): a nested list of names is one list of names
+    const list = [value]
+        .flat(Infinity)
+        .flatMap(item =>
+            item == null ? [] : dicomJson.pnConvertToJsonObject(item, true)
+        );
     if (single && list.length <= 1) {
         return list.length ? dicomJson.pnAddValueAccessors(list[0]) : null;
     }
@@ -37,9 +40,13 @@ export function toPersonNameValue(value, length) {
  * @param {Object} target - a naturalized dataset or sequence item
  * @param {string} key - the attribute key, for example "PatientName"
  * @param {number} [length] - 1 for a single value (VM 1), else a list
+ * @param {*} [value] - the initial value; target[key] when not given
  */
-export function definePersonNameAccessor(target, key, length) {
-    let stored = toPersonNameValue(target[key], length);
+export function definePersonNameAccessor(target, key, length, ...value) {
+    let stored = toPersonNameValue(
+        value.length ? value[0] : target[key],
+        length
+    );
     Object.defineProperty(target, key, {
         get: () => stored,
         set: value => {

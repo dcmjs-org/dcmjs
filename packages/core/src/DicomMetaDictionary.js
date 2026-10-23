@@ -2,7 +2,7 @@ import { dictionary, lookupRegisteredTagByName } from "./dictionary.fast.js";
 import { getAllStandardTagEntries } from "./dicom.lookup.js";
 import log from "./log.js";
 import addAccessors from "./utilities/addAccessors.js";
-import isMultiVM from "./utilities/isMultiVM.js";
+import isMultiVM, { valueLength } from "./utilities/isMultiVM.js";
 import BINARY_VRS from "./utilities/binaryVRs.js";
 import {
     checkBinaryAs,
@@ -16,21 +16,25 @@ import {
     expandPrivateBlocks
 } from "./utilities/privateBlocks.js";
 import { recordVr } from "./utilities/vrMap.js";
-import { definePersonNameAccessor } from "./utilities/personNameValue.js";
+import { setPersonName } from "./utilities/naturalizedAttributes.js";
 
 /**
  * The naturalized value of one DICOM JSON element (see naturalizeDataset).
  */
 function naturalizeElement(data, entry, options) {
+    const length = valueLength(entry);
     if (data.Value === undefined || data.Value === null) {
-        // type 2 (present, empty) is null; binary keeps its reference
+        // binary keeps its reference
         if (data.InlineBinary) {
             return { InlineBinary: data.InlineBinary };
         }
         if (data.BulkDataURI) {
             return { BulkDataURI: data.BulkDataURI };
         }
-        return null;
+        // present and empty, as for an empty Value (NAT-U-VAL-1/2/4)
+        if (data.vr === "SQ") return [];
+        if (BINARY_VRS.has(data.vr)) return null;
+        return length === 1 ? null : [];
     }
 
     if (data.vr === "SQ") {
@@ -44,7 +48,6 @@ function naturalizeElement(data, entry, options) {
     }
 
     // no dictionary VM (a private or unknown element): a list, as for VM > 1
-    const multi = entry ? isMultiVM(entry.vm) : true;
     let value = data.Value;
     if (BINARY_VRS.has(data.vr)) {
         // a binary Value lists frames or fragments, not a VM: keep the list
@@ -53,7 +56,7 @@ function naturalizeElement(data, entry, options) {
             naturalBinaryFragment(fragment, options.binaryAs)
         );
     }
-    if (!multi) {
+    if (length === 1) {
         if (value.length === 0) return null;
         if (value.length === 1) value = value[0];
     }
@@ -211,19 +214,21 @@ export class DicomMetaDictionary {
             const naturalName = entry ? entry.name : tag.toUpperCase();
             recordVr(naturalDataset._vrMap, naturalName, entry, data.vr);
 
+            if (data.vr === "PN") {
+                // one conversion, and the converting setter (NAT-U-VAL-5)
+                setPersonName(
+                    naturalDataset,
+                    naturalName,
+                    data.Value ?? null,
+                    valueLength(entry)
+                );
+                return;
+            }
             naturalDataset[naturalName] = naturalizeElement(
                 data,
                 entry,
                 options
             );
-            if (data.vr === "PN") {
-                // an assigned PN string converts to the component form
-                definePersonNameAccessor(
-                    naturalDataset,
-                    naturalName,
-                    entry && !isMultiVM(entry.vm) ? 1 : undefined
-                );
-            }
         });
 
         placePrivateElements(

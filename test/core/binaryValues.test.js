@@ -37,7 +37,9 @@ describe("binary values", () => {
         const emptyDict = () => ({
             "00420011": { vr: "OB" }, // EncapsulatedDocument, no Value
             "7FE00010": { vr: "OB", Value: [] },
-            "00291001": { vr: "UN" } // private, no creator
+            "00291001": { vr: "UN" }, // private, no creator
+            // a Part 10 reader gives one empty fragment for an empty element
+            "00281201": { vr: "OW", Value: [new ArrayBuffer(0)] }
         });
         const listener = new NaturalizedListener();
         await fromDataSet({ dict: emptyDict() }, listener);
@@ -48,6 +50,7 @@ describe("binary values", () => {
             expect(naturalized.EncapsulatedDocument).toBeNull();
             expect(naturalized.PixelData).toBeNull();
             expect(naturalized["00291001"]).toBeNull();
+            expect(naturalized.RedPaletteColorLookupTableData).toBeNull();
         }
     });
 

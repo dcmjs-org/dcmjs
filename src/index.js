@@ -10,8 +10,8 @@ import { registerPrivatesModule } from "./dictionary.fast.js";
 import {
     lookupPrivateTag,
     setVr,
-    upsertAttribute,
-    upsertPersonName,
+    setAttribute,
+    setPersonName,
     definePrivateAliases
 } from "@dcmjs-org/core";
 import { DICOMWEB } from "./dicomweb.js";
@@ -74,8 +74,8 @@ const data = {
     datasetToBlob,
     // naturalized-dataset utilities (docs/specs/naturalized-dataset.md)
     setVr,
-    upsertAttribute,
-    upsertPersonName,
+    setAttribute,
+    setPersonName,
     definePrivateAliases
 };
 

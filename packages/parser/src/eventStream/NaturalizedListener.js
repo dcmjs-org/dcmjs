@@ -3,7 +3,6 @@ import {
     mergeFragmentsPerBotWindow
 } from "./EventStreamListener.js";
 import {
-    lookupTagHex,
     addAccessors,
     isMultiVM,
     BINARY_VRS,
@@ -15,7 +14,8 @@ import {
     checkBinaryAs,
     naturalBinaryFragment,
     isEmptyBinary,
-    definePersonNameAccessor,
+    setPersonName,
+    valueLength,
     log
 } from "@dcmjs-org/core";
 
@@ -178,7 +178,9 @@ export class NaturalizedListener extends EventStreamListener {
             return;
         }
 
-        const entry = lookupTagHex(frame.tag);
+        // the dictionary lookup of naturalizeDataset: repeating groups and
+        // registerTag() entries included
+        const entry = registeredTagEntry(frame.tag);
         const key = (entry && entry.name) || frame.tag.toUpperCase();
         recordVr(targetFrame.obj._vrMap, key, entry, frame.vr);
         if (frame.binary !== undefined) {
@@ -189,19 +191,13 @@ export class NaturalizedListener extends EventStreamListener {
             targetFrame.obj[key] = binaryList(frame.values);
             return;
         }
-        let shaped = this._shapeValues(frame, entry, key);
-        if (frame.vr === "PN" && shaped !== null) {
-            shaped = addPersonNameAccessors(shaped);
+        const shaped = this._shapeValues(frame, entry, key);
+        if (frame.vr === "PN") {
+            // one conversion, and the converting setter (NAT-U-VAL-5)
+            setPersonName(targetFrame.obj, key, shaped, valueLength(entry));
+            return;
         }
         targetFrame.obj[key] = shaped;
-        if (frame.vr === "PN") {
-            // an assigned PN string converts to the component form
-            definePersonNameAccessor(
-                targetFrame.obj,
-                key,
-                entry && !isMultiVM(entry.vm) ? 1 : undefined
-            );
-        }
     }
 
     _baseStartSequence(tag, info = {}) {
@@ -233,7 +229,9 @@ export class NaturalizedListener extends EventStreamListener {
             });
             return;
         }
-        const entry = lookupTagHex(frame.tag);
+        // the dictionary lookup of naturalizeDataset: repeating groups and
+        // registerTag() entries included
+        const entry = registeredTagEntry(frame.tag);
         const shaped = this._shapeSequence(frame, entry);
         const key = (entry && entry.name) || frame.tag.toUpperCase();
         recordVr(targetFrame.obj._vrMap, key, entry, frame.vr);
@@ -245,9 +243,7 @@ export class NaturalizedListener extends EventStreamListener {
     _shapeValues(frame, entry, key) {
         const values = frame.values;
         // no dictionary VM (a private or unknown element): as for VM > 1
-        const multi = entry ? isMultiVM(entry.vm) : true;
-
-        if (multi) {
+        if (valueLength(entry) !== 1) {
             // §10/§11: always list-like; present-empty -> [].
             return values;
         }

@@ -292,8 +292,8 @@ request; the implementation requirements (WRAP-IMP-n) can change freely.
     bundle in a vm with no `process` (WRAP-USR-6).
 
 **The size ceiling.** The ceiling is ×1.06 of 0.52. It was ×1.05 until
-the naturalized-dataset utilities (`setVr`, `upsertAttribute`,
-`upsertPersonName`, `definePrivateAliases`) joined `dcmjs.data`, which
+the naturalized-dataset utilities (`setVr`, `setAttribute`,
+`setPersonName`, `definePrivateAliases`) joined `dcmjs.data`, which
 made the UMD bundle ×1.0504; the maintainer raised the ceiling for them.
 The default bundles meet it. The new engines (the streaming reader and
 writers, the event-stream facade, the FHIR mapping, and the DICOMDIR, PDF
@@ -311,8 +311,8 @@ external `@dcmjs-org/*` imports in the ESM build:
 
 | Bundle | Bytes | Ratio to 0.52 | Ceiling |
 | --- | --- | --- | --- |
-| `build/dcmjs.js` (UMD) | 1,454,588 | ×1.051 | ×1.06 |
-| `build/dcmjs.es.js`, consumer bundle with its packages | 1,405,738 | ×1.036 | ×1.06 |
+| `build/dcmjs.js` (UMD) | 1,457,292 | ×1.053 | ×1.06 |
+| `build/dcmjs.es.js`, consumer bundle with its packages | 1,407,959 | ×1.037 | ×1.06 |
 | `build/dcmjs.min.js` (UMD, minified) | 725,759 | ×1.023 | not enforced |
 | `build/dcmjs.es.js` alone | 282 | | |
 | `build/dcmjs.shared-<hash>.js` | 589,298 | | |

@@ -51,7 +51,7 @@ export { MODALITY_DISPLAY } from "./constants/modality.js";
 export { encodeBase64, base64ToArrayBuffer } from "./utilities/base64.js";
 export { deepCloneInstance } from "./utilities/deepCloneInstance.js";
 export { default as addAccessors } from "./utilities/addAccessors.js";
-export { default as isMultiVM } from "./utilities/isMultiVM.js";
+export { default as isMultiVM, valueLength } from "./utilities/isMultiVM.js";
 export { default as BINARY_VRS } from "./utilities/binaryVRs.js";
 export { default as dicomJson } from "./utilities/dicomJson.js";
 export {
@@ -75,8 +75,8 @@ export {
 } from "./utilities/personNameValue.js";
 export {
     setVr,
-    upsertAttribute,
-    upsertPersonName
+    setAttribute,
+    setPersonName
 } from "./utilities/naturalizedAttributes.js";
 export {
     DicomMetadataListener,

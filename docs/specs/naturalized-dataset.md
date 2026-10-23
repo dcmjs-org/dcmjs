@@ -107,7 +107,9 @@ A private value is a list (NAT-U-VAL-4). An assigned PN string converts:
 - **NAT-U-VAL-1.** An attribute whose dictionary VM is `1` or `0-1` has a
   single value. When the element is present and empty, the value is `null`.
 - **NAT-U-VAL-2.** An attribute with any other VM has a list, also for one
-  value. When the element is present and empty, the value is `[]`.
+  value. When the element is present and empty, the value is `[]`. A
+  present element with no `Value` (DICOM JSON leaves it out) is empty, in
+  both producers.
 - **NAT-U-VAL-3.** A scalar-VM attribute with more than one value keeps the
   list.
 - **NAT-U-VAL-4.** An attribute with no dictionary VM (a private or unknown
@@ -265,28 +267,33 @@ A private value is a list (NAT-U-VAL-4). An assigned PN string converts:
 - **NAT-U-RT-6.** A block with no free `xx` in its group is skipped with a
   warning.
 
-### NAT-U-UPS — utilities to add or replace an attribute
+### NAT-U-SET — utilities to add or replace an attribute
 
 These utilities are exported from `@dcmjs-org/core`, and from `dcmjs.data`
 of `@dcmjs-org/dcmjs` (with `definePrivateAliases`). `length` is the value
-count: 1 stores a single value (`null` for no value), and any other length,
-or none, stores a list (`[]` for no value), as for VM > 1.
+count: 1 stores a single value (`null` for no value), and any other length
+stores a list (`[]` for no value), as for VM > 1. Without `length`, the
+dictionary VM decides (`PatientID` gives one value), and an attribute with
+no dictionary VM is a list.
 
-- **NAT-U-UPS-1.** `upsertAttribute(dataset, key, value, { vr, length })`
-  adds or replaces an attribute whose value count the dictionary does not
-  fix, for example a private or unknown element. A binary VR stores a list
+- **NAT-U-SET-1.** `setAttribute(dataset, key, value, { vr, length })`
+  adds or replaces an attribute, for example a private or unknown element.
+  A VR other than PN replaces an earlier PN setter with plain data. A binary VR stores a list
   of fragments, or `null` with no bytes (NAT-U-BIN-1). A PN VR goes through
-  NAT-U-UPS-2. The VR goes into `_vrMap` when the dictionary does not fix
+  NAT-U-SET-2. The VR goes into `_vrMap` when the dictionary does not fix
   it (NAT-U-VR-2).
-- **NAT-U-UPS-2.** `upsertPersonName(dataset, key, value, length)` adds or
+- **NAT-U-SET-2.** `setPersonName(dataset, key, value, length)` adds or
   replaces a PN attribute in the component form, with the converting setter
-  of NAT-U-VAL-5, so a later assignment of a string converts too.
-- **NAT-U-UPS-3.** `setVr(dataset, key, vr)` sets the VR of an attribute in
+  of NAT-U-VAL-5, so a later assignment of a string converts too. For a
+  private block element, the alias converts a later string because
+  `_vrMap` gives PN for the element.
+- **NAT-U-SET-3.** `setVr(dataset, key, vr)` sets the VR of an attribute in
   `_vrMap`, and creates `_vrMap` when the dataset has none.
   `setVr(dataset, blockKey, vr, elementKey)` sets the VR of a block
   element.
-- **NAT-U-UPS-4.** A key of these utilities can be a keyword, an 8-digit hex
-  tag, or a private alias. A private alias (a hex tag or a `registerTag()`
+- **NAT-U-SET-4.** A key of these utilities can be a keyword, an 8-digit hex
+  tag, or a private alias. A hex tag is uppercase, and a standard hex tag
+  with a keyword is that keyword (`"00100020"` sets `PatientID`). A private alias (a hex tag or a `registerTag()`
   keyword of a block element) stores into its block, and the VR goes into
   the block entry of `_vrMap`.
 
@@ -311,9 +318,15 @@ or none, stores a list (`[]` for no value), as for VM > 1.
   - `toPersonNameValue` and `definePersonNameAccessor` in
     `personNameValue.js`: the PN form and setter (NAT-U-VAL-5). Both
     producers define the setter for each PN attribute of a dataset or item;
-    a PN element in a private block has no setter.
-  - `setVr`, `upsertAttribute` and `upsertPersonName` in
-    `naturalizedAttributes.js` (NAT-U-UPS).
+    a PN element in a private block converts through its alias when
+    `_vrMap` gives PN for it.
+  - `valueLength(entry)` in `isMultiVM.js`: the value count of an entry
+    (1 for a scalar VM, else a list), for both producers and the set
+    utilities.
+  - Both producers look up a tag with the `dictionary` proxy, which gives
+    `registerTag()` entries and the repeating groups (50xx, 60xx).
+  - `setVr`, `setAttribute` and `setPersonName` in
+    `naturalizedAttributes.js` (NAT-U-SET).
   - `placePrivateElements(target, vrMap, elements)`: places the private
     elements of one level, then calls `definePrivateAliases`.
   - `definePrivateAliases(target)`: derives every alias from the blocks.
@@ -425,5 +438,5 @@ block form, and they apply to standard attributes too.
 | NAT-U-HIST-3, NAT-U-RT-2 | `test/issues/issue388-private-tags.test.js` |
 | NAT-U-HIST-4, NAT-U-PRIV-5 | `test/eventStream/NaturalizedListener.test.js` |
 | NAT-U-BIN-1/2/3, NAT-U-PROD-1 (binary) | `test/core/binaryValues.test.js` |
-| NAT-U-VAL-5 (PN setter), NAT-U-UPS | `test/core/naturalizedAttributes.test.js` |
+| NAT-U-VAL-5 (PN setter), NAT-U-SET | `test/core/naturalizedAttributes.test.js` |
 | NAT-U-VAL, NAT-U-SQ | `test/core/naturalizeDataset.test.js`, `test/issues/issue218-single-item-sq.test.js` |

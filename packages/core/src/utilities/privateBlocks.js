@@ -4,6 +4,7 @@ import { createLatin1Decoder } from "../charset/latin1.js";
 import { base64ToArrayBuffer } from "./base64.js";
 import { isBinaryData } from "./binaryFragment.js";
 import { recordVr } from "./vrMap.js";
+import { toPersonNameValue } from "./personNameValue.js";
 import log from "../log.js";
 
 /**
@@ -13,7 +14,7 @@ import log from "../log.js";
  * (gggg,xx00-xxFF). The naturalized form groups a reserved block under one
  * key, `${gggg}:${creator}`, so the block can move to another xx on write:
  *
- *     "0029:ACME": { creator: "ACME", reservedBlock: 0x10, x10: "a", x11: [...] }
+ *     "0029:ACME": { creator: "ACME", reservedBlock: 0x10, x10: ["a"], x11: [...] }
  *     _vrMap: { "0029:ACME": { x10: "LO", x11: "OB" } }
  *
  * - `xEE` is the element number within the reserved block, as 2 hex digits.
@@ -125,6 +126,9 @@ export function definePrivateAliases(target) {
                       const creator = aliases.get(creatorName);
                       const creatorDeleted =
                           creator && aliasDeleted(target, creatorName, creator);
+                      if (target._vrMap?.[key]?.[elementKey] === "PN") {
+                          v = toPersonNameValue(v); // NAT-U-SET-2
+                      }
                       if (target[key] && !creatorDeleted) {
                           target[key][elementKey] = v;
                           return;

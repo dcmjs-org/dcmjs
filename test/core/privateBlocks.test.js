@@ -17,6 +17,9 @@ const { DicomMessage, DicomMetaDictionary } = dcmjs.data;
 function sourceDict() {
     return {
         "00100020": { vr: "LO", Value: ["PID"] },
+        "00080008": { vr: "CS" }, // ImageType, VM 2-n, present with no Value
+        60000010: { vr: "US", Value: [512] }, // OverlayRows, a repeating group
+        "00311001": { vr: "LO" }, // private, no creator, no Value
         "00091001": { vr: "LO", Value: ["nine"] },
         "00090010": { vr: "LO", Value: ["ACME"] },
         "00290010": { vr: "LO", Value: ["ACME"] },
@@ -64,6 +67,10 @@ describe("private reserved blocks", () => {
         for (const naturalized of [fromDict, fromEvents]) {
             expect(naturalized["00291001"]).toEqual([7]);
             expect(naturalized["00090010"]).toBe("ACME");
+            // present and empty: [] for a list VM (NAT-U-VAL-2, NAT-U-VAL-4)
+            expect(naturalized.ImageType).toEqual([]);
+            expect(naturalized["00311001"]).toEqual([]);
+            expect(naturalized.OverlayRows).toBe(512);
         }
     });
 
@@ -148,12 +155,12 @@ describe("private reserved blocks", () => {
     it("a value set on a deleted hex alias replaces the deleted element", () => {
         const naturalized = DicomMetaDictionary.naturalizeDataset(sourceDict());
         delete naturalized["00291001"];
-        naturalized["00291001"] = "REDACTED";
-        naturalized._vrMap["00291001"] = "LO";
+        naturalized["00291001"] = [99];
+        // no _vrMap entry: the flat element takes the VR of the block element
         const dict = DicomMetaDictionary.denaturalizeDataset(naturalized);
 
         expect(dict["00290010"].Value).toEqual(["ACME"]);
-        expect(dict["00291001"].Value).toEqual(["REDACTED"]);
+        expect(dict["00291001"]).toEqual({ vr: "US", Value: ["99"] });
         expect(dict["00290011"]).toBeUndefined();
     });
 

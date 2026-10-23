@@ -239,9 +239,17 @@ Six things changed relative to 0.x:
      `dataset.PatientName = "Doe^John"` stores
      `{ Alphabetic: "Doe^John" }`, and `String(dataset.PatientName)` gives
      `"Doe^John"`. Code that compared the attribute with a string after
-     the assignment must compare `String(dataset.PatientName)`.
-   - `@dcmjs-org/core` and `dcmjs.data` export `upsertAttribute`,
-     `upsertPersonName` and `setVr` to add or replace an attribute in the
+     the assignment must compare `String(dataset.PatientName)`. The
+     setter copies an assigned object, gives `null` for `""`, and drops an
+     empty name between two `` delimiters. A copy of the dataset (a
+     spread, `deepCloneInstance`) has plain values and no setter, and
+     `Object.freeze` does not stop a write through the setter.
+   - A present element with no `Value`, as DICOMweb JSON gives for an
+     empty element, is `[]` for a list VM (for example `ImageType`) and
+     `null` for a scalar VM, the same as an empty `Value`. Before, it was
+     always `null` from `naturalizeDataset`.
+   - `@dcmjs-org/core` and `dcmjs.data` export `setAttribute`,
+     `setPersonName` and `setVr` to add or replace an attribute in the
      naturalized form, and `definePrivateAliases`.
 
    [specs/naturalized-dataset.md](specs/naturalized-dataset.md) gives the
