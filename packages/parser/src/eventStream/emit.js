@@ -1,3 +1,4 @@
+import { isBinaryData } from "@dcmjs-org/core";
 import { emitEntry } from "./fromDataSet.js";
 
 /**
@@ -66,7 +67,7 @@ export function emitValues(listener, tag, vrInstance, el, values, rawValues) {
         : values === undefined || values === null
         ? []
         : [values];
-    if (list.some(isBufferLike)) {
+    if (list.some(isBinaryData)) {
         listener.startElement(tag, { vr: vrInstance.type, length: el.length });
         listener.startBinary({ encapsulated: false });
         for (const buf of list) {
@@ -97,8 +98,4 @@ function isItemDictLike(v) {
         !ArrayBuffer.isView(v) &&
         Object.keys(v).every(k => /^[0-9A-Fx]{8,9}$/i.test(k))
     );
-}
-
-function isBufferLike(v) {
-    return v instanceof ArrayBuffer || ArrayBuffer.isView(v);
 }

@@ -33,6 +33,24 @@ describe("binary values", () => {
         }
     });
 
+    it("a binary element with no value is null in both producers", async () => {
+        const emptyDict = () => ({
+            "00420011": { vr: "OB" }, // EncapsulatedDocument, no Value
+            "7FE00010": { vr: "OB", Value: [] },
+            "00291001": { vr: "UN" } // private, no creator
+        });
+        const listener = new NaturalizedListener();
+        await fromDataSet({ dict: emptyDict() }, listener);
+        for (const naturalized of [
+            DicomMetaDictionary.naturalizeDataset(emptyDict()),
+            listener.result
+        ]) {
+            expect(naturalized.EncapsulatedDocument).toBeNull();
+            expect(naturalized.PixelData).toBeNull();
+            expect(naturalized["00291001"]).toBeNull();
+        }
+    });
+
     it('binaryAs: "Uint8Array" gives views over the source bytes, not copies', async () => {
         for (const naturalized of await bothProducers({
             binaryAs: "Uint8Array"

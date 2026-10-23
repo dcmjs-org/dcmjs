@@ -56,6 +56,7 @@ export { default as BINARY_VRS } from "./utilities/binaryVRs.js";
 export { default as dicomJson } from "./utilities/dicomJson.js";
 export {
     checkBinaryAs,
+    isBinaryData,
     naturalBinaryFragment
 } from "./utilities/binaryFragment.js";
 export {

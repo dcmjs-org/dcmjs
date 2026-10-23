@@ -2,6 +2,7 @@ import { dictionary, lookupRegisteredTagByName } from "../dictionary.fast.js";
 import { Tag } from "../Tag.js";
 import { createLatin1Decoder } from "../charset/latin1.js";
 import { base64ToArrayBuffer } from "./base64.js";
+import { isBinaryData } from "./binaryFragment.js";
 import { recordVr } from "./vrMap.js";
 import log from "../log.js";
 
@@ -109,7 +110,13 @@ export function definePrivateAliases(target) {
     }
     const onDataset = (name, key, elementKey) => {
         if (aliases.has(name)) return;
-        const record = { key, elementKey };
+        // `last` is the value that the alias last saw: the source value, or
+        // the last write through the alias (see deletedByAlias)
+        const record = {
+            key,
+            elementKey,
+            last: elementKey === null ? undefined : target[key][elementKey]
+        };
         record.get =
             elementKey === null
                 ? () =>
@@ -121,17 +128,21 @@ export function definePrivateAliases(target) {
             elementKey === null
                 ? undefined
                 : v => {
+                      record.last = v;
                       if (target[key]) {
                           target[key][elementKey] = v;
                           return;
                       }
-                      // the block is gone: the value becomes a flat element
+                      // the block is gone: the value becomes a flat element,
+                      // with the VR that the block had for it
                       Object.defineProperty(target, name, {
                           value: v,
                           writable: true,
                           enumerable: true,
                           configurable: true
                       });
+                      const vr = target._vrMap?.[key]?.[elementKey];
+                      if (vr && target._vrMap) target._vrMap[name] = vr;
                   };
         if (defineAlias(target, name, record.get, set)) {
             aliases.set(name, record);
@@ -241,17 +252,9 @@ export function placePrivateElements(target, vrMap, elements) {
  * The creator string of a private creator value, without the LO padding. A
  * creator that was read as UN (implicit VR, or a gateway that converts
  * unknown VRs) holds bytes, or an `{ InlineBinary }` from DICOM JSON; the
- * first 64 bytes decode as LO text.
+ * first 64 bytes decode as LO text. A number, a reference or another object
+ * is no creator.
  */
-function isBytes(v) {
-    return (
-        v instanceof ArrayBuffer ||
-        ArrayBuffer.isView(v) ||
-        (typeof SharedArrayBuffer !== "undefined" &&
-            v instanceof SharedArrayBuffer)
-    );
-}
-
 function creatorText(value) {
     let v = Array.isArray(value) ? value[0] : value;
     if (v && typeof v === "object" && v.InlineBinary !== undefined) {
@@ -259,14 +262,13 @@ function creatorText(value) {
         if (typeof v === "string") v = base64ToArrayBuffer(v);
     }
     let text;
-    if (isBytes(v)) {
+    if (isBinaryData(v)) {
         const bytes = ArrayBuffer.isView(v)
             ? new Uint8Array(v.buffer, v.byteOffset, v.byteLength)
             : new Uint8Array(v);
         text = latin1.decode(bytes.subarray(0, CREATOR_MAX_BYTES));
     } else {
-        // a reference ({ BulkDataURI }) or another object is no creator
-        text = typeof v === "string" || typeof v === "number" ? String(v) : "";
+        text = typeof v === "string" ? v : "";
     }
     return text.replace(/^ +|[\0 ]+$/g, "");
 }
@@ -302,7 +304,12 @@ function flatPrivateTag(key) {
     return isPrivateTag(hexTag) ? hexTag : undefined;
 }
 
-/** The elements and blocks that a `delete` of a dataset alias removed. */
+/**
+ * The elements and blocks that a `delete` of a dataset alias removed. An
+ * element is removed while its block holds the value that the alias last
+ * saw, so the source value never survives a delete, and a value that the
+ * user writes into the block after the delete is kept.
+ */
 function deletedByAlias(dataset) {
     const deleted = { blocks: new Set(), elements: new Set() };
     const aliases = dataset[DATASET_ALIASES];
@@ -310,8 +317,11 @@ function deletedByAlias(dataset) {
     for (const [name, record] of aliases) {
         if (!aliasDeleted(dataset, name, record)) continue;
         const { key, elementKey } = record;
-        if (elementKey === null) deleted.blocks.add(key);
-        else deleted.elements.add(`${key}\n${elementKey}`);
+        if (elementKey === null) {
+            deleted.blocks.add(key);
+        } else if (dataset[key]?.[elementKey] === record.last) {
+            deleted.elements.add(`${key}\n${elementKey}`);
+        }
     }
     return deleted;
 }

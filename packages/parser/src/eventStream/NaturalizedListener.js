@@ -130,8 +130,10 @@ export class NaturalizedListener extends EventStreamListener {
         if (bot && bot.length) {
             fragments = mergeFragmentsPerBotWindow(fragments, bot);
         }
-        frame.binary = fragments.map(fragment =>
-            naturalBinaryFragment(fragment, this.binaryAs)
+        frame.binary = binaryList(
+            fragments.map(fragment =>
+                naturalBinaryFragment(fragment, this.binaryAs)
+            )
         );
         frame._fragments = undefined;
         frame._binaryInfo = undefined;
@@ -158,7 +160,7 @@ export class NaturalizedListener extends EventStreamListener {
             let value = frame.binary;
             if (value === undefined && BINARY_VRS.has(frame.vr)) {
                 // a binary VR keeps its list, also of non-buffer values
-                value = frame.values.slice();
+                value = binaryList(frame.values);
             } else if (value === undefined) {
                 value = entry
                     ? this._shapeValues(frame, entry, frame.tag)
@@ -184,7 +186,7 @@ export class NaturalizedListener extends EventStreamListener {
             return;
         }
         if (BINARY_VRS.has(frame.vr)) {
-            targetFrame.obj[key] = frame.values.slice();
+            targetFrame.obj[key] = binaryList(frame.values);
             return;
         }
         let shaped = this._shapeValues(frame, entry, key);
@@ -355,6 +357,11 @@ function canonicalDecimal(s) {
     }
     const body = frac ? `${int}.${frac}` : int;
     return neg && body !== "0" ? `-${body}` : body;
+}
+
+/** A binary value: the list of its fragments, or null when it has none. */
+function binaryList(values) {
+    return values.length ? values.slice() : null;
 }
 
 /** Shape a private data value with no VM info: scalar if one value, else array. */

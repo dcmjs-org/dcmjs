@@ -42,6 +42,7 @@ function naturalizeElement(data, entry, options) {
     let value = data.Value;
     if (BINARY_VRS.has(data.vr)) {
         // a binary Value lists frames or fragments, not a VM: keep the list
+        if (value.length === 0) return null;
         return value.map(fragment =>
             naturalBinaryFragment(fragment, options.binaryAs)
         );

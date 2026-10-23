@@ -233,8 +233,7 @@ request; the implementation requirements (WRAP-IMP-n) can change freely.
     and also from a built checkout (`pnpm run build`), for example for the
     examples in `EXAMPLES.md` and for `pnpm bench`.
 -   **WRAP-USR-6** The default ESM entry, bundled for a browser, loads with
-    no `process` global, as 0.52 did. `test/bundle-size.test.js` runs the
-    consumer bundle with no `process`.
+    no `process` global, as 0.52 did.
 
 #### § Implementation requirements
 
@@ -286,8 +285,11 @@ request; the implementation requirements (WRAP-IMP-n) can change freely.
     The UMD output has a fixed indent. `pnpm run build` deletes `build/`
     first, and the ESM build removes the shared chunks of earlier builds, so
     no old chunk is published.
--   **WRAP-IMP-8** Core reads `process.env.LOG_LEVEL` only when `process`
-    exists. The root rollup build replaces the expression at build time.
+-   **WRAP-IMP-8** Core reads `process.env.LOG_LEVEL` in a `try` block, so
+    a missing `process` gives the default level. The root rollup build
+    replaces the expression with the build-time level, also for the UMD
+    build in a browser. `test/bundle-size.test.js` runs the ESM consumer
+    bundle in a vm with no `process` (WRAP-USR-6).
 
 **The size ceiling.** The aim is "no more than ×1.05 of 0.52", and the
 default bundles now meet it. The new engines (the streaming reader and

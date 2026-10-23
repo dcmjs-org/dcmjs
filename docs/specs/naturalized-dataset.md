@@ -109,7 +109,8 @@ naturalizes to
   list.
 - **NAT-U-VAL-4.** An attribute with no dictionary VM (a private or unknown
   element) has a single value for one value, a list for more than one
-  value, and `null` for no value.
+  value, and `null` for no value. A binary VR follows NAT-U-BIN-1 in place
+  of this rule.
 - **NAT-U-VAL-5.** A PN value is the component object
   (`{ Alphabetic, Ideographic, Phonetic }`), or a list of them. `String()`
   of the value gives the DICOM PN string.
@@ -128,7 +129,9 @@ naturalizes to
 
 - **NAT-U-BIN-1.** A binary VR (OB, OW, OD, OF, OL, OV, UN) keeps a list of
   its fragments or frames, so `dataset.PixelData[0]` works. This includes a
-  list of one.
+  list of one, and a list of values that are not bytes (for example a UN
+  element with a string `Value`). A binary element with no value is `null`,
+  not `[]`, in both producers.
 - **NAT-U-BIN-2.** By default, each fragment or frame is an `ArrayBuffer`
   that holds only the bytes of that fragment. So
   `new Uint16Array(dataset.PixelData[0])` reads the samples, as in 0.x.
@@ -185,7 +188,9 @@ naturalizes to
   that is in both blocks keeps the last value. The other value is lost.
 - **NAT-U-PRIV-10.** The creator string has no LO padding (leading spaces,
   trailing spaces and NULs). A creator that the source holds as bytes (UN,
-  or DICOM JSON `InlineBinary`) gives the same string as an LO creator.
+  or DICOM JSON `InlineBinary`) gives the same string as an LO creator. A
+  creator value that is not text or bytes (a number, a `{ BulkDataURI }`)
+  is no creator: the elements of its block keep their hex tags.
 
 ### NAT-U-HIST — historical names
 
@@ -220,10 +225,18 @@ naturalizes to
   name is a new flat element (NAT-U-RT-1). The block object keeps the
   deleted value until the write; `delete dataset[blockKey].xEE` removes it
   from the naturalized dataset too.
+  - The delete removes the element while the block still holds the value
+    that the alias last saw (the source value, or the last write through
+    the alias). So the source value never survives the delete, also in a
+    block object that the user replaced with a copy.
+  - A different value that the user writes into the block after the
+    delete (`dataset[blockKey].xEE = ...`, or in a new block object) is
+    written.
 - **NAT-U-HIST-8.** An alias reads and writes the block that the dataset
   holds under the block key when the alias is used, also after the user
   replaces the block object. After the user deletes the block key, a write
-  to an element alias makes a flat element.
+  to an element alias makes a flat element with the VR that the block had
+  for that element.
 
 ### NAT-U-RT — conversion back to DICOM
 
@@ -300,9 +313,6 @@ naturalizes to
   both producers. In the default mode, a view that covers its whole buffer
   gives that buffer with no copy. Any other view, and a `SharedArrayBuffer`,
   is copied to a new `ArrayBuffer`.
-- **NAT-I-BIN-3.** A binary-VR element whose values are not buffers (for
-  example a UN element with a string `Value`) keeps its values as a list in
-  both producers.
 - **NAT-I-BIN-2.** `checkBinaryAs` rejects a `binaryAs` value other than
   `"ArrayBuffer"` or `"Uint8Array"` with a `TypeError`.
 
@@ -322,10 +332,12 @@ naturalizes to
   its getter, in a non-enumerable `Symbol.for("dcmjs.privateAliases")` map,
   and it never defines a recorded name again. An alias is deleted when the
   own property is gone, or when its getter is no longer the recorded one (a
-  plain value replaced it). `expandPrivateBlocks` leaves out the element or
-  block of a deleted alias, and a deleted element does not hold its number
-  in the block. `fromNaturalized` denaturalizes the dataset itself, not a
-  copy, so the record applies.
+  plain value replaced it). Each element record keeps `last`, the value at
+  definition, updated by each write through the alias. `expandPrivateBlocks`
+  leaves out the block of a deleted creator alias, and the element of a
+  deleted element alias while `dataset[blockKey][xEE] === last`. A left-out
+  element does not hold its number in the block. `fromNaturalized`
+  denaturalizes the dataset itself, not a copy, so the record applies.
 
 ### NAT-I-VR — the `_vrMap` rules
 

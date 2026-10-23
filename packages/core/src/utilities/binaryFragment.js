@@ -1,5 +1,15 @@
 const BINARY_AS = new Set(["ArrayBuffer", "Uint8Array"]);
 
+const isSharedBuffer = v =>
+    typeof SharedArrayBuffer !== "undefined" && v instanceof SharedArrayBuffer;
+
+/** True for bytes: an ArrayBuffer, a SharedArrayBuffer, or a view. */
+export function isBinaryData(v) {
+    return (
+        v instanceof ArrayBuffer || ArrayBuffer.isView(v) || isSharedBuffer(v)
+    );
+}
+
 /**
  * Checks the `binaryAs` naturalize option and gives its value.
  *
@@ -30,10 +40,7 @@ export function naturalBinaryFragment(fragment, binaryAs = "ArrayBuffer") {
     if (fragment instanceof ArrayBuffer) {
         return binaryAs === "Uint8Array" ? new Uint8Array(fragment) : fragment;
     }
-    if (
-        typeof SharedArrayBuffer !== "undefined" &&
-        fragment instanceof SharedArrayBuffer
-    ) {
+    if (isSharedBuffer(fragment)) {
         // a shared buffer is not an ArrayBuffer: the default mode copies it
         const view = new Uint8Array(fragment);
         return binaryAs === "Uint8Array" ? view : view.slice().buffer;

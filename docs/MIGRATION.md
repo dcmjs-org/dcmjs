@@ -219,6 +219,8 @@ Six things changed relative to 0.x:
      (`"10:ACME"`, `originalTagOffset`) are gone. Its binary values are a
      list of `ArrayBuffer`, as `naturalizeDataset` gives, in place of the
      earlier `{ InlineBinary }` wrapper.
+   - A binary element with no value is `null` in both naturalizers, and a
+     binary element with values is always a list, also of one value.
    - Both naturalizers take `{ binaryAs: "Uint8Array" }` to give each
      binary fragment as a `Uint8Array` view with no copy. The default stays
      `ArrayBuffer`. In the default mode, `toNaturalized()` copies a fragment
