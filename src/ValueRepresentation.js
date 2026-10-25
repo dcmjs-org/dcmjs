@@ -53,7 +53,8 @@ const tagProxyHandler = {
 };
 
 function rtrim(str) {
-    return str.replace(/\s*$/g, "");
+    // only spaces are padding; trailing CR, LF, FF or other characters are part of the value
+    return str.replace(/ *$/, "");
 }
 
 function toWindows(inputArray, size) {
