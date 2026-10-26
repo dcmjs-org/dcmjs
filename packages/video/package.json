@@ -3,10 +3,32 @@
     "version": "0.0.0",
     "description": "MP4-to-DICOM video encapsulation for dcmjs (Supplement 225): MP4 header inspection without decoding, and wrapping/streaming an MP4's H.264 stream into a Video Photographic Image instance. Codec-free image building lives in @dcmjs-org/imaging",
     "main": "./src/index.js",
+    "exports": {
+        ".": {
+            "source": "./src/index.js",
+            "import": "./dist/index.mjs",
+            "default": "./src/index.js"
+        },
+        "./package.json": "./package.json"
+    },
     "files": [
-        "src",
+        "dist",
         "README.md"
     ],
+    "scripts": {
+        "build": "rollup -c ../../rollup.packages.config.mjs"
+    },
+    "publishConfig": {
+        "main": "./dist/index.cjs",
+        "module": "./dist/index.mjs",
+        "exports": {
+            ".": {
+                "import": "./dist/index.mjs",
+                "require": "./dist/index.cjs"
+            },
+            "./package.json": "./package.json"
+        }
+    },
     "license": "MIT",
     "repository": {
         "type": "git",
