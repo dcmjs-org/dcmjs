@@ -28,7 +28,6 @@ describe("umbrella subpath entries load under require()", () => {
     test.each(Object.entries(CJS_SUBPATHS))(
         "build/%s exports %s",
         (bundle, signature) => {
-            // eslint-disable-next-line import/no-dynamic-require
             const entry = require(path.join(BUILD_DIR, bundle));
             expect(typeof entry[signature]).toBe("function");
         }
