@@ -45,6 +45,24 @@ describe("ReadBufferStream Tests", () => {
             stream.increment(size - 1);
             expect(stream.readUint32(size - 1)).toBe(33620095);
         });
+
+        // A small Node.js Buffer is such a view of a shared pool
+        it("adds only the bytes of a view of a larger ArrayBuffer", () => {
+            const stream = new ReadBufferStream(null, true);
+            stream.addBuffer(new Uint8Array(buffer, 16, 8));
+            stream.addBuffer(new DataView(buffer, 100, 4));
+            stream.setComplete();
+            expect(stream.size).toBe(12);
+            expect(Array.from(new Uint8Array(stream.getBuffer(0, 12)))).toEqual(
+                [16, 17, 18, 19, 20, 21, 22, 23, 100, 101, 102, 103]
+            );
+        });
+
+        it("reads only the bytes of a view given to the constructor", () => {
+            const stream = new ReadBufferStream(new Uint8Array(buffer, 16, 8));
+            expect(stream.size).toBe(8);
+            expect(stream.readUint8()).toBe(16);
+        });
     });
 
     describe("substream", () => {
