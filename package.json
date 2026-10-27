@@ -7,21 +7,26 @@
     "exports": {
         ".": {
             "import": "./build/dcmjs.es.js",
-            "require": "./build/dcmjs.js"
+            "require": "./build/dcmjs.cjs"
         },
         "./eventStream": {
-            "import": "./build/eventStream.es.js"
+            "import": "./build/eventStream.es.js",
+            "require": "./build/eventStream.cjs"
         },
         "./media": {
-            "import": "./build/media.es.js"
+            "import": "./build/media.es.js",
+            "require": "./build/media.cjs"
         },
         "./encapsulated": {
-            "import": "./build/encapsulated.es.js"
+            "import": "./build/encapsulated.es.js",
+            "require": "./build/encapsulated.cjs"
         },
         "./image": {
-            "import": "./build/image.es.js"
+            "import": "./build/image.es.js",
+            "require": "./build/image.cjs"
         },
-        "./dictionary": "./generate/dictionary.mjs"
+        "./dictionary": "./generate/dictionary.mjs",
+        "./package.json": "./package.json"
     },
     "files": [
         "build",
