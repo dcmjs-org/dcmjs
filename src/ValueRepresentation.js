@@ -7,6 +7,7 @@ import {
 } from "./constants/dicom.js";
 import { log, validationLog } from "./log.js";
 import dicomJson from "./utilities/dicomJson.js";
+import { swapBytes, swappedCopy } from "./utilities/byteSwap.js";
 
 // We replace the tag with a Proxy which intercepts assignments to obj[valueProp]
 // and adds additional overrides/accessors to the value if need be. If valueProp
@@ -68,6 +69,11 @@ let DicomMessage, Tag, DicomMetaDictionary;
 var binaryVRs = ["FL", "FD", "SL", "SS", "UL", "US", "AT", "UV"],
     length32VRs = ["OB", "OW", "OF", "SQ", "UC", "UR", "UT", "UN", "OD", "UV"],
     singleVRs = ["SQ", "OF", "OW", "OB", "UN"];
+
+// Bytes per word of the value field of the binary VRs, used to convert the
+// value field to and from big endian byte order.  OB is a byte stream, and so
+// is UN, which PS3.5 Section 6.2.2 says to interpret as OB.
+var binaryVRWordWidths = { OB: 1, OD: 8, OF: 4, OW: 2, UN: 1 };
 
 class ValueRepresentation {
     constructor(type) {
@@ -404,6 +410,7 @@ class BinaryRepresentation extends ValueRepresentation {
     constructor(type) {
         super(type);
         this._storeRaw = false;
+        this.wordWidth = binaryVRWordWidths[type] ?? 1;
     }
 
     writeBytes(stream, value, _syntax, isEncapsulated, writeOptions = {}) {
@@ -494,6 +501,11 @@ class BinaryRepresentation extends ValueRepresentation {
             return 0xffffffff;
         } else {
             var binaryData = value[0];
+            if (!stream.isLittleEndian) {
+                // The value is held in the host's byte order, so it has to be
+                // swapped back, on a copy to leave the caller's value alone
+                binaryData = swappedCopy(binaryData, this.wordWidth);
+            }
             binaryStream = new ReadBufferStream(binaryData);
             stream.concat(binaryStream);
             return super.writeBytes(
@@ -623,12 +635,6 @@ class BinaryRepresentation extends ValueRepresentation {
             }
             return frames;
         } else {
-            var bytes;
-            /*if (this.type == 'OW') {
-                bytes = stream.readUint16Array(length);
-            } else if (this.type == 'OB') {
-                bytes = stream.readUint8Array(length);
-            }*/
             // A declared value length longer than the data present means a
             // truncated or malformed file, so read what is there rather than
             // allocating the declared length, which the file controls.
@@ -640,8 +646,16 @@ class BinaryRepresentation extends ValueRepresentation {
                 );
                 length = available;
             }
-            bytes = stream.getBuffer(stream.offset, stream.offset + length);
+            const bytes = stream.getBuffer(
+                stream.offset,
+                stream.offset + length
+            );
             stream.increment(length);
+            if (!stream.isLittleEndian) {
+                // getBuffer always returns a copy, so this doesn't modify the
+                // buffer being read from
+                swapBytes(bytes, this.wordWidth);
+            }
             return [bytes];
         }
     }
@@ -1488,7 +1502,17 @@ class ParsedUnknownValue extends BinaryRepresentation {
 
     read(stream, length, syntax, readOptions) {
         const arrayBuffer = this.readBytes(stream, length, syntax)[0];
-        const streamFromBuffer = new ReadBufferStream(arrayBuffer, true);
+        // readBytes() has already swapped the words into the host's order if
+        // this VR has multi-byte words and the stream is big endian, so the
+        // re-read below must not swap them a second time.  Where it has not
+        // swapped - a scalar or string VR, or "ox" - the bytes are still in the
+        // file's order and the re-read is what has to do the swapping.
+        const bufferIsLittleEndian =
+            stream.isLittleEndian || this.wordWidth > 1;
+        const streamFromBuffer = new ReadBufferStream(
+            arrayBuffer,
+            bufferIsLittleEndian
+        );
         const vr = ValueRepresentation.createByTypeString(this.type);
 
         if (vr.isBinary() && length > vr.maxLength && !vr.noMultiple) {
