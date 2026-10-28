@@ -186,7 +186,7 @@ export class DicomMetaDictionary {
         return naturalDataset;
     }
 
-    static denaturalizeValue(naturalValue) {
+    static denaturalizeValue(naturalValue, vr = null) {
         let value = naturalValue;
         if (!Array.isArray(value)) {
             value = [value];
@@ -201,8 +201,18 @@ export class DicomMetaDictionary {
             }
         }
 
+        // Numbers are written as strings for the string VRs.  DS and IS know
+        // how to do that within their maximum length (a plain String() of a
+        // number such as 3.5163338899999997e-10 is too long for DS, and
+        // truncating it to 16 characters would drop the exponent), so let them
+        // do the conversion where they can.
+        const toString =
+            vr && typeof vr.convertToString === "function"
+                ? entry => vr.convertToString(entry)
+                : entry => String(entry);
+
         value = value.map(entry =>
-            entry.constructor.name == "Number" ? String(entry) : entry
+            entry.constructor.name == "Number" ? toString(entry) : entry
         );
 
         return value;
@@ -249,7 +259,8 @@ export class DicomMetaDictionary {
                     );
 
                     dataItem.Value = DicomMetaDictionary.denaturalizeValue(
-                        dataItem.Value
+                        dataItem.Value,
+                        vr
                     );
 
                     if (entry.vr == "SQ") {

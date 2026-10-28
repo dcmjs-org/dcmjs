@@ -1806,6 +1806,53 @@ it.each([
     }
 );
 
+describe("denaturalizeDataset formats DS numbers rather than truncating them", () => {
+    // https://github.com/dcmjs-org/dcmjs/issues/531 - String() of a number such
+    // as 3.5163338899999997e-10 is longer than the 16 characters DS allows, and
+    // cutting it there dropped the exponent, leaving 3.51633388999999.
+    it.each([
+        [3.5163338899999997e-10, "3.5163338900e-10"],
+        [-1.4210854715202004e-14, "-1.421085472e-14"],
+        [3.14159265358979323846, "3.14159265358979"],
+        [0.3, "0.3"],
+        [0, "0"],
+        [-1, "-1"]
+    ])("writes the SliceThickness %p as %p", (naturalValue, expected) => {
+        const denaturalized = DicomMetaDictionary.denaturalizeDataset({
+            SliceThickness: naturalValue
+        });
+
+        expect(expected.length).toBeLessThanOrEqual(16);
+        expect(denaturalized["00180050"].Value).toEqual([expected]);
+    });
+
+    it("round trips a direction cosine that is close to zero", () => {
+        const sopClassUID = "1.2.840.10008.5.1.4.1.1.4";
+        const dataset = {
+            SOPClassUID: sopClassUID,
+            SOPInstanceUID: "1.2.3",
+            ImageOrientationPatient: [1, 0, 0, 0, 1, 3.5163338899999997e-10],
+            _meta: {
+                TransferSyntaxUID: {
+                    Value: [EXPLICIT_LITTLE_ENDIAN],
+                    vr: "UI"
+                },
+                MediaStorageSOPClassUID: { Value: [sopClassUID], vr: "UI" },
+                MediaStorageSOPInstanceUID: { Value: ["1.2.3"], vr: "UI" }
+            }
+        };
+
+        const roundTripped = DicomMetaDictionary.naturalizeDataset(
+            DicomMessage.readFile(dcmjs.data.datasetToDict(dataset).write())
+                .dict
+        );
+
+        expect(roundTripped.ImageOrientationPatient).toEqual([
+            1, 0, 0, 0, 1, 3.51633389e-10
+        ]);
+    });
+});
+
 describe("test OtherDouble ValueRepresentation", () => {
     it("Treat OD as explicit VR with correct length", async () => {
         const url =
