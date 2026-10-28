@@ -333,6 +333,49 @@ function hostWords(element, ArrayType) {
     );
 }
 
+/**
+ * A second synthetic file, in which every interesting element is declared UN
+ * even though the dictionary knows a better VR. Reading one of these goes
+ * through ParsedUnknownValue, which reads the raw bytes and then re-reads them
+ * as the dictionary's VR - a second pass that has its own byte order to get
+ * right. The four cases below are the four combinations that pass differs on.
+ */
+function encodeUnFile(syntax) {
+    const littleEndian = syntax !== EXPLICIT_BIG_ENDIAN;
+    const meta = encodeElement(
+        TagHex.TransferSyntaxUID,
+        "UI",
+        paddedAsciiBytes(syntax),
+        true
+    );
+    const un = (tag, valueBytes) =>
+        encodeElement(tag, "UN", valueBytes, littleEndian);
+    return new Uint8Array([
+        ...new Array(128).fill(0),
+        ...asciiBytes("DICM"),
+        ...encodeElement(
+            TagHex.FileMetaInformationGroupLength,
+            "UL",
+            encodeUint32(meta.length, true),
+            true
+        ),
+        ...meta,
+        // BitsAllocated: the dictionary says US, a scalar VR, so the raw read
+        // leaves the bytes in the file's order and the re-read must swap them
+        ...un("00280100", encodeUint16(16, littleEndian)),
+        // RedPaletteColorLookupTableData: the dictionary says OW, so the raw
+        // read has already swapped, and the re-read must not swap again
+        ...un("00281201", encodeWords(lutValues, Uint16Array, littleEndian)),
+        // PointCoordinatesData: as above with 4 byte words
+        ...un("00660016", encodeWords(pointValues, Float32Array, littleEndian)),
+        // PixelData: the dictionary says "ox", which resolves to OW but is not
+        // itself a binary VR, so the raw read does not swap and the re-read must
+        ...un("7FE00010", encodeWords(pixelValues, Uint16Array, littleEndian)),
+        // control: a string VR is unaffected by byte order
+        ...encodeElement("00080060", "CS", asciiBytes("MR"), littleEndian)
+    ]);
+}
+
 const syntaxes = [
     ["Explicit VR Little Endian", EXPLICIT_LITTLE_ENDIAN],
     ["Explicit VR Big Endian", EXPLICIT_BIG_ENDIAN]
@@ -440,6 +483,27 @@ describe("binary value fields and the transfer syntax byte order", () => {
             dicomDict.write();
 
             expect(Array.from(new Uint16Array(pixelData))).toEqual(pixelValues);
+        });
+
+        test("reads a UN value field through the dictionary's VR", () => {
+            const dict = DicomMessage.readFile(
+                encodeUnFile(syntax).buffer
+            ).dict;
+
+            // dictionary VR US: a scalar, swapped by the re-read
+            expect(dict["00280100"].Value).toEqual([16]);
+            // dictionary VR OW and OF: already swapped by the raw read
+            expect(hostWords(dict["00281201"], Uint16Array)).toEqual(lutValues);
+            expect(hostWords(dict["00660016"], Float32Array)).toEqual(
+                pointValues
+            );
+            // dictionary VR "ox": resolves to OW, but is not a binary VR
+            // itself, so it is the re-read that swaps
+            expect(hostWords(dict["7FE00010"], Uint16Array)).toEqual(
+                pixelValues
+            );
+            // control
+            expect(dict["00080060"].Value).toEqual(["MR"]);
         });
     });
 

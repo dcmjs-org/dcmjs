@@ -1502,7 +1502,17 @@ class ParsedUnknownValue extends BinaryRepresentation {
 
     read(stream, length, syntax, readOptions) {
         const arrayBuffer = this.readBytes(stream, length, syntax)[0];
-        const streamFromBuffer = new ReadBufferStream(arrayBuffer, true);
+        // readBytes() has already swapped the words into the host's order if
+        // this VR has multi-byte words and the stream is big endian, so the
+        // re-read below must not swap them a second time.  Where it has not
+        // swapped - a scalar or string VR, or "ox" - the bytes are still in the
+        // file's order and the re-read is what has to do the swapping.
+        const bufferIsLittleEndian =
+            stream.isLittleEndian || this.wordWidth > 1;
+        const streamFromBuffer = new ReadBufferStream(
+            arrayBuffer,
+            bufferIsLittleEndian
+        );
         const vr = ValueRepresentation.createByTypeString(this.type);
 
         if (vr.isBinary() && length > vr.maxLength && !vr.noMultiple) {
