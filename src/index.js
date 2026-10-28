@@ -30,7 +30,8 @@ import {
     DerivedImage,
     Segmentation,
     StructuredReport,
-    ParametricMap
+    ParametricMap,
+    SecondaryCapture
 } from "./derivations/index.js";
 // Normalizers
 
@@ -77,7 +78,8 @@ const derivations = {
     DerivedImage,
     Segmentation,
     StructuredReport,
-    ParametricMap
+    ParametricMap,
+    SecondaryCapture
 };
 
 const normalizers = {
