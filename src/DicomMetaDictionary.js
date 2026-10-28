@@ -1,4 +1,8 @@
-import { dictionary } from "./dictionary.fast.js";
+import {
+    dictionary,
+    registeredTagEntries,
+    setNameMapRegistrar
+} from "./dictionary.fast.js";
 import { getAllStandardTagEntries } from "./dicom.lookup.js";
 import log from "./log.js";
 import addAccessors from "./utilities/addAccessors";
@@ -354,8 +358,18 @@ export class DicomMetaDictionary {
             };
             DicomMetaDictionary.nameMap[e.name] = dict;
         }
+        // Entries assigned straight onto the dictionary. It is a Proxy with no
+        // set or ownKeys trap, so an assignment lands on its target and
+        // Object.keys() sees it - this is the custom dictionary pattern of #215.
         Object.keys(DicomMetaDictionary.dictionary).forEach(tag => {
             const dict = DicomMetaDictionary.dictionary[tag];
+            if (dict && dict.version !== "PrivateTag") {
+                DicomMetaDictionary.nameMap[dict.name] = dict;
+            }
+        });
+        // Entries added through registerTag(), which go in the module's own map
+        // and so are not visible to Object.keys() above.
+        registeredTagEntries().forEach(dict => {
             if (dict && dict.version !== "PrivateTag") {
                 DicomMetaDictionary.nameMap[dict.name] = dict;
             }
@@ -378,6 +392,11 @@ export class DicomMetaDictionary {
             }
             Object.keys(dictionary).forEach(tag => {
                 const dict = dictionary[tag];
+                if (dict && dict.version !== "PrivateTag") {
+                    nameMap[dict.name] = dict;
+                }
+            });
+            registeredTagEntries().forEach(dict => {
                 if (dict && dict.version !== "PrivateTag") {
                     nameMap[dict.name] = dict;
                 }
@@ -451,4 +470,11 @@ ValueRepresentation.setDicomMetaDictionary(DicomMetaDictionary);
 DicomMetaDictionary.dictionary = dictionary;
 
 DicomMetaDictionary._generateNameMap();
+// From here on, registerTag() adds straight to nameMap, so a tag registered at
+// any point can be written by name.
+setNameMapRegistrar(entry => {
+    if (entry && entry.version !== "PrivateTag") {
+        DicomMetaDictionary.nameMap[entry.name] = entry;
+    }
+});
 DicomMetaDictionary._generateUIDMap();

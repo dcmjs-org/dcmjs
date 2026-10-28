@@ -13,6 +13,41 @@ export function registerPrivatesModule(module) {
 
 const cache = new Map();
 
+// Tags registered through registerTag(), kept separately from `cache`. The cache
+// also holds standard and private entries that were looked up lazily, so it
+// cannot answer "what did the caller register". The dictionary Proxy has no
+// ownKeys trap over the cache either, so Object.keys() on it reports only
+// entries assigned directly onto it, never these.
+const registered = new Map();
+
+// Called with each newly registered entry so DicomMetaDictionary can keep its
+// nameMap current. Injected rather than imported, because DicomMetaDictionary
+// imports this module (as registerPrivatesModule is injected from index.js).
+let nameMapRegistrar = null;
+
+/**
+ * Register a callback invoked with every entry passed to registerTag(),
+ * including entries registered before this was called.
+ *
+ * @param {(entry: object) => void} fn
+ * @returns {void}
+ */
+export function setNameMapRegistrar(fn) {
+    nameMapRegistrar = typeof fn === "function" ? fn : null;
+    if (nameMapRegistrar) {
+        registered.forEach(entry => nameMapRegistrar(entry));
+    }
+}
+
+/**
+ * The entries registered through registerTag(), in registration order.
+ *
+ * @returns {object[]}
+ */
+export function registeredTagEntries() {
+    return Array.from(registered.values());
+}
+
 function isPrivateTagKey(prop) {
     return (
         typeof prop === "string" && prop.length > 11 && prop.indexOf('"') !== -1
@@ -62,13 +97,34 @@ export function registerTag(tagOrHex, entry) {
     } else {
         return;
     }
+    // Canonical form is upper case hex: that is what getAllStandardTagEntries()
+    // carries, and what Tag.toCleanString() produces when a file is read, so a
+    // tag registered in lower case would otherwise denaturalize to a key no
+    // reader ever produces.
+    const upperHex = hex8.toUpperCase();
+    const upperParenKey = _toParenKeyFromHex8(upperHex);
     const cached = {
-        tag: parenKey,
+        tag: upperParenKey,
         ...entry,
         version: entry.version ?? "User"
     };
-    cache.set(parenKey, cached);
-    cache.set(hex8, cached);
+    // Lookups accept either case, as they do for the standard dictionary.
+    for (const key of new Set([
+        upperParenKey,
+        upperHex,
+        parenKey,
+        hex8,
+        _toParenKeyFromHex8(hex8.toLowerCase()),
+        hex8.toLowerCase()
+    ])) {
+        cache.set(key, cached);
+    }
+    registered.set(upperParenKey, cached);
+    // Keep nameMap current, so a registered tag can be written by name. Without
+    // this, denaturalizeDataset() does not find the name and drops the value.
+    if (nameMapRegistrar) {
+        nameMapRegistrar(cached);
+    }
 }
 
 export const dictionary = new Proxy(Object.create(null), {
