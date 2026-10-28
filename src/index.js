@@ -4,6 +4,11 @@ import { ReadBufferStream } from "./BufferStream.js";
 import { DeflatedReadBufferStream } from "./BufferStream.js";
 import { WriteBufferStream } from "./BufferStream.js";
 import { DicomDict } from "./DicomDict.js";
+import {
+    findPrivateBlock,
+    privateTag,
+    reservePrivateBlock
+} from "./privateBlock.js";
 import { DicomMessage } from "./DicomMessage.js";
 import { DicomMetaDictionary } from "./DicomMetaDictionary.js";
 import { registerPrivatesModule } from "./dictionary.fast.js";
@@ -64,7 +69,12 @@ const data = {
     Colors,
     datasetToDict,
     datasetToBuffer,
-    datasetToBlob
+    datasetToBlob,
+    // Private block reservation, PS3.5 Section 7.8.1. findPrivateBlock() works
+    // on any parsed dict; DicomDict#privateBlock() is the writing side.
+    findPrivateBlock,
+    reservePrivateBlock,
+    privateTag
 };
 
 const async = {
