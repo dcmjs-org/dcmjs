@@ -29,6 +29,8 @@ function perFrame(frame) {
         // a private block directly in the functional group item
         "00310010": lo("DIRECT"),
         "00311001": lo("skip"),
+        // a private macro: a private sequence in that block
+        "00311002": sq({ "00189004": { vr: "CS", Value: [`F${frame}`] } }),
         // DerivationImageSequence item with a SOPInstanceUID: reference data
         "00089124": sq({
             "00080018": { vr: "UI", Value: ["1.2.3"] },
@@ -121,11 +123,60 @@ describe("frameDataset", () => {
         expect(dict["00291001"]).toEqual(lo("frame1"));
     });
 
-    it("API: NumberOfFrames below 2 gives the same object", () => {
+    it("API: a single frame with no functional groups gives the same object", () => {
         const dataset = multiFrame();
         dataset.NumberOfFrames = 1;
+        delete dataset.SharedFunctionalGroupsSequence;
+        delete dataset.PerFrameFunctionalGroupsSequence;
 
         expect(frameDataset(dataset, 1)).toBe(dataset);
+    });
+
+    it("UX: a view is built with missing or empty functional groups", () => {
+        // a multi-frame image that is not enhanced: defaults for each frame
+        const plain = DicomMetaDictionary.naturalizeDataset({
+            "00280008": { vr: "IS", Value: [3] }
+        });
+        const frameAttributes = (view, { frameNumber }) => ({
+            ImagePositionPatient: [0, 0, frameNumber]
+        });
+        const frame3 = frameDataset(plain, 3, { frameAttributes });
+        expect(frame3).not.toBe(plain);
+        expect(frame3.ImagePositionPatient).toEqual([0, 0, 3]);
+
+        // one frame with an empty shared functional group item
+        const single = multiFrame();
+        single.NumberOfFrames = 1;
+        delete single.PerFrameFunctionalGroupsSequence;
+        single.SharedFunctionalGroupsSequence = [];
+        expect(frameDataset(single, 1)).not.toBe(single);
+        expect(frameDataset(single, 1).SliceThickness).toBe(1);
+
+        // a frame with no per-frame item yet reads the shared item
+        const dataset = multiFrame();
+        dataset.NumberOfFrames = 3;
+        expect(frameDataset(dataset, 3).SliceThickness).toBe(2);
+    });
+
+    it("API: a frame number outside 1 to NumberOfFrames throws a RangeError", () => {
+        const dataset = multiFrame();
+
+        for (const frameNumber of [0, 3, 1.5, "x"]) {
+            expect(() => frameDataset(dataset, frameNumber)).toThrow(
+                RangeError
+            );
+        }
+        expect(frameDataset(dataset, "2")).toBe(frameDataset(dataset, 2));
+    });
+
+    it("API: privateMacros reads the first item of each private macro", () => {
+        const dataset = multiFrame();
+
+        expect(frameDataset(dataset, 2).ContentQualification).toBeUndefined();
+        expect(
+            frameDataset(dataset, 2, { privateMacros: true })
+                .ContentQualification
+        ).toBe("F2");
     });
 
     it("UX: the option functions add computed attributes and runtime properties", () => {

@@ -347,21 +347,31 @@ no dictionary VM is a list.
 `@dcmjs-org/core`, and from `dcmjs.data` of `@dcmjs-org/dcmjs`. It gives the
 view of one frame of an enhanced multi-frame dataset (PS3.3 C.7.6.16).
 
-- **NAT-U-FRAME-1.** `frameNumber` is 1-based. A missing `frameNumber` is 1.
-- **NAT-U-FRAME-2.** A dataset with `NumberOfFrames` below 2, or with no
-  `SharedFunctionalGroupsSequence` and no
-  `PerFrameFunctionalGroupsSequence`, comes back unchanged (the same object).
+- **NAT-U-FRAME-1.** `frameNumber` is 1-based, and a numeric string is
+  accepted. A missing `frameNumber` is 1. A frame number that is not an
+  integer from 1 to `NumberOfFrames` throws a `RangeError`. A frame number
+  past the last per-frame item is valid: the view of that frame reads the
+  shared item and the root, so a caller can make a new per-frame item.
+- **NAT-U-FRAME-2.** `frameDataset` builds a view when `NumberOfFrames` is
+  above 1, or when `NumberOfFrames` is 1 or more and the dataset has a
+  `SharedFunctionalGroupsSequence` or a `PerFrameFunctionalGroupsSequence`.
+  A functional group sequence can be missing or empty. So a caller can use
+  the view for a multi-frame image that is not enhanced, for example to
+  compute default values for each frame (NAT-U-FRAME-9). Any other dataset
+  comes back unchanged (the same object), and the option functions do not
+  run.
 - **NAT-U-FRAME-3.** The view reads an attribute from the per-frame
   functional group item of the frame first, then from the shared functional
   group item, then from the root. Each standard sequence (functional group
   macro) in a functional group item gives the attributes of its first item.
-  A frame with no per-frame item reads the shared item and the root.
 - **NAT-U-FRAME-4.** A macro item that holds a `SOPInstanceUID` is reference
   or previous value data. The view does not read it.
 - **NAT-U-FRAME-5.** A private block or a private hex-tag key directly in a
-  functional group item, and a private macro in such a block, are not frame
-  attributes. The view does not read them; read them from the functional
-  group item. A private block inside a standard macro item is a frame
+  functional group item is not a frame attribute. The view does not read
+  it; read it from the functional group item. With
+  `options.privateMacros: true`, each private sequence there (a private
+  macro: an element with the VR `SQ` in `_vrMap`) is a macro, and gives
+  the attributes of its first item, as in NAT-U-FRAME-3. A private block inside a standard macro item is a frame
   attribute: it replaces a root block with the same key, and the hex aliases
   of the view read the block of the frame (NAT-U-HIST-9).
 - **NAT-U-FRAME-6.** The view keeps the naturalized form: a one-item
@@ -385,8 +395,8 @@ view of one frame of an enhanced multi-frame dataset (PS3.3 C.7.6.16).
   returns an object of runtime properties, for example `frameNumber` or
   `imageId`. Each one becomes a non-enumerable property of the view. Each
   function gets the view after the functional groups merge, and runs once
-  for each cached view. The cache holds a separate view for each pair of
-  functions, so a caller must pass the same function objects on each call
+  for each cached view. The cache holds a separate view for each set of
+  options, so a caller must pass the same function objects on each call
   to use the cache.
 
 ### NAT-U-PROD — the two producers
@@ -507,8 +517,9 @@ view of one frame of an enhanced multi-frame dataset (PS3.3 C.7.6.16).
 - **NAT-I-FRAME-3.** `definePrivateAliases(view)` runs last, so the view
   gets its own alias record (NAT-I-ALIAS-4) for the blocks that it holds.
 - **NAT-I-FRAME-4.** `_frameDatasets` is a `Map` from `frameAttributes` to a
-  `Map` from `frameProperties` to an array of views by frame number. The
-  property is non-enumerable and configurable.
+  `Map` from `frameProperties` to a `Map` from `privateMacros` to an array
+  of views by frame number. The property is non-enumerable and
+  configurable.
 
 ### NAT-I-NULL — null entries (NAT-U-RT-7)
 
