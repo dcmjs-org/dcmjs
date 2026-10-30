@@ -193,6 +193,40 @@ describe("private reserved blocks", () => {
         expect(other["00291001"]).toEqual([8]);
     });
 
+    it("a creator deleted on the parent wins over a write on an Object.create child", () => {
+        const parent = DicomMetaDictionary.naturalizeDataset(sourceDict());
+        delete parent["00090010"]; // the creator alias of "0009:ACME"
+        const child = Object.create(parent);
+        child["00091001"] = ["flat"];
+
+        // the child writes a flat element, as the parent would (NAT-U-HIST-7)
+        const dict = DicomMetaDictionary.denaturalizeDataset(child);
+        expect(dict["00091001"].Value).toEqual(["flat"]);
+        expect(dict["00090010"]).toBeUndefined();
+        // the child must not bring the deleted block back at another xx
+        expect(dict["00090011"]).toBeUndefined();
+        expect(dict["00091101"]).toBeUndefined();
+        expect(parent["0009:ACME"].x01).toEqual(["nine"]);
+    });
+
+    it("an Object.create child's copy of a block keeps the deletes of the parent", () => {
+        const parent = DicomMetaDictionary.naturalizeDataset({
+            ...sourceDict(),
+            "00291002": { vr: "LO", Value: ["keep"] }
+        });
+        delete parent["00291001"];
+        delete parent["00091001"]; // a deleted element of another block
+        const child = Object.create(parent);
+        child["00291002"] = ["changed"]; // copies "0029:ACME" only
+
+        const dict = DicomMetaDictionary.denaturalizeDataset(child);
+        expect(dict["00291002"].Value).toEqual(["changed"]);
+        expect(dict["00291001"]).toBeUndefined(); // the delete wins
+        // the copy filters the child's block; the parent's blocks keep their data
+        expect(parent["0029:ACME"].x01).toEqual([7]);
+        expect(parent["0009:ACME"].x01).toEqual(["nine"]);
+    });
+
     it("a write to a hex alias after the block or its creator is deleted makes a flat element", () => {
         const naturalized = DicomMetaDictionary.naturalizeDataset(sourceDict());
         delete naturalized["0029:ACME"];

@@ -151,9 +151,10 @@ export function definePrivateAliases(target) {
                           this[key] &&
                           !Object.prototype.hasOwnProperty.call(this, key)
                       ) {
-                          // a child writes to its own copy of the block
+                          // a child writes to its own copy of the block; the
+                          // copy keeps the deletes of the parent (NAT-U-HIST-7)
                           this[key] = { ...this[key] };
-                          definePrivateAliases(this);
+                          copyPrivateAliases(target, this);
                       }
                       const creator = aliases.get(creatorName);
                       const creatorDeleted =
@@ -377,7 +378,11 @@ export function copyPrivateAliases(source, copy) {
     for (const key of deleted.blocks) delete copy[key];
     for (const entry of deleted.elements) {
         const [key, elementKey] = entry.split("\n");
-        if (copy[key]) delete copy[key][elementKey];
+        // only a block that `copy` itself holds: a copy of one block (the
+        // child of NAT-U-HIST-9) must not reach the blocks of its prototype
+        if (Object.prototype.hasOwnProperty.call(copy, key)) {
+            delete copy[key][elementKey];
+        }
     }
     definePrivateAliases(copy);
 }

@@ -259,7 +259,10 @@ A private value is a list (NAT-U-VAL-4). An assigned PN string converts:
   block, or the block of the parent). A write through an inherited alias,
   a PN setter or `setVr` changes the child only: the child gets its own
   copy of the block, its own PN attribute, or its own `_vrMap`. The parent
-  and the other children do not change.
+  and the other children do not change. The child's copy of a block keeps
+  the deletes of the parent (NAT-U-HIST-7): a deleted element stays out of
+  the copy, and a write under a deleted creator makes a flat element on
+  the child, as it would on the parent.
 
 ### NAT-U-RT — conversion back to DICOM
 
