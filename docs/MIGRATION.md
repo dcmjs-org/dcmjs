@@ -262,6 +262,11 @@ Six things changed relative to 0.x:
    - `@dcmjs-org/core` and `dcmjs.data` export `setAttribute`,
      `setPersonName` and `setVr` to add or replace an attribute in the
      naturalized form, and `definePrivateAliases`.
+   - `@dcmjs-org/core` and `dcmjs.data` export
+     `frameDataset(dataset, frameNumber, options)`, the view of one frame
+     of an enhanced multi-frame dataset: per-frame functional groups, then
+     shared functional groups, then the root (NAT-U-FRAME). It replaces a
+     local `combineFrameInstance` merge.
 
    [specs/naturalized-dataset.md](specs/naturalized-dataset.md) gives the
    full rules. Pinned by `test/core/privateBlocks.test.js` and

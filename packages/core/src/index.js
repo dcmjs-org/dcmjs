@@ -50,6 +50,7 @@ export { toStringFirst, toFloatFirst } from "./utilities/firstValue.js";
 export { MODALITY_DISPLAY } from "./constants/modality.js";
 export { encodeBase64, base64ToArrayBuffer } from "./utilities/base64.js";
 export { deepCloneInstance } from "./utilities/deepCloneInstance.js";
+export { frameDataset } from "./utilities/frameDataset.js";
 export { default as addAccessors } from "./utilities/addAccessors.js";
 export { default as isMultiVM, valueLength } from "./utilities/isMultiVM.js";
 export {
