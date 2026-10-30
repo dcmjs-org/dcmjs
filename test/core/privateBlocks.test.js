@@ -227,6 +227,34 @@ describe("private reserved blocks", () => {
         expect(parent["0009:ACME"].x01).toEqual(["nine"]);
     });
 
+    it("a write on an Object.create child keeps the other blocks the child holds", () => {
+        const naturalized = () =>
+            DicomMetaDictionary.naturalizeDataset({
+                ...sourceDict(),
+                "00291002": { vr: "LO", Value: ["keep"] }
+            });
+        // a deleted creator of the parent does not remove the child's block
+        const parent = naturalized();
+        delete parent["00090010"]; // the creator alias of "0009:ACME"
+        const own = { creator: "ACME", reservedBlock: 0x10, x01: ["own"] };
+        const child = Object.create(parent);
+        child["0009:ACME"] = own;
+        child["00291001"] = [70]; // a write to "0029:ACME"
+        expect(child["0009:ACME"]).toBe(own);
+
+        // a deleted element of the parent does not remove the child's element
+        const parent2 = naturalized();
+        delete parent2["00291002"];
+        const other = Object.create(parent2);
+        other["0029:ACME"] = {
+            creator: "ACME",
+            reservedBlock: 0x10,
+            x02: [80]
+        };
+        other["00091001"] = ["x"]; // a write to "0009:ACME"
+        expect(other["0029:ACME"].x02).toEqual([80]);
+    });
+
     it("a write to a hex alias after the block or its creator is deleted makes a flat element", () => {
         const naturalized = DicomMetaDictionary.naturalizeDataset(sourceDict());
         delete naturalized["0029:ACME"];

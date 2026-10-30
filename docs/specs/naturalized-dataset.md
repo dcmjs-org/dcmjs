@@ -501,3 +501,5 @@ block form, and they apply to standard attributes too.
 | NAT-U-BIN-1/2/3, NAT-U-PROD-1 (binary) | `test/core/binaryValues.test.js` |
 | NAT-U-VAL-5 (PN setter), NAT-U-SET | `test/core/naturalizedAttributes.test.js` |
 | NAT-U-VAL, NAT-U-SQ | `test/core/naturalizeDataset.test.js`, `test/issues/issue218-single-item-sq.test.js` |
+| NAT-U-HIST-9, NAT-I-ALIAS-4 (`Object.create` children) | `test/core/privateBlocks.test.js` |
+| NAT-U-HIST-6, NAT-U-SQ-1 (`deepCloneInstance`) | `packages/core/test/createInstance.test.js` |

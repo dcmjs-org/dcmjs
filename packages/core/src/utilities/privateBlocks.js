@@ -146,19 +146,26 @@ export function definePrivateAliases(target) {
             elementKey === null
                 ? undefined
                 : function (v) {
-                      if (
-                          this !== target &&
-                          this[key] &&
-                          !Object.prototype.hasOwnProperty.call(this, key)
-                      ) {
-                          // a child writes to its own copy of the block; the
-                          // copy keeps the deletes of the parent (NAT-U-HIST-7)
-                          this[key] = { ...this[key] };
-                          copyPrivateAliases(target, this);
-                      }
                       const creator = aliases.get(creatorName);
                       const creatorDeleted =
                           creator && aliasDeleted(target, creatorName, creator);
+                      if (
+                          this !== target &&
+                          this[key] &&
+                          !creatorDeleted &&
+                          !Object.prototype.hasOwnProperty.call(this, key)
+                      ) {
+                          // a child writes to its own copy of this block only,
+                          // without the elements the parent deleted (NAT-U-HIST-7)
+                          const { elements } = deletedByAlias(target);
+                          const block = { ...this[key] };
+                          for (const ee of Object.keys(block)) {
+                              if (elements.has(`${key}\n${ee}`))
+                                  delete block[ee];
+                          }
+                          this[key] = block;
+                          definePrivateAliases(this);
+                      }
                       if (this._vrMap?.[key]?.[elementKey] === "PN") {
                           v = toPersonNameValue(v); // NAT-U-SET-2
                       }
@@ -378,11 +385,7 @@ export function copyPrivateAliases(source, copy) {
     for (const key of deleted.blocks) delete copy[key];
     for (const entry of deleted.elements) {
         const [key, elementKey] = entry.split("\n");
-        // only a block that `copy` itself holds: a copy of one block (the
-        // child of NAT-U-HIST-9) must not reach the blocks of its prototype
-        if (Object.prototype.hasOwnProperty.call(copy, key)) {
-            delete copy[key][elementKey];
-        }
+        if (copy[key]) delete copy[key][elementKey];
     }
     definePrivateAliases(copy);
 }
