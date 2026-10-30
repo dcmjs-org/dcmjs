@@ -138,6 +138,8 @@ A private value is a list (NAT-U-VAL-4). An assigned PN string converts:
   item), `length` (1) and an iterator. `seq.Field`, `seq[0].Field`,
   `seq.length === 1` and `for...of` work on it, so code that treats a
   sequence as an array keeps working. `Array.isArray(seq)` is false.
+  `deepCloneInstance` keeps this shape. A spread or JSON copy of the item
+  does not.
 - **NAT-U-SQ-2.** A sequence with more items is a list of item objects.
 - **NAT-U-SQ-3.** Each item is a naturalized dataset with its own `_vrMap`
   and its own reserved blocks.
@@ -227,12 +229,14 @@ A private value is a list (NAT-U-VAL-4). An assigned PN string converts:
 - **NAT-U-HIST-5.** The historical names are not enumerable. `Object.keys`,
   `for...in`, `JSON.stringify` and the denaturalizers do not see them.
   `"00291001" in dataset` is true.
-- **NAT-U-HIST-6.** A copy that keeps only enumerable properties (JSON, an
-  object spread, `deepCloneInstance`) does not keep the historical names,
-  and it does not keep the deletes of NAT-U-HIST-7: its blocks still hold a
-  deleted element. `definePrivateAliases(dataset)` from `@dcmjs-org/core`
-  adds the names again. To remove an element from a dataset that you copy
-  later, delete it in the block: `delete dataset[blockKey].xEE`.
+- **NAT-U-HIST-6.** `deepCloneInstance` keeps the historical names on each
+  dataset level, and it keeps the deletes of NAT-U-HIST-7: the clone does
+  not hold a deleted element or block. A copy that keeps only enumerable
+  properties (JSON, an object spread) does not keep the historical names,
+  and it does not keep the deletes: its blocks still hold a deleted
+  element. `definePrivateAliases(dataset)` from `@dcmjs-org/core` adds the
+  names again. To remove an element from a dataset that you copy that way,
+  delete it in the block: `delete dataset[blockKey].xEE`.
 - **NAT-U-HIST-7.** A `delete` of an element alias on the dataset (the hex
   tag or the `registerTag()` keyword) removes that element from the output
   of `denaturalizeDataset` and of `fromNaturalized`. A `delete` of a creator
@@ -250,6 +254,15 @@ A private value is a list (NAT-U-VAL-4). An assigned PN string converts:
   replaces the block object. After the user deletes the block key, a write
   to an element alias makes a flat element with the VR that the block had
   for that element.
+- **NAT-U-HIST-9.** On an `Object.create` child of a dataset, an inherited
+  alias reads the block that the child holds under the block key (its own
+  block, or the block of the parent). A write through an inherited alias,
+  a PN setter or `setVr` changes the child only: the child gets its own
+  copy of the block, its own PN attribute, or its own `_vrMap`. The parent
+  and the other children do not change. The child's copy of a block keeps
+  the deletes of the parent (NAT-U-HIST-7): a deleted element stays out of
+  the copy, and a write under a deleted creator makes a flat element on
+  the child, as it would on the parent.
 
 ### NAT-U-RT — conversion back to DICOM
 
@@ -327,6 +340,64 @@ no dictionary VM is a list.
   the block entry of `_vrMap`. A hex tag whose block alias was deleted
   stays a hex key, so a set on it makes a new flat element
   (NAT-U-HIST-7).
+
+### NAT-U-FRAME — the view of one frame
+
+`frameDataset(dataset, frameNumber, options)` is exported from
+`@dcmjs-org/core`, and from `dcmjs.data` of `@dcmjs-org/dcmjs`. It gives the
+view of one frame of an enhanced multi-frame dataset (PS3.3 C.7.6.16).
+
+- **NAT-U-FRAME-1.** `frameNumber` is 1-based, and a numeric string is
+  accepted. A missing `frameNumber` is 1. A frame number that is not an
+  integer from 1 to `NumberOfFrames` throws a `RangeError`. A frame number
+  past the last per-frame item is valid: the view of that frame reads the
+  shared item and the root, so a caller can make a new per-frame item.
+- **NAT-U-FRAME-2.** `frameDataset` builds a view when `NumberOfFrames` is
+  above 1, or when `NumberOfFrames` is 1 or more and the dataset has a
+  `SharedFunctionalGroupsSequence` or a `PerFrameFunctionalGroupsSequence`.
+  A functional group sequence can be missing or empty. So a caller can use
+  the view for a multi-frame image that is not enhanced, for example to
+  compute default values for each frame (NAT-U-FRAME-9). Any other dataset
+  comes back unchanged (the same object), and the option functions do not
+  run.
+- **NAT-U-FRAME-3.** The view reads an attribute from the per-frame
+  functional group item of the frame first, then from the shared functional
+  group item, then from the root. Each standard sequence (functional group
+  macro) in a functional group item gives the attributes of its first item.
+- **NAT-U-FRAME-4.** A macro item that holds a `SOPInstanceUID` is reference
+  or previous value data. The view does not read it.
+- **NAT-U-FRAME-5.** A private block or a private hex-tag key directly in a
+  functional group item is not a frame attribute. The view does not read
+  it; read it from the functional group item. With
+  `options.privateMacros: true`, each private sequence there (a private
+  macro: an element with the VR `SQ` in `_vrMap`) is a macro, and gives
+  the attributes of its first item, as in NAT-U-FRAME-3. A private block inside a standard macro item is a frame
+  attribute: it replaces a root block with the same key, and the hex aliases
+  of the view read the block of the frame (NAT-U-HIST-9).
+- **NAT-U-FRAME-6.** The view keeps the naturalized form: a one-item
+  sequence keeps `[0]`, `length` and the iterator (NAT-U-SQ-1), and the
+  private aliases work on the view (NAT-U-HIST-9).
+- **NAT-U-FRAME-7.** The view does not change the enumerable keys or the
+  values of `dataset`. It adds one non-enumerable key, `_frameDatasets`, the
+  cache of the views. A second call with the same arguments gives the same
+  view. A change to a root attribute shows in the view. A change to a
+  functional group item does not show in a cached view: `delete
+  dataset._frameDatasets` to rebuild the views.
+- **NAT-U-FRAME-8.** `denaturalizeDataset(view)` writes the functional
+  group attributes of the frame and the computed
+  attributes of NAT-U-FRAME-9, with their VRs. They do not write the
+  inherited root attributes.
+- **NAT-U-FRAME-9.** `options.frameAttributes(view, { dataset, frameNumber })`
+  returns an object of computed attributes, for example an
+  `ImagePositionPatient` that a modality gives in another place. Each one
+  becomes an enumerable attribute of the view, and replaces the value of
+  NAT-U-FRAME-3. `options.frameProperties(view, { dataset, frameNumber })`
+  returns an object of runtime properties, for example `frameNumber` or
+  `imageId`. Each one becomes a non-enumerable property of the view. Each
+  function gets the view after the functional groups merge, and runs once
+  for each cached view. The cache holds a separate view for each set of
+  options, so a caller must pass the same function objects on each call
+  to use the cache.
 
 ### NAT-U-PROD — the two producers
 
@@ -414,7 +485,9 @@ no dictionary VM is a list.
   `registerPrivatesModule()` registered the private dictionary.
 - **NAT-I-ALIAS-4.** `definePrivateAliases` records each dataset alias, with
   its getter, in a non-enumerable `Symbol.for("dcmjs.privateAliases")` map,
-  and it never defines a recorded name again. An alias is deleted when the
+  and it never defines a recorded name again. Each dataset object holds its
+  own map: an `Object.create` child does not read or change the map of its
+  prototype. An alias is deleted when the
   own property is gone, or when its getter is no longer the recorded one (a
   plain value replaced it). `expandPrivateBlocks` leaves out the block of a
   deleted creator alias and the element of a deleted element alias, with
@@ -431,6 +504,22 @@ no dictionary VM is a list.
 - **NAT-I-VR-2.** `expandPrivateBlocks` copies the flat `_vrMap` entries,
   adds `LO` for each creator, and adds the VR of each block element under
   its new hex tag.
+
+### NAT-I-FRAME — the view of one frame
+
+- **NAT-I-FRAME-1.** `packages/core/src/utilities/frameDataset.js` holds the
+  code. The view is `Object.create(dataset)`. The attributes of the shared
+  macro items, then of the per-frame macro items, then of `frameAttributes`
+  are own properties of the view, defined with `Object.defineProperty`, so an
+  inherited alias or PN setter does not run.
+- **NAT-I-FRAME-2.** The view has an own `_vrMap`: a copy of the root
+  `_vrMap` with the `_vrMap` entries of each macro item that it reads.
+- **NAT-I-FRAME-3.** `definePrivateAliases(view)` runs last, so the view
+  gets its own alias record (NAT-I-ALIAS-4) for the blocks that it holds.
+- **NAT-I-FRAME-4.** `_frameDatasets` is a `Map` from `frameAttributes` to a
+  `Map` from `frameProperties` to a `Map` from `privateMacros` to an array
+  of views by frame number. The property is non-enumerable and
+  configurable.
 
 ### NAT-I-NULL — null entries (NAT-U-RT-7)
 
@@ -486,3 +575,6 @@ block form, and they apply to standard attributes too.
 | NAT-U-BIN-1/2/3, NAT-U-PROD-1 (binary) | `test/core/binaryValues.test.js` |
 | NAT-U-VAL-5 (PN setter), NAT-U-SET | `test/core/naturalizedAttributes.test.js` |
 | NAT-U-VAL, NAT-U-SQ | `test/core/naturalizeDataset.test.js`, `test/issues/issue218-single-item-sq.test.js` |
+| NAT-U-HIST-9, NAT-I-ALIAS-4 (`Object.create` children) | `test/core/privateBlocks.test.js` |
+| NAT-U-HIST-6, NAT-U-SQ-1 (`deepCloneInstance`) | `packages/core/test/createInstance.test.js` |
+| NAT-U-FRAME | `test/core/frameDataset.test.js` |

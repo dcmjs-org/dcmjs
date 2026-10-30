@@ -12,7 +12,8 @@ import {
     setVr,
     setAttribute,
     setPersonName,
-    definePrivateAliases
+    definePrivateAliases,
+    frameDataset
 } from "@dcmjs-org/core";
 import { DICOMWEB } from "./dicomweb.js";
 
@@ -76,7 +77,8 @@ const data = {
     setVr,
     setAttribute,
     setPersonName,
-    definePrivateAliases
+    definePrivateAliases,
+    frameDataset
 };
 
 const async = {

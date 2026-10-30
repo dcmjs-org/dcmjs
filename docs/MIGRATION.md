@@ -203,10 +203,11 @@ Six things changed relative to 0.x:
      removes private tags by hex key keeps working, through
      `denaturalizeDataset` and through `fromNaturalized`. A delete always
      wins, also over a later write into the block; set a value on the
-     deleted hex name to add the element again. A copy of the
-     dataset (an object spread, JSON, `deepCloneInstance`) does not keep
-     such a delete, so delete in the block (`delete
-     dataset["0029:ACME"].x01`) when you copy the dataset later.
+     deleted hex name to add the element again. `deepCloneInstance`
+     keeps the aliases and the deletes. Another copy of the dataset (an
+     object spread, JSON) does not keep such a delete, so delete in the
+     block (`delete dataset["0029:ACME"].x01`) when you copy the dataset
+     that way.
      `Object.keys` and `JSON.stringify` no longer show the hex keys.
    - A source that gives one creator two blocks in a group (PS3.5 7.8.1
      does not permit this) gets one merged block and a warning.
@@ -261,6 +262,11 @@ Six things changed relative to 0.x:
    - `@dcmjs-org/core` and `dcmjs.data` export `setAttribute`,
      `setPersonName` and `setVr` to add or replace an attribute in the
      naturalized form, and `definePrivateAliases`.
+   - `@dcmjs-org/core` and `dcmjs.data` export
+     `frameDataset(dataset, frameNumber, options)`, the view of one frame
+     of an enhanced multi-frame dataset: per-frame functional groups, then
+     shared functional groups, then the root (NAT-U-FRAME). It replaces a
+     local `combineFrameInstance` merge.
 
    [specs/naturalized-dataset.md](specs/naturalized-dataset.md) gives the
    full rules. Pinned by `test/core/privateBlocks.test.js` and

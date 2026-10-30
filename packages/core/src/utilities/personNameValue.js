@@ -53,7 +53,12 @@ export function definePersonNameAccessor(target, key, length, ...value) {
     );
     Object.defineProperty(target, key, {
         get: () => stored,
-        set: value => {
+        set(value) {
+            // an Object.create child gets its own attribute; the parent keeps its value
+            if (this !== target) {
+                definePersonNameAccessor(this, key, length, value);
+                return;
+            }
             stored = toPersonNameValue(value, length);
         },
         enumerable: true,
