@@ -138,6 +138,34 @@ describe("private reserved blocks", () => {
         ).toBeUndefined();
     });
 
+    it("each Object.create child of a dataset gets the aliases of its own blocks", () => {
+        const parent = DicomMetaDictionary.naturalizeDataset(sourceDict());
+        const child = value => {
+            const item = Object.create(parent);
+            item["0035:CHILD"] = {
+                creator: "CHILD",
+                reservedBlock: 0x10,
+                x01: [value]
+            };
+            definePrivateAliases(item);
+            return item;
+        };
+        const first = child(1);
+        const second = child(2);
+
+        expect(first["00351001"]).toEqual([1]);
+        expect(second["00351001"]).toEqual([2]);
+        expect("00351001" in parent).toBe(false);
+        expect(parent[Symbol.for("dcmjs.privateAliases")].has("00351001")).toBe(
+            false
+        );
+        // a child block that replaces a parent block is written, not deleted
+        const copy = Object.create(parent);
+        copy["0029:ACME"] = { ...parent["0029:ACME"], x01: [8] };
+        const dict = DicomMetaDictionary.denaturalizeDataset(copy);
+        expect(Number(dict["00291001"].Value[0])).toBe(8);
+    });
+
     it("a write to a hex alias after the block or its creator is deleted makes a flat element", () => {
         const naturalized = DicomMetaDictionary.naturalizeDataset(sourceDict());
         delete naturalized["0029:ACME"];

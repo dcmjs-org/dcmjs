@@ -107,13 +107,23 @@ function aliasDeleted(target, name, record) {
 }
 
 /**
+ * The alias record of `target` itself. An Object.create child must not use
+ * the record of its prototype: the aliases there belong to the parent.
+ */
+function ownAliases(target) {
+    return Object.prototype.hasOwnProperty.call(target, DATASET_ALIASES)
+        ? target[DATASET_ALIASES]
+        : undefined;
+}
+
+/**
  * Defines the non-enumerable aliases of every reserved block in `target`
  * (see the module comment). The aliases derive from the blocks alone, so a
  * caller can call this again on a clone. An alias that was deleted stays
  * deleted.
  */
 export function definePrivateAliases(target) {
-    let aliases = target[DATASET_ALIASES];
+    let aliases = ownAliases(target);
     if (!aliases) {
         aliases = new Map();
         Object.defineProperty(target, DATASET_ALIASES, { value: aliases });
@@ -331,7 +341,7 @@ function flatPrivateTag(key) {
  */
 function deletedByAlias(dataset) {
     const deleted = { blocks: new Set(), elements: new Set() };
-    const aliases = dataset[DATASET_ALIASES];
+    const aliases = ownAliases(dataset);
     if (!aliases) return deleted;
     for (const [name, record] of aliases) {
         if (!aliasDeleted(dataset, name, record)) continue;
