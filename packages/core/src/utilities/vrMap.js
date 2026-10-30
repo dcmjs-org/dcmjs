@@ -20,6 +20,18 @@ export function vrNeedsRecord(entry, vr) {
 }
 
 /**
+ * The own _vrMap of `dataset`, created when it is missing. An Object.create
+ * child gets a copy of the _vrMap of its prototype, so a VR that is set on
+ * the child does not change the parent.
+ */
+export function ownVrMap(dataset) {
+    if (!Object.prototype.hasOwnProperty.call(dataset, "_vrMap")) {
+        dataset._vrMap = { ...dataset._vrMap };
+    }
+    return dataset._vrMap;
+}
+
+/**
  * Records the VR of one element in a _vrMap when vrNeedsRecord says so.
  *
  * @param {Object} vrMap - the _vrMap of the dataset or item

@@ -8,7 +8,7 @@ import { NaturalizedListener } from "../../src/eventStream/NaturalizedListener";
 import { fromDataSet } from "../../src/eventStream/fromDataSet";
 import { fromNaturalized } from "../../src/eventStream/fromNaturalized";
 import { Part10Writer } from "../../src/eventStream/Part10Writer";
-import { definePrivateAliases } from "@dcmjs-org/core";
+import { definePrivateAliases, setAttribute } from "@dcmjs-org/core";
 
 const { DicomMessage, DicomMetaDictionary } = dcmjs.data;
 
@@ -155,6 +155,9 @@ describe("private reserved blocks", () => {
 
         expect(first["00351001"]).toEqual([1]);
         expect(second["00351001"]).toEqual([2]);
+        expect(
+            DicomMetaDictionary.denaturalizeDataset(second)["00350010"]
+        ).toBeDefined();
         expect("00351001" in parent).toBe(false);
         expect(parent[Symbol.for("dcmjs.privateAliases")].has("00351001")).toBe(
             false
@@ -164,6 +167,30 @@ describe("private reserved blocks", () => {
         copy["0029:ACME"] = { ...parent["0029:ACME"], x01: [8] };
         const dict = DicomMetaDictionary.denaturalizeDataset(copy);
         expect(Number(dict["00291001"].Value[0])).toBe(8);
+    });
+
+    it("a write on an Object.create child changes the child, not the parent", () => {
+        const parent = DicomMetaDictionary.naturalizeDataset({
+            ...sourceDict(),
+            "00100010": { vr: "PN", Value: [{ Alphabetic: "Parent^One" }] }
+        });
+        const item = Object.create(parent);
+        item["00291001"] = [99];
+        item.PatientName = "Child^Two";
+        setAttribute(item, "00431001", ["x"], { vr: "SH" });
+
+        expect(item["00291001"]).toEqual([99]);
+        expect(String(item.PatientName)).toBe("Child^Two");
+        expect(parent["0029:ACME"].x01).toEqual([7]);
+        expect(String(parent.PatientName)).toBe("Parent^One");
+        expect(parent._vrMap["00431001"]).toBeUndefined();
+        expect(
+            DicomMetaDictionary.denaturalizeDataset(item)["00291001"].Value
+        ).toEqual(["99"]);
+        // an alias of the parent reads the block that the child holds
+        const other = Object.create(parent);
+        other["0029:ACME"] = { ...parent["0029:ACME"], x01: [8] };
+        expect(other["00291001"]).toEqual([8]);
     });
 
     it("a write to a hex alias after the block or its creator is deleted makes a flat element", () => {

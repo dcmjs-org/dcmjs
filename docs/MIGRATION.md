@@ -203,10 +203,11 @@ Six things changed relative to 0.x:
      removes private tags by hex key keeps working, through
      `denaturalizeDataset` and through `fromNaturalized`. A delete always
      wins, also over a later write into the block; set a value on the
-     deleted hex name to add the element again. A copy of the
-     dataset (an object spread, JSON, `deepCloneInstance`) does not keep
-     such a delete, so delete in the block (`delete
-     dataset["0029:ACME"].x01`) when you copy the dataset later.
+     deleted hex name to add the element again. `deepCloneInstance`
+     keeps the aliases and the deletes. Another copy of the dataset (an
+     object spread, JSON) does not keep such a delete, so delete in the
+     block (`delete dataset["0029:ACME"].x01`) when you copy the dataset
+     that way.
      `Object.keys` and `JSON.stringify` no longer show the hex keys.
    - A source that gives one creator two blocks in a group (PS3.5 7.8.1
      does not permit this) gets one merged block and a warning.
