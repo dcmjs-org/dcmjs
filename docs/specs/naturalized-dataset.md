@@ -138,6 +138,8 @@ A private value is a list (NAT-U-VAL-4). An assigned PN string converts:
   item), `length` (1) and an iterator. `seq.Field`, `seq[0].Field`,
   `seq.length === 1` and `for...of` work on it, so code that treats a
   sequence as an array keeps working. `Array.isArray(seq)` is false.
+  `deepCloneInstance` keeps this shape. A spread or JSON copy of the item
+  does not.
 - **NAT-U-SQ-2.** A sequence with more items is a list of item objects.
 - **NAT-U-SQ-3.** Each item is a naturalized dataset with its own `_vrMap`
   and its own reserved blocks.
@@ -227,12 +229,14 @@ A private value is a list (NAT-U-VAL-4). An assigned PN string converts:
 - **NAT-U-HIST-5.** The historical names are not enumerable. `Object.keys`,
   `for...in`, `JSON.stringify` and the denaturalizers do not see them.
   `"00291001" in dataset` is true.
-- **NAT-U-HIST-6.** A copy that keeps only enumerable properties (JSON, an
-  object spread, `deepCloneInstance`) does not keep the historical names,
-  and it does not keep the deletes of NAT-U-HIST-7: its blocks still hold a
-  deleted element. `definePrivateAliases(dataset)` from `@dcmjs-org/core`
-  adds the names again. To remove an element from a dataset that you copy
-  later, delete it in the block: `delete dataset[blockKey].xEE`.
+- **NAT-U-HIST-6.** `deepCloneInstance` keeps the historical names on each
+  dataset level, and it keeps the deletes of NAT-U-HIST-7: the clone does
+  not hold a deleted element or block. A copy that keeps only enumerable
+  properties (JSON, an object spread) does not keep the historical names,
+  and it does not keep the deletes: its blocks still hold a deleted
+  element. `definePrivateAliases(dataset)` from `@dcmjs-org/core` adds the
+  names again. To remove an element from a dataset that you copy that way,
+  delete it in the block: `delete dataset[blockKey].xEE`.
 - **NAT-U-HIST-7.** A `delete` of an element alias on the dataset (the hex
   tag or the `registerTag()` keyword) removes that element from the output
   of `denaturalizeDataset` and of `fromNaturalized`. A `delete` of a creator
@@ -250,6 +254,15 @@ A private value is a list (NAT-U-VAL-4). An assigned PN string converts:
   replaces the block object. After the user deletes the block key, a write
   to an element alias makes a flat element with the VR that the block had
   for that element.
+- **NAT-U-HIST-9.** On an `Object.create` child of a dataset, an inherited
+  alias reads the block that the child holds under the block key (its own
+  block, or the block of the parent). A write through an inherited alias,
+  a PN setter or `setVr` changes the child only: the child gets its own
+  copy of the block, its own PN attribute, or its own `_vrMap`. The parent
+  and the other children do not change. The child's copy of a block keeps
+  the deletes of the parent (NAT-U-HIST-7): a deleted element stays out of
+  the copy, and a write under a deleted creator makes a flat element on
+  the child, as it would on the parent.
 
 ### NAT-U-RT — conversion back to DICOM
 
@@ -414,7 +427,9 @@ no dictionary VM is a list.
   `registerPrivatesModule()` registered the private dictionary.
 - **NAT-I-ALIAS-4.** `definePrivateAliases` records each dataset alias, with
   its getter, in a non-enumerable `Symbol.for("dcmjs.privateAliases")` map,
-  and it never defines a recorded name again. An alias is deleted when the
+  and it never defines a recorded name again. Each dataset object holds its
+  own map: an `Object.create` child does not read or change the map of its
+  prototype. An alias is deleted when the
   own property is gone, or when its getter is no longer the recorded one (a
   plain value replaced it). `expandPrivateBlocks` leaves out the block of a
   deleted creator alias and the element of a deleted element alias, with
@@ -486,3 +501,5 @@ block form, and they apply to standard attributes too.
 | NAT-U-BIN-1/2/3, NAT-U-PROD-1 (binary) | `test/core/binaryValues.test.js` |
 | NAT-U-VAL-5 (PN setter), NAT-U-SET | `test/core/naturalizedAttributes.test.js` |
 | NAT-U-VAL, NAT-U-SQ | `test/core/naturalizeDataset.test.js`, `test/issues/issue218-single-item-sq.test.js` |
+| NAT-U-HIST-9, NAT-I-ALIAS-4 (`Object.create` children) | `test/core/privateBlocks.test.js` |
+| NAT-U-HIST-6, NAT-U-SQ-1 (`deepCloneInstance`) | `packages/core/test/createInstance.test.js` |
