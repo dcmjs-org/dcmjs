@@ -8,6 +8,7 @@ import {
     combineBases,
     DATA_LEVELS,
     deepCloneInstance,
+    DicomMetaDictionary,
     extendDataLevels,
     defaultInstanceBase,
     nextSeriesNumberBase,
@@ -291,6 +292,37 @@ describe("base blocks", () => {
         const resolved = await deepCloneInstance(Promise.resolve(source));
         expect(resolved.Seq).toEqual(source.Seq);
         expect(resolved.Seq).not.toBe(source.Seq);
+    });
+
+    it("deepCloneInstance keeps the naturalized shape: one-item sequences, private aliases and their deletes", () => {
+        const natural = DicomMetaDictionary.naturalizeDataset({
+            "00290010": { vr: "LO", Value: ["ACME"] },
+            "00291001": { vr: "US", Value: [7] },
+            "00291002": { vr: "US", Value: [8] },
+            "00081115": {
+                vr: "SQ",
+                Value: [
+                    {
+                        "00081155": { vr: "UI", Value: ["1.2"] },
+                        "00330010": { vr: "LO", Value: ["SEQ"] },
+                        "00331001": { vr: "LO", Value: ["inner"] }
+                    }
+                ]
+            }
+        });
+        delete natural["00291002"];
+        const copy = deepCloneInstance(natural);
+
+        const seq = copy.ReferencedSeriesSequence;
+        expect(seq).not.toBe(natural.ReferencedSeriesSequence);
+        expect(seq[0].ReferencedSOPInstanceUID).toBe("1.2");
+        expect(seq.length).toBe(1);
+        expect(seq["00331001"]).toEqual(["inner"]);
+        expect(copy["00291001"]).toEqual([7]);
+        // a deleted alias stays deleted in the copy, so the copy does not write it
+        const dict = DicomMetaDictionary.denaturalizeDataset(copy);
+        expect(dict["00291001"]).toBeDefined();
+        expect(dict["00291002"]).toBeUndefined();
     });
 
     it("predecessorBase references each instance by study and series, only when asked", () => {

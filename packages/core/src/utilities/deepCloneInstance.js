@@ -1,9 +1,15 @@
+import addAccessors from "./addAccessors.js";
+import { copyPrivateAliases } from "./privateBlocks.js";
+
 /**
  * Deep clone of a naturalized instance, or of one naturalized value. It
  * handles only what naturalized data holds: plain objects, arrays, binary
  * (ArrayBuffer and typed arrays), and primitives. It is not a general clone:
  * a Map, Set, Date, or class instance does not survive.
  *
+ * - The clone keeps the naturalized shape: a sequence with one item keeps
+ *   `[0]`, `length` and the iterator (NAT-U-SQ-1), and a dataset level keeps
+ *   its private aliases and the deletes of those aliases (NAT-U-HIST-6).
  * - Binary values are shared, not copied, unless `copyBinary` is set: pixel
  *   data and documents can be large enough that a copy runs out of memory.
  * - A promise (any thenable) gives a new promise for the clone of its value.
@@ -45,5 +51,6 @@ export function deepCloneInstance(value, options = {}) {
     for (const key of Object.keys(value)) {
         copy[key] = clone(value[key]);
     }
-    return copy;
+    copyPrivateAliases(value, copy);
+    return value[0] === value ? addAccessors(copy) : copy;
 }

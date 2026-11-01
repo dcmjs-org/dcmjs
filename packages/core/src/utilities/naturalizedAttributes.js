@@ -14,7 +14,7 @@ import {
     definePersonNameAccessor,
     toPersonNameValue
 } from "./personNameValue.js";
-import { isVrCode, vrNeedsRecord } from "./vrMap.js";
+import { isVrCode, ownVrMap, vrNeedsRecord } from "./vrMap.js";
 import { checkBinaryAs } from "./binaryFragment.js";
 
 /**
@@ -76,13 +76,13 @@ export function setVr(dataset, key, vr, elementKey) {
             elementKey = alias.elementKey;
         }
     }
-    if (!dataset._vrMap) dataset._vrMap = {};
+    const vrMap = ownVrMap(dataset);
     if (elementKey === undefined) {
-        dataset._vrMap[key] = vr;
+        vrMap[key] = vr;
         return;
     }
-    dataset._vrMap[key] = dataset._vrMap[key] || {};
-    dataset._vrMap[key][elementKey] = vr;
+    // a new block map: the old one can belong to the prototype too
+    vrMap[key] = { ...vrMap[key], [elementKey]: vr };
 }
 
 /**
