@@ -147,16 +147,13 @@ it("test_anonymization_keep_tag", () => {
 });
 
 it("test_anonymization_dictionary_keyword_names", () => {
-    // given: tags that #345 reported as unmatched / missing in tagNamesToEmpty
-    const names = [
-        "ReferringPhysicianTelephoneNumbers",
-        "PhysiciansOfRecord",
-        "NameOfPhysiciansReadingStudy",
-        "OperatorsName",
-        "AdmittingDiagnosesDescription",
-        "Allergies",
-        "ResponsiblePersonRole"
-    ];
+    // given: every name in tagNamesToEmpty must resolve in nameMap,
+    // otherwise cleanTags silently skips it and leaves the PHI tag intact
+    const names = getTagsNameToEmpty();
+    const replaced = {
+        "00100010": "ANON^PATIENT",
+        "00100020": "ANON^ID"
+    };
     const dict = {};
 
     names.forEach(name => {
@@ -171,15 +168,17 @@ it("test_anonymization_dictionary_keyword_names", () => {
     // when
     cleanTags(dict);
 
-    // then: default cleanTags must resolve these keywords in nameMap and empty them
-    const emptyNames = getTagsNameToEmpty();
+    // then: default cleanTags must resolve each keyword and empty the tag
     names.forEach(name => {
         const tagInfo = dcmjs.data.DicomMetaDictionary.nameMap[name];
         const tagString = dcmjs.data.Tag.fromPString(
             tagInfo.tag
         ).toCleanString();
-        expect(dict[tagString].Value).toEqual([]);
-        expect(emptyNames).toContain(name);
+        if (tagString in replaced) {
+            expect(dict[tagString].Value).not.toEqual(["PHI"]);
+        } else {
+            expect(dict[tagString].Value).toEqual([]);
+        }
     });
 });
 
