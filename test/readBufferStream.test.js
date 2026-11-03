@@ -63,6 +63,57 @@ describe("ReadBufferStream Tests", () => {
             expect(stream.size).toBe(8);
             expect(stream.readUint8()).toBe(16);
         });
+
+        it("clamps start and end to the view", () => {
+            const stream = new ReadBufferStream(null, true);
+            // end past the view adds only the view bytes
+            stream.addBuffer(new Uint8Array(buffer, 16, 8), { end: 64 });
+            // a negative start reads no bytes before the view
+            stream.addBuffer(new Uint8Array(buffer, 32, 4), { start: -4 });
+            stream.setComplete();
+            expect(stream.size).toBe(12);
+            expect(Array.from(new Uint8Array(stream.getBuffer(0, 12)))).toEqual(
+                [16, 17, 18, 19, 20, 21, 22, 23, 32, 33, 34, 35]
+            );
+        });
+
+        it("adds nothing for an explicit start 0, end 0", () => {
+            const stream = new ReadBufferStream(null, true);
+            stream.addBuffer(new Uint8Array(buffer, 16, 8), {
+                start: 0,
+                end: 0
+            });
+            stream.addBuffer(buffer.slice(0), { start: 0, end: 0 });
+            stream.setComplete();
+            expect(stream.size).toBe(0);
+        });
+
+        it("copies only the view bytes for an explicit transfer", () => {
+            // a small Node.js Buffer is a view of a large shared pool
+            const pooled = Buffer.from([1, 2, 3]);
+            const stream = new ReadBufferStream(null, true);
+            stream.addBuffer(pooled, { transfer: true });
+            stream.setComplete();
+            expect(stream.size).toBe(3);
+            expect(Array.from(new Uint8Array(stream.getBuffer(0, 3)))).toEqual([
+                1, 2, 3
+            ]);
+            // the pool is not transferred away from other allocations
+            expect(pooled.buffer.byteLength).toBeGreaterThan(0);
+        });
+
+        it("copies only the range of an ArrayBuffer for an explicit transfer", () => {
+            const own = buffer.slice(0);
+            const stream = new ReadBufferStream(null, true);
+            stream.addBuffer(own, { start: 16, end: 24, transfer: true });
+            stream.setComplete();
+            expect(stream.size).toBe(8);
+            expect(Array.from(new Uint8Array(stream.getBuffer(0, 8)))).toEqual([
+                16, 17, 18, 19, 20, 21, 22, 23
+            ]);
+            // the partial range is copied, so the source keeps its bytes
+            expect(own.byteLength).toBe(size);
+        });
     });
 
     describe("substream", () => {
