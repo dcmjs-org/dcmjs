@@ -14,6 +14,7 @@ import {
     valueLength,
     sequenceValue,
     binaryValue,
+    elementValues,
     log
 } from "@dcmjs-org/core";
 
@@ -235,7 +236,7 @@ export class NaturalizedListener extends EventStreamListener {
     // --- cardinality shaping ------------------------------------------------
 
     _shapeValues(frame, entry, key) {
-        const values = frame.values;
+        const values = elementValues(frame.values);
         // no dictionary VM (a private or unknown element): as for VM > 1
         if (valueLength(entry) !== 1) {
             // §10/§11: always list-like; present-empty -> [].

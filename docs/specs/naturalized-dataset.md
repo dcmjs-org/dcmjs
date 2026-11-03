@@ -371,6 +371,9 @@ no dictionary VM is a list.
     the sequence, binary and simple value rules, for both producers and
     `setAttribute`. The listener keeps its own scalar rule only for the
     cardinality-violation policy.
+  - `elementValues` in `naturalValues.js`: a reader gives a zero-length
+    string element as `[""]`. `simpleValue` and the listener both use
+    `elementValues` to treat that value as empty (`null` or `[]`).
   - Both producers look up a tag with the `dictionary` proxy, which gives
     `registerTag()` entries and the repeating groups (50xx, 60xx).
   - `setVr`, `setAttribute` and `setPersonName` in
