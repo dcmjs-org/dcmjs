@@ -37,17 +37,6 @@ export function binaryValue(fragments, binaryAs) {
 }
 
 /**
- * The values of a simple element. A zero-length string element has no value,
- * but a reader (and DICOM JSON from some servers) gives it as [""]; that is
- * empty too (NAT-U-VAL-1, -2). An empty value in a list ("A\\") stays.
- *
- * @param {Array} values
- */
-export function elementValues(values) {
-    return values.length === 1 && values[0] === "" ? [] : values;
-}
-
-/**
  * A simple value (NAT-U-VAL-1, -2, -4): for a value count of 1, the single
  * value (null for none; more than one value keeps the list); else the list.
  *
@@ -55,7 +44,6 @@ export function elementValues(values) {
  * @param {1|undefined} length - from valueLength(entry), or the caller
  */
 export function simpleValue(values, length) {
-    values = elementValues(values);
     if (length !== 1) return values;
     if (values.length === 0) return null;
     return values.length === 1 ? values[0] : values;

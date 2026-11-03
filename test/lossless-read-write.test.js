@@ -1071,7 +1071,7 @@ describe("lossless-read-write", () => {
                 _rawValue: [
                     "    This is a detailed explanation that can span multiple lines and paragraphs in the DICOM dataset.  "
                 ], // leading spaces significant, trailing spaces allowed
-                Value: [""]
+                Value: [] // zero length: the reader gives no value
             }
             // TODO: VR currently unimplemented
             // {
@@ -1233,7 +1233,7 @@ describe("lossless-read-write", () => {
         );
 
         // confirm starting dataset contains empty tag value for referring physician person name
-        expect(origDicomDict.dict["00080090"]._rawValue).toEqual("");
+        expect(origDicomDict.dict["00080090"]._rawValue).toEqual([]);
         expect(origNaturalizedDataset.ReferringPhysicianName).toBeNull(); // VM 1, empty
 
         // re-encode the unnaturalized object
@@ -1247,7 +1247,7 @@ describe("lossless-read-write", () => {
         );
 
         // confirm output referring physician name remains the same
-        expect(newDicomDict.dict["00080090"]._rawValue).toEqual("");
+        expect(newDicomDict.dict["00080090"]._rawValue).toEqual([]);
         expect(newNaturalizedDataset.ReferringPhysicianName).toBeNull();
 
         // confirm no other changes to the rest of the file

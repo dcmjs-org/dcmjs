@@ -54,7 +54,6 @@ export { default as addAccessors } from "./utilities/addAccessors.js";
 export { default as isMultiVM, valueLength } from "./utilities/isMultiVM.js";
 export {
     binaryValue,
-    elementValues,
     sequenceValue,
     simpleValue
 } from "./utilities/naturalValues.js";

@@ -286,8 +286,8 @@ A private value is a list (NAT-U-VAL-4). An assigned PN string converts:
 - **NAT-U-RT-6.** A block with no free `xx` in its group is skipped with a
   warning.
 - **NAT-U-RT-7.** A `null` entry in a value list is an empty value, as in
-  DICOM JSON (for example an empty DS that a reader gives as
-  `Value: [null]`). Denaturalize keeps it. Every writer (the naturalized
+  DICOM JSON (for example the DS `1\\2`, which a reader gives as
+  `Value: [1, null, 2]`). Denaturalize keeps it. Every writer (the naturalized
   form, a DICOM JSON dict, the event stream) writes it by its VR:
   - a string VR: an empty value, never the text `null`;
   - PN: an empty name that keeps its position (`[null, "C^D"]` writes
@@ -371,9 +371,11 @@ no dictionary VM is a list.
     the sequence, binary and simple value rules, for both producers and
     `setAttribute`. The listener keeps its own scalar rule only for the
     cardinality-violation policy.
-  - `elementValues` in `naturalValues.js`: a reader gives a zero-length
-    string element as `[""]`. `simpleValue` and the listener both use
-    `elementValues` to treat that value as empty (`null` or `[]`).
+  - `ValueRepresentation.read` gives no value for a zero-length string
+    element, not one empty value (`[""]`). So every Part 10 reader gives
+    `Value: []`, the event stream sends no `value()` call, and both
+    producers give `null` or `[]` (NAT-U-VAL-1, NAT-U-VAL-2). An empty value
+    in a longer list (`\ab\\c` gives `["", "ab", "", "c"]`) stays.
   - Both producers look up a tag with the `dictionary` proxy, which gives
     `registerTag()` entries and the repeating groups (50xx, 60xx).
   - `setVr`, `setAttribute` and `setPersonName` in

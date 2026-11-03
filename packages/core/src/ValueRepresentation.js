@@ -76,6 +76,10 @@ class ValueRepresentation {
         return this._isBinary;
     }
 
+    isString() {
+        return false;
+    }
+
     allowMultiple() {
         return this._allowMultiple;
     }
@@ -168,6 +172,10 @@ class ValueRepresentation {
     }
 
     read(stream, length, syntax, readOptions = { forceStoreRaw: false }) {
+        // a zero-length string element has no value, not one empty value
+        if (length === 0 && this.isString()) {
+            return { rawValue: [], value: [] };
+        }
         if (this.fixed && this.maxLength) {
             if (!length)
                 return {
@@ -375,6 +383,10 @@ class AsciiStringRepresentation extends ValueRepresentation {
         super(type);
     }
 
+    isString() {
+        return true;
+    }
+
     readBytes(stream, length) {
         return stream.readAsciiString(length);
     }
@@ -389,6 +401,10 @@ class AsciiStringRepresentation extends ValueRepresentation {
 class EncodedStringRepresentation extends ValueRepresentation {
     constructor(type) {
         super(type);
+    }
+
+    isString() {
+        return true;
     }
 
     readBytes(stream, length) {
