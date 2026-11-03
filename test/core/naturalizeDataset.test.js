@@ -52,7 +52,7 @@ describe("core naturalizeDataset (1.0 rules)", () => {
         expect(addAccessors(two)).toBe(two);
     });
     test("an empty DS value (Value [null]) survives denaturalize", () => {
-        // a reader gives an empty DS of VM 1-n as Value: [null]
+        // DICOM JSON can give an empty DS of VM 1-n as Value: [null]
         const ds = DicomMetaDictionary.naturalizeDataset({
             "00282112": { vr: "DS", Value: [null] },
             "00181310": { vr: "US", Value: [0, 256, 256, 0] }

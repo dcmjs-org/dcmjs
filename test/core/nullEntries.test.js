@@ -59,7 +59,8 @@ describe("null entries in a value list", () => {
             // the empty name keeps its position in the written text; the
             // reader's PN string parse then drops empty names
             expect(back["00101001"]._rawValue).toBe("\\C^D");
-            expect(back["00282112"].Value).toEqual([null]);
+            // [null] is written with zero length, which reads back as no value
+            expect(back["00282112"].Value).toEqual([]);
             expect(back["00181310"].Value).toEqual([0, 3]);
         }
         expect(warn.mock.calls.flat().join(" ")).toMatch(
