@@ -268,13 +268,6 @@ export class DicomMetadataListener {
      */
     _basePop() {
         const result = this.current.pop?.() ?? this.current.dest;
-        if (result.InlineBinary) {
-            console.log(
-                "********* InlineBinary already set",
-                result,
-                this.current
-            );
-        }
         if (result.Value === null) {
             result.Value = [];
         } else if (
