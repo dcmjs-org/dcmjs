@@ -397,11 +397,8 @@ export class BufferStream {
      */
     async fromAsyncStream(stream) {
         for await (const chunk of stream) {
-            const ab = chunk.buffer.slice(
-                chunk.byteOffset,
-                chunk.byteOffset + chunk.byteLength
-            );
-            this.addBuffer(ab);
+            // addBuffer copies a view, so the stream can reuse its chunk
+            this.addBuffer(chunk);
         }
         this.setComplete();
     }
@@ -418,10 +415,12 @@ export class BufferStream {
      *     relative to the start of the view, clamped to the view
      * @param {*} options.end for the end of the buffer to use, relative to
      *     the start of the view, clamped to the view
-     * @param {*} options.transfer to transfer the buffer to be owned.
-     *     Transfer defaults true when the entire ArrayBuffer is being
-     *     added, and a partial view or range is always copied. It should
-     *     be set explicitly to false to NOT transfer.
+     * @param {*} options.transfer keeps a reference to the ArrayBuffer
+     *     instead of a copy, and the caller must not change the buffer
+     *     afterwards. It does not detach the buffer. It applies only when
+     *     the range covers the whole ArrayBuffer, so a partial view or range
+     *     is always copied. The default is true for an ArrayBuffer, and
+     *     false for a view. Set it to false to force a copy.
      */
     addBuffer(buffer, options = null) {
         if (!buffer) {

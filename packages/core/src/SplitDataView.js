@@ -116,14 +116,18 @@ export default class SplitDataView {
      * @param {*} options.end for the end of the buffer to use, relative to
      *     the start of the view, clamped to the view (an explicit
      *     `end: 0` adds nothing)
-     * @param {*} options.transfer to transfer the buffer to be owned; it
-     *     applies only when the range covers the whole ArrayBuffer, so a
-     *     partial view or range is always copied
+     * @param {*} options.transfer keeps a reference to the ArrayBuffer
+     *     instead of a copy, and the caller must not change the buffer
+     *     afterwards. It does not detach the buffer. It applies only when the
+     *     range covers the whole ArrayBuffer, so a partial view or range is
+     *     always copied. The default is true for an ArrayBuffer, and false
+     *     for a view, so that a caller can reuse a view.
      */
     addBuffer(buffer, options = null) {
+        const isView = ArrayBuffer.isView(buffer);
         let base = 0;
         let length;
-        if (ArrayBuffer.isView(buffer)) {
+        if (isView) {
             base = buffer.byteOffset;
             length = buffer.byteLength;
             buffer = buffer.buffer;
@@ -136,7 +140,7 @@ export default class SplitDataView {
             base +
             Math.min(Math.max(options?.end ?? length, start - base), length);
         const whole = start === 0 && end === buffer.byteLength;
-        const transfer = whole && (options?.transfer ?? true);
+        const transfer = whole && (options?.transfer ?? !isView);
         if (start === end) {
             return;
         }

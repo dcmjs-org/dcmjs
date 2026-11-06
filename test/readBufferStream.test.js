@@ -98,8 +98,8 @@ describe("ReadBufferStream Tests", () => {
             expect(Array.from(new Uint8Array(stream.getBuffer(0, 3)))).toEqual([
                 1, 2, 3
             ]);
-            // the pool is not transferred away from other allocations
-            expect(pooled.buffer.byteLength).toBeGreaterThan(0);
+            /** the stream holds a copy, not the shared pool */
+            expect(stream.view.buffers[0]).not.toBe(pooled.buffer);
         });
 
         it("copies only the range of an ArrayBuffer for an explicit transfer", () => {
@@ -111,8 +111,17 @@ describe("ReadBufferStream Tests", () => {
             expect(Array.from(new Uint8Array(stream.getBuffer(0, 8)))).toEqual([
                 16, 17, 18, 19, 20, 21, 22, 23
             ]);
-            // the partial range is copied, so the source keeps its bytes
-            expect(own.byteLength).toBe(size);
+            /** the partial range is copied, so the stream doesn't hold the source */
+            expect(stream.view.buffers[0]).not.toBe(own);
+        });
+
+        it("copies a whole view by default, so the caller can reuse it", () => {
+            const u8 = new Uint8Array(16);
+            const stream = new ReadBufferStream(null, true);
+            stream.addBuffer(u8);
+            u8[0] = 99;
+            stream.setComplete();
+            expect(stream.readUint8()).toBe(0);
         });
     });
 
