@@ -393,12 +393,12 @@ export class BufferStream {
     }
 
     /**
-     * Reads from an async stream delivering to addBuffer.
+     * Reads from an async stream delivering to addBuffer. Each chunk is
+     * copied, also a plain ArrayBuffer, so the producer may reuse it.
      */
     async fromAsyncStream(stream) {
         for await (const chunk of stream) {
-            // addBuffer copies a view, so the stream can reuse its chunk
-            this.addBuffer(chunk);
+            this.addBuffer(chunk, { transfer: false });
         }
         this.setComplete();
     }
@@ -411,10 +411,10 @@ export class BufferStream {
      * the bytes of the view, and not the full underlying ArrayBuffer.
      *
      * @param {*} buffer an ArrayBuffer, or a typed array or DataView
-     * @param {*} options.start for the start of the new buffer to use,
+     * @param {*} options.start byte offset for the start of the new buffer
+     *     to use, relative to the start of the view, clamped to the view
+     * @param {*} options.end byte offset for the end of the buffer to use,
      *     relative to the start of the view, clamped to the view
-     * @param {*} options.end for the end of the buffer to use, relative to
-     *     the start of the view, clamped to the view
      * @param {*} options.transfer keeps a reference to the ArrayBuffer
      *     instead of a copy, and the caller must not change the buffer
      *     afterwards. It does not detach the buffer. It applies only when

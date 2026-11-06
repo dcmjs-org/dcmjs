@@ -111,11 +111,11 @@ export default class SplitDataView {
      * holds bytes of other allocations.
      *
      * @param {*} buffer an ArrayBuffer, or a typed array or DataView
-     * @param {*} options.start for the start of the new buffer to use,
-     *     relative to the start of the view, clamped to the view
-     * @param {*} options.end for the end of the buffer to use, relative to
-     *     the start of the view, clamped to the view (an explicit
-     *     `end: 0` adds nothing)
+     * @param {*} options.start byte offset for the start of the new buffer
+     *     to use, relative to the start of the view, clamped to the view
+     * @param {*} options.end byte offset for the end of the buffer to use,
+     *     relative to the start of the view, clamped to the view (an
+     *     explicit `end: 0` adds nothing)
      * @param {*} options.transfer keeps a reference to the ArrayBuffer
      *     instead of a copy, and the caller must not change the buffer
      *     afterwards. It does not detach the buffer. It applies only when the
@@ -141,7 +141,8 @@ export default class SplitDataView {
             Math.min(Math.max(options?.end ?? length, start - base), length);
         const whole = start === 0 && end === buffer.byteLength;
         const transfer = whole && (options?.transfer ?? !isView);
-        if (start === end) {
+        // NaN fails this comparison too, so a NaN start or end adds nothing
+        if (!(start < end)) {
             return;
         }
         const addBuffer = transfer ? buffer : buffer.slice(start, end);

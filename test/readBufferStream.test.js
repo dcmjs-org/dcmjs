@@ -123,6 +123,93 @@ describe("ReadBufferStream Tests", () => {
             stream.setComplete();
             expect(stream.readUint8()).toBe(0);
         });
+
+        it("keeps a reference to a plain ArrayBuffer", () => {
+            const own = buffer.slice(0);
+            const stream = new ReadBufferStream(null, true);
+            stream.addBuffer(own);
+            stream.setComplete();
+            expect(stream.view.buffers[0]).toBe(own);
+        });
+
+        it("keeps a reference to a whole-buffer view for an explicit transfer", () => {
+            const u8 = new Uint8Array(16);
+            const stream = new ReadBufferStream(null, true);
+            stream.addBuffer(u8, { transfer: true });
+            stream.setComplete();
+            expect(stream.view.buffers[0]).toBe(u8.buffer);
+        });
+
+        it("adds nothing for a NaN start or end", () => {
+            const stream = new ReadBufferStream(null, true);
+            stream.addBuffer(new Uint8Array(buffer, 16, 8), { start: NaN });
+            stream.addBuffer(buffer.slice(0), { end: NaN });
+            stream.setComplete();
+            expect(stream.size).toBe(0);
+            // no zero-length ghost entry is pushed either
+            expect(stream.view.buffers.length).toBe(0);
+        });
+
+        it("clamps a negative start of a plain ArrayBuffer to 0", () => {
+            const own = buffer.slice(0);
+            const stream = new ReadBufferStream(null, true);
+            stream.addBuffer(own, { start: -4 });
+            stream.setComplete();
+            expect(stream.size).toBe(size);
+            expect(stream.readUint8()).toBe(0);
+        });
+
+        it("adds nothing for a negative end", () => {
+            const stream = new ReadBufferStream(null, true);
+            stream.addBuffer(buffer.slice(0), { end: -4 });
+            stream.setComplete();
+            expect(stream.size).toBe(0);
+        });
+
+        it("clamps an end past the buffer and transfers the whole buffer", () => {
+            const own = buffer.slice(0);
+            const stream = new ReadBufferStream(null, true);
+            stream.addBuffer(own, { end: size + 64 });
+            stream.setComplete();
+            expect(stream.size).toBe(size);
+            // the clamped range covers the whole buffer, so it is
+            // kept by reference like a whole buffer without options
+            expect(stream.view.buffers[0]).toBe(own);
+        });
+
+        it("copies a whole plain ArrayBuffer for an explicit transfer false", () => {
+            const own = buffer.slice(0);
+            const stream = new ReadBufferStream(null, true);
+            stream.addBuffer(own, { transfer: false });
+            stream.setComplete();
+            expect(stream.size).toBe(size);
+            expect(stream.view.buffers[0]).not.toBe(own);
+        });
+
+        it("copies a whole-buffer view given to the constructor", () => {
+            const u8 = new Uint8Array(16).fill(7);
+            const stream = new ReadBufferStream(u8);
+            expect(stream.view.buffers[0]).not.toBe(u8.buffer);
+            u8[0] = 99;
+            expect(stream.readUint8()).toBe(7);
+        });
+
+        it("copies the chunks of an async stream", async () => {
+            const ab = buffer.slice(0, 4);
+            const u8 = new Uint8Array([9, 9]);
+            async function* chunks() {
+                yield ab;
+                yield u8;
+            }
+            const stream = new ReadBufferStream(null, true);
+            await stream.fromAsyncStream(chunks());
+            new Uint8Array(ab)[0] = 77;
+            u8[0] = 77;
+            expect(stream.size).toBe(6);
+            expect(Array.from(new Uint8Array(stream.getBuffer(0, 6)))).toEqual([
+                0, 1, 2, 3, 9, 9
+            ]);
+        });
     });
 
     describe("substream", () => {
