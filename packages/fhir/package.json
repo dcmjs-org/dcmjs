@@ -3,10 +3,32 @@
     "version": "0.0.0",
     "description": "DICOM ↔ FHIR R4B mapping for Patient, ImagingStudy and DocumentReference resources from naturalized dcmjs datasets",
     "main": "./src/index.js",
+    "exports": {
+        ".": {
+            "source": "./src/index.js",
+            "import": "./dist/index.mjs",
+            "default": "./src/index.js"
+        },
+        "./package.json": "./package.json"
+    },
     "files": [
-        "src",
+        "dist",
         "README.md"
     ],
+    "scripts": {
+        "build": "rollup -c ../../rollup.packages.config.mjs"
+    },
+    "publishConfig": {
+        "main": "./dist/index.cjs",
+        "module": "./dist/index.mjs",
+        "exports": {
+            ".": {
+                "import": "./dist/index.mjs",
+                "require": "./dist/index.cjs"
+            },
+            "./package.json": "./package.json"
+        }
+    },
     "license": "MIT",
     "repository": {
         "type": "git",

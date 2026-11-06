@@ -18,7 +18,12 @@ const OUTPUTS = [
     "eventStream.es.js",
     "media.es.js",
     "encapsulated.es.js",
-    "image.es.js"
+    "image.es.js",
+    "dcmjs.cjs",
+    "eventStream.cjs",
+    "media.cjs",
+    "encapsulated.cjs",
+    "image.cjs"
 ];
 
 // The inputs of the bundles: newer than a bundle means a stale build.
@@ -90,9 +95,9 @@ function withLock(fn) {
     }
 }
 
-// Builds only the ESM entries and the UMD bundle, through node and the
-// rollup CLI script, so no shell is needed (the pnpm shim fails to spawn on
-// Windows).
+// Builds only the ESM entries, their CJS twins, and the UMD bundle, through
+// node and the rollup CLI script, so no shell is needed (the pnpm shim fails
+// to spawn on Windows).
 function ensureBuild() {
     if (buildAge() === "current") {
         return;

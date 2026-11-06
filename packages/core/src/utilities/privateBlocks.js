@@ -3,7 +3,7 @@ import { Tag } from "../Tag.js";
 import { createLatin1Decoder } from "../charset/latin1.js";
 import { base64ToArrayBuffer } from "./base64.js";
 import { isBinaryData } from "./binaryFragment.js";
-import { isVrCode, recordVr } from "./vrMap.js";
+import { isVrCode, ownVrMap, recordVr } from "./vrMap.js";
 import {
     definePersonNameAccessor,
     toPersonNameValue
@@ -107,52 +107,83 @@ function aliasDeleted(target, name, record) {
 }
 
 /**
+ * The alias record of `target` itself. An Object.create child must not use
+ * the record of its prototype: the aliases there belong to the parent.
+ */
+function ownAliases(target) {
+    return Object.prototype.hasOwnProperty.call(target, DATASET_ALIASES)
+        ? target[DATASET_ALIASES]
+        : undefined;
+}
+
+/**
  * Defines the non-enumerable aliases of every reserved block in `target`
  * (see the module comment). The aliases derive from the blocks alone, so a
  * caller can call this again on a clone. An alias that was deleted stays
  * deleted.
  */
 export function definePrivateAliases(target) {
-    let aliases = target[DATASET_ALIASES];
+    let aliases = ownAliases(target);
     if (!aliases) {
         aliases = new Map();
         Object.defineProperty(target, DATASET_ALIASES, { value: aliases });
     }
     const onDataset = (name, key, elementKey, creatorName) => {
         if (aliases.has(name)) return;
+        // `this` is the dataset, or an Object.create child that inherits the alias
         const record = { key, elementKey };
         record.get =
             elementKey === null
-                ? () =>
-                      target[key]
-                          ? parsePrivateBlockKey(key, target[key])?.creator
-                          : undefined
-                : () => target[key]?.[elementKey];
+                ? function () {
+                      return this[key]
+                          ? parsePrivateBlockKey(key, this[key])?.creator
+                          : undefined;
+                  }
+                : function () {
+                      return this[key]?.[elementKey];
+                  };
         const set =
             elementKey === null
                 ? undefined
-                : v => {
+                : function (v) {
                       const creator = aliases.get(creatorName);
                       const creatorDeleted =
                           creator && aliasDeleted(target, creatorName, creator);
-                      if (target._vrMap?.[key]?.[elementKey] === "PN") {
+                      if (
+                          this !== target &&
+                          this[key] &&
+                          !creatorDeleted &&
+                          !Object.prototype.hasOwnProperty.call(this, key)
+                      ) {
+                          // a child writes to its own copy of this block only,
+                          // without the elements the parent deleted (NAT-U-HIST-7)
+                          const { elements } = deletedByAlias(target);
+                          const block = { ...this[key] };
+                          for (const ee of Object.keys(block)) {
+                              if (elements.has(`${key}\n${ee}`))
+                                  delete block[ee];
+                          }
+                          this[key] = block;
+                          definePrivateAliases(this);
+                      }
+                      if (this._vrMap?.[key]?.[elementKey] === "PN") {
                           v = toPersonNameValue(v); // NAT-U-SET-2
                       }
-                      if (target[key] && !creatorDeleted) {
-                          target[key][elementKey] = v;
+                      if (this[key] && !creatorDeleted) {
+                          this[key][elementKey] = v;
                           return;
                       }
                       // the block is gone (or its creator alias was deleted):
                       // the value becomes a flat element, with the VR that
                       // the block had for it
-                      Object.defineProperty(target, name, {
+                      Object.defineProperty(this, name, {
                           value: v,
                           writable: true,
                           enumerable: true,
                           configurable: true
                       });
-                      const vr = target._vrMap?.[key]?.[elementKey];
-                      if (vr && target._vrMap) target._vrMap[name] = vr;
+                      const vr = this._vrMap?.[key]?.[elementKey];
+                      if (vr) ownVrMap(this)[name] = vr;
                   };
         if (defineAlias(target, name, record.get, set)) {
             aliases.set(name, record);
@@ -331,7 +362,7 @@ function flatPrivateTag(key) {
  */
 function deletedByAlias(dataset) {
     const deleted = { blocks: new Set(), elements: new Set() };
-    const aliases = dataset[DATASET_ALIASES];
+    const aliases = ownAliases(dataset);
     if (!aliases) return deleted;
     for (const [name, record] of aliases) {
         if (!aliasDeleted(dataset, name, record)) continue;
@@ -340,6 +371,23 @@ function deletedByAlias(dataset) {
         else deleted.elements.add(`${key}\n${elementKey}`);
     }
     return deleted;
+}
+
+/**
+ * Gives `copy`, a copy of the enumerable keys of `source`, the private
+ * aliases of `source`. An element or block whose dataset alias was deleted on
+ * `source` is removed from `copy`, so the copy writes what `source` writes.
+ * Does nothing when `source` has no alias record of its own.
+ */
+export function copyPrivateAliases(source, copy) {
+    if (!ownAliases(source)) return;
+    const deleted = deletedByAlias(source);
+    for (const key of deleted.blocks) delete copy[key];
+    for (const entry of deleted.elements) {
+        const [key, elementKey] = entry.split("\n");
+        if (copy[key]) delete copy[key][elementKey];
+    }
+    definePrivateAliases(copy);
 }
 
 /**

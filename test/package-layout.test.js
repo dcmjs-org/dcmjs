@@ -65,14 +65,22 @@ describe("the published packages", () => {
         }
     });
 
-    test("a subpath of @dcmjs-org/dcmjs is ESM only", () => {
-        // A require() would load a second copy of the default entry state.
+    test("every entry of @dcmjs-org/dcmjs is dual, import and require", () => {
+        // One copy of the default entry state per module system: the import
+        // targets share the ESM chunk, the require targets share the CJS
+        // chunk (rollup builds both groups from the same inputs). Only a
+        // consumer that mixes import and require gets two copies — the
+        // standard dual-build caveat every @dcmjs-org/* package carries.
         for (const [subpath, target] of Object.entries(rootPackage.exports)) {
-            if (subpath === "." || subpath === "./dictionary") continue;
-            expect({ subpath, target: Object.keys(target) }).toEqual({
+            if (subpath === "./dictionary" || subpath === "./package.json") {
+                continue;
+            }
+            expect({ subpath, conditions: Object.keys(target) }).toEqual({
                 subpath,
-                target: ["import"]
+                conditions: ["import", "require"]
             });
+            expect(target.import).toMatch(/^\.\/build\/.*\.es\.js$/);
+            expect(target.require).toMatch(/^\.\/build\/.*\.cjs$/);
         }
     });
 
@@ -113,7 +121,9 @@ describe("the ESM build", () => {
         );
         const maps = fs
             .readdirSync(BUILD_DIR)
-            .filter(f => /\.es\.js\.map$|^dcmjs\.shared-.*\.js\.map$/.test(f));
+            .filter(f =>
+                /\.es\.js\.map$|\.cjs\.map$|^dcmjs\.shared-.*\.js\.map$/.test(f)
+            );
         expect(maps.length).toBeGreaterThan(0);
         for (const map of maps) {
             const { sources } = readJson(path.join(BUILD_DIR, map));

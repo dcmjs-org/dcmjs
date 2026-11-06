@@ -75,3 +75,59 @@ describe("SplitDataView.getBufferMemoryInfo", () => {
         expect(info.bytesBeforeOffset).toBe(0);
     });
 });
+
+describe("SplitDataView.findStart", () => {
+    /** The linear scan findStart used before #629, as a reference. */
+    function scan(view, start) {
+        for (let index = 0; index < view.buffers.length; index++) {
+            if (
+                start >= view.offsets[index] &&
+                start < view.offsets[index] + view.lengths[index]
+            ) {
+                return index;
+            }
+        }
+    }
+
+    it("finds the same buffer as a linear scan, at every boundary", () => {
+        const view = new SplitDataView({ defaultSize: 16 });
+        view.checkSize(64);
+        for (const length of [1, 7, 33, 2, 100]) {
+            view.addBuffer(new ArrayBuffer(length));
+        }
+        view.checkSize(view.byteLength + 40);
+
+        for (let start = -2; start <= view.byteLength + 2; start++) {
+            expect(view.findStart(start)).toBe(scan(view, start));
+        }
+    });
+
+    it("refuses a start that is out of range or not a number", () => {
+        const view = new SplitDataView({ defaultSize: 16 });
+        expect(view.findStart(0)).toBeUndefined();
+        view.checkSize(48);
+        expect(view.findStart(-1)).toBeUndefined();
+        expect(view.findStart(48)).toBeUndefined();
+        expect(view.findStart(NaN)).toBeUndefined();
+        expect(view.findStart()).toBe(0);
+    });
+
+    it("stays fast with many buffers (#629)", () => {
+        // 256-byte chunks, as Tag.write uses for each value.  A linear scan
+        // takes tens of seconds here; a binary search, milliseconds.
+        const count = 100000;
+        const view = new SplitDataView({ defaultSize: 256 });
+        view.checkSize(count * 256);
+        let misses = 0;
+        const t0 = performance.now();
+        for (let i = 0; i < count; i++) {
+            const start = (count - 1) * 256 + (i % 256);
+            if (view.findStart(start) !== count - 1) {
+                misses++;
+            }
+        }
+        const elapsed = performance.now() - t0;
+        expect(misses).toBe(0);
+        expect(elapsed).toBeLessThan(2000);
+    });
+});

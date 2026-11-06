@@ -1,8 +1,13 @@
 name: Run tests
 
 on:
-  - push
-  - pull_request
+  push:
+    branches:
+      - master
+      - 1.0-beta
+      - release/0.5x
+  pull_request:
+  workflow_dispatch:
 
 jobs:
   test:

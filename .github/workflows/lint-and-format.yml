@@ -1,8 +1,12 @@
 name: Run lint and format check
 
 on:
-  - push
-  - pull_request
+  push:
+    branches:
+      - master
+      - 1.0-beta
+      - release/0.5x
+  pull_request:
 
 jobs:
   lint-and-format:

@@ -8,7 +8,7 @@ import { NaturalizedListener } from "../../src/eventStream/NaturalizedListener";
 import { fromDataSet } from "../../src/eventStream/fromDataSet";
 import { fromNaturalized } from "../../src/eventStream/fromNaturalized";
 import { Part10Writer } from "../../src/eventStream/Part10Writer";
-import { definePrivateAliases } from "@dcmjs-org/core";
+import { definePrivateAliases, setAttribute } from "@dcmjs-org/core";
 
 const { DicomMessage, DicomMetaDictionary } = dcmjs.data;
 
@@ -136,6 +136,123 @@ describe("private reserved blocks", () => {
         expect(
             DicomMetaDictionary.denaturalizeDataset(naturalized)["00291001"]
         ).toBeUndefined();
+    });
+
+    it("each Object.create child of a dataset gets the aliases of its own blocks", () => {
+        const parent = DicomMetaDictionary.naturalizeDataset(sourceDict());
+        const child = value => {
+            const item = Object.create(parent);
+            item["0035:CHILD"] = {
+                creator: "CHILD",
+                reservedBlock: 0x10,
+                x01: [value]
+            };
+            definePrivateAliases(item);
+            return item;
+        };
+        const first = child(1);
+        const second = child(2);
+
+        expect(first["00351001"]).toEqual([1]);
+        expect(second["00351001"]).toEqual([2]);
+        expect(
+            DicomMetaDictionary.denaturalizeDataset(second)["00350010"]
+        ).toBeDefined();
+        expect("00351001" in parent).toBe(false);
+        expect(parent[Symbol.for("dcmjs.privateAliases")].has("00351001")).toBe(
+            false
+        );
+        // a child block that replaces a parent block is written, not deleted
+        const copy = Object.create(parent);
+        copy["0029:ACME"] = { ...parent["0029:ACME"], x01: [8] };
+        const dict = DicomMetaDictionary.denaturalizeDataset(copy);
+        expect(Number(dict["00291001"].Value[0])).toBe(8);
+    });
+
+    it("a write on an Object.create child changes the child, not the parent", () => {
+        const parent = DicomMetaDictionary.naturalizeDataset({
+            ...sourceDict(),
+            "00100010": { vr: "PN", Value: [{ Alphabetic: "Parent^One" }] }
+        });
+        const item = Object.create(parent);
+        item["00291001"] = [99];
+        item.PatientName = "Child^Two";
+        setAttribute(item, "00431001", ["x"], { vr: "SH" });
+
+        expect(item["00291001"]).toEqual([99]);
+        expect(String(item.PatientName)).toBe("Child^Two");
+        expect(parent["0029:ACME"].x01).toEqual([7]);
+        expect(String(parent.PatientName)).toBe("Parent^One");
+        expect(parent._vrMap["00431001"]).toBeUndefined();
+        expect(
+            DicomMetaDictionary.denaturalizeDataset(item)["00291001"].Value
+        ).toEqual(["99"]);
+        // an alias of the parent reads the block that the child holds
+        const other = Object.create(parent);
+        other["0029:ACME"] = { ...parent["0029:ACME"], x01: [8] };
+        expect(other["00291001"]).toEqual([8]);
+    });
+
+    it("a creator deleted on the parent wins over a write on an Object.create child", () => {
+        const parent = DicomMetaDictionary.naturalizeDataset(sourceDict());
+        delete parent["00090010"]; // the creator alias of "0009:ACME"
+        const child = Object.create(parent);
+        child["00091001"] = ["flat"];
+
+        // the child writes a flat element, as the parent would (NAT-U-HIST-7)
+        const dict = DicomMetaDictionary.denaturalizeDataset(child);
+        expect(dict["00091001"].Value).toEqual(["flat"]);
+        expect(dict["00090010"]).toBeUndefined();
+        // the child must not bring the deleted block back at another xx
+        expect(dict["00090011"]).toBeUndefined();
+        expect(dict["00091101"]).toBeUndefined();
+        expect(parent["0009:ACME"].x01).toEqual(["nine"]);
+    });
+
+    it("an Object.create child's copy of a block keeps the deletes of the parent", () => {
+        const parent = DicomMetaDictionary.naturalizeDataset({
+            ...sourceDict(),
+            "00291002": { vr: "LO", Value: ["keep"] }
+        });
+        delete parent["00291001"];
+        delete parent["00091001"]; // a deleted element of another block
+        const child = Object.create(parent);
+        child["00291002"] = ["changed"]; // copies "0029:ACME" only
+
+        const dict = DicomMetaDictionary.denaturalizeDataset(child);
+        expect(dict["00291002"].Value).toEqual(["changed"]);
+        expect(dict["00291001"]).toBeUndefined(); // the delete wins
+        // the copy filters the child's block; the parent's blocks keep their data
+        expect(parent["0029:ACME"].x01).toEqual([7]);
+        expect(parent["0009:ACME"].x01).toEqual(["nine"]);
+    });
+
+    it("a write on an Object.create child keeps the other blocks the child holds", () => {
+        const naturalized = () =>
+            DicomMetaDictionary.naturalizeDataset({
+                ...sourceDict(),
+                "00291002": { vr: "LO", Value: ["keep"] }
+            });
+        // a deleted creator of the parent does not remove the child's block
+        const parent = naturalized();
+        delete parent["00090010"]; // the creator alias of "0009:ACME"
+        const own = { creator: "ACME", reservedBlock: 0x10, x01: ["own"] };
+        const child = Object.create(parent);
+        child["0009:ACME"] = own;
+        child["00291001"] = [70]; // a write to "0029:ACME"
+        expect(child["0009:ACME"]).toBe(own);
+
+        // a deleted element of the parent does not remove the child's element
+        const parent2 = naturalized();
+        delete parent2["00291002"];
+        const other = Object.create(parent2);
+        other["0029:ACME"] = {
+            creator: "ACME",
+            reservedBlock: 0x10,
+            x02: [80]
+        };
+        other["00091001"] = ["x"]; // a write to "0009:ACME"
+        expect(other["0029:ACME"].x02).toEqual([80]);
     });
 
     it("a write to a hex alias after the block or its creator is deleted makes a flat element", () => {

@@ -213,13 +213,30 @@ export default class SplitDataView {
         return createBuffer.buffer;
     }
 
+    /**
+     * Returns the index of the buffer holding byte `start`, or undefined if
+     * no buffer holds it.  Buffers are only ever appended, so offsets[] is
+     * increasing and a binary search finds it.  A linear scan here made
+     * writing a sequence of many items quadratic, since every write near the
+     * end of a stream scanned all of its buffers.
+     * https://github.com/dcmjs-org/dcmjs/issues/629
+     */
     findStart(start = 0) {
-        for (let index = 0; index < this.buffers.length; index++) {
-            if (
-                start >= this.offsets[index] &&
-                start < this.offsets[index] + this.lengths[index]
-            ) {
-                return index;
+        // Refuses NaN and negatives; NaN fails both comparisons below and
+        // would otherwise be reported as found.
+        if (!(start >= 0)) {
+            return;
+        }
+        let low = 0;
+        let high = this.offsets.length - 1;
+        while (low <= high) {
+            const mid = (low + high) >> 1;
+            if (start < this.offsets[mid]) {
+                high = mid - 1;
+            } else if (start >= this.offsets[mid] + this.lengths[mid]) {
+                low = mid + 1;
+            } else {
+                return mid;
             }
         }
     }

@@ -3,10 +3,32 @@
     "version": "0.0.0",
     "description": "DICOMDIR (Media Storage Directory, PS3.10) building and writing: turns a flat file-set description into the PATIENT/STUDY/SERIES/leaf record hierarchy with real byte offsets, serialized in one pass",
     "main": "./src/index.js",
+    "exports": {
+        ".": {
+            "source": "./src/index.js",
+            "import": "./dist/index.mjs",
+            "default": "./src/index.js"
+        },
+        "./package.json": "./package.json"
+    },
     "files": [
-        "src",
+        "dist",
         "README.md"
     ],
+    "scripts": {
+        "build": "rollup -c ../../rollup.packages.config.mjs"
+    },
+    "publishConfig": {
+        "main": "./dist/index.cjs",
+        "module": "./dist/index.mjs",
+        "exports": {
+            ".": {
+                "import": "./dist/index.mjs",
+                "require": "./dist/index.cjs"
+            },
+            "./package.json": "./package.json"
+        }
+    },
     "license": "MIT",
     "repository": {
         "type": "git",
