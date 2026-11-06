@@ -17,10 +17,12 @@ const {
 } = require("./helper/build.js");
 
 // dcmjs@0.52.0 from npm, and the ceiling for each default bundle.
-// dcmjs.js is 1.065: the bundle is unminified, so frameDataset (#631) adds
-// ~8 KB of documented source, past the ~2.4 KB that 1.06 left (×1.0638).
+// dcmjs.js is 1.066: the bundle is unminified, so frameDataset (#631) adds
+// ~8 KB of documented source, past the ~2.4 KB that 1.06 left (×1.0638),
+// and the addBuffer view fix (#621) documents the copy and transfer
+// semantics, ~1.5 KB more (×1.0651).
 const BUNDLES = {
-    "dcmjs.js": { baseline: 1384431, ceiling: 1.065 },
+    "dcmjs.js": { baseline: 1384431, ceiling: 1.066 },
     "dcmjs.es.js": { baseline: 1357418, ceiling: 1.06 }
 };
 

@@ -45,6 +45,171 @@ describe("ReadBufferStream Tests", () => {
             stream.increment(size - 1);
             expect(stream.readUint32(size - 1)).toBe(33620095);
         });
+
+        // A small Node.js Buffer is such a view of a shared pool
+        it("adds only the bytes of a view of a larger ArrayBuffer", () => {
+            const stream = new ReadBufferStream(null, true);
+            stream.addBuffer(new Uint8Array(buffer, 16, 8));
+            stream.addBuffer(new DataView(buffer, 100, 4));
+            stream.setComplete();
+            expect(stream.size).toBe(12);
+            expect(Array.from(new Uint8Array(stream.getBuffer(0, 12)))).toEqual(
+                [16, 17, 18, 19, 20, 21, 22, 23, 100, 101, 102, 103]
+            );
+        });
+
+        it("reads only the bytes of a view given to the constructor", () => {
+            const stream = new ReadBufferStream(new Uint8Array(buffer, 16, 8));
+            expect(stream.size).toBe(8);
+            expect(stream.readUint8()).toBe(16);
+        });
+
+        it("clamps start and end to the view", () => {
+            const stream = new ReadBufferStream(null, true);
+            // end past the view adds only the view bytes
+            stream.addBuffer(new Uint8Array(buffer, 16, 8), { end: 64 });
+            // a negative start reads no bytes before the view
+            stream.addBuffer(new Uint8Array(buffer, 32, 4), { start: -4 });
+            stream.setComplete();
+            expect(stream.size).toBe(12);
+            expect(Array.from(new Uint8Array(stream.getBuffer(0, 12)))).toEqual(
+                [16, 17, 18, 19, 20, 21, 22, 23, 32, 33, 34, 35]
+            );
+        });
+
+        it("adds nothing for an explicit start 0, end 0", () => {
+            const stream = new ReadBufferStream(null, true);
+            stream.addBuffer(new Uint8Array(buffer, 16, 8), {
+                start: 0,
+                end: 0
+            });
+            stream.addBuffer(buffer.slice(0), { start: 0, end: 0 });
+            stream.setComplete();
+            expect(stream.size).toBe(0);
+        });
+
+        it("copies only the view bytes for an explicit transfer", () => {
+            // a small Node.js Buffer is a view of a large shared pool
+            const pooled = Buffer.from([1, 2, 3]);
+            const stream = new ReadBufferStream(null, true);
+            stream.addBuffer(pooled, { transfer: true });
+            stream.setComplete();
+            expect(stream.size).toBe(3);
+            expect(Array.from(new Uint8Array(stream.getBuffer(0, 3)))).toEqual([
+                1, 2, 3
+            ]);
+            /** the stream holds a copy, not the shared pool */
+            expect(stream.view.buffers[0]).not.toBe(pooled.buffer);
+        });
+
+        it("copies only the range of an ArrayBuffer for an explicit transfer", () => {
+            const own = buffer.slice(0);
+            const stream = new ReadBufferStream(null, true);
+            stream.addBuffer(own, { start: 16, end: 24, transfer: true });
+            stream.setComplete();
+            expect(stream.size).toBe(8);
+            expect(Array.from(new Uint8Array(stream.getBuffer(0, 8)))).toEqual([
+                16, 17, 18, 19, 20, 21, 22, 23
+            ]);
+            /** the partial range is copied, so the stream doesn't hold the source */
+            expect(stream.view.buffers[0]).not.toBe(own);
+        });
+
+        it("copies a whole view by default, so the caller can reuse it", () => {
+            const u8 = new Uint8Array(16);
+            const stream = new ReadBufferStream(null, true);
+            stream.addBuffer(u8);
+            u8[0] = 99;
+            stream.setComplete();
+            expect(stream.readUint8()).toBe(0);
+        });
+
+        it("keeps a reference to a plain ArrayBuffer", () => {
+            const own = buffer.slice(0);
+            const stream = new ReadBufferStream(null, true);
+            stream.addBuffer(own);
+            stream.setComplete();
+            expect(stream.view.buffers[0]).toBe(own);
+        });
+
+        it("keeps a reference to a whole-buffer view for an explicit transfer", () => {
+            const u8 = new Uint8Array(16);
+            const stream = new ReadBufferStream(null, true);
+            stream.addBuffer(u8, { transfer: true });
+            stream.setComplete();
+            expect(stream.view.buffers[0]).toBe(u8.buffer);
+        });
+
+        it("adds nothing for a NaN start or end", () => {
+            const stream = new ReadBufferStream(null, true);
+            stream.addBuffer(new Uint8Array(buffer, 16, 8), { start: NaN });
+            stream.addBuffer(buffer.slice(0), { end: NaN });
+            stream.setComplete();
+            expect(stream.size).toBe(0);
+            // no zero-length ghost entry is pushed either
+            expect(stream.view.buffers.length).toBe(0);
+        });
+
+        it("clamps a negative start of a plain ArrayBuffer to 0", () => {
+            const own = buffer.slice(0);
+            const stream = new ReadBufferStream(null, true);
+            stream.addBuffer(own, { start: -4 });
+            stream.setComplete();
+            expect(stream.size).toBe(size);
+            expect(stream.readUint8()).toBe(0);
+        });
+
+        it("adds nothing for a negative end", () => {
+            const stream = new ReadBufferStream(null, true);
+            stream.addBuffer(buffer.slice(0), { end: -4 });
+            stream.setComplete();
+            expect(stream.size).toBe(0);
+        });
+
+        it("clamps an end past the buffer and transfers the whole buffer", () => {
+            const own = buffer.slice(0);
+            const stream = new ReadBufferStream(null, true);
+            stream.addBuffer(own, { end: size + 64 });
+            stream.setComplete();
+            expect(stream.size).toBe(size);
+            // the clamped range covers the whole buffer, so it is
+            // kept by reference like a whole buffer without options
+            expect(stream.view.buffers[0]).toBe(own);
+        });
+
+        it("copies a whole plain ArrayBuffer for an explicit transfer false", () => {
+            const own = buffer.slice(0);
+            const stream = new ReadBufferStream(null, true);
+            stream.addBuffer(own, { transfer: false });
+            stream.setComplete();
+            expect(stream.size).toBe(size);
+            expect(stream.view.buffers[0]).not.toBe(own);
+        });
+
+        it("copies a whole-buffer view given to the constructor", () => {
+            const u8 = new Uint8Array(16).fill(7);
+            const stream = new ReadBufferStream(u8);
+            expect(stream.view.buffers[0]).not.toBe(u8.buffer);
+            u8[0] = 99;
+            expect(stream.readUint8()).toBe(7);
+        });
+
+        it("copies the chunks of an async stream", async () => {
+            const ab = buffer.slice(0, 4);
+            const u8 = new Uint8Array([9, 9]);
+            async function* chunks() {
+                yield ab;
+                yield u8;
+            }
+            const stream = new ReadBufferStream(null, true);
+            await stream.fromAsyncStream(chunks());
+            new Uint8Array(ab)[0] = 77;
+            u8[0] = 77;
+            expect(stream.size).toBe(6);
+            expect(Array.from(new Uint8Array(stream.getBuffer(0, 6)))).toEqual([
+                0, 1, 2, 3, 9, 9
+            ]);
+        });
     });
 
     describe("substream", () => {
