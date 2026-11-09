@@ -153,6 +153,10 @@ export class DicomMetadataListener {
             options = {};
         }
 
+        // Default 10 MB threshold for merging frame chunks into a single ArrayBuffer
+        this.singleBufferThreshold =
+            options.singleBufferThreshold ?? 10 * 1024 * 1024;
+
         // Information filter should always be first so it can track tags
         // Use the provided informationFilter or create a new one
         const informationFilter =
@@ -283,6 +287,55 @@ export class DicomMetadataListener {
         ) {
             result.Value = [];
         }
+
+        // When the result is an array of ArrayBuffer chunks (frame data),
+        // merge into a single ArrayBuffer if total size <= singleBufferThreshold.
+        // The merged buffer replaces the array reference in the parent's Value/dest.
+        // Only merge when the array was pushed into a parent context (i.e., via
+        // the normal startObject/pop flow), so that filter-internal pop() calls
+        // that use the return value directly are not affected.
+        if (
+            Array.isArray(result) &&
+            result.length > 0 &&
+            result[0] instanceof ArrayBuffer &&
+            this.singleBufferThreshold > 0 &&
+            !result._noMerge
+        ) {
+            let totalSize = 0;
+            for (let i = 0; i < result.length; i++) {
+                totalSize += result[i].byteLength;
+            }
+            if (totalSize <= this.singleBufferThreshold) {
+                const merged =
+                    result.length === 1
+                        ? result[0]
+                        : this._mergeArrayBuffers(result, totalSize);
+                // Replace the reference in the parent's dest only if found
+                const parent = this.current.parent;
+                let replaced = false;
+                if (parent) {
+                    const parentDest = parent.dest;
+                    if (Array.isArray(parentDest)) {
+                        const idx = parentDest.lastIndexOf(result);
+                        if (idx !== -1) {
+                            parentDest[idx] = merged;
+                            replaced = true;
+                        }
+                    } else if (parentDest?.Value) {
+                        const idx = parentDest.Value.lastIndexOf(result);
+                        if (idx !== -1) {
+                            parentDest.Value[idx] = merged;
+                            replaced = true;
+                        }
+                    }
+                }
+                if (replaced) {
+                    this.current = this.current.parent;
+                    return merged;
+                }
+            }
+        }
+
         this.current = this.current.parent;
         return result;
     }
@@ -302,6 +355,21 @@ export class DicomMetadataListener {
         }
         this.current.dest.Value ||= [];
         this.current.dest.Value.push(v);
+    }
+
+    /**
+     * Merges an array of ArrayBuffer chunks into a single ArrayBuffer.
+     * @private
+     */
+    _mergeArrayBuffers(buffers, totalSize) {
+        const merged = new ArrayBuffer(totalSize);
+        const view = new Uint8Array(merged);
+        let offset = 0;
+        for (let i = 0; i < buffers.length; i++) {
+            view.set(new Uint8Array(buffers[i]), offset);
+            offset += buffers[i].byteLength;
+        }
+        return merged;
     }
 
     /**

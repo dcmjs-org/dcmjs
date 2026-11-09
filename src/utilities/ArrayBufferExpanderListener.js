@@ -54,8 +54,11 @@ export const ArrayBufferExpanderFilter = {
             // Save the current tag context
             const tagContext = this.current;
 
-            // Call startObject with an array to create a new array context
-            this.startObject([]);
+            // Call startObject with an array to create a new array context.
+            // Mark with _noMerge so singleBufferThreshold doesn't collapse it.
+            const fragments = [];
+            fragments._noMerge = true;
+            this.startObject(fragments);
 
             // Add each fragment
             for (const fragment of v) {
