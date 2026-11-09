@@ -23,7 +23,7 @@ export class BufferStream {
     constructor(options = null) {
         this.isLittleEndian = options?.littleEndian || this.isLittleEndian;
         this.view.defaultSize = options?.defaultSize ?? this.view.defaultSize;
-        this.clearBuffers = options.clearBuffers || false;
+        this.clearBuffers = options?.clearBuffers || false;
     }
 
     /**
@@ -222,7 +222,7 @@ export class BufferStream {
     }
 
     readUint8Array(length) {
-        if (this.offset + length > this.endOffset) {
+        if (this.offset + length > this.size) {
             throw new Error(
                 `Stream has insufficient data: requested ${length} bytes at offset ${
                     this.offset
