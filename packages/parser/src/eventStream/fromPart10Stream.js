@@ -320,14 +320,9 @@ async function fromPart10StreamImpl(input, listener, options, parseState) {
             chunkSize: INFLATE_CHUNK_SIZE
         });
         inflater.onData = chunk => {
-            // chunk is a Uint8Array (pako 2.x). Slice to an owned
-            // ArrayBuffer so bodyStream's view doesn't alias pako's buffer.
-            bodyStream.addBuffer(
-                chunk.buffer.slice(
-                    chunk.byteOffset,
-                    chunk.byteOffset + chunk.byteLength
-                )
-            );
+            // chunk is a Uint8Array (pako 2.x); addBuffer copies a view,
+            // so bodyStream doesn't alias pako's buffer.
+            bodyStream.addBuffer(chunk);
         };
 
         let relayPos = relayStartPos;
@@ -1628,16 +1623,12 @@ async function* readableStreamToAsyncIterable(stream) {
  * arrays, and plain ArrayBuffers.
  *
  * @param {Uint8Array|ArrayBuffer} chunk
- * @returns {ArrayBuffer}
+ * @returns {Uint8Array|ArrayBuffer} the chunk, after the type check
  */
 function toArrayBuffer(chunk) {
-    if (chunk instanceof ArrayBuffer) return chunk;
-    if (ArrayBuffer.isView(chunk)) {
-        // Typed array (Uint8Array, Buffer, etc.): slice to own ArrayBuffer.
-        return chunk.buffer.slice(
-            chunk.byteOffset,
-            chunk.byteOffset + chunk.byteLength
-        );
+    // addBuffer copies a view (Uint8Array, Buffer, etc.) itself
+    if (chunk instanceof ArrayBuffer || ArrayBuffer.isView(chunk)) {
+        return chunk;
     }
     throw new TypeError(
         `fromPart10Stream: expected Uint8Array|ArrayBuffer chunk from iterable, ` +

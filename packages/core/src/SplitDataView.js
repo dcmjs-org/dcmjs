@@ -105,18 +105,44 @@ export default class SplitDataView {
      * Adds the buffer to the end of the current buffers list,
      * updating the size etc.
      *
-     * @param {*} buffer
-     * @param {*} options.start for the start of the new buffer to use
-     * @param {*} options.end for the end of the buffer to use
-     * @param {*} options.transfer to transfer the buffer to be owned
+     * A typed array or DataView (for example a Node.js Buffer) adds only the
+     * bytes of the view, and not the full underlying ArrayBuffer. A small
+     * Node.js Buffer is a view of a shared pool, so the full ArrayBuffer
+     * holds bytes of other allocations.
+     *
+     * @param {*} buffer an ArrayBuffer, or a typed array or DataView
+     * @param {*} options.start byte offset for the start of the new buffer
+     *     to use, relative to the start of the view, clamped to the view
+     * @param {*} options.end byte offset for the end of the buffer to use,
+     *     relative to the start of the view, clamped to the view (an
+     *     explicit `end: 0` adds nothing)
+     * @param {*} options.transfer keeps a reference to the ArrayBuffer
+     *     instead of a copy, and the caller must not change the buffer
+     *     afterwards. It does not detach the buffer. It applies only when the
+     *     range covers the whole ArrayBuffer, so a partial view or range is
+     *     always copied. The default is true for an ArrayBuffer, and false
+     *     for a view, so that a caller can reuse a view.
      */
     addBuffer(buffer, options = null) {
-        buffer = buffer.buffer || buffer;
-        const start = options?.start || 0;
-        const end = options?.end || buffer.byteLength;
-        const transfer =
-            options?.transfer ?? (start === 0 && end === buffer.byteLength);
-        if (start === end) {
+        const isView = ArrayBuffer.isView(buffer);
+        let base = 0;
+        let length;
+        if (isView) {
+            base = buffer.byteOffset;
+            length = buffer.byteLength;
+            buffer = buffer.buffer;
+        } else {
+            buffer = buffer.buffer || buffer;
+            length = buffer.byteLength;
+        }
+        const start = base + Math.min(Math.max(options?.start ?? 0, 0), length);
+        const end =
+            base +
+            Math.min(Math.max(options?.end ?? length, start - base), length);
+        const whole = start === 0 && end === buffer.byteLength;
+        const transfer = whole && (options?.transfer ?? !isView);
+        // NaN fails this comparison too, so a NaN start or end adds nothing
+        if (!(start < end)) {
             return;
         }
         const addBuffer = transfer ? buffer : buffer.slice(start, end);

@@ -57,6 +57,20 @@ when a better approach appears.
   `map` and `push` do not work on it. A PN value that a caller assigns gets
   its accessors when the dataset is denaturalized. `addTagAccessors` is a
   no-op. `docs/MIGRATION.md` gives the details.
+- `ReadBufferStream.addBuffer` adds only the bytes of a typed array or
+  `DataView`, and copies them by default, so the caller may reuse its
+  buffer. Before, a small Node.js `Buffer` added the full shared pool, and a
+  later write to the source showed up in the stream (issue #619). For a
+  plain `ArrayBuffer`, `start` and `end` now clamp to the buffer: a negative
+  `start` clamps to 0 (before, `slice` semantics counted it from the end),
+  an explicit `end: 0` or a negative `end` adds nothing (before, `end: 0`
+  added the whole buffer and a negative `end` counted from the end), an
+  `end` past the buffer clamps to its end, so the whole buffer is kept by
+  reference by default (before, it was copied), and `transfer: true` with a
+  partial range copies that range (before, it added the whole buffer). An
+  explicit `transfer: true` keeps a reference to the buffer instead of
+  copying it when the range covers the whole `ArrayBuffer`; a partial view
+  or range is always copied, and the source is not detached.
 - New packages: `@dcmjs-org/core`, `@dcmjs-org/legacy`, `@dcmjs-org/parser`
   and `@dcmjs-org/generator`. Each package publishes a built `dist/` folder
   (ES module and CommonJS), so it loads in plain Node without a bundler.

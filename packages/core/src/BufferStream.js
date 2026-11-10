@@ -393,15 +393,12 @@ export class BufferStream {
     }
 
     /**
-     * Reads from an async stream delivering to addBuffer.
+     * Reads from an async stream delivering to addBuffer. Each chunk is
+     * copied, also a plain ArrayBuffer, so the producer may reuse it.
      */
     async fromAsyncStream(stream) {
         for await (const chunk of stream) {
-            const ab = chunk.buffer.slice(
-                chunk.byteOffset,
-                chunk.byteOffset + chunk.byteLength
-            );
-            this.addBuffer(ab);
+            this.addBuffer(chunk, { transfer: false });
         }
         this.setComplete();
     }
@@ -410,12 +407,20 @@ export class BufferStream {
      * Adds the buffer to the end of the current buffers list,
      * updating the size etc.
      *
-     * @param {*} buffer
-     * @param {*} options.start for the start of the new buffer to use
-     * @param {*} options.end for the end of the buffer to use
-     * @param {*} options.transfer to transfer the buffer to be owned
-     *     Transfer will default true if the entire buffer is being added.
-     *     It should be set explicitly to false to NOT transfer.
+     * A typed array or DataView (for example a Node.js Buffer) adds only
+     * the bytes of the view, and not the full underlying ArrayBuffer.
+     *
+     * @param {*} buffer an ArrayBuffer, or a typed array or DataView
+     * @param {*} options.start byte offset for the start of the new buffer
+     *     to use, relative to the start of the view, clamped to the view
+     * @param {*} options.end byte offset for the end of the buffer to use,
+     *     relative to the start of the view, clamped to the view
+     * @param {*} options.transfer keeps a reference to the ArrayBuffer
+     *     instead of a copy, and the caller must not change the buffer
+     *     afterwards. It does not detach the buffer. It applies only when
+     *     the range covers the whole ArrayBuffer, so a partial view or range
+     *     is always copied. The default is true for an ArrayBuffer, and
+     *     false for a view. Set it to false to force a copy.
      */
     addBuffer(buffer, options = null) {
         if (!buffer) {
@@ -530,14 +535,8 @@ export class ReadBufferStream extends BufferStream {
         if (buffer instanceof BufferStream) {
             this.view.from(buffer.view, options);
             this.isComplete = true;
-        } else if (ArrayBuffer.isView(buffer)) {
-            // adopt only the viewed byte range (see the class doc comment)
-            this.view.addBuffer(buffer.buffer, {
-                start: buffer.byteOffset,
-                end: buffer.byteOffset + buffer.byteLength
-            });
-            this.isComplete = true;
         } else if (buffer) {
+            // a view adds only its viewed byte range (SplitDataView.addBuffer)
             this.view.addBuffer(buffer);
             this.isComplete = true;
         }
