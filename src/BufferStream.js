@@ -222,6 +222,9 @@ export class BufferStream {
     }
 
     readUint8Array(length) {
+        if (!Number.isSafeInteger(length) || length < 0) {
+            throw new RangeError("Byte length must be a non-negative safe integer");
+        }
         if (this.offset + length > this.endOffset) {
             throw new Error(
                 `Stream has insufficient data: requested ${length} bytes at offset ${
