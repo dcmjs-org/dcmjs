@@ -1,3 +1,5 @@
+import { ValueRepresentation } from "./ValueRepresentation.js";
+
 /**
  * Private block reservation, per PS3.5 Section 7.8.1.
  *
@@ -5,187 +7,195 @@
  * (gggg,00xx) - where xx is 0x10 through 0xFF - identifies an implementer and
  * reserves the block of Data Elements (gggg,xx00) through (gggg,xxFF) for them.
  *
- * So the creator element's low byte IS the block number:
- *
- *     (gggg,0010) "ACME 1.0"   reserves  (gggg,1000) ... (gggg,10FF)
- *     (gggg,0011) "ACME 2.0"   reserves  (gggg,1100) ... (gggg,11FF)
- *     (gggg,00FF) "ACME 9.9"   reserves  (gggg,FF00) ... (gggg,FFFF)
- *
- * Which block a creator gets is decided by whoever wrote the file, not by the
- * creator string, so the block number is never a constant a reader can assume.
- * The creator string is the identity; the block has to be looked up. That is
- * what this module is for, on both sides:
+ * Which block a creator gets is decided by whoever wrote the file, so the
+ * creator string is the identity and the block has to be looked up. A block
+ * is named as in the 1.0 naturalized form: the block key "gggg:creator"
+ * (for example "4D43:ACME 1.0"), or the pair (group, creator); an element of
+ * the block is its number 0x00-0xFF, or the element key "xEE" (for example
+ * "x01"):
  *
  *     // writing
- *     const block = dicomDict.privateBlock(0x4d43, "ACME 1.0");
- *     block.set(0x01, "CS", ["HYBRID"]);        // -> (4D43,1001)
+ *     const block = dicomDict.privateBlock("4D43:ACME 1.0");
+ *     block.set("x01", "CS", ["HYBRID"]);   // -> (4D43,1001), or wherever it landed
  *
  *     // reading, from any parsed dict
- *     const block = findPrivateBlock(dict, 0x4d43, "ACME 1.0");
- *     block && block.get(0x01);
+ *     const found = findPrivateBlock(dict, "4D43:ACME 1.0");
+ *     found && found.get("x01").Value;
  */
 
 const CREATOR_MIN = 0x10;
 const CREATOR_MAX = 0xff;
-const CREATOR_VR = "LO";
 const CREATOR_MAX_LENGTH = 64; // LO
+const BLOCK_KEY = /^([0-9A-Fa-f]{4}):(.+)$/s;
+const ELEMENT_KEY = /^x([0-9A-Fa-f]{2})$/;
 
+const hex2 = n => n.toString(16).toUpperCase().padStart(2, "0");
 const hex4 = n => n.toString(16).toUpperCase().padStart(4, "0");
 
 /**
- * The full tag key of one element of a reserved block.
- *
- * @param {number} group private group number, odd
- * @param {number} block block number, 0x10 to 0xFF
- * @param {number} element element within the block, 0x00 to 0xFF
- * @returns {string} tag as 'GGGGEEEE', upper case, as parsed dicts are keyed
+ * The block key "gggg:creator" of a group and creator. A line break in the
+ * creator is written as the text `\n` (and `\r`); LO holds no backslash, so
+ * the key reads back to the same creator.
  */
-export function privateTag(group, block, element) {
-    assertGroup(group);
-    assertBlock(block);
-    if (!Number.isInteger(element) || element < 0x00 || element > 0xff) {
-        throw new Error(
-            `Private element must be 0x00 to 0xFF within its block, got ${element}`
-        );
-    }
-    return hex4(group) + hex4((block << 8) | element);
+export function privateBlockKey(group, creator) {
+    const text = creator.replace(/\r/g, "\\r").replace(/\n/g, "\\n");
+    return `${hex4(group)}:${text}`;
 }
 
-function assertGroup(group) {
+/** The creator of the creator part of a block key: `\n` and `\r` unescaped. */
+function keyCreator(text) {
+    return text.replace(/\\r/g, "\r").replace(/\\n/g, "\n");
+}
+
+/**
+ * The creator text of a creator element value: no leading spaces, no
+ * trailing spaces or NULs. A value in bytes (UN) is read as Latin-1.
+ */
+function creatorText(value) {
+    const v = Array.isArray(value) ? value[0] : value;
+    if (typeof v === "string") return v.replace(/^ +|[\0 ]+$/g, "");
+    if (v instanceof ArrayBuffer || ArrayBuffer.isView(v)) {
+        const bytes = ArrayBuffer.isView(v)
+            ? new Uint8Array(v.buffer, v.byteOffset, v.byteLength)
+            : new Uint8Array(v);
+        return creatorText(String.fromCharCode(...bytes.subarray(0, 64)));
+    }
+    return "";
+}
+
+/** [group, creator] from (groupOrKey, creator), validated. */
+function blockArgs(groupOrKey, creator) {
+    let group = groupOrKey;
+    if (typeof groupOrKey === "string") {
+        const match = BLOCK_KEY.exec(groupOrKey);
+        if (!match) {
+            throw new Error(
+                `Private block key must be "gggg:creator", got ${groupOrKey}`
+            );
+        }
+        group = parseInt(match[1], 16);
+        creator = keyCreator(match[2]);
+    }
     if (!Number.isInteger(group) || group < 0 || group > 0xffff) {
         throw new Error(`Private group must be a 16 bit number, got ${group}`);
     }
     if (group % 2 === 0) {
-        // PS3.5 Section 7.8.1: private data elements are in odd groups
         throw new Error(
             `Private group must be odd, got ${hex4(
                 group
             )} - an even group is standard, not private`
         );
     }
-}
-
-function assertBlock(block) {
-    if (
-        !Number.isInteger(block) ||
-        block < CREATOR_MIN ||
-        block > CREATOR_MAX
-    ) {
-        throw new Error(
-            `Private block must be 0x10 to 0xFF, got ${block} - 0x00 to 0x0F are reserved`
-        );
-    }
-}
-
-function assertCreator(creator) {
-    if (typeof creator !== "string" || creator.length === 0) {
+    if (typeof creator !== "string" || creatorText(creator).length === 0) {
         throw new Error("Private creator must be a non-empty string");
     }
+    creator = creatorText(creator);
     if (creator.length > CREATOR_MAX_LENGTH) {
         throw new Error(
             `Private creator must be at most ${CREATOR_MAX_LENGTH} characters (LO), got ${creator.length}`
         );
     }
+    return [group, creator];
 }
 
-/** The value of a creator element, or undefined when it is absent or empty. */
-function creatorAt(dict, group, block) {
-    const element = dict[hex4(group) + hex4(block)];
-    const value = element && element.Value && element.Value[0];
-    return typeof value === "string" ? value.trim() : undefined;
+/** The element number of 0x00-0xFF or "xEE". */
+function elementNumber(element) {
+    const match = typeof element === "string" && ELEMENT_KEY.exec(element);
+    const n = match ? parseInt(match[1], 16) : element;
+    if (!Number.isInteger(n) || n < 0x00 || n > 0xff) {
+        throw new Error(
+            `Private element must be 0x00 to 0xFF or "xEE", got ${element}`
+        );
+    }
+    return n;
 }
 
 /**
- * An accessor for one reserved block of a dict. Returned by findPrivateBlock()
- * and by DicomDict#privateBlock().
- *
- * @param {object} dict parsed dataset, keyed by 'GGGGEEEE'
- * @param {number} group private group number
- * @param {number} block block number, 0x10 to 0xFF
- * @param {string} creator the creator string this block is reserved for
- * @returns {{group: number, block: number, creator: string, tag: Function, has: Function, get: Function, set: Function}}
+ * An accessor for one reserved block of a dict, keyed by 'GGGGEEEE'.
+ * `reservedBlock` is the xx of the block in this dict.
  */
-export function privateBlockAccessor(dict, group, block, creator) {
-    assertGroup(group);
-    assertBlock(block);
-    const tag = element => privateTag(group, block, element);
+function blockAccessor(dict, group, creator, reservedBlock) {
+    const tag = element =>
+        hex4(group) + hex2(reservedBlock) + hex2(elementNumber(element));
     return {
+        key: privateBlockKey(group, creator),
         group,
-        block,
         creator,
-        /** The 'GGGGEEEE' key of an element in this block. */
+        reservedBlock,
+        /** The 'GGGGEEEE' key of an element of this block. */
         tag,
         /** Whether this block holds that element. */
         has: element =>
             Object.prototype.hasOwnProperty.call(dict, tag(element)),
-        /** The raw element object, or undefined. */
+        /** The element object, or undefined. */
         get: element => dict[tag(element)],
         /**
-         * Write an element of this block.
+         * Writes an element of this block, as DicomDict#upsertTag does.
          *
-         * @param {number} element 0x00 to 0xFF
+         * @param {number|string} element 0x00 to 0xFF, or "xEE"
          * @param {string} vr value representation
          * @param {*} values value, or array of values
          * @returns {string} the tag that was written
          */
         set: (element, vr, values) => {
             const key = tag(element);
-            dict[key] = {
-                vr,
-                Value: Array.isArray(values) ? values : [values]
-            };
+            dict[key] = ValueRepresentation.addTagAccessors({ vr });
+            dict[key].Value = Array.isArray(values) ? values : [values];
             return key;
         }
     };
 }
 
 /**
- * Find the block a creator has already reserved in a dict.
+ * Finds the block a creator has reserved in a dict.
  *
  * @param {object} dict parsed dataset, keyed by 'GGGGEEEE'
- * @param {number} group private group number, odd
- * @param {string} creator creator string to match, compared after trimming
+ * @param {number|string} groupOrKey odd group number, or block key "gggg:creator"
+ * @param {string} [creator] creator string, with a group number
  * @returns {object|null} a block accessor, or null when the creator is absent
  */
-export function findPrivateBlock(dict, group, creator) {
-    assertGroup(group);
-    assertCreator(creator);
-    const wanted = creator.trim();
-    for (let block = CREATOR_MIN; block <= CREATOR_MAX; block++) {
-        if (creatorAt(dict, group, block) === wanted) {
-            return privateBlockAccessor(dict, group, block, wanted);
+export function findPrivateBlock(dict, groupOrKey, creator) {
+    const [group, wanted] = blockArgs(groupOrKey, creator);
+    for (let xx = CREATOR_MIN; xx <= CREATOR_MAX; xx++) {
+        const element = dict[hex4(group) + hex4(xx)];
+        if (element && creatorText(element.Value) === wanted) {
+            return blockAccessor(dict, group, wanted, xx);
         }
     }
     return null;
 }
 
 /**
- * Find the block a creator has reserved, or reserve one for it, writing the
- * creator element into the dict.
+ * Finds the block a creator has reserved, or reserves the first free block
+ * and writes the creator element. A block is free when the dict holds no
+ * creator element for it and no element in its range.
  *
  * @param {object} dict parsed dataset, keyed by 'GGGGEEEE'
- * @param {number} group private group number, odd
- * @param {string} creator creator string
+ * @param {number|string} groupOrKey odd group number, or block key "gggg:creator"
+ * @param {string} [creator] creator string, with a group number
  * @returns {object} a block accessor
  */
-export function reservePrivateBlock(dict, group, creator) {
-    const existing = findPrivateBlock(dict, group, creator);
-    if (existing) {
-        return existing;
+export function reservePrivateBlock(dict, groupOrKey, creator) {
+    const existing = findPrivateBlock(dict, groupOrKey, creator);
+    if (existing) return existing;
+    const [group, wanted] = blockArgs(groupOrKey, creator);
+    const prefix = hex4(group);
+    const used = new Set();
+    for (const key of Object.keys(dict)) {
+        if (!key.startsWith(prefix) || key.length !== 8) continue;
+        const element = parseInt(key.slice(4), 16);
+        used.add(element <= 0xff ? element : element >> 8);
     }
-    const wanted = creator.trim();
-    for (let block = CREATOR_MIN; block <= CREATOR_MAX; block++) {
-        if (creatorAt(dict, group, block) === undefined) {
-            dict[hex4(group) + hex4(block)] = {
-                vr: CREATOR_VR,
-                Value: [wanted]
-            };
-            return privateBlockAccessor(dict, group, block, wanted);
+    for (let xx = CREATOR_MIN; xx <= CREATOR_MAX; xx++) {
+        if (!used.has(xx)) {
+            dict[prefix + hex4(xx)] = ValueRepresentation.addTagAccessors({
+                vr: "LO"
+            });
+            dict[prefix + hex4(xx)].Value = [wanted];
+            return blockAccessor(dict, group, wanted, xx);
         }
     }
     throw new Error(
-        `No free private block in group ${hex4(
-            group
-        )} - all of 0x10 to 0xFF are reserved`
+        `No free private block in group ${prefix} - all of 0x10 to 0xFF are reserved`
     );
 }

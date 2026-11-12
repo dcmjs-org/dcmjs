@@ -24,23 +24,29 @@ class DicomDict {
     }
 
     /**
-     * The private block a creator has reserved in this dataset, reserving one
-     * if it has none yet. See src/privateBlock.js: which block a creator holds
-     * is decided by whoever wrote the file, so it has to be looked up by the
-     * creator string rather than assumed.
+     * Reserves a private block for a creator, and writes its creator element
+     * when the creator has no block yet; pass `{ create: false }` to only look
+     * it up. See src/privateBlock.js: the block is found by creator, never
+     * assumed.
      *
-     * @param {number} group private group number, odd
-     * @param {string} creator private creator identification code
-     * @param {{create?: boolean}} [options] create defaults to true; pass false
-     *     to look the block up without writing a creator element, which returns
-     *     null when the creator is absent
-     * @returns {object|null} a block accessor with tag/has/get/set
+     *     dicomDict.privateBlock("4D43:ACME 1.0").set("x01", "CS", ["HYBRID"]);
+     *
+     * @param {number|string} groupOrKey odd group number, or block key "gggg:creator"
+     * @param {string} [creator] creator string, with a group number
+     * @param {{create?: boolean}} [options] create defaults to true; false
+     *     returns null when the creator is absent
+     * @returns {object|null} accessor with key, group, creator, reservedBlock,
+     *     tag, has, get and set
      */
-    privateBlock(group, creator, options = {}) {
-        const { create = true } = options;
+    privateBlock(groupOrKey, creator, options = {}) {
+        if (typeof groupOrKey === "string" && typeof creator === "object") {
+            options = creator;
+            creator = undefined;
+        }
+        const { create = true } = options || {};
         return create
-            ? reservePrivateBlock(this.dict, group, creator)
-            : findPrivateBlock(this.dict, group, creator);
+            ? reservePrivateBlock(this.dict, groupOrKey, creator)
+            : findPrivateBlock(this.dict, groupOrKey, creator);
     }
 
     write(writeOptions = { allowInvalidVRLength: false }) {

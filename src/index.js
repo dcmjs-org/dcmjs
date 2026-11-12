@@ -6,7 +6,7 @@ import { WriteBufferStream } from "./BufferStream.js";
 import { DicomDict } from "./DicomDict.js";
 import {
     findPrivateBlock,
-    privateTag,
+    privateBlockKey,
     reservePrivateBlock
 } from "./privateBlock.js";
 import { DicomMessage } from "./DicomMessage.js";
@@ -74,7 +74,7 @@ const data = {
     // on any parsed dict; DicomDict#privateBlock() is the writing side.
     findPrivateBlock,
     reservePrivateBlock,
-    privateTag
+    privateBlockKey
 };
 
 const async = {
