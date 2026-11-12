@@ -1,6 +1,5 @@
-import fs from "fs";
 import { jest } from "@jest/globals";
-import { getTestDataset } from "./testUtils";
+import { getTestDataset, readFileAsArrayBuffer } from "./testUtils";
 import { DicomMessage } from "../src/DicomMessage";
 import { DicomMetaDictionary } from "../src/DicomMetaDictionary";
 import dcmjs from "../src";
@@ -9,8 +8,8 @@ import dcmjs from "../src";
 jest.setTimeout(60000);
 
 it("test_normalizer_op", async () => {
-    const file = fs.readFileSync("test/sample-op.dcm");
-    const dicomDict = DicomMessage.readFile(file.buffer);
+    const file = readFileAsArrayBuffer("test/sample-op.dcm");
+    const dicomDict = DicomMessage.readFile(file);
 
     const dataset = DicomMetaDictionary.naturalizeDataset(dicomDict.dict);
     const multiframe = dcmjs.normalizers.Normalizer.normalizeToDataset([
@@ -25,8 +24,8 @@ it("test_normalizer_oct", async () => {
     const url =
         "https://github.com/dcmjs-org/data/releases/download/oct/oct.dcm";
     const dcmPath = await getTestDataset(url, "oct.dcm");
-    const file = fs.readFileSync(dcmPath);
-    const dicomDict = DicomMessage.readFile(file.buffer);
+    const file = readFileAsArrayBuffer(dcmPath);
+    const dicomDict = DicomMessage.readFile(file);
 
     const dataset = DicomMetaDictionary.naturalizeDataset(dicomDict.dict);
     const multiframe = dcmjs.normalizers.Normalizer.normalizeToDataset([

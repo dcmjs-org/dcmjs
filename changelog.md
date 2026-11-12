@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+### Fixed
+- `Colors` now converts DICOM CIELab relative to the D50 white point (ICC PCS), as PS3.3 C.10.7.1.1 requires. The previous D65 results were wrong for chromatic colors and did not agree with DCMTK, PixelMed and highdicom. `rgb2XYZ`, `xyz2RGB`, `lab2XYZ` and `xyz2LAB` now use D50 XYZ. Values that the old `rgb2DICOMLAB` wrote now display slightly differently; for example, an old pure blue now decodes to `[91, 0, 255]`. Gray values do not change.
+- Out-of-gamut colors are clipped per channel, which keeps the hue.
+
+### Added
+- `Colors.dicomlab2RGB8`, `Colors.rgb82DICOMLAB` and `Colors.d50WhitePointXYZ`.
+
 ## 2026-01-19
 Added multiple measurements for a single annotation in an SR object
 

@@ -1,6 +1,5 @@
-﻿import { getZippedTestDataset } from "./testUtils.js";
+﻿import { getZippedTestDataset, readFileAsArrayBuffer } from "./testUtils.js";
 import dcmjs from "../src/index.js";
-import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
 
@@ -34,9 +33,9 @@ it("test_encodings", async () => {
 
     fileNames.forEach(fileName => {
         if (fileName in expectedPatientNames) {
-            const arrayBuffer = fs.readFileSync(
+            const arrayBuffer = readFileAsArrayBuffer(
                 path.join(filesPath, fileName)
-            ).buffer;
+            );
             const dicomDict = DicomMessage.readFile(arrayBuffer);
             const dataset = DicomMetaDictionary.naturalizeDataset(
                 dicomDict.dict

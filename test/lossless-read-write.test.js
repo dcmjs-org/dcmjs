@@ -1,4 +1,3 @@
-import fs from "fs";
 import crypto from "crypto";
 import dcmjs from "../src/index.js";
 import { deepEqual } from "../src/utilities/deepEqual";
@@ -8,7 +7,7 @@ import {
     TagHex
 } from "../src/constants/dicom.js";
 
-import { getTestDataset } from "./testUtils";
+import { getTestDataset, readFileAsArrayBuffer } from "./testUtils";
 import { DicomMetaDictionary } from "../src/DicomMetaDictionary";
 
 const { DicomDict, DicomMessage } = dcmjs.data;
@@ -1251,8 +1250,8 @@ describe("lossless-read-write", () => {
     });
 
     test("uncompressed data should be read correctly as arraybuffer", () => {
-        const buffer = fs.readFileSync("test/sample-dicom.dcm");
-        const dicomDict = DicomMessage.readFile(buffer.buffer);
+        const buffer = readFileAsArrayBuffer("test/sample-dicom.dcm");
+        const dicomDict = DicomMessage.readFile(buffer);
         // console.warn("fullData=", fullData);
         const { dict } = dicomDict;
         const [originalPixelArray] = dict["7FE00010"].Value;
@@ -1278,8 +1277,8 @@ describe("lossless-read-write", () => {
 
     test("uncompressed PixelData written with explicit length (524288) for streaming read", () => {
         // test/sample-dicom.dcm is uncompressed data
-        const buffer = fs.readFileSync("test/sample-dicom.dcm");
-        const dicomDict = DicomMessage.readFile(buffer.buffer);
+        const buffer = readFileAsArrayBuffer("test/sample-dicom.dcm");
+        const dicomDict = DicomMessage.readFile(buffer);
         const { dict } = dicomDict;
 
         // Get original pixel data and compute hash
@@ -1351,8 +1350,8 @@ describe("lossless-read-write", () => {
     });
 
     test("compressed data should be read correctly as arraybuffer", () => {
-        const buffer = fs.readFileSync("test/sample-op.dcm");
-        const dicomDict = DicomMessage.readFile(buffer.buffer);
+        const buffer = readFileAsArrayBuffer("test/sample-op.dcm");
+        const dicomDict = DicomMessage.readFile(buffer);
         // console.warn("fullData=", fullData);
         const { dict } = dicomDict;
         const [originalPixelArray] = dict["7FE00010"].Value;
@@ -1403,5 +1402,5 @@ const getDcmjsDataFile = async (release, fileName) => {
         fileName;
     const dcmPath = await getTestDataset(url, fileName);
 
-    return fs.readFileSync(dcmPath).buffer;
+    return readFileAsArrayBuffer(dcmPath);
 };

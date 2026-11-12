@@ -1,10 +1,8 @@
 import Colors from "../../colors.js";
 import BitArray from "../../bitArray.js";
 
-// TODO: Is there a better name for this? RGBAInt?
-// Should we move it to Colors.js
 function dicomlab2RGBA(cielab) {
-    const rgba = Colors.dicomlab2RGB(cielab).map(x => Math.round(x * 255));
+    const rgba = Colors.dicomlab2RGB8(cielab);
     rgba.push(255);
 
     return rgba;

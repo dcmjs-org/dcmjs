@@ -1,7 +1,6 @@
-import fs from "fs";
 import "../src/index.js";
 import Segmentation_4X from "../src/adapters/Cornerstone/Segmentation_4X";
-import { getTestDataset } from "./testUtils.js";
+import { getTestDataset, readFileAsArrayBuffer } from "./testUtils.js";
 
 const mockMetadataProvider = {
     get: (type, imageId) => {
@@ -31,7 +30,7 @@ it("Can generate tool state (4X) with SEG sourcing MG images without throwing an
     const url =
         "https://github.com/dcmjs-org/data/releases/download/mg-seg/seg-test-SEG.dcm";
     const dcmPath = await getTestDataset(url, "seg-test-SEG.dcm");
-    const arrayBuffer = fs.readFileSync(dcmPath).buffer;
+    const arrayBuffer = readFileAsArrayBuffer(dcmPath);
 
     expect(() => {
         Segmentation_4X.generateToolState(
