@@ -211,6 +211,22 @@ Six things changed relative to 0.x:
      `Object.keys` and `JSON.stringify` no longer show the hex keys.
    - A source that gives one creator two blocks in a group (PS3.5 7.8.1
      does not permit this) gets one merged block and a warning.
+   - A line break in a creator is the text `\n` (or `\r`) in the block key:
+     the creator `"AC\nME"` gives the key `"0029:AC\\nME"`. The `creator`
+     value keeps the line break.
+   - At the dict level, `DicomDict#privateBlock()` and `findPrivateBlock()`
+     use the same block key and element keys, and choose the block number
+     for you. This replaces a hand-written creator element and a fixed
+     block number:
+
+     ```js
+     // before
+     dicomDict.upsertTag("4D430010", "LO", ["ACME 1.0"]);
+     dicomDict.upsertTag("4D431001", "CS", ["HYBRID"]);
+     // now
+     dicomDict.privateBlock("4D43:ACME 1.0").set("x01", "CS", ["HYBRID"]);
+     dcmjs.data.findPrivateBlock(dict, "4D43:ACME 1.0")?.get("x01").Value;
+     ```
    - A `registerTag()` keyword for a private tag is a non-enumerable alias
      on the dataset and in the block. A private dictionary keyword (for
      example `CSAImageHeaderInfo`) is an alias in the block only.

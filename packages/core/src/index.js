@@ -73,8 +73,13 @@ export {
     expandPrivateBlocks,
     isHexTag,
     registeredTagEntry,
-    privateAliasTarget
+    privateAliasTarget,
+    privateBlockKey
 } from "./utilities/privateBlocks.js";
+export {
+    findPrivateBlock,
+    reservePrivateBlock
+} from "./utilities/privateBlockDict.js";
 export { recordVr } from "./utilities/vrMap.js";
 export {
     toPersonNameValue,
