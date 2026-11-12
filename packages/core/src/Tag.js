@@ -133,6 +133,15 @@ class Tag {
     write(stream, vrType, values, syntax, writeOptions) {
         const vr = ValueRepresentation.createByTypeString(vrType);
         const useSyntax = normalizeSyntax(syntax);
+        // No value (NAT-U-RT-7): absent, null, "" or only undefined entries is
+        // an empty list; an undefined entry beside a value is a null entry
+        if (values === undefined || values === null || values === "") {
+            values = [];
+        } else if (Array.isArray(values) && values.includes(undefined)) {
+            values = values.every(v => v === undefined)
+                ? []
+                : values.map(v => (v === undefined ? null : v));
+        }
 
         const implicit = useSyntax === IMPLICIT_LITTLE_ENDIAN;
         const isLittleEndian =

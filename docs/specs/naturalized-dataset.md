@@ -294,11 +294,16 @@ A private value is a list (NAT-U-VAL-4). An assigned PN string converts:
     `\C^D`); the naturalized form holds it as `{}`, and a PN string read
     back drops empty names;
   - a binary number VR (US, SS, UL, SL, FL, FD, UV, and AT, where 0 is the
-    tag (0000,0000)), which has no empty value: `0`, with a warning.
+    tag (0000,0000)), which has no empty value: `0`, with a warning;
+  - SQ: an empty item.
 
-  This rule is for an entry in a list. A `null` value that is not a list
-  (`Columns: null`, or a DICOM JSON element with no `Value`) is an element
-  with no value: it is written with zero length, and with no warning.
+  An `undefined` entry beside another entry is a `null` entry. This rule is
+  for an entry in a list. These are an element with no value: a value that
+  is not a list (`Columns: null`, a DICOM JSON element with no `Value`, or a
+  `Value` that is `undefined`, `null` or `""`), an empty list `[]`, and a
+  list of only `undefined` entries (`[undefined]`, which a reader can give
+  for a zero-length element, issue #417). For every VR, an element with no
+  value is written with zero length (an SQ: no items), and with no warning.
 
 ### NAT-U-SET — utilities to add or replace an attribute
 
@@ -536,6 +541,12 @@ view of one frame of an enhanced multi-frame dataset (PS3.3 C.7.6.16).
   (`isBinary()`: the binary number VRs and AT), whose writer encodes it as
   0. The base `writeBytes` calls it, and the UV writer calls it before it
   turns `null` into `0n`. `denaturalizeValue` keeps `null` entries.
+- **NAT-I-NULL-2.** `Tag.write` changes an absent, `null` or `""` value, and
+  a list of only `undefined` entries, to `[]`. It changes another
+  `undefined` entry to `null`. Both changes occur before the VR writer runs. Thus
+  each VR writer gets a list. `SequenceOfItems.writeBytes` writes a `null`
+  item as an empty item. `test/core/absentValues.test.js` checks each form
+  for each VR, in explicit and implicit VR little endian.
 
 ### NAT-I-RT — block number assignment
 
