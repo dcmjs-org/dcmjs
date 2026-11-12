@@ -8,9 +8,13 @@ import { NaturalizedListener } from "../../src/eventStream/NaturalizedListener";
 import { fromDataSet } from "../../src/eventStream/fromDataSet";
 import { fromNaturalized } from "../../src/eventStream/fromNaturalized";
 import { Part10Writer } from "../../src/eventStream/Part10Writer";
-import { definePrivateAliases, setAttribute } from "@dcmjs-org/core";
+import {
+    deepCloneInstance,
+    definePrivateAliases,
+    setAttribute
+} from "@dcmjs-org/core";
 
-const { DicomMessage, DicomMetaDictionary } = dcmjs.data;
+const { DicomDict, DicomMessage, DicomMetaDictionary } = dcmjs.data;
 
 // Two groups with the same creator at the same xx, a creator listed after
 // its data, a private element without a creator, and a sequence item.
@@ -421,5 +425,84 @@ describe("private reserved blocks on a real file", () => {
                 Value: original.Value
             });
         }
+    });
+});
+
+// A creator value with a line break is not valid LO (PS3.5 6.2), but a reader
+// of real data can get one; the block must not be dropped on write (#630).
+describe("private creators with a line break", () => {
+    const naturalizeWithCreator = creator =>
+        DicomMetaDictionary.naturalizeDataset({
+            "00290010": { vr: "LO", Value: [creator] },
+            "00291001": { vr: "US", Value: [7] },
+            "00291002": { vr: "LO", Value: ["kept"] }
+        });
+
+    it.each([
+        ["a newline", "AC\nME"],
+        ["a carriage return and newline", "AC\r\nME"],
+        ["a trailing newline", "ACME\n"],
+        ["a line separator", "AC\u2028ME"]
+    ])("a creator with %s keeps its block on denaturalize", (_, creator) => {
+        const warn = jest.spyOn(dcmjs.log, "warn").mockImplementation(() => {});
+        // log.warn is a shared jest.fn (jest.setup.js): drop earlier calls
+        warn.mockClear();
+        const naturalized = naturalizeWithCreator(creator);
+
+        expect(Object.keys(naturalized)).toEqual(["_vrMap", `0029:${creator}`]);
+        // the hex aliases of the block are defined
+        expect(naturalized["00290010"]).toBe(creator);
+        expect(naturalized["00291001"]).toEqual([7]);
+
+        const dict = DicomMetaDictionary.denaturalizeDataset(naturalized);
+        expect(dict["00290010"]).toEqual({ vr: "LO", Value: [creator] });
+        expect(dict["00291001"].vr).toBe("US");
+        expect(dict["00291001"].Value.map(Number)).toEqual([7]);
+        expect(dict["00291002"]).toEqual({ vr: "LO", Value: ["kept"] });
+        expect(warn).not.toHaveBeenCalled();
+        warn.mockRestore();
+    });
+
+    it("a group with a plain creator and a creator with a newline keeps both blocks", () => {
+        const naturalized = DicomMetaDictionary.naturalizeDataset({
+            "00290010": { vr: "LO", Value: ["ACME"] },
+            "00291001": { vr: "LO", Value: ["one"] },
+            "00290011": { vr: "LO", Value: ["AC\nME"] },
+            "00291101": { vr: "LO", Value: ["two"] }
+        });
+        expect(naturalized["0029:ACME"].x01).toEqual(["one"]);
+        expect(naturalized["0029:AC\nME"].x01).toEqual(["two"]);
+
+        const dict = DicomMetaDictionary.denaturalizeDataset(naturalized);
+        expect(dict["00290010"].Value).toEqual(["ACME"]);
+        expect(dict["00291001"].Value).toEqual(["one"]);
+        expect(dict["00290011"].Value).toEqual(["AC\nME"]);
+        expect(dict["00291101"].Value).toEqual(["two"]);
+    });
+
+    it("deepCloneInstance keeps a deleted element of a creator with a newline deleted", () => {
+        const naturalized = naturalizeWithCreator("AC\nME");
+        delete naturalized["00291001"];
+
+        for (const dataset of [naturalized, deepCloneInstance(naturalized)]) {
+            const dict = DicomMetaDictionary.denaturalizeDataset(dataset);
+            expect(dict["00290010"].Value).toEqual(["AC\nME"]);
+            expect(dict["00291001"]).toBeUndefined();
+            expect(dict["00291002"].Value).toEqual(["kept"]);
+        }
+    });
+
+    it("a creator with a newline survives a Part 10 write and read", () => {
+        const dicomDict = new DicomDict({
+            "00020010": { vr: "UI", Value: ["1.2.840.10008.1.2.1"] }
+        });
+        dicomDict.dict = DicomMetaDictionary.denaturalizeDataset(
+            naturalizeWithCreator("AC\nME")
+        );
+        const back = DicomMessage.readFile(dicomDict.write()).dict;
+
+        expect(back["00290010"].Value).toEqual(["AC\nME"]);
+        expect(back["00291001"].Value).toEqual([7]);
+        expect(back["00291002"].Value).toEqual(["kept"]);
     });
 });

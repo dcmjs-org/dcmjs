@@ -38,7 +38,9 @@ import log from "../log.js";
  * the specification.
  */
 
-const BLOCK_KEY = /^([0-9A-Fa-f]{4}):(.+)$/;
+// `s`: the creator may hold a line break; PS3.5 6.2 forbids one in LO, but a
+// reader of real data can get one, and the block must still be written.
+const BLOCK_KEY = /^([0-9A-Fa-f]{4}):(.+)$/s;
 const ELEMENT_KEY = /^x([0-9A-Fa-f]{2})$/;
 const HEX_TAG = /^[0-9A-Fa-f]{8}$/;
 
@@ -384,7 +386,11 @@ export function copyPrivateAliases(source, copy) {
     const deleted = deletedByAlias(source);
     for (const key of deleted.blocks) delete copy[key];
     for (const entry of deleted.elements) {
-        const [key, elementKey] = entry.split("\n");
+        // `${key}\n${elementKey}`: the block key may hold a line break, the
+        // element key (xEE) never does, so split at the last one
+        const split = entry.lastIndexOf("\n");
+        const key = entry.slice(0, split);
+        const elementKey = entry.slice(split + 1);
         if (copy[key]) delete copy[key][elementKey];
     }
     definePrivateAliases(copy);
