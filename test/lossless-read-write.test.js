@@ -835,6 +835,11 @@ describe("lossless-read-write", () => {
                 Value: [
                     "    This is a detailed explanation that can span multiple lines and paragraphs in the DICOM dataset."
                 ]
+            },
+            {
+                vr: "UT",
+                _rawValue: ["First line\r\nSecond line\r\n "], // control characters are not padding
+                Value: ["First line\r\nSecond line\r\n"]
             }
             // TODO: VR currently unimplemented
             // {
