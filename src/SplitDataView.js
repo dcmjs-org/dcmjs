@@ -105,15 +105,31 @@ export default class SplitDataView {
      * Adds the buffer to the end of the current buffers list,
      * updating the size etc.
      *
-     * @param {*} buffer
-     * @param {*} options.start for the start of the new buffer to use
-     * @param {*} options.end for the end of the buffer to use
+     * A typed array or DataView (for example a Node.js Buffer) adds only the
+     * bytes of the view, and not the full underlying ArrayBuffer. A small
+     * Node.js Buffer is a view of a shared pool, so the full ArrayBuffer
+     * holds bytes of other allocations.
+     *
+     * @param {*} buffer an ArrayBuffer, or a typed array or DataView
+     * @param {*} options.start for the start of the new buffer to use,
+     *     relative to the start of the view
+     * @param {*} options.end for the end of the buffer to use, relative to
+     *     the start of the view
      * @param {*} options.transfer to transfer the buffer to be owned
      */
     addBuffer(buffer, options = null) {
-        buffer = buffer.buffer || buffer;
-        const start = options?.start || 0;
-        const end = options?.end || buffer.byteLength;
+        let base = 0;
+        let length;
+        if (ArrayBuffer.isView(buffer)) {
+            base = buffer.byteOffset;
+            length = buffer.byteLength;
+            buffer = buffer.buffer;
+        } else {
+            buffer = buffer.buffer || buffer;
+            length = buffer.byteLength;
+        }
+        const start = base + (options?.start || 0);
+        const end = base + (options?.end || length);
         const transfer =
             options?.transfer ?? (start === 0 && end === buffer.byteLength);
         if (start === end) {
