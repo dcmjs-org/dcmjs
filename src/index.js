@@ -6,7 +6,11 @@ import { WriteBufferStream } from "./BufferStream.js";
 import { DicomDict } from "./DicomDict.js";
 import { DicomMessage } from "./DicomMessage.js";
 import { DicomMetaDictionary } from "./DicomMetaDictionary.js";
-import { registerPrivatesModule } from "./dictionary.fast.js";
+import {
+    dictionary,
+    registerPrivatesModule,
+    registerTag
+} from "./dictionary.fast.js";
 import * as privateData from "./dictionary.private.data.js";
 import { DICOMWEB } from "./dicomweb.js";
 
@@ -64,7 +68,11 @@ const data = {
     Colors,
     datasetToDict,
     datasetToBuffer,
-    datasetToBlob
+    datasetToBlob,
+    // The tag dictionary and the hook for adding to it. registerTag() was
+    // previously reachable only by importing src/dictionary.fast.js directly.
+    dictionary,
+    registerTag
 };
 
 const async = {
