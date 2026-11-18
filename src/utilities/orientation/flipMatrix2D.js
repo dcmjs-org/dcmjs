@@ -16,7 +16,10 @@ export { flipMatrix2D };
 function h(matrix) {
     const [rows, cols] = matrix.shape;
 
-    const result = ndarray(new Uint8Array(rows * cols), [rows, cols]);
+    const result = ndarray(new matrix.data.constructor(rows * cols), [
+        rows,
+        cols
+    ]);
 
     for (let i = 0; i < rows; i++) {
         for (let j = 0; j < cols; j++) {
@@ -36,7 +39,10 @@ function h(matrix) {
 function v(matrix) {
     const [rows, cols] = matrix.shape;
 
-    const result = ndarray(new Uint8Array(rows * cols), [rows, cols]);
+    const result = ndarray(new matrix.data.constructor(rows * cols), [
+        rows,
+        cols
+    ]);
 
     for (let j = 0; j < cols; j++) {
         for (let i = 0; i < rows; i++) {
