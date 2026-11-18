@@ -243,10 +243,9 @@ export class BufferStream {
     }
 
     readUint16Array(length) {
-        var sixlen = length / 2,
-            arr = new Uint16Array(sixlen),
-            i = 0;
-        while (i++ < sixlen) {
+        const words = Math.floor(length / 2),
+            arr = new Uint16Array(words);
+        for (let i = 0; i < words; i++) {
             arr[i] = this.view.getUint16(this.offset, this.isLittleEndian);
             this.offset += 2;
         }
