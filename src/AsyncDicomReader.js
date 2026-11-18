@@ -335,10 +335,15 @@ export class AsyncDicomReader {
                     itemLength === UNDEFINED_LENGTH_FIX
                         ? endOffset
                         : Math.min(stream.offset + itemLength, endOffset);
+                // A SpecificCharacterSet in the item applies only to that
+                // item (PS3.5 7.5.3), but the item is read on this stream:
+                // put back the decoder the item started with.
+                const { decoder } = stream;
                 await this.read(listener, {
                     ...options,
                     untilOffset: itemUntilOffset
                 });
+                stream.setDecoder(decoder);
             } else if (tag === TagHex.SequenceDelimitationEnd) {
                 // Sequence of undefined lengths end in sequence delimitation item
                 return;
