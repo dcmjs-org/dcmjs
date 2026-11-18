@@ -50,7 +50,7 @@
     },
     "homepage": "https://github.com/dcmjs-org/dcmjs#readme",
     "devDependencies": {
-        "@babel/core": "7.23.7",
+        "@babel/core": "7.29.6",
         "@babel/plugin-transform-runtime": "7.23.7",
         "@babel/preset-env": "7.29.5",
         "@babel/register": "7.23.7",
