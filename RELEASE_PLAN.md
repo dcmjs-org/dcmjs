@@ -124,7 +124,7 @@ scope later; until then every name in this document reads `@dcmjs-org/`.
 | `master`                     | Stable. Publishes to npm `latest`. Stays at 0.52.x until 1.0 is done.                                                                                            |
 | `1.0-beta`                   | The release branch for 1.0. Each merge into it can publish a `1.0.0-beta.N` prerelease under the npm `beta` tag, so early adopters can `npm install dcmjs@beta`. |
 | `release/1.0-beta-<package>` | One staging branch per package — `release/1.0-beta-core`, `release/1.0-beta-fhir`, and so on. Work accumulates here in small steps.                              |
-| `0.x`                        | Maintenance line for 0.x, made from `master` before the move of 1.0. Publishes 0.x fixes to the npm dist-tag `0.x`.                                              |
+| `0.x`                        | Maintenance line for 0.x, made from `master` before the move of 1.0. Publishes the unscoped `dcmjs` package to npm `latest`.                                     |
 
 This supersedes the earlier plan's `development` / `release/1.0` naming.
 
@@ -523,7 +523,7 @@ Named here so their absence is a decision, not an oversight:
 ```json
 {
     "branches": [
-        { "name": "0.x", "range": "0.x", "channel": "0.x" },
+        { "name": "0.x", "range": "0.x", "channel": false },
         "master"
     ],
     "plugins": [
