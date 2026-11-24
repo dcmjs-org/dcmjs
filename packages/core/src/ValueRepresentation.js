@@ -1239,7 +1239,13 @@ class SequenceOfItems extends ValueRepresentation {
                 // Registered by core/writeCore.js at load; the eager engine's
                 // DicomMessage.write is a delegate to the same function, so
                 // this is the one item-serialization path either way.
-                written += writeDataSet(item, stream, syntax, writeOptions);
+                // A null item (NAT-U-RT-7) is an empty item
+                written += writeDataSet(
+                    item || {},
+                    stream,
+                    syntax,
+                    writeOptions
+                );
 
                 super.write(stream, "Uint16", 0xfffe);
                 super.write(stream, "Uint16", 0xe00d);
