@@ -8,9 +8,9 @@ unlearn it; this page documents only what is on this branch, and every
 behavioral claim below names the test suite that pins it.
 
 The short version: the reader and writer you call today are unchanged,
-with one exception: the writer now encodes text in the character set that
-the dataset declares (see "Text is written in the declared character
-set"). The new work, a streaming engine that reads and writes files larger than
+with one exception: `DicomDict.write()` and `DicomMessage.write()` now
+encode text in the character set that the dataset declares (see "Text is
+written in the declared character set"). The new work, a streaming engine that reads and writes files larger than
 memory, sits beside them and runs only when you call it. Three behaviors
 changed on purpose to follow the DICOM standard (see
 [BREAKING_CHANGES.md](BREAKING_CHANGES.md)), and naturalization changed in
@@ -417,8 +417,9 @@ and are little endian now:
 
 -   `new BufferStream()` (the default of `isLittleEndian` is now `true`).
 -   `new ReadBufferStream(buffer)` with no options.
--   `new WriteBufferStream()` with no argument (in 0.x the same as
-    `new WriteBufferStream(undefined)`, which the shim cannot tell apart).
+-   `new WriteBufferStream()` with no argument. An explicit
+    `new WriteBufferStream(undefined)` is the 0.x form and stays big
+    endian.
 -   The child stream of `BufferStream.more()`.
 -   `new DeflatedReadBufferStream(stream)`: 0.x read `stream.littleEndian`,
     a property that does not exist, so it was big endian.
@@ -432,15 +433,21 @@ rules.
 
 ## Text is written in the declared character set
 
-In 0.x, the writer wrote every text value as UTF-8 bytes, also when the
-dataset declared a different Specific Character Set (0008,0005). The file
-then had text that did not agree with its declaration. In 1.0, the writer
+In 0.x, `DicomDict.write()` and `DicomMessage.write()` wrote every text
+value as UTF-8 bytes, also when the dataset declared a different Specific
+Character Set (0008,0005). The file then had text that did not agree with
+its declaration. In 1.0, these two calls delegate to `writePart10`, which
 encodes the text of a dataset or sequence item with its declared
-character set, for example `0xE9` for `é` in `ISO_IR 100`. A character
+character set, for example `0xE9` for `é` in `ISO_IR 100`. (The 1.0
+writers `writePart10`, `Part10Writer` and `StreamingPart10Writer` are new
+and behave the same way.) A character
 that a single-byte character set cannot hold stops the write with an
 error, unless `writeOptions.ignoreErrors` is set; then the writer writes
-`?`. A dataset with no (0008,0005), and a dataset that a read gave (the
-read changes the value to `ISO_IR 192`), still write UTF-8. The multi-byte
+`?`. `ISO_IR 100`, an empty (0008,0005) and `ISO 2022 IR 6` use the
+windows-1252 table that the read uses, so `€` and the other characters at
+0x80 to 0x9F write without an error. A dataset with no (0008,0005), and a
+dataset that a read gave (the read changes the value to `ISO_IR 192`),
+still write UTF-8. The multi-byte
 and ISO 2022 character sets still write UTF-8, with a warning.
 
 `registerCharacterSet(term, { label, createDecoder, encode })` adds a

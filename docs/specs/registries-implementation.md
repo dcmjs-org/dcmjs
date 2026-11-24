@@ -125,13 +125,12 @@ different path.
   stop, noCopy, clearBuffers, ...rest })` and
   `new WriteBufferStream({ defaultSize, littleEndian = true })`. The
   `BufferStream` field default of `isLittleEndian` is `true`. (REG-U-16)
-- **REG-I-21.** The legacy form is detected by the type of the second
-  argument of `ReadBufferStream` (`boolean`, `null`, or `undefined` with a
-  third argument) and of the first argument of `WriteBufferStream`
-  (`number`, `null`, or `undefined` with a second argument). The shim maps
-  all arguments to the options object, with the 0.x byte order: `true`
-  gives little endian, and `false`, `null` or `undefined` give big endian,
-  as in 0.x.
+- **REG-I-21.** The legacy form is detected by the argument count: an
+  explicit second argument of `ReadBufferStream`, or an explicit first
+  argument of `WriteBufferStream`, that is not an object (`boolean`,
+  `number`, `null`, `undefined`). The shim maps all arguments to the
+  options object, with the 0.x byte order: a truthy value gives little
+  endian, and any other value gives big endian, as in 0.x.
   `log.warn` runs once per class. `new ReadBufferStream(buffer)` and
   `new WriteBufferStream()` are the new form. (REG-U-17)
 - **REG-I-22.** All callers in `packages/*/src` use the options form.

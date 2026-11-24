@@ -83,11 +83,20 @@ user requirement does not cite an implementation requirement.
   that item only. The next item, and the elements after the sequence, use
   the character set of their own dataset.
 - **REG-U-12.** A dataset with no Specific Character Set is written as
-  before: the text is UTF-8 bytes.
+  before: the text is UTF-8 bytes. A dataset that declares the default
+  repertoire, with an empty value or with `ISO 2022 IR 6`, is written with
+  the windows-1252 table, the same table that the read uses. DICOM defines
+  the default repertoire as ASCII, but windows-1252 is the common handling
+  of an unspecified repertoire, so the text that dcmjs reads from such a
+  file writes back unchanged.
 - **REG-U-13.** A write of a character that a single-byte character set
   cannot hold fails with an error that names the character and the
   character set. When the write options ask to ignore errors, the writer
-  writes `?` for that character.
+  writes `?` for that character. Exception: `ISO_IR 100` uses the
+  windows-1252 table, the same table that the read uses, so the characters
+  that windows-1252 puts at 0x80 to 0x9F (for example `€`, `—`, `“`) write
+  without an error. The read and the write then stay symmetric. Other
+  toolkits read those bytes as ISO 8859-1 control characters.
 - **REG-U-14.** A declared character set that has no encoder in dcmjs
   (multi-byte character sets, ISO 2022 code extensions, and a multi-valued
   Specific Character Set) is written as UTF-8 bytes, as before. dcmjs
@@ -105,8 +114,8 @@ user requirement does not cite an implementation requirement.
 - **REG-U-17.** A call with the legacy constructor form keeps working, and
   keeps all of its arguments: the byte order, the size hint, the start and
   stop offsets, the no-copy option, and the clear-buffers option. A legacy
-  call gives the same byte order as in dcmjs 0.x, also when it gives no
-  byte order. dcmjs logs one warning for each stream class that gets a
+  call gives the same byte order as in dcmjs 0.x, also when it gives an
+  explicit empty byte order (for example `undefined` or `0`). dcmjs logs one warning for each stream class that gets a
   legacy call.
 
 ## Related documents

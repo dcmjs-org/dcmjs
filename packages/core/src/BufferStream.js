@@ -542,10 +542,10 @@ export class ReadBufferStream extends BufferStream {
      * @param {{littleEndian?: boolean, start?: number, stop?: number, noCopy?: boolean, clearBuffers?: boolean}} [options]
      */
     constructor(buffer, options, legacyOptions) {
+        // any explicit non-object 2nd argument is the 0.x byte order
         if (
-            typeof options === "boolean" ||
-            options === null ||
-            (options === undefined && legacyOptions !== undefined)
+            arguments.length >= 2 &&
+            (options === null || typeof options !== "object")
         ) {
             warnLegacyConstructor(
                 "ReadBufferStream",
@@ -669,7 +669,7 @@ export class DeflatedReadBufferStream extends ReadBufferStream {
         const inflatedBuffer = pako.inflateRaw(
             stream.getBuffer(stream.offset, stream.size)
         );
-        super(inflatedBuffer.buffer, options);
+        super(inflatedBuffer.buffer, options ?? {});
     }
 }
 
@@ -680,10 +680,10 @@ export class DeflatedReadBufferStream extends ReadBufferStream {
 export class WriteBufferStream extends BufferStream {
     /** @param {{defaultSize?: number, littleEndian?: boolean}} [options] */
     constructor(options, legacyLittleEndian) {
+        // any explicit non-object argument is the 0.x size hint
         if (
-            typeof options === "number" ||
-            options === null ||
-            (options === undefined && legacyLittleEndian !== undefined)
+            arguments.length >= 1 &&
+            (options === null || typeof options !== "object")
         ) {
             warnLegacyConstructor(
                 "WriteBufferStream",

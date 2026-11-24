@@ -45,6 +45,14 @@ describe("stream constructors (REG-U-16, REG-U-17)", () => {
         expect(stream.offset).toBe(2);
         expect(stream.endOffset).toBe(6);
         expect(stream.readUint16()).toBe(0x0302);
+
+        // an explicit undefined or 0 byte order is the 0.x form: big endian
+        for (const byteOrder of [undefined, 0]) {
+            expect(new ReadBufferStream(buffer, byteOrder).readUint16()).toBe(
+                0x0001
+            );
+        }
+        expect(new ReadBufferStream(buffer).readUint16()).toBe(0x0100);
     });
 
     it("API: legacy WriteBufferStream(n, false) is big endian; the new form defaults to little endian", () => {
