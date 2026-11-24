@@ -10,11 +10,8 @@
  *   WriteBufferStream.writeUint16) - no tag context, no way to know which
  *   element to fix.
  *
- * Defined behavior pinned here (either is acceptable):
- *   a) the element is skipped or written empty, and the output re-reads; or
- *   b) the write fails with a corrective error NAMING the offending tag.
- * A bare TypeError/"Not a number: undefined" satisfies neither and is a
- * KNOWN GAP.
+ * Fixed behavior: the element is written empty (zero length), and the
+ * output re-reads (NAT-U-RT-7 in docs/specs/naturalized-dataset.md).
  *
  * Also pins the naturalized-side contract: a naturalized field explicitly
  * set to undefined is OMITTED by denaturalizeDataset (the #418-family
@@ -40,63 +37,26 @@ beforeAll(() => {
 });
 
 describe("issue #417 - dict entry with Value [undefined] has defined write behavior", () => {
-    // KNOWN GAP: observed - dicomDict.write() throws the bare
-    // "Not a number: undefined" from toInt/WriteBufferStream.writeUint16
-    // (src/utilities/toInt.js) with no mention of the offending tag
-    // (0010,21C0). Expected - either the element is skipped/written empty
-    // (output re-reads), or a corrective error naming the tag/keyword.
-    it.skip("KNOWN GAP #417: write() on {vr:'US', Value:[undefined]} throws a bare 'Not a number: undefined' instead of skipping or naming the tag", () => {
-        const dicomDict = DicomMessage.readFile(
-            createSampleDicom({ dict: EXTRA_DICT })
-        );
-        // The issue's observed shape, injected on the issue's tag.
-        dicomDict.dict["001021C0"] = { vr: "US", Value: [undefined] };
-
-        let outBuffer;
-        let error;
-        try {
-            outBuffer = dicomDict.write();
-        } catch (e) {
-            error = e;
-        }
-
-        if (error) {
-            // acceptable only if the error is corrective: names the element
-            expect(String(error.message)).toMatch(
-                /001021C0|\(0010,21C0\)|PregnancyStatus/i
+    // Fixed: Tag.write gives an element with only undefined entries no
+    // value (NAT-U-RT-7), so the element is written with zero length.
+    for (const writeOptions of [undefined, { allowInvalidVRLength: true }]) {
+        it(`write(${
+            JSON.stringify(writeOptions) ?? ""
+        }) on {vr:'US', Value:[undefined]} writes an empty element`, () => {
+            const dicomDict = DicomMessage.readFile(
+                createSampleDicom({ dict: EXTRA_DICT })
             );
-        } else {
-            // acceptable: skipped or empty element, output still valid
-            const reRead = DicomMessage.readFile(outBuffer);
-            const entry = reRead.dict["001021C0"];
-            const values = entry ? entry.Value || [] : [];
-            expect(values.filter(v => v !== undefined && v !== null)).toEqual(
-                []
+            // The issue's observed shape, injected on the issue's tag.
+            dicomDict.dict["001021C0"] = { vr: "US", Value: [undefined] };
+
+            const reRead = DicomMessage.readFile(dicomDict.write(writeOptions));
+            // the reader gives a zero-length US as its default value, 0
+            expect(reRead.dict["001021C0"].Value).not.toContain(undefined);
+            expect(String(reRead.dict["00080018"].Value[0])).toBe(
+                "1.2.3.4.5.6.7.8.9"
             );
-        }
-    });
-
-    it("write({allowInvalidVRLength:true}) - the issue's exact call - has the same defined-behavior contract", () => {
-        // Same trigger through the reporter's exact write options; kept as
-        // a separate pin because the option must not change the outcome.
-        const dicomDict = DicomMessage.readFile(
-            createSampleDicom({ dict: EXTRA_DICT })
-        );
-        dicomDict.dict["001021C0"] = { vr: "US", Value: [undefined] };
-
-        let error;
-        try {
-            dicomDict.write({ allowInvalidVRLength: true });
-        } catch (e) {
-            error = e;
-        }
-
-        // Documents today's observed failure mode so the fix pass can
-        // flip the skipped test above: the write DOES throw, and the
-        // message is the context-free buffer error.
-        expect(error).toBeDefined();
-        expect(String(error.message)).toMatch(/Not a number: undefined/);
-    });
+        });
+    }
 });
 
 describe("issue #417 (naturalized side) - field set to undefined is omitted and write succeeds", () => {

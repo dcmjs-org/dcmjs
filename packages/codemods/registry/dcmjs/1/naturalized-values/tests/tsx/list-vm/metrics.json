@@ -1,0 +1,44 @@
+{
+  "dcmjs-1-manual": [
+    {
+      "cardinality": {
+        "file": "input.js",
+        "line": "4",
+        "rule": "WindowCenter: a list VM keeps the list for one value, take the first value"
+      },
+      "count": 1
+    },
+    {
+      "cardinality": {
+        "file": "input.js",
+        "line": "5",
+        "rule": "WindowWidth: a list VM keeps the list for one value, take the first value"
+      },
+      "count": 1
+    },
+    {
+      "cardinality": {
+        "file": "input.js",
+        "line": "6",
+        "rule": "ImageType: a list VM keeps the list for one value, take the first value"
+      },
+      "count": 1
+    },
+    {
+      "cardinality": {
+        "file": "input.js",
+        "line": "7",
+        "rule": "ImageType: a list VM keeps the list for one value, take the first value"
+      },
+      "count": 1
+    },
+    {
+      "cardinality": {
+        "file": "input.js",
+        "line": "8",
+        "rule": "ImageType: a list VM keeps the list for one value, take the first value"
+      },
+      "count": 1
+    }
+  ]
+}

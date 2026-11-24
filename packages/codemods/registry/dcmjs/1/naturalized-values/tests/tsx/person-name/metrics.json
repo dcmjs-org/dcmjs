@@ -1,0 +1,12 @@
+{
+  "dcmjs-1-manual": [
+    {
+      "cardinality": {
+        "file": "input.js",
+        "line": "3",
+        "rule": "typeof ReferringPhysicianName: a PN value is an object, use String(ReferringPhysicianName)"
+      },
+      "count": 1
+    }
+  ]
+}

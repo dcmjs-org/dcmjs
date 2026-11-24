@@ -4,7 +4,12 @@
 // dictionary.private.data.js, dictionary.ranges.data.js) are deliberately
 // absent: their export names collide by design (each is a module-shaped
 // data blob), so consumers that need them import them by module path.
-export { ValueRepresentation } from "./ValueRepresentation.js";
+export { ValueRepresentation, Vrs, registerVr } from "./ValueRepresentation.js";
+export {
+    SopClasses,
+    registerSopClass,
+    sopClassName
+} from "./constants/sopClasses.js";
 export { Tag } from "./Tag.js";
 export {
     BufferStream,
@@ -36,6 +41,12 @@ export {
     PN_DELIMITER_BYTES
 } from "./charset/iso2022.js";
 export { createDecoder, createLatin1Decoder } from "./charset/latin1.js";
+export {
+    registerCharacterSet,
+    lookupCharacterSet,
+    createCharacterSetEncoder,
+    normalizeCharacterSetTerm
+} from "./charset/registry.js";
 export { normalizeSyntax } from "./core/normalizeSyntax.js";
 export {
     writeDataSet,

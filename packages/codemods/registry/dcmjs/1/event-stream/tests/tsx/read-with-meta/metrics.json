@@ -1,0 +1,12 @@
+{
+  "dcmjs-1-review": [
+    {
+      "cardinality": {
+        "file": "input.js",
+        "line": "4",
+        "rule": "readFile to the event stream: compressed PixelData without an offset table gives fragments, not frames"
+      },
+      "count": 1
+    }
+  ]
+}

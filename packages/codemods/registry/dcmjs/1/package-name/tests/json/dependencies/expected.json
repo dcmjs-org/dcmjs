@@ -1,0 +1,11 @@
+{
+  "name": "viewer",
+  "dcmjs": "a key outside the dependencies stays",
+  "dependencies": {
+    "@dcmjs-org/dcmjs": "^1.0.0",
+    "dcmjs-dimse": "^0.1.0"
+  },
+  "devDependencies": {
+    "@dcmjs-org/dcmjs": "^1.0.0"
+  }
+}

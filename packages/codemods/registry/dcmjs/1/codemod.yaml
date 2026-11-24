@@ -1,0 +1,19 @@
+schema_version: '1.0'
+name: '@dcmjs-org/dcmjs-1'
+version: '0.1.0'
+description: 'Apply the dcmjs 1.0 migration codemods in the recommended order.'
+author: 'dcmjs contributors'
+license: 'MIT'
+workflow: 'workflow.yaml'
+repository: 'https://github.com/dcmjs-org/dcmjs'
+category: 'migration'
+targets:
+  languages: ['typescript', 'tsx', 'javascript', 'jsx', 'json']
+keywords:
+  - dcmjs
+  - migration
+  - upgrade
+  - v1
+registry:
+  access: 'public'
+  visibility: 'public'

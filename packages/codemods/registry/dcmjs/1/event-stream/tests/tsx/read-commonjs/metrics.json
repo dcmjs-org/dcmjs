@@ -1,0 +1,12 @@
+{
+  "dcmjs-1-manual": [
+    {
+      "cardinality": {
+        "file": "input.js",
+        "line": "4",
+        "rule": "readFile: the file is CommonJS, and the eventStream subpath is ES modules only"
+      },
+      "count": 1
+    }
+  ]
+}

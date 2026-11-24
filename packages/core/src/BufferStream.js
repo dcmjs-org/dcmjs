@@ -2,11 +2,24 @@ import pako from "pako";
 import SplitDataView from "./SplitDataView";
 import { toFloat } from "./utilities/toFloat";
 import { toInt } from "./utilities/toInt";
+import { log } from "./log.js";
+
+const legacyWarned = new Set();
+
+/** Warns once per class that a positional (0.x) constructor form was used. */
+function warnLegacyConstructor(className, newForm) {
+    if (!legacyWarned.has(className)) {
+        legacyWarned.add(className);
+        log.warn(
+            `${className}: the positional constructor arguments are deprecated; use ${newForm}`
+        );
+    }
+}
 
 export class BufferStream {
     offset = 0;
     startOffset = 0;
-    isLittleEndian = false;
+    isLittleEndian = true;
     size = 0;
     view = new SplitDataView();
     /** The available listeners are those waiting for a query response */
@@ -23,10 +36,11 @@ export class BufferStream {
 
     encoder = new TextEncoder("utf-8");
 
+    /** @param {{littleEndian?: boolean, defaultSize?: number, clearBuffers?: boolean}} [options] */
     constructor(options = null) {
-        this.isLittleEndian = options?.littleEndian || this.isLittleEndian;
+        this.isLittleEndian = options?.littleEndian ?? this.isLittleEndian;
         this.view.defaultSize = options?.defaultSize ?? this.view.defaultSize;
-        this.clearBuffers = options.clearBuffers || false;
+        this.clearBuffers = options?.clearBuffers || false;
     }
 
     /**
@@ -198,8 +212,9 @@ export class BufferStream {
     }
 
     writeUTF8String(value) {
-        // an empty (null) value is empty text, as in writeAsciiString
-        const encodedString = this.encoder.encode(value ?? "");
+        // an empty (null) value is empty text, as in writeAsciiString; a
+        // number in a text VR is written as its text
+        const encodedString = this.encoder.encode(String(value ?? ""));
         this.checkSize(encodedString.byteLength);
         this.view.writeBuffer(encodedString, this.offset);
         return this.increment(encodedString.byteLength);
@@ -468,7 +483,7 @@ export class BufferStream {
 
         // Optimize the more implementation to choose between a slice and
         // a sub-string reference to the original set of views.
-        // const newBuf = new ReadBufferStream(this.buffer, null, {
+        // const newBuf = new ReadBufferStream(this.buffer, {
         //   start: this.offset,
         //   stop: this.offset + length
         // });
@@ -517,19 +532,38 @@ export class BufferStream {
  * range, at logical offset 0. If the stream adopted buffer.buffer whole, it
  * would alias the other data in the pool. The Node-only Buffer.offset
  * property (its byteOffset) does not set the read offset.
+ *
+ * The 0.x form `(buffer, littleEndian, options)` still works, as in 0.x,
+ * with a one-time warning.
  */
 export class ReadBufferStream extends BufferStream {
-    constructor(
-        buffer,
-        littleEndian,
-        options = {
-            start: null,
-            stop: null,
-            noCopy: false
+    /**
+     * @param {ArrayBuffer|ArrayBufferView|BufferStream|null} buffer
+     * @param {{littleEndian?: boolean, start?: number, stop?: number, noCopy?: boolean, clearBuffers?: boolean}} [options]
+     */
+    constructor(buffer, options, legacyOptions) {
+        // any explicit non-object 2nd argument is the 0.x byte order
+        if (
+            arguments.length >= 2 &&
+            (options === null || typeof options !== "object")
+        ) {
+            warnLegacyConstructor(
+                "ReadBufferStream",
+                "new ReadBufferStream(buffer, { littleEndian, start, stop, noCopy, clearBuffers })"
+            );
+            options = { ...legacyOptions, littleEndian: !!options };
         }
-    ) {
-        super({ ...options, littleEndian });
-        this.noCopy = options.noCopy;
+        options = options ?? {};
+        const {
+            littleEndian = true,
+            start,
+            stop,
+            noCopy = false,
+            clearBuffers = false,
+            ...rest
+        } = options;
+        super({ ...rest, littleEndian, clearBuffers });
+        this.noCopy = noCopy;
         this.decoder = new TextDecoder("latin1");
 
         if (buffer instanceof BufferStream) {
@@ -543,9 +577,8 @@ export class ReadBufferStream extends BufferStream {
         // a source BufferStream's offset is the sub-stream start; a Node
         // Buffer's own `offset` property is ignored (see class doc comment)
         this.offset =
-            options.start ??
-            (buffer instanceof BufferStream ? buffer.offset : 0);
-        this.size = options.stop || buffer?.size || buffer?.byteLength || 0;
+            start ?? (buffer instanceof BufferStream ? buffer.offset : 0);
+        this.size = stop || buffer?.size || buffer?.byteLength || 0;
 
         this.startOffset = this.offset;
         this.endOffset = this.size;
@@ -636,12 +669,32 @@ export class DeflatedReadBufferStream extends ReadBufferStream {
         const inflatedBuffer = pako.inflateRaw(
             stream.getBuffer(stream.offset, stream.size)
         );
-        super(inflatedBuffer.buffer, stream.littleEndian, options);
+        super(inflatedBuffer.buffer, options ?? {});
     }
 }
 
+/**
+ * A growable write stream. The 0.x form `(defaultSize, littleEndian)` still
+ * works, as in 0.x, with a one-time warning.
+ */
 export class WriteBufferStream extends BufferStream {
-    constructor(defaultSize, littleEndian) {
+    /** @param {{defaultSize?: number, littleEndian?: boolean}} [options] */
+    constructor(options, legacyLittleEndian) {
+        // any explicit non-object argument is the 0.x size hint
+        if (
+            arguments.length >= 1 &&
+            (options === null || typeof options !== "object")
+        ) {
+            warnLegacyConstructor(
+                "WriteBufferStream",
+                "new WriteBufferStream({ defaultSize, littleEndian })"
+            );
+            options = {
+                defaultSize: options ?? undefined,
+                littleEndian: !!legacyLittleEndian
+            };
+        }
+        const { defaultSize, littleEndian = true } = options ?? {};
         super({ defaultSize, littleEndian });
         this.size = 0;
     }
