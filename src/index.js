@@ -11,7 +11,11 @@ import {
 } from "./privateBlock.js";
 import { DicomMessage } from "./DicomMessage.js";
 import { DicomMetaDictionary } from "./DicomMetaDictionary.js";
-import { registerPrivatesModule } from "./dictionary.fast.js";
+import {
+    dictionary,
+    registerPrivatesModule,
+    registerTag
+} from "./dictionary.fast.js";
 import * as privateData from "./dictionary.private.data.js";
 import { DICOMWEB } from "./dicomweb.js";
 
@@ -70,6 +74,10 @@ const data = {
     datasetToDict,
     datasetToBuffer,
     datasetToBlob,
+    // The tag dictionary and the hook for adding to it. registerTag() was
+    // previously reachable only by importing src/dictionary.fast.js directly.
+    dictionary,
+    registerTag,
     // Private block reservation, PS3.5 Section 7.8.1. findPrivateBlock() works
     // on any parsed dict; DicomDict#privateBlock() is the writing side.
     findPrivateBlock,

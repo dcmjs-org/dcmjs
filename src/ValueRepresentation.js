@@ -1227,6 +1227,8 @@ class SequenceOfItems extends ValueRepresentation {
 
                         var items = DicomMessage._read(itemStream, syntax);
                         elements.push(items);
+                    } else {
+                        elements.push({});
                     }
                     if (!undefLength && read == sqlength) {
                         break;
@@ -1523,7 +1525,8 @@ class ParsedUnknownValue extends BinaryRepresentation {
             stream.isLittleEndian || this.wordWidth > 1;
         const streamFromBuffer = new ReadBufferStream(
             arrayBuffer,
-            bufferIsLittleEndian
+            bufferIsLittleEndian,
+            { decoder: stream.decoder }
         );
         const vr = ValueRepresentation.createByTypeString(this.type);
 

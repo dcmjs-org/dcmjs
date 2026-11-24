@@ -1,9 +1,18 @@
+import { ReadBufferStream } from "../src/BufferStream.js";
 import dcmjs from "../src/index.js";
+import {
+    EXPLICIT_LITTLE_ENDIAN,
+    IMPLICIT_LITTLE_ENDIAN
+} from "../src/constants/dicom.js";
+import { stripUntilDataset } from "./helper/sampleDicomPart10.js";
+import {
+    buildUnSequenceValueBytes,
+    createPs352UnSequencePart10Buffer,
+    PS352_UN_SEQUENCE_UDI
+} from "./helper/ps352UnSequenceFixture.js";
 
 const { DicomDict, DicomMessage } = dcmjs.data;
 const { AsyncDicomReader } = dcmjs.async;
-
-const EXPLICIT_LITTLE_ENDIAN = "1.2.840.10008.1.2.1";
 const TEST_UV_TAG = "00111011";
 const TEST_UV_VALUES = [BigInt("9007199254741992"), BigInt("9007199254741993")];
 
@@ -67,6 +76,126 @@ describe("sync and async parser equivalency tests", () => {
             expect(parsed.dict[TEST_UV_TAG]).toBeDefined();
             expect(parsed.dict[TEST_UV_TAG].vr).toBe("UV");
             expect(parsed.dict[TEST_UV_TAG].Value).toEqual(TEST_UV_VALUES);
+        });
+    });
+
+    describe("PS3.5 6.2.2 UN defined-length sequence (Implicit LE value)", () => {
+        function expectPs352SequenceDict(dict, tag = "0018100A") {
+            const sqKey = Object.keys(dict).find(k => k.toUpperCase() === tag);
+            expect(sqKey).toBeTruthy();
+            expect(dict[sqKey].vr).toBe("SQ");
+            expect(dict[sqKey].Value.length).toBe(1);
+            const [item] = dict[sqKey].Value;
+            const udiKey = Object.keys(item).find(
+                k => k.toUpperCase() === "00181009"
+            );
+            expect(udiKey).toBeTruthy();
+            expect(item[udiKey].Value[0].trimEnd()).toBe(PS352_UN_SEQUENCE_UDI);
+        }
+
+        test("sync parser reads PS3.5 UN sequence via DicomMessage.read on dataset", () => {
+            const part10 = createPs352UnSequencePart10Buffer();
+            const datasetBytes = stripUntilDataset(part10);
+            const stream = new ReadBufferStream(datasetBytes, true);
+            const dict = DicomMessage.read(
+                stream,
+                EXPLICIT_LITTLE_ENDIAN,
+                false
+            );
+            expectPs352SequenceDict(dict);
+
+            // Write round trip: the sequence keeps one item and a small length.
+            const written = DicomMessage.readFile(part10).write();
+            expect(written.byteLength).toBeLessThan(1024);
+            expect(elementHeaderHex(written, "18000a10")).toBe(
+                "18000a1053510000ffffffff"
+            );
+            expectPs352SequenceDict(DicomMessage.readFile(written).dict);
+        });
+
+        // Header bytes (tag, VR, length) of the first dataset element with this LE tag.
+        function elementHeaderHex(part10, tagHexLE) {
+            const hex = Buffer.from(part10).toString("hex");
+            const at = hex.indexOf(tagHexLE, 132 * 2);
+            return hex.slice(at, at + 24);
+        }
+
+        test.each([
+            [EXPLICIT_LITTLE_ENDIAN, "0900101053510000ffffffff"],
+            [IMPLICIT_LITTLE_ENDIAN, "09001010fffffffffeff00e0"]
+        ])(
+            "%s: a UN element with item objects as Value is written as SQ with undefined length",
+            (syntax, expectedHeader) => {
+                const dicomDict = new DicomDict({
+                    "00020010": { vr: "UI", Value: [syntax] }
+                });
+                dicomDict.dict = {
+                    "00090010": { vr: "LO", Value: ["X"] },
+                    "00091010": {
+                        vr: "UN",
+                        Value: [
+                            {
+                                "00181009": {
+                                    vr: "UT",
+                                    Value: [PS352_UN_SEQUENCE_UDI]
+                                }
+                            }
+                        ]
+                    }
+                };
+                const written = dicomDict.write();
+                expect(elementHeaderHex(written, "09001010")).toBe(
+                    expectedHeader
+                );
+                expectPs352SequenceDict(
+                    DicomMessage.readFile(written).dict,
+                    "00091010"
+                );
+            }
+        );
+
+        test("async parser reads PS3.5 UN sequence via readFile on Part 10", async () => {
+            const part10 = createPs352UnSequencePart10Buffer();
+            const reader = new AsyncDicomReader();
+
+            reader.stream.addBuffer(new Uint8Array(part10));
+            reader.stream.setComplete();
+
+            const { dict } = await reader.readFile();
+            expectPs352SequenceDict(dict);
+        });
+
+        async function readSyncAndAsync(dict) {
+            const part10 = createPs352UnSequencePart10Buffer(dict);
+            const reader = new AsyncDicomReader();
+            reader.stream.addBuffer(new Uint8Array(part10));
+            reader.stream.setComplete();
+            return [
+                DicomMessage.readFile(part10).dict,
+                (await reader.readFile()).dict
+            ];
+        }
+
+        test("a private UN tag that holds a sequence is read as SQ", async () => {
+            const dicts = await readSyncAndAsync({
+                "00090010": { vr: "LO", Value: ["X"] },
+                "00091010": { vr: "UN", Value: [buildUnSequenceValueBytes()] }
+            });
+            dicts.forEach(dict => expectPs352SequenceDict(dict, "00091010"));
+        });
+
+        test("a private UN value that starts with FE FF but not the item tag stays UN", async () => {
+            const bytes = [0xfe, 0xff, 1, 2, 3, 4, 5, 6];
+            const dicts = await readSyncAndAsync({
+                "00090010": { vr: "LO", Value: ["X"] },
+                "00091010": { vr: "UN", Value: [new Uint8Array(bytes).buffer] }
+            });
+            for (const dict of dicts) {
+                expect(dict["00091010"].vr).toBe("UN");
+                expect([...new Uint8Array(dict["00091010"].Value[0])]).toEqual(
+                    bytes
+                );
+            }
         });
     });
 });
