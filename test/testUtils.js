@@ -47,9 +47,9 @@ function unzip(zipFilePath, targetPath) {
 
 function ensureTestDataDir() {
     var targetPath = path.join(os.tmpdir(), "dcmjs-test");
-    if (!fs.existsSync(targetPath)) {
-        fs.mkdirSync(targetPath);
-    }
+    // recursive:true is idempotent, so parallel jest workers cannot race
+    // each other into an EEXIST between an exists check and the mkdir.
+    fs.mkdirSync(targetPath, { recursive: true });
     return targetPath;
 }
 
@@ -82,4 +82,15 @@ async function getTestDataset(url, filename) {
     return targetPath;
 }
 
-export { getTestDataset, getZippedTestDataset };
+// Reads a file into a standalone ArrayBuffer. Node may return small files
+// inside a larger shared memory pool, so taking `.buffer` directly can hand
+// back the pool (with the file at a nonzero offset) instead of the file.
+function readFileAsArrayBuffer(filePath) {
+    const buffer = fs.readFileSync(filePath);
+    return buffer.buffer.slice(
+        buffer.byteOffset,
+        buffer.byteOffset + buffer.byteLength
+    );
+}
+
+export { getTestDataset, getZippedTestDataset, readFileAsArrayBuffer };
