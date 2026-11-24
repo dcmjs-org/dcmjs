@@ -33,6 +33,7 @@ const documentBytes = [0xde, 0xad, 0xbe, 0xef];
 const pointValues = [1.5, -2.5, 0.75, 1024.5];
 const doublePointValues = [1.5, -2.5];
 const overlayValues = [0x1122, 0x3344];
+const pointIndexValues = [0x01020304, 0xa0b0c0d0];
 
 /*
  * A minimal explicit VR encoder and parser, written independently of the
@@ -42,6 +43,7 @@ const overlayValues = [0x1122, 0x3344];
 
 const setterNames = {
     Uint16Array: "setUint16",
+    Uint32Array: "setUint32",
     Float32Array: "setFloat32",
     Float64Array: "setFloat64"
 };
@@ -114,7 +116,7 @@ const encodeItemTag = (element, length, littleEndian) => [
 
 /**
  * The dataset of the synthetic file: one element of every binary VR with
- * multi-byte words (OW, OF, OD), an OB element, string and scalar elements as
+ * multi-byte words (OW, OF, OD, OL), an OB element, string and scalar elements as
  * controls, and an OW element nested in a sequence, in tag order.
  */
 function encodeDataset(littleEndian) {
@@ -193,6 +195,13 @@ function encodeDataset(littleEndian) {
             "00660022",
             "OD",
             encodeWords(doublePointValues, Float64Array, littleEndian),
+            littleEndian
+        ),
+        // LongPrimitivePointIndexList
+        ...encodeElement(
+            "00660040",
+            "OL",
+            encodeWords(pointIndexValues, Uint32Array, littleEndian),
             littleEndian
         ),
         // PixelData
@@ -279,7 +288,7 @@ function parseExplicitElements(buffer, offset, littleEndian) {
     return elements;
 }
 
-/** The same dataset as encodeDataset, as a DicomDict in host byte order */
+/** The same dataset as encodeDataset, as a DicomDict in little endian memory */
 function makeDicomDict(syntax) {
     const dicomDict = new DicomDict({
         [TagHex.TransferSyntaxUID]: { vr: "UI", Value: [syntax] }
@@ -310,6 +319,10 @@ function makeDicomDict(syntax) {
             vr: "OD",
             Value: [new Float64Array(doublePointValues).buffer]
         },
+        "00660040": {
+            vr: "OL",
+            Value: [new Uint32Array(pointIndexValues).buffer]
+        },
         "7FE00010": { vr: "OW", Value: [new Uint16Array(pixelValues).buffer] }
     };
     return dicomDict;
@@ -317,7 +330,7 @@ function makeDicomDict(syntax) {
 
 /**
  * Pixel data as the async reader delivers it, one array of fragments per frame,
- * viewed in the host's byte order
+ * viewed as little endian words
  */
 function hostFrameWords(element, ArrayType) {
     const [frames] = element.Value;
@@ -325,7 +338,7 @@ function hostFrameWords(element, ArrayType) {
     return Array.from(new ArrayType(frames[0]));
 }
 
-/** The value of a binary element, viewed in the host's byte order */
+/** The value of a binary element, viewed as little endian words */
 function hostWords(element, ArrayType) {
     const value = element.Value[0];
     return Array.from(
@@ -406,6 +419,9 @@ describe("binary value fields and the transfer syntax byte order", () => {
             expect(elements["00660022"].bytes).toEqual(
                 encodeWords(doublePointValues, Float64Array, littleEndian)
             );
+            expect(elements["00660040"].bytes).toEqual(
+                encodeWords(pointIndexValues, Uint32Array, littleEndian)
+            );
             expect(elements["60003000"].bytes).toEqual(
                 encodeWords(overlayValues, Uint16Array, littleEndian)
             );
@@ -423,7 +439,7 @@ describe("binary value fields and the transfer syntax byte order", () => {
             expect(new Uint8Array(buffer)).toEqual(encodeFile(syntax));
         });
 
-        test("reads the words of the value field into the host's byte order", () => {
+        test("reads the words of the value field to little endian", () => {
             const dict = DicomMessage.readFile(encodeFile(syntax).buffer).dict;
 
             expect(hostWords(dict["7FE00010"], Uint16Array)).toEqual(
@@ -435,6 +451,9 @@ describe("binary value fields and the transfer syntax byte order", () => {
             );
             expect(hostWords(dict["00660022"], Float64Array)).toEqual(
                 doublePointValues
+            );
+            expect(hostWords(dict["00660040"], Uint32Array)).toEqual(
+                pointIndexValues
             );
             expect(
                 hostWords(dict["00081130"].Value[0]["60003000"], Uint16Array)
@@ -448,7 +467,7 @@ describe("binary value fields and the transfer syntax byte order", () => {
             expect(dict["00080060"].Value).toEqual(["MR"]);
         });
 
-        test("reads the words of the value field into the host's byte order asynchronously", async () => {
+        test("reads the words of the value field to little endian asynchronously", async () => {
             const reader = new AsyncDicomReader();
             reader.stream.addBuffer(encodeFile(syntax).buffer);
             reader.stream.setComplete();
@@ -463,6 +482,9 @@ describe("binary value fields and the transfer syntax byte order", () => {
             );
             expect(hostWords(dict["00660022"], Float64Array)).toEqual(
                 doublePointValues
+            );
+            expect(hostWords(dict["00660040"], Uint32Array)).toEqual(
+                pointIndexValues
             );
             expect(hostWords(dict["00420011"], Uint8Array)).toEqual(
                 documentBytes

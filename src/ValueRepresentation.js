@@ -85,7 +85,7 @@ var binaryVRs = ["FL", "FD", "SL", "SS", "UL", "US", "AT", "UV"],
 // Bytes per word of the value field of the binary VRs, used to convert the
 // value field to and from big endian byte order.  OB is a byte stream, and so
 // is UN, which PS3.5 Section 6.2.2 says to interpret as OB.
-var binaryVRWordWidths = { OB: 1, OD: 8, OF: 4, OW: 2, UN: 1 };
+var binaryVRWordWidths = { OB: 1, OD: 8, OF: 4, OL: 4, OW: 2, UN: 1 };
 
 class ValueRepresentation {
     constructor(type) {
@@ -514,7 +514,7 @@ class BinaryRepresentation extends ValueRepresentation {
         } else {
             var binaryData = value[0];
             if (!stream.isLittleEndian) {
-                // The value is held in the host's byte order, so it has to be
+                // The value is held little endian in memory, so it has to be
                 // swapped back, on a copy to leave the caller's value alone
                 binaryData = swappedCopy(binaryData, this.wordWidth);
             }
@@ -1514,7 +1514,7 @@ class ParsedUnknownValue extends BinaryRepresentation {
 
     read(stream, length, syntax, readOptions) {
         const arrayBuffer = this.readBytes(stream, length, syntax)[0];
-        // readBytes() has already swapped the words into the host's order if
+        // readBytes() has already swapped the words to little endian if
         // this VR has multi-byte words and the stream is big endian, so the
         // re-read below must not swap them a second time.  Where it has not
         // swapped - a scalar or string VR, or "ox" - the bytes are still in the

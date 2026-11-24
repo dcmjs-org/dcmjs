@@ -2,10 +2,12 @@
  * Byte order conversion for the multi-byte words of a binary value field.
  *
  * Explicit VR Big Endian (1.2.840.10008.1.2.2) stores the words of a value
- * field most significant byte first (PS3.5 Section 7.3), so OW, OF and OD
- * values have to be swapped into the host's order when read, and back into
- * big endian when written, for callers to be able to view them as
- * Uint16Array/Float32Array/Float64Array.  OB is a byte stream and is never
+ * field most significant byte first (PS3.5 Section 7.3), so OW, OF, OD and OL
+ * values have to be swapped to little endian when read, and back into big
+ * endian when written, for callers to be able to view them as
+ * Uint16Array/Float32Array/Float64Array/Uint32Array.  The in-memory form is
+ * little endian: typed arrays are little endian on every JavaScript platform
+ * dcmjs supports.  OB is a byte stream and is never
  * swapped, and neither is UN, which is interpreted as OB.
  */
 
