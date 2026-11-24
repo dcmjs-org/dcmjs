@@ -142,11 +142,7 @@ describe("an element with no value", () => {
                 expect(VRS.map((vr, i) => [vr, lengths[tagOf(i)]])).toEqual(
                     VRS.map(vr => [vr, 0])
                 );
-                // OV and SV are not registered VRs yet: ignore that warning
-                const warnings = warn.mock.calls.filter(
-                    c => !/Invalid vr type/.test(c.join(" "))
-                );
-                expect(warnings).toEqual([]);
+                expect(warn.mock.calls).toEqual([]);
             });
         }
     }

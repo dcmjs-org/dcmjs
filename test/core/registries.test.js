@@ -68,7 +68,7 @@ describe("stream constructors (REG-U-16, REG-U-17)", () => {
 
 describe("VR registry (REG-U-2)", () => {
     it("API: registerVr makes an unknown VR decode with the registered instance", () => {
-        // write (0066,0040) as OW, then change the VR bytes to OV, which has no class
+        // write (0066,0040) as OW, then change the VR bytes to ZZ, not a DICOM VR
         const bytes = writePart10({
             "00660040": { vr: "OW", Value: [Uint8Array.of(1, 0, 0, 0).buffer] }
         });
@@ -79,11 +79,12 @@ describe("VR registry (REG-U-2)", () => {
                 bytes[i + 4] === 0x4f &&
                 bytes[i + 5] === 0x57
         );
-        bytes[at + 5] = "V".charCodeAt(0);
+        bytes[at + 4] = "Z".charCodeAt(0);
+        bytes[at + 5] = "Z".charCodeAt(0);
 
-        const otherVeryLong = new Vrs.OW.constructor();
-        otherVeryLong.type = "OV";
-        registerVr("OV", otherVeryLong, {
+        const vendorWords = new Vrs.OW.constructor();
+        vendorWords.type = "ZZ";
+        registerVr("ZZ", vendorWords, {
             length32: true,
             single: true,
             readSingle: true,
@@ -93,14 +94,14 @@ describe("VR registry (REG-U-2)", () => {
 
         const element = readDict(bytes)["00660040"];
 
-        expect(Vrs.OV).toBe(otherVeryLong);
-        expect(element.vr).toBe("OV");
+        expect(Vrs.ZZ).toBe(vendorWords);
+        expect(element.vr).toBe("ZZ");
         expect(new Uint8Array(element.Value[0])).toEqual(
             Uint8Array.of(1, 0, 0, 0)
         );
         expect(warn).not.toHaveBeenCalledWith(
             "Invalid vr type",
-            "OV",
+            "ZZ",
             "- using UN"
         );
         warn.mockRestore();

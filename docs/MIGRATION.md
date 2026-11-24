@@ -469,8 +469,9 @@ the VR and SOP class registries; the 0.x lists and maps
 `sopClassNamesByUID`) keep their members and their property access.
 [specs/registries.md](specs/registries.md) gives the rules.
 
-An OL element now reads and writes as `OL`, not `UN`: code that matched
-`vr === "UN"` for an OL tag must match `"OL"`.
+An OL, OV or SV element now reads and writes with its own VR, not `UN`:
+code that matched `vr === "UN"` for such a tag must match `"OL"`, `"OV"` or
+`"SV"`. An SV value reads as a BigInt, as a UV value does.
 
 ## What needs no migration, in one list
 

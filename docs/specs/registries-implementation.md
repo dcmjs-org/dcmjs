@@ -44,11 +44,11 @@ different path.
   before the registry: `singleVRs` = SQ OF OW OB UN LT, `BINARY_VRS` = OB
   OD OF OL OV OW UN. The order of `singleVRs` changed; every consumer uses
   `indexOf`. (REG-U-4)
-- **REG-I-5.** The seed table keeps the members of the 0.x lists exactly:
-  `isBinary()` for FL FD SL SS UL US AT UV; `isLength32()` for OB OW OF OL
-  SQ UC UR UT UN OD UV; `allowMultiple()` false for SQ OF OL OW OB UN and
-  the binary VRs. dcmjs 1.0 has no OV or SV class; OV has the `byteStream`
-  flag only. (REG-U-4)
+- **REG-I-5.** The seed table keeps the members of the 0.x lists, and adds
+  OV and SV: `isBinary()` for FL FD SL SS SV UL US AT UV; `isLength32()` for
+  OB OW OF OL OV SQ SV UC UR UT UN OD UV; `allowMultiple()` false for SQ OF
+  OL OV OW OB UN and the binary VRs. Every VR of PS3.5 Table 6.2-1 has a
+  class. (REG-U-4)
 - **REG-I-6.** `VALID_VRS` and `BULKDATA_VRS` keep their hand-kept members.
   `registerVr` adds a new code to `VALID_VRS`, so the explicit VR readers
   accept it. (REG-U-2)
