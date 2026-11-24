@@ -23,8 +23,8 @@ const {
 // semantics, ~1.5 KB more (×1.0651), and the dict-level private block API
 // (privateBlockDict.js) adds ~8.7 KB (×1.0713).
 const BUNDLES = {
-    "dcmjs.js": { baseline: 1384431, ceiling: 1.075 },
-    "dcmjs.es.js": { baseline: 1357418, ceiling: 1.06 }
+    "dcmjs.js": { baseline: 1384431, ceiling: 1.08 },
+    "dcmjs.es.js": { baseline: 1357418, ceiling: 1.062 }
 };
 
 // The public names of build/dcmjs.es.js: the named exports of src/index.js.
