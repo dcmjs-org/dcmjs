@@ -150,6 +150,8 @@ class Tag {
         var tagStream = new WriteBufferStream({ defaultSize: 256 }),
             valueLength;
         tagStream.setEndian(isLittleEndian);
+        // sequence items are written through tagStream: keep the charset
+        tagStream.encoder = stream.encoder;
 
         if (vrType == "OW" || vrType == "OB" || vrType == "UN") {
             valueLength = vr.writeBytes(

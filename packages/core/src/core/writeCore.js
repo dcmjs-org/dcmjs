@@ -3,6 +3,7 @@ import { Tag } from "../Tag.js";
 import { ValueRepresentation } from "../ValueRepresentation.js";
 import { deepEqual } from "../utilities/deepEqual.js";
 import { WriteBufferStream } from "../BufferStream.js";
+import { createCharacterSetEncoder } from "../charset/registry.js";
 import {
     DEFLATED_EXPLICIT_LITTLE_ENDIAN,
     EXPLICIT_LITTLE_ENDIAN,
@@ -65,9 +66,14 @@ export function writeTagObject(
     tag.write(stream, vr, values, syntax, writeOptions);
 }
 
-/** Relocated from DicomMessage.write: one tag-keyed object, sorted tag order. */
+/**
+ * Relocated from DicomMessage.write: one tag-keyed object, sorted tag order.
+ * A written (0008,0005) sets the stream's text encoder until the end of
+ * this dataset or item; the caller's encoder is then restored.
+ */
 export function writeDataSet(jsonObjects, useStream, syntax, writeOptions) {
     var written = 0;
+    const outerEncoder = useStream.encoder;
 
     var sortedTags = Object.keys(jsonObjects).sort();
     sortedTags.forEach(function (tagString) {
@@ -78,8 +84,12 @@ export function writeDataSet(jsonObjects, useStream, syntax, writeOptions) {
         var values = getTagWriteValues(vrType, tagObject);
 
         written += tag.write(useStream, vrType, values, syntax, writeOptions);
+        if (tagString === TagHex.SpecificCharacterSet) {
+            useStream.encoder = createCharacterSetEncoder(values, writeOptions);
+        }
     });
 
+    useStream.encoder = outerEncoder;
     return written;
 }
 

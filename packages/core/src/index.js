@@ -41,6 +41,12 @@ export {
     PN_DELIMITER_BYTES
 } from "./charset/iso2022.js";
 export { createDecoder, createLatin1Decoder } from "./charset/latin1.js";
+export {
+    registerCharacterSet,
+    lookupCharacterSet,
+    createCharacterSetEncoder,
+    normalizeCharacterSetTerm
+} from "./charset/registry.js";
 export { normalizeSyntax } from "./core/normalizeSyntax.js";
 export {
     writeDataSet,

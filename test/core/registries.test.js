@@ -7,6 +7,7 @@ import {
     SopClasses,
     registerSopClass,
     sopClassName,
+    registerCharacterSet,
     validationLog
 } from "@dcmjs-org/core";
 
@@ -25,6 +26,10 @@ function writePart10(dict) {
 
 function readDict(bytes) {
     return DicomMessage.readFile(bytes.buffer.slice(0)).dict;
+}
+
+function containsBytes(bytes, pattern) {
+    return bytes.some((_, i) => pattern.every((b, j) => bytes[i + j] === b));
 }
 
 describe("stream constructors (REG-U-16, REG-U-17)", () => {
@@ -111,5 +116,47 @@ describe("SOP class registry (REG-U-5 to REG-U-8)", () => {
             "1.2.3.4.6"
         );
         expect(SopClasses.OtherImage).toBe("1.2.3.4.6");
+    });
+});
+
+describe("character-set write (REG-U-9 to REG-U-11)", () => {
+    it("user: ISO_IR 100 writes é as 0xE9 and reads back equal", () => {
+        const bytes = writePart10({
+            "00080005": { vr: "CS", Value: ["ISO_IR 100"] },
+            "00104000": { vr: "LT", Value: ["Zoë é"] }
+        });
+        expect(containsBytes(bytes, [0x5a, 0x6f, 0xeb, 0x20, 0xe9])).toBe(true);
+        expect(readDict(bytes)["00104000"].Value).toEqual(["Zoë é"]);
+    });
+
+    it("API: a registered custom term round-trips", () => {
+        registerCharacterSet("VENDOR GREEK", { label: "iso-8859-7" });
+        const bytes = writePart10({
+            "00080005": { vr: "CS", Value: ["VENDOR GREEK"] },
+            "00104000": { vr: "LT", Value: ["Ωμέγα"] }
+        });
+        // Ω is 0xD9 in ISO 8859-7
+        expect(containsBytes(bytes, [0xd9, 0xec])).toBe(true);
+        expect(readDict(bytes)["00104000"].Value).toEqual(["Ωμέγα"]);
+    });
+
+    it("user: an item-level charset does not leak to the next item or element", () => {
+        const bytes = writePart10({
+            "00080005": { vr: "CS", Value: ["ISO_IR 100"] },
+            "00081115": {
+                vr: "SQ",
+                Value: [
+                    {
+                        "00080005": { vr: "CS", Value: ["ISO_IR 192"] },
+                        "0008103E": { vr: "LO", Value: ["Aé1"] }
+                    },
+                    { "0008103E": { vr: "LO", Value: ["Bé2"] } }
+                ]
+            },
+            "00104000": { vr: "LT", Value: ["Cé3"] }
+        });
+        expect(containsBytes(bytes, [0x41, 0xc3, 0xa9, 0x31])).toBe(true);
+        expect(containsBytes(bytes, [0x42, 0xe9, 0x32])).toBe(true);
+        expect(containsBytes(bytes, [0x43, 0xe9, 0x33])).toBe(true);
     });
 });
