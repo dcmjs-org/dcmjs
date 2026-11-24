@@ -34,6 +34,8 @@ const sharedPlugins = [
 export default [
     {
         input: "src/index.js",
+        // One loglevel instance shared with the host app; UMD builds keep it bundled for <script> users.
+        external: ["loglevel"],
         output: {
             dir: "build",
             format: "es",
