@@ -408,15 +408,35 @@ new WriteBufferStream({ defaultSize: 4096 });
 new WriteBufferStream({ littleEndian: false }); // big endian
 ```
 
-The 0.x positional form still works, keeps all of its arguments, and logs
-one warning for each class. An explicit `false` still gives big endian.
-Two calls changed their byte order: `new ReadBufferStream(buffer)` and a
-positional call with `null` or no byte order, for example
-`new WriteBufferStream(1024)`, were big endian in 0.x and are little
-endian now. The dcmjs readers and writers set the byte order of each
-element themselves, so their output does not change.
+The 0.x positional form still works, keeps all of its arguments and its
+0.x byte order (a missing or `null` byte order is big endian, as in 0.x),
+and logs one warning for each class. One call changed its byte order:
+`new ReadBufferStream(buffer)` was big endian in 0.x and is little endian
+now. The dcmjs readers and writers set the byte order of each element
+themselves, so their output does not change.
 [specs/registries.md](specs/registries.md) (REG-U-16, REG-U-17) gives the
 rules.
+
+## Text is written in the declared character set
+
+In 0.x, the writer wrote every text value as UTF-8 bytes, also when the
+dataset declared a different Specific Character Set (0008,0005). The file
+then had text that did not agree with its declaration. In 1.0, the writer
+encodes the text of a dataset or sequence item with its declared
+character set, for example `0xE9` for `é` in `ISO_IR 100`. A character
+that a single-byte character set cannot hold stops the write with an
+error, unless `writeOptions.ignoreErrors` is set; then the writer writes
+`?`. A dataset with no (0008,0005), and a dataset that a read gave (the
+read changes the value to `ISO_IR 192`), still write UTF-8. The multi-byte
+and ISO 2022 character sets still write UTF-8, with a warning.
+
+`registerCharacterSet(term, { label, createDecoder, encode })` adds a
+defined term, for example a vendor spelling, for read and write.
+`Vrs`/`registerVr` and `SopClasses`/`registerSopClass`/`sopClassName` are
+the VR and SOP class registries; the 0.x lists and maps
+(`singleVRs`, `BINARY_VRS`, `DicomMetaDictionary.sopClassUIDsByName`,
+`sopClassNamesByUID`) keep their members and their property access.
+[specs/registries.md](specs/registries.md) gives the rules.
 
 ## What needs no migration, in one list
 
