@@ -188,7 +188,10 @@ A private value is a list (NAT-U-VAL-4). An assigned PN string converts:
 
 - **NAT-U-PRIV-1.** A private creator and the elements of its reserved block
   naturalize to one object under the block key
-  `` `${gggg}:${creator}` ``.
+  `` `${gggg}:${creator}` ``. In the key, a line feed in the creator is the
+  text `\n`, and a carriage return is the text `\r`. The `creator` value
+  keeps the real characters. An LO value holds no backslash, so the key
+  gives back the same creator.
 - **NAT-U-PRIV-2.** The block object holds `creator` (the creator string),
   `reservedBlock` (the source `xx`, as a number) and one element key `xEE`
   for each element of the block. Each of these is enumerable, so the block
@@ -215,6 +218,22 @@ A private value is a list (NAT-U-VAL-4). An assigned PN string converts:
   or DICOM JSON `InlineBinary`) gives the same string as an LO creator. A
   creator value that is not text or bytes (a number, a `{ BulkDataURI }`)
   is no creator: the elements of its block keep their hex tags.
+- **NAT-U-PRIV-11.** A caller that builds or reads a DICOM JSON dict (for
+  example `DicomDict.dict`, or the dict of `DicomMessage.readFile`) can find
+  the block of a creator, and can reserve a block for a creator, by the
+  block key of NAT-U-PRIV-1 or by the group and the creator. The caller
+  names an element by its element key `xEE` or by its number. The caller
+  never chooses the block number:
+  - A find gives the block that the dict holds for that creator, or nothing.
+    The creator match follows NAT-U-PRIV-10.
+  - A reserve gives the block that the dict holds for that creator. When
+    the dict holds none, the reserve writes the creator at the first `xx`
+    from `10` to `FF` that has no creator and no element in its range.
+  - The block gives its block key, its creator and its `reservedBlock`, as
+    the naturalized block does (NAT-U-PRIV-2).
+  - An even group, a block key with a wrong form, an element number out of
+    `00`–`FF`, an empty creator, and a creator of more than 64 characters
+    give an error. A group with no free `xx` gives an error.
 
 ### NAT-U-HIST — historical names
 
@@ -298,11 +317,16 @@ A private value is a list (NAT-U-VAL-4). An assigned PN string converts:
     `\C^D`); the naturalized form holds it as `{}`, and a PN string read
     back drops empty names;
   - a binary number VR (US, SS, UL, SL, FL, FD, UV, and AT, where 0 is the
-    tag (0000,0000)), which has no empty value: `0`, with a warning.
+    tag (0000,0000)), which has no empty value: `0`, with a warning;
+  - SQ: an empty item.
 
-  This rule is for an entry in a list. A `null` value that is not a list
-  (`Columns: null`, or a DICOM JSON element with no `Value`) is an element
-  with no value: it is written with zero length, and with no warning.
+  An `undefined` entry beside another entry is a `null` entry. This rule is
+  for an entry in a list. These are an element with no value: a value that
+  is not a list (`Columns: null`, a DICOM JSON element with no `Value`, or a
+  `Value` that is `undefined`, `null` or `""`), an empty list `[]`, and a
+  list of only `undefined` entries (`[undefined]`, which a reader can give
+  for a zero-length element, issue #417). For every VR, an element with no
+  value is written with zero length (an SQ: no items), and with no warning.
 
 ### NAT-U-SET — utilities to add or replace an attribute
 
@@ -447,6 +471,13 @@ view of one frame of an enhanced multi-frame dataset (PS3.3 C.7.6.16).
   - `definePrivateAliases(target)`: derives every alias from the blocks.
   - `expandPrivateBlocks(dataset)`: gives a shallow view with blocks
     expanded to a creator plus hex-tag elements, and a flat `_vrMap`.
+  - `privateBlockKey(group, creator)`: the block key, with the line-break
+    escape of NAT-U-PRIV-1. Every producer builds the key with it, and
+    `parsePrivateBlockKey` undoes the escape.
+  - `findPrivateBlock` and `reservePrivateBlock` in `privateBlockDict.js`
+    (NAT-U-PRIV-11). They use `creatorText` and `firstFreeBlock` of
+    `privateBlocks.js`. `DicomDict#privateBlock(groupOrKey, creator,
+    { create })` in `packages/legacy` calls them.
 - **NAT-I-CODE-2.** `fromNaturalized` denaturalizes the dataset (and
   `_meta`) and streams the result through `fromDataSet`. It does not walk
   the naturalized form itself.
@@ -540,6 +571,12 @@ view of one frame of an enhanced multi-frame dataset (PS3.3 C.7.6.16).
   (`isBinary()`: the binary number VRs and AT), whose writer encodes it as
   0. The base `writeBytes` calls it, and the UV writer calls it before it
   turns `null` into `0n`. `denaturalizeValue` keeps `null` entries.
+- **NAT-I-NULL-2.** `Tag.write` changes an absent, `null` or `""` value, and
+  a list of only `undefined` entries, to `[]`. It changes another
+  `undefined` entry to `null`. Both changes occur before the VR writer runs. Thus
+  each VR writer gets a list. `SequenceOfItems.writeBytes` writes a `null`
+  item as an empty item. `test/core/absentValues.test.js` checks each form
+  for each VR, in explicit and implicit VR little endian.
 
 ### NAT-I-RT — block number assignment
 
@@ -577,6 +614,7 @@ block form, and they apply to standard attributes too.
 | --- | --- |
 | NAT-U-PRIV, NAT-U-HIST-1/2/7/8, NAT-U-PROD-1 | `test/core/privateBlocks.test.js` |
 | NAT-U-PRIV-9/10, NAT-U-RT-1 (flat elements) | `test/core/privateBlocks.test.js` |
+| NAT-U-PRIV-11 | `test/privateBlock.test.js` (the same file on `master`), `test/core/privateBlocks.test.js` |
 | NAT-U-RT-3, NAT-U-RT-4 | `test/core/privateBlocks.test.js` |
 | NAT-U-RT-2 (writer path) | `test/core/privateBlocks.test.js` |
 | NAT-U-HIST-3, NAT-U-RT-2 | `test/issues/issue388-private-tags.test.js` |

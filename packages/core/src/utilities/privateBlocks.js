@@ -38,8 +38,8 @@ import log from "../log.js";
  * the specification.
  */
 
-// `s`: the creator may hold a line break; PS3.5 6.2 forbids one in LO, but a
-// reader of real data can get one, and the block must still be written.
+// `s`: a key that a user writes may hold a line break; the producers write
+// it as the text `\n` (privateBlockKey).
 const BLOCK_KEY = /^([0-9A-Fa-f]{4}):(.+)$/s;
 const ELEMENT_KEY = /^x([0-9A-Fa-f]{2})$/;
 const HEX_TAG = /^[0-9A-Fa-f]{8}$/;
@@ -73,6 +73,26 @@ export function isPrivateTag(hexTag) {
     return !!tag && (tag.isPrivateCreator() || tag.isPrivateValue());
 }
 
+/**
+ * The block key `gggg:creator` of a group (a number, or 4 hex digits) and a
+ * creator. A line break in the creator is written as the text `\n` (and
+ * `\r`); LO holds no backslash, so the key reads back to the same creator
+ * (NAT-U-PRIV-1).
+ */
+export function privateBlockKey(group, creator) {
+    const gggg =
+        typeof group === "number"
+            ? group.toString(16).toUpperCase().padStart(4, "0")
+            : group.toUpperCase();
+    const text = creator.replace(/\r/g, "\\r").replace(/\n/g, "\\n");
+    return `${gggg}:${text}`;
+}
+
+/** The creator of the creator part of a block key: `\n` and `\r` unescaped. */
+function keyCreator(text) {
+    return text.replace(/\\r/g, "\r").replace(/\\n/g, "\n");
+}
+
 /** The group and creator of a reserved block key, or undefined. */
 export function parsePrivateBlockKey(key, value) {
     const match = BLOCK_KEY.exec(key);
@@ -81,7 +101,7 @@ export function parsePrivateBlockKey(key, value) {
     }
     const group = match[1].toUpperCase();
     if ((parseInt(group, 16) & 1) !== 1) return undefined;
-    return { group, creator: match[2] };
+    return { group, creator: keyCreator(match[2]) };
 }
 
 function privateDictionaryEntry(group, creator, ee) {
@@ -246,7 +266,7 @@ export function placePrivateElements(target, vrMap, elements) {
         const creator = creatorText(value);
         if (creator === "") continue;
         const hexTag = tag.toUpperCase();
-        const key = `${hexTag.slice(0, 4)}:${creator}`;
+        const key = privateBlockKey(hexTag.slice(0, 4), creator);
         if (blockOfCreator.has(key)) {
             // PS3.5 7.8.1 permits one block per creator in a group
             log.warn(
@@ -289,7 +309,7 @@ export function placePrivateElements(target, vrMap, elements) {
             recordVr(vrMap, name, entry, vr);
             continue;
         }
-        const key = `${group}:${creator}`;
+        const key = privateBlockKey(group, creator);
         const block = blockFor(target, group, creator, tag.slice(4, 6));
         const elementKey = `x${tag.slice(6, 8)}`;
         block[elementKey] = value;
@@ -308,7 +328,7 @@ export function placePrivateElements(target, vrMap, elements) {
  * first 64 bytes decode as LO text. A number, a reference or another object
  * is no creator.
  */
-function creatorText(value) {
+export function creatorText(value) {
     let v = Array.isArray(value) ? value[0] : value;
     if (v && typeof v === "object" && v.InlineBinary !== undefined) {
         v = Array.isArray(v.InlineBinary) ? v.InlineBinary[0] : v.InlineBinary;
@@ -327,7 +347,7 @@ function creatorText(value) {
 }
 
 function blockFor(target, group, creator, xx) {
-    const key = `${group}:${creator}`;
+    const key = privateBlockKey(group, creator);
     if (!target[key]) {
         target[key] = { creator, reservedBlock: parseInt(xx, 16) };
     }
@@ -338,7 +358,7 @@ function isFreeBlock(used, xx) {
     return xx >= 0x10 && xx <= 0xff && !used.has(xx);
 }
 
-function firstFreeBlock(used) {
+export function firstFreeBlock(used) {
     for (let xx = 0x10; xx <= 0xff; xx++) {
         if (!used.has(xx)) return xx;
     }
