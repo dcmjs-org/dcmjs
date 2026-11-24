@@ -1,4 +1,5 @@
 import { SEGImageNormalizer } from "../src/normalizers";
+import Segmentation from "../src/derivations/Segmentation";
 
 const ENHANCED_MR_SOP_CLASS_UID = "1.2.840.10008.5.1.4.1.1.4.1";
 
@@ -30,23 +31,58 @@ function buildSingleFrameOfMultiframeInstance() {
     };
 }
 
-it("normalizes a single frame taken from a multiframe instance that has no functional group sequences", () => {
+it.each([true, false])(
+    "derives a SEG from one frame of a multiframe instance that has no functional groups (includeSliceSpacing %s)",
+    includeSliceSpacing => {
+        const normalizer = new SEGImageNormalizer([
+            buildSingleFrameOfMultiframeInstance()
+        ]);
+        normalizer.normalize();
+        const multiframe = normalizer.dataset;
+
+        // PixelData holds 1 frame, so NumberOfFrames 4 is reduced to 1.
+        expect(multiframe.NumberOfFrames).toBe(1);
+        expect(multiframe.SharedFunctionalGroupsSequence).toMatchObject({
+            PlaneOrientationSequence: {
+                ImageOrientationPatient: [1, 0, 0, 0, 1, 0]
+            },
+            PixelMeasuresSequence: { PixelSpacing: [1, 1] }
+        });
+        expect(multiframe.PerFrameFunctionalGroupsSequence).toHaveLength(1);
+        expect(
+            multiframe.PerFrameFunctionalGroupsSequence[0].PlanePositionSequence
+        ).toEqual({ ImagePositionPatient: [0, 0, 0] });
+
+        const seg = new Segmentation([multiframe], { includeSliceSpacing });
+        seg.setNumberOfFrames(1);
+        seg.addSegmentFromLabelmap(
+            {
+                SegmentLabel: "1",
+                SegmentAlgorithmType: "MANUAL",
+                SegmentedPropertyCategoryCodeSequence: {},
+                SegmentedPropertyTypeCodeSequence: {}
+            },
+            [new Uint8Array([1, 0, 0, 1])],
+            1,
+            [1]
+        );
+        expect(
+            seg.dataset.PerFrameFunctionalGroupsSequence[0]
+                .PlanePositionSequence
+        ).toEqual({ ImagePositionPatient: [0, 0, 0] });
+    }
+);
+
+it("gives an object, not an array, as the per-frame item for NumberOfFrames 1", () => {
     const dataset = buildSingleFrameOfMultiframeInstance();
+    dataset.NumberOfFrames = 1;
+    dataset.SharedFunctionalGroupsSequence = {};
     const normalizer = new SEGImageNormalizer([dataset]);
+    normalizer.normalize();
 
-    expect(() => normalizer.normalize()).not.toThrow();
-
-    const multiframe = normalizer.dataset;
-    expect(multiframe).toBeDefined();
-    expect(multiframe.SharedFunctionalGroupsSequence).toBeDefined();
-    expect(
-        multiframe.SharedFunctionalGroupsSequence
-            .PixelValueTransformationSequence
-    ).toBeDefined();
-    expect(multiframe.PerFrameFunctionalGroupsSequence).toBeDefined();
-    expect(
-        multiframe.PerFrameFunctionalGroupsSequence[0].FrameContentSequence
-    ).toBeDefined();
+    const perFrame = normalizer.dataset.PerFrameFunctionalGroupsSequence;
+    expect(Array.isArray(perFrame[0])).toBe(false);
+    expect(perFrame[0].FrameContentSequence).toBeDefined();
 });
 
 it("keeps a complete multiframe dataset unchanged", () => {
