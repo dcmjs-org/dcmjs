@@ -1,76 +1,268 @@
 <!DOCTYPE html>
 <html lang="en">
     <head>
+        <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>dcmjs 1.0: DICOM in JavaScript</title>
         <link href="css/bootstrap.min.css" rel="stylesheet" />
     </head>
     <body>
         <div class="container">
-            <div class="page-header">
-                <h1>dcmjs Examples</h1>
+            <div class="jumbotron">
+                <h1>dcmjs 1.0</h1>
                 <p>
-                    These examples are meant to demonstrate various aspects of
-                    the dcmjs library in an interactive way. They are written
-                    such that they can be opened directly in your web browser
-                    from github or your local repository. Use the "view source"
-                    capabilities built into your browser to see how each example
-                    works.
+                    DICOM in JavaScript, for the browser and for Node. dcmjs 1.0
+                    is a system of libraries: you read, write, convert, send and
+                    show medical images with packages that work together, and
+                    you install only the packages that you need.
+                </p>
+                <pre>npm install @dcmjs-org/dcmjs</pre>
+                <p>
+                    <a class="btn btn-primary btn-lg" href="announcement.html"
+                        >Read the 1.0 announcement</a
+                    >
+                    <a
+                        class="btn btn-default btn-lg"
+                        href="https://github.com/dcmjs-org/dcmjs"
+                        >GitHub</a
+                    >
                 </p>
             </div>
 
-            <ul>
-                <!-- <li>
-          <a href="display/index.html">Display DICOM data</a> - Use dcmjs to
-          display DICOM image and metadata
-        </li> -->
-                <li>
-                    <a href="createSegmentation/index.html"
-                        >Create DICOM Segmentation with Cornerstone.</a
+            <h2>The system</h2>
+            <p>
+                The dcmjs packages are the base. The tools and the network
+                libraries use the packages. The viewers and the servers use all
+                of them.
+            </p>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="panel panel-primary">
+                        <div class="panel-heading">1. The dcmjs packages</div>
+                        <div class="panel-body">
+                            Read and write DICOM Part 10 files and DICOMweb
+                            JSON. Work with datasets as plain JavaScript
+                            objects.
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="panel panel-info">
+                        <div class="panel-heading">
+                            2. Tools, network and codecs
+                        </div>
+                        <div class="panel-body">
+                            A command line and an MCP server, a DICOMweb client,
+                            DIMSE networking, and the image codecs.
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="panel panel-success">
+                        <div class="panel-heading">
+                            3. Libraries and applications
+                        </div>
+                        <div class="panel-body">
+                            Cornerstone3D, the OHIF Viewer and Static-DICOMweb
+                            use dcmjs for their DICOM data.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <h2>1. The dcmjs packages</h2>
+            <p>
+                <code>@dcmjs-org/dcmjs</code> has the same export names as dcmjs
+                0.52, so most projects change only the import line. The
+                <a
+                    href="https://github.com/dcmjs-org/dcmjs/blob/master/docs/MIGRATION.md"
+                    >migration guide</a
+                >
+                and the
+                <a
+                    href="https://github.com/dcmjs-org/dcmjs/blob/master/docs/BREAKING_CHANGES.md"
+                    >list of breaking changes</a
+                >
+                give the changes from 0.x.
+            </p>
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Package</th>
+                        <th>What it does</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>@dcmjs-org/dcmjs</code></td>
+                        <td>
+                            The complete library, with the export names of dcmjs
+                            0.x. Start here.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>@dcmjs-org/core</code></td>
+                        <td>
+                            The shared parts: value representations, tags, the
+                            dictionary, character sets, naturalized datasets and
+                            <a
+                                href="https://github.com/dcmjs-org/dcmjs/blob/master/docs/frameDataset.md"
+                                ><code>frameDataset</code></a
+                            >.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>@dcmjs-org/legacy</code></td>
+                        <td>
+                            The readers and writers of 0.x:
+                            <code>DicomMessage</code>,
+                            <code>DicomDict</code> and
+                            <code>AsyncDicomReader</code>.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>@dcmjs-org/parser</code></td>
+                        <td>
+                            The streaming reader. It reads files that are larger
+                            than memory.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>@dcmjs-org/generator</code></td>
+                        <td>
+                            The streaming writers for Part 10 files and DICOMweb
+                            JSON.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>@dcmjs-org/schemas</code></td>
+                        <td>
+                            The catalog of DICOM attributes, with names, types
+                            and rules.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>@dcmjs-org/dicomdir</code></td>
+                        <td>Reads and writes DICOMDIR.</td>
+                    </tr>
+                    <tr>
+                        <td><code>@dcmjs-org/encapsulated</code></td>
+                        <td>
+                            Puts a PDF into a DICOM instance, and gets it out
+                            again.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>@dcmjs-org/imaging</code></td>
+                        <td>
+                            Builds an image instance from decoded pixels, with
+                            no codec.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>@dcmjs-org/video</code></td>
+                        <td>
+                            Puts an MP4 video into a DICOM instance without a
+                            new encode.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>@dcmjs-org/media</code></td>
+                        <td>
+                            One package that has dicomdir, encapsulated, imaging
+                            and video.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>@dcmjs-org/fhir</code></td>
+                        <td>Maps DICOM to FHIR resources.</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h2>2. Tools, network and codecs</h2>
+            <dl class="dl-horizontal">
+                <dt>
+                    <a href="https://github.com/dcmjs-org/dcmjs-commands"
+                        >dcmjs-commands</a
                     >
-                    - Use dcmjs and Cornerstone to create a DICOM Segmentation
-                    file.
-                </li>
-                <li>
-                    <a href="createSegmentationRLERoundtrip/index.html"
-                        >Create and read RLE encoded DICOM Segmentation with
-                        Cornerstone.</a
+                </dt>
+                <dd>
+                    The command line of dcmjs 1.0, and an MCP server for AI
+                    agents. It can dump, validate, convert, anonymize and
+                    transcode files, resize whole-slide images, make enhanced
+                    multi-frame images, and write DICOMDIR and Static-DICOMweb
+                    output.
+                </dd>
+                <dt>
+                    <a href="https://github.com/dcmjs-org/dicomweb-client"
+                        >dicomweb-client</a
                     >
-                    - Use dcmjs and Cornerstone to create/read rle encoded DICOM
-                    Segmentation file.
-                </li>
-                <li>
-                    <a href="displaySegmentation/index.html"
-                        >Display DICOM Segmentation with Cornerstone</a
+                </dt>
+                <dd>
+                    A client for DICOMweb servers: QIDO-RS, WADO-RS and STOW-RS.
+                </dd>
+                <dt>
+                    <a href="https://github.com/PantelisGeorgiadis/dcmjs-dimse"
+                        >dcmjs-dimse</a
                     >
-                    - Use dcmjs and Cornerstone to display a DICOM Segmentation
-                    file.
-                </li>
-                <!-- <li>
-          <a href="displayParametricMap/index.html"
-            >Display DICOM Parametric Map Overlay with Cornerstone</a
-          >
-          - Use dcmjs and Cornerstone to display a DICOM Parametric Map as
-          Overlay
-        </li> -->
-                <!-- <li>
-          <a href="displayParametricMap2/index.html"
-            >Display DICOM Parametric Map with Cornerstone</a
-          >
-          - Use dcmjs and Cornerstone to display a DICOM Parametric Map
-        </li> -->
-                <li>
-                    <a href="vtkDisplay/index.html"
-                        >Display DICOM Segmentation with VTKjs</a
+                </dt>
+                <dd>
+                    DIMSE networking for Node: C-ECHO, C-FIND, C-STORE, C-MOVE
+                    and C-GET.
+                </dd>
+                <dt>
+                    <a href="https://github.com/cornerstonejs/codecs"
+                        >Cornerstone codecs</a
                     >
-                    - Use dcmjs and VTKjs to display a DICOM Segmentation file
-                </li>
-                <li>
-                    <a href="cornerstoneDICOMSR/index.html"
-                        >Create DICOM Structured Report</a
+                </dt>
+                <dd>
+                    WebAssembly image codecs for the DICOM transfer syntaxes,
+                    for example JPEG, JPEG-LS, JPEG 2000, HTJ2K and JPEG XL.
+                </dd>
+            </dl>
+
+            <h2>3. Libraries and applications that use dcmjs</h2>
+            <dl class="dl-horizontal">
+                <dt>
+                    <a href="https://www.cornerstonejs.org/">Cornerstone3D</a>
+                </dt>
+                <dd>
+                    A library for medical image display and annotation in the
+                    browser. Its adapters use dcmjs to read and write SEG, SR
+                    and RTSTRUCT.
+                </dd>
+                <dt><a href="https://ohif.org/">OHIF Viewer</a></dt>
+                <dd>
+                    A web viewer for medical images, built on Cornerstone3D and
+                    dcmjs.
+                </dd>
+                <dt>
+                    <a href="https://github.com/RadicalImaging/Static-DICOMWeb"
+                        >Static-DICOMweb</a
                     >
-                    - Use dcmjs to create a DICOM Structured Report file
-                </li>
-            </ul>
+                </dt>
+                <dd>
+                    Makes and serves DICOMweb data as static files. It uses
+                    dcmjs to read the DICOM input.
+                </dd>
+            </dl>
+
+            <h2>Examples from dcmjs 0.x</h2>
+            <p>
+                The <a href="examples.html">earlier examples page</a> has the
+                interactive examples for segmentations and structured reports
+                with the 0.x API.
+            </p>
+
+            <hr />
+            <p class="text-muted">
+                dcmjs is a community project. Report a problem or ask a question
+                in the
+                <a href="https://github.com/dcmjs-org/dcmjs/issues"
+                    >issues of dcmjs-org/dcmjs</a
+                >.
+            </p>
         </div>
     </body>
 </html>

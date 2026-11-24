@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>dcmjs 1.0 is available</title>
+        <link href="css/bootstrap.min.css" rel="stylesheet" />
+    </head>
+    <body>
+        <div class="container">
+            <div class="page-header">
+                <p><a href="index.html">&larr; dcmjs home</a></p>
+                <h1>dcmjs 1.0 is available</h1>
+                <p class="text-muted">
+                    Steve Pieper, for the dcmjs community. December 2026.
+                </p>
+            </div>
+
+            <p>
+                The dcmjs project has published dcmjs 1.0. The release is on npm
+                as <code>@dcmjs-org/dcmjs</code>. It follows twelve beta
+                releases, which the main downstream projects used and tested.
+            </p>
+
+            <h2>What changed in 1.0</h2>
+            <p>
+                dcmjs 1.0 is a major rewrite of the library. The library is now
+                a set of packages that you can install separately:
+            </p>
+            <ul>
+                <li>
+                    <code>@dcmjs-org/core</code> holds the shared building
+                    blocks.
+                </li>
+                <li>
+                    <code>@dcmjs-org/legacy</code> keeps the readers and writers
+                    of 0.x.
+                </li>
+                <li>
+                    <code>@dcmjs-org/parser</code> and
+                    <code>@dcmjs-org/generator</code> add a new streaming reader
+                    and writer that handle files larger than memory.
+                </li>
+                <li>
+                    <code>@dcmjs-org/schemas</code>, <code>dicomdir</code>,
+                    <code>encapsulated</code>, <code>imaging</code>,
+                    <code>video</code>, <code>media</code> and
+                    <code>fhir</code> hold the specialized features.
+                </li>
+            </ul>
+            <p>
+                The <code>@dcmjs-org/dcmjs</code> package re-exports the same
+                names as dcmjs 0.52, so most projects change only the import
+                line. The largest change is in naturalization: it no longer uses
+                a Proxy, and the VM of the DICOM dictionary decides the shape of
+                each value. A single-item sequence is now the item object, a VM
+                <code>1-n</code> attribute such as <code>ImageType</code> or
+                <code>WindowCenter</code> stays a list even with one value, and
+                private elements are grouped by their private creator block.
+            </p>
+            <p>
+                The release also has many fixes: private elements now survive a
+                denaturalize and write, multi-valued ISO 2022
+                <code>SpecificCharacterSet</code> values decode, and
+                <code>cleanTags</code> empties about 103 more attributes. A new
+                <code>frameDataset</code> function gives a view of one frame of
+                a multi-frame dataset. The
+                <a
+                    href="https://github.com/dcmjs-org/dcmjs/blob/master/docs/MIGRATION.md"
+                    >migration guide</a
+                >
+                and the
+                <a
+                    href="https://github.com/dcmjs-org/dcmjs/blob/master/docs/BREAKING_CHANGES.md"
+                    >list of breaking changes</a
+                >
+                give the details.
+            </p>
+
+            <h2>From the beta to the release</h2>
+            <p>
+                The beta releases started in November 2026. During the beta, we
+                moved the main downstream projects to dcmjs 1.0, found the
+                places where the new naturalized shapes broke existing code, and
+                fixed them. With the release, these projects move from a pin on
+                a beta version to dcmjs 1.0. Please report problems as issues on
+                <a href="https://github.com/dcmjs-org/dcmjs/issues"
+                    >dcmjs-org/dcmjs</a
+                >.
+            </p>
+
+            <h2>How dcmjs 1.0 is used today</h2>
+            <p>
+                Each pull request below also serves as an example of the
+                migration, with a list of the changes that the new shapes
+                needed.
+            </p>
+
+            <h3>Static-DICOMweb</h3>
+            <ul>
+                <li>
+                    <a
+                        href="https://github.com/RadicalImaging/Static-DICOMWeb/pull/159"
+                        >RadicalImaging/Static-DICOMWeb#159</a
+                    >: update dcmjs 0.52.0 to <code>@dcmjs-org/dcmjs</code>,
+                    through an npm alias, so that the
+                    <code>import ... from 'dcmjs'</code> lines do not change.
+                    The description lists each user-visible change, for example
+                    private elements on C-STORE that are now kept.
+                </li>
+            </ul>
+
+            <h3>Cornerstone3D</h3>
+            <ul>
+                <li>
+                    <a
+                        href="https://github.com/cornerstonejs/cornerstone3D/pull/3019"
+                        >cornerstonejs/cornerstone3D#3019</a
+                    >: move the adapters, metadata and utils packages to dcmjs
+                    1.0. The pull request fixes the SEG and SR readers for the
+                    new shapes, adds the helpers <code>asMultiValueArray</code>,
+                    <code>getPrivateTagValue</code> and
+                    <code>findPrivateTag</code>, and uses the dcmjs
+                    <code>frameDataset</code> for multi-frame instances.
+                </li>
+            </ul>
+
+            <h3>OHIF Viewer</h3>
+            <ul>
+                <li>
+                    <a href="https://github.com/OHIF/Viewers/pull/6397"
+                        >OHIF/Viewers#6397</a
+                    >: move OHIF to dcmjs 1.0, together with the Cornerstone3D
+                    pull request above. The pull request fixes RTSTRUCT, SR, PET
+                    SUV, microscopy, bulk data and tag browser code for the new
+                    shapes.
+                </li>
+                <li>
+                    Deploy preview, built with the Cornerstone3D branch and
+                    dcmjs 1.0:
+                    <a href="https://cs3d-pr-6397--ohif-dev.netlify.app/"
+                        >cs3d-pr-6397--ohif-dev.netlify.app</a
+                    >.
+                </li>
+            </ul>
+
+            <h3>dcmjs-commands</h3>
+            <p>
+                <a href="https://github.com/dcmjs-org/dcmjs-commands"
+                    >dcmjs-commands</a
+                >
+                is a command-line toolkit and an MCP server (for AI agents)
+                built on dcmjs 1.0.
+            </p>
+            <ul>
+                <li>
+                    <a href="https://github.com/dcmjs-org/dcmjs-commands/pull/8"
+                        >dcmjs-org/dcmjs-commands#8</a
+                    >: the modernized CLI on dcmjs 1.0, with streaming
+                    conversion, anonymization, validation, DICOMDIR and
+                    Static-DICOMweb output.
+                </li>
+                <li>
+                    <a href="https://github.com/dcmjs-org/dcmjs-commands/pull/9"
+                        >dcmjs-org/dcmjs-commands#9</a
+                    >: <code>dcmjs transcode</code> changes the transfer syntax
+                    of Part 10 files one frame at a time, for example a lossless
+                    conversion of JPEG to JPEG XL.
+                    <code>dcmjs wsiresize</code> builds a new pyramid for a
+                    whole-slide image series with a new tile size and transfer
+                    syntax.
+                </li>
+                <li>
+                    <a
+                        href="https://github.com/dcmjs-org/dcmjs-commands/pull/11"
+                        >dcmjs-org/dcmjs-commands#11</a
+                    >: <code>dcmjs multiframe</code> converts classic
+                    single-frame CT, MR and PET images to Legacy Converted
+                    Enhanced images, from Part 10 files or from a
+                    Static-DICOMweb tree.
+                </li>
+            </ul>
+
+            <h2>Acknowledgements</h2>
+            <p>
+                The OHIF project supported this work, and we thank the OHIF team
+                for that support. We give special thanks to Abbie Watson, who
+                wrote the dcmjs 1.0 rewrite and the modernized dcmjs-commands,
+                and who did the long work to split the rewrite into packages
+                that the community can review.
+            </p>
+            <p>Steve Pieper</p>
+        </div>
+    </body>
+</html>
