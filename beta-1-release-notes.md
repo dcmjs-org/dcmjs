@@ -71,6 +71,11 @@ when a better approach appears.
   explicit `transfer: true` keeps a reference to the buffer instead of
   copying it when the range covers the whole `ArrayBuffer`; a partial view
   or range is always copied, and the source is not detached.
+- A binary value with a declared length longer than the data reads the
+  bytes that are present, and logs a validation warning (GHSA-xwvm-687g-rm36).
+  Before, the value had the declared size with zero padding. A file that ends
+  inside a multi-byte header field now throws a `RangeError`. Before, the
+  reader read zero bytes for the missing part.
 - New packages: `@dcmjs-org/core`, `@dcmjs-org/legacy`, `@dcmjs-org/parser`
   and `@dcmjs-org/generator`. Each package publishes a built `dist/` folder
   (ES module and CommonJS), so it loads in plain Node without a bundler.
