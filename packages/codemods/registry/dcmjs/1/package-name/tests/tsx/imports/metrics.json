@@ -1,0 +1,28 @@
+{
+  "dcmjs-1-manual": [
+    {
+      "cardinality": {
+        "file": "input.js",
+        "line": "13",
+        "rule": "\"<rootDir>/node_modules/dcmjs/build/dcmjs.js\": a configuration names the 0.x package"
+      },
+      "count": 1
+    },
+    {
+      "cardinality": {
+        "file": "input.js",
+        "line": "13",
+        "rule": "\"^dcmjs$\": a configuration names the 0.x package"
+      },
+      "count": 1
+    },
+    {
+      "cardinality": {
+        "file": "input.js",
+        "line": "8",
+        "rule": "dcmjs/build/dcmjs.es.js: 1.0 has no such subpath, import @dcmjs-org/dcmjs"
+      },
+      "count": 1
+    }
+  ]
+}

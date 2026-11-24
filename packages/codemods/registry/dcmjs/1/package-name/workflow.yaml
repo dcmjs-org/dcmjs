@@ -1,0 +1,36 @@
+version: '1'
+nodes:
+  - id: package-name
+    name: dcmjs 1.0 package name
+    steps:
+      - name: Replace the dcmjs dependency in package.json
+        js-ast-grep:
+          js_file: scripts/package-json.ts
+          language: json
+          base_path: .
+          include:
+            - '**/package.json'
+          exclude:
+            - '**/node_modules/**'
+      - name: Rewrite the module names in TypeScript files
+        js-ast-grep:
+          js_file: scripts/package-name.ts
+          language: typescript
+          base_path: .
+          include:
+            - '**/*.{ts,mts,cts}'
+          exclude:
+            - '**/node_modules/**'
+            - '**/dist/**'
+            - '**/build/**'
+      - name: Rewrite the module names in TSX and JavaScript files
+        js-ast-grep:
+          js_file: scripts/package-name.ts
+          language: tsx
+          base_path: .
+          include:
+            - '**/*.{tsx,js,jsx,mjs,cjs}'
+          exclude:
+            - '**/node_modules/**'
+            - '**/dist/**'
+            - '**/build/**'

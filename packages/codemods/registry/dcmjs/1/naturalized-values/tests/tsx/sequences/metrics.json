@@ -1,0 +1,28 @@
+{
+  "dcmjs-1-manual": [
+    {
+      "cardinality": {
+        "file": "input.js",
+        "line": "10",
+        "rule": "OtherSequence?.forEach: a sequence with one item is not an array, use Array.from"
+      },
+      "count": 1
+    },
+    {
+      "cardinality": {
+        "file": "input.js",
+        "line": "6",
+        "rule": "ContentSequence.push: a sequence with one item is not an array, assign a new list"
+      },
+      "count": 1
+    },
+    {
+      "cardinality": {
+        "file": "input.js",
+        "line": "7",
+        "rule": "Array.isArray(ReferencedSeriesSequence): a single item is not an array in 1.0, use Array.from"
+      },
+      "count": 1
+    }
+  ]
+}

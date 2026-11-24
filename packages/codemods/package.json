@@ -1,0 +1,13 @@
+{
+    "name": "@dcmjs-org/codemods",
+    "version": "1.0.0",
+    "private": true,
+    "description": "Codemod registry packages for the dcmjs 1.0 migration",
+    "license": "MIT",
+    "repository": "https://github.com/dcmjs-org/dcmjs",
+    "scripts": {
+        "test": "node scripts/test-registry-packages.mjs",
+        "validate": "node scripts/validate-registry-packages.mjs && node scripts/test-registry-packages.mjs",
+        "generate-keywords": "node scripts/generate-keywords.mjs"
+    }
+}

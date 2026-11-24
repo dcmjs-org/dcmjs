@@ -1,0 +1,27 @@
+version: '1'
+nodes:
+  - id: naturalized-values
+    name: dcmjs 1.0 naturalized values
+    steps:
+      - name: Rewrite TypeScript files
+        js-ast-grep:
+          js_file: scripts/naturalized-values.ts
+          language: typescript
+          base_path: .
+          include:
+            - '**/*.{ts,mts,cts}'
+          exclude:
+            - '**/node_modules/**'
+            - '**/dist/**'
+            - '**/build/**'
+      - name: Rewrite TSX and JavaScript files
+        js-ast-grep:
+          js_file: scripts/naturalized-values.ts
+          language: tsx
+          base_path: .
+          include:
+            - '**/*.{tsx,js,jsx,mjs,cjs}'
+          exclude:
+            - '**/node_modules/**'
+            - '**/dist/**'
+            - '**/build/**'

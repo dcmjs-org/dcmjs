@@ -1,0 +1,11 @@
+version: '1'
+nodes:
+  - id: dcmjs-1
+    name: dcmjs 1.0 migration
+    steps:
+      - name: Replace the package name
+        codemod:
+          source: '@dcmjs-org/dcmjs-1-package-name'
+      - name: Adapt the code to the naturalized values
+        codemod:
+          source: '@dcmjs-org/dcmjs-1-naturalized-values'

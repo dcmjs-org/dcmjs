@@ -1,0 +1,20 @@
+schema_version: '1.0'
+name: '@dcmjs-org/dcmjs-1-package-name'
+version: '0.1.0'
+description: 'Replace the dcmjs 0.x dependency and module name with @dcmjs-org/dcmjs.'
+author: 'dcmjs contributors'
+license: 'MIT'
+workflow: 'workflow.yaml'
+repository: 'https://github.com/dcmjs-org/dcmjs'
+category: 'migration'
+targets:
+  languages: ['typescript', 'tsx', 'javascript', 'jsx', 'json']
+keywords:
+  - dcmjs
+  - migration
+  - upgrade
+  - v1
+  - package-name
+registry:
+  access: 'public'
+  visibility: 'public'
