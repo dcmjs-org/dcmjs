@@ -404,5 +404,8 @@ fixed at build time.
     and the single-value collapse changed; see "Naturalization".)
 -   `DicomMessage.read` and `DicomMessage.readTag`: still present, still
     deprecated, still warning.
--   The `DICOMWEB` class, adapters, structured reports, derivations,
-    normalizers, utilities: untouched by the engine work on this branch.
+-   The `DICOMWEB` class, structured reports, derivations, normalizers,
+    utilities: untouched by the engine work on this branch.
+-   `adapters`: still exported by `@dcmjs-org/dcmjs` and unchanged, but
+    deprecated. The adapters moved to `@cornerstonejs/adapters`; import
+    them from there. The `packages/*` libraries do not export them.
