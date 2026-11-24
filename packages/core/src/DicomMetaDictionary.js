@@ -325,6 +325,15 @@ export class DicomMetaDictionary {
                         dataItem.vr
                     );
 
+                    if (dataItem.vr === "DS" && Array.isArray(dataItem.Value)) {
+                        // Fit numbers to 16 characters; String(number) is cut below
+                        dataItem.Value = dataItem.Value.map(value =>
+                            typeof value === "number"
+                                ? vr.convertToString(value)
+                                : value
+                        );
+                    }
+
                     dataItem.Value = DicomMetaDictionary.denaturalizeValue(
                         dataItem.Value
                     );
