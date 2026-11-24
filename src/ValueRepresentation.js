@@ -66,8 +66,20 @@ function toWindows(inputArray, size) {
 let DicomMessage, Tag, DicomMetaDictionary;
 
 var binaryVRs = ["FL", "FD", "SL", "SS", "UL", "US", "AT", "UV"],
-    length32VRs = ["OB", "OW", "OF", "SQ", "UC", "UR", "UT", "UN", "OD", "UV"],
-    singleVRs = ["SQ", "OF", "OW", "OB", "UN"];
+    length32VRs = [
+        "OB",
+        "OW",
+        "OF",
+        "OL",
+        "SQ",
+        "UC",
+        "UR",
+        "UT",
+        "UN",
+        "OD",
+        "UV"
+    ],
+    singleVRs = ["SQ", "OF", "OL", "OW", "OB", "UN"];
 
 class ValueRepresentation {
     constructor(type) {
@@ -629,6 +641,17 @@ class BinaryRepresentation extends ValueRepresentation {
             } else if (this.type == 'OB') {
                 bytes = stream.readUint8Array(length);
             }*/
+            // A declared value length longer than the data present means a
+            // truncated or malformed file, so read what is there rather than
+            // allocating the declared length, which the file controls.
+            // https://github.com/dcmjs-org/dcmjs/security/advisories/GHSA-xwvm-687g-rm36
+            const available = stream.endOffset - stream.offset;
+            if (length > available) {
+                validationLog.warn(
+                    `${this.type} value declares ${length} bytes but only ${available} are available - reading the available bytes`
+                );
+                length = available;
+            }
             bytes = stream.getBuffer(stream.offset, stream.offset + length);
             stream.increment(length);
             return [bytes];
@@ -1539,6 +1562,19 @@ class OtherFloatString extends BinaryRepresentation {
     }
 }
 
+// A stream of 32 bit words. Used by the large mesh attributes of Surface
+// Segmentation - Long Triangle Point Index List (0066,0041) and its Edge and
+// Vertex counterparts - where the 16 bit indices of the OW forms cap a surface
+// at 65535 points.
+class OtherLongString extends BinaryRepresentation {
+    constructor() {
+        super("OL");
+        this.maxLength = null;
+        this.padByte = PADDING_NULL;
+        this.noMultiple = true;
+    }
+}
+
 // these VR instances are precreate and are reused for each requested vr/tag
 let VRinstances = {
     AE: new ApplicationEntity(),
@@ -1556,6 +1592,7 @@ let VRinstances = {
     OB: new OtherByteString(),
     OD: new OtherDoubleString(),
     OF: new OtherFloatString(),
+    OL: new OtherLongString(),
     OW: new OtherWordString(),
     PN: new PersonName(),
     SH: new ShortString(),
