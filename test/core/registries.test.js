@@ -1,4 +1,31 @@
-import { ReadBufferStream, WriteBufferStream } from "@dcmjs-org/core";
+import dcmjs from "../../src/index.js";
+import {
+    ReadBufferStream,
+    WriteBufferStream,
+    Vrs,
+    registerVr,
+    SopClasses,
+    registerSopClass,
+    sopClassName,
+    validationLog
+} from "@dcmjs-org/core";
+
+const { DicomDict, DicomMessage, DicomMetaDictionary } = dcmjs.data;
+
+const EXPLICIT_LITTLE_ENDIAN = "1.2.840.10008.1.2.1";
+
+/** Writes a tag-keyed dict as Part 10 and returns the bytes. */
+function writePart10(dict) {
+    const dicomDict = new DicomDict({
+        "00020010": { vr: "UI", Value: [EXPLICIT_LITTLE_ENDIAN] }
+    });
+    dicomDict.dict = dict;
+    return new Uint8Array(dicomDict.write());
+}
+
+function readDict(bytes) {
+    return DicomMessage.readFile(bytes.buffer.slice(0)).dict;
+}
 
 describe("stream constructors (REG-U-16, REG-U-17)", () => {
     it("API: the legacy 3-argument ReadBufferStream keeps start and stop", () => {
@@ -20,5 +47,69 @@ describe("stream constructors (REG-U-16, REG-U-17)", () => {
         const little = new WriteBufferStream();
         little.writeUint16(0x0102);
         expect([...new Uint8Array(little.getBuffer())]).toEqual([2, 1]);
+    });
+});
+
+describe("VR registry (REG-U-2)", () => {
+    it("API: registerVr makes an unknown VR decode with the registered instance", () => {
+        // (0066,0040) is OL; write it as OW, then change the VR bytes to OL
+        const bytes = writePart10({
+            "00660040": { vr: "OW", Value: [Uint8Array.of(1, 0, 0, 0).buffer] }
+        });
+        const at = bytes.findIndex(
+            (b, i) =>
+                b === 0x66 &&
+                bytes[i + 2] === 0x40 &&
+                bytes[i + 4] === 0x4f &&
+                bytes[i + 5] === 0x57
+        );
+        bytes[at + 5] = "L".charCodeAt(0);
+
+        const otherLong = new Vrs.OW.constructor();
+        otherLong.type = "OL";
+        registerVr("OL", otherLong, {
+            length32: true,
+            single: true,
+            readSingle: true,
+            byteStream: true
+        });
+        const warn = jest.spyOn(validationLog, "warn");
+
+        const element = readDict(bytes)["00660040"];
+
+        expect(Vrs.OL).toBe(otherLong);
+        expect(element.vr).toBe("OL");
+        expect(new Uint8Array(element.Value[0])).toEqual(
+            Uint8Array.of(1, 0, 0, 0)
+        );
+        expect(warn).not.toHaveBeenCalledWith(
+            "Invalid vr type",
+            "OL",
+            "- using UN"
+        );
+        warn.mockRestore();
+    });
+});
+
+describe("SOP class registry (REG-U-5 to REG-U-8)", () => {
+    it("API: SopClasses, registerSopClass and the dictionary maps agree", () => {
+        expect(SopClasses.CTImage).toBe("1.2.840.10008.5.1.4.1.1.2");
+        expect(sopClassName("1.2.840.10008.5.1.4.1.1.2")).toBe("CTImage");
+
+        registerSopClass("VendorImage", "1.2.3.4.5");
+        expect(DicomMetaDictionary.sopClassUIDsByName.VendorImage).toBe(
+            "1.2.3.4.5"
+        );
+        expect(DicomMetaDictionary.sopClassNamesByUID["1.2.3.4.5"]).toBe(
+            "VendorImage"
+        );
+
+        // the 0.x way: edit the map of names, then rebuild
+        DicomMetaDictionary.sopClassNamesByUID["1.2.3.4.6"] = "OtherImage";
+        DicomMetaDictionary._generateUIDMap();
+        expect(DicomMetaDictionary.sopClassUIDsByName.OtherImage).toBe(
+            "1.2.3.4.6"
+        );
+        expect(SopClasses.OtherImage).toBe("1.2.3.4.6");
     });
 });

@@ -119,7 +119,7 @@ function resolveXsVr(window) {
 /**
  * True when resolveVrInstance produced a ParsedUnknownValue (UN element with
  * a known dictionary VR): those are per-call instances, while every plain VR
- * resolves to the shared VRinstances singleton.
+ * resolves to the shared Vrs singleton.
  */
 export function isParsedUnknownVr(vrInstance) {
     return (
