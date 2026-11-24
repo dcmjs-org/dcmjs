@@ -5,6 +5,7 @@
 import SplitDataView from "../../src/SplitDataView.js";
 import { ReadBufferStream } from "../../src/BufferStream.js";
 import dcmjs from "../../src/index.js";
+import { validationLog } from "../../src/log.js";
 
 const { DicomMessage } = dcmjs.data;
 
@@ -124,11 +125,21 @@ describe("declared value lengths do not size allocations (GHSA-xwvm-687g-rm36)",
         it.each(["OB", "OW", "OD", "OF", "UN"])(
             "%s reads only the bytes present",
             vr => {
-                const dataset = DicomMessage.readFile(
-                    buildFile(vr, 0x10000000, [1, 2, 3, 4, 5, 6, 7, 8])
-                );
+                const warn = jest.spyOn(validationLog, "warn");
+                try {
+                    const dataset = DicomMessage.readFile(
+                        buildFile(vr, 0x10000000, [1, 2, 3, 4, 5, 6, 7, 8])
+                    );
 
-                expect(pixelDataOf(dataset).byteLength).toBe(8);
+                    expect(pixelDataOf(dataset).byteLength).toBe(8);
+                    expect(warn).toHaveBeenCalledWith(
+                        expect.stringContaining(
+                            "declares 268435456 bytes but only 8 are available"
+                        )
+                    );
+                } finally {
+                    warn.mockRestore();
+                }
             }
         );
 
