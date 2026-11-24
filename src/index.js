@@ -13,7 +13,10 @@ import {
     setAttribute,
     setPersonName,
     definePrivateAliases,
-    frameDataset
+    frameDataset,
+    findPrivateBlock,
+    reservePrivateBlock,
+    privateBlockKey
 } from "@dcmjs-org/core";
 import { DICOMWEB } from "./dicomweb.js";
 
@@ -78,7 +81,11 @@ const data = {
     setAttribute,
     setPersonName,
     definePrivateAliases,
-    frameDataset
+    frameDataset,
+    // private blocks of a DICOM JSON dict (NAT-U-PRIV-11)
+    findPrivateBlock,
+    reservePrivateBlock,
+    privateBlockKey
 };
 
 const async = {

@@ -438,30 +438,40 @@ describe("private creators with a line break", () => {
             "00291002": { vr: "LO", Value: ["kept"] }
         });
 
+    // the block key writes a line break as the text \n (or \r)
     it.each([
-        ["a newline", "AC\nME"],
-        ["a carriage return and newline", "AC\r\nME"],
-        ["a trailing newline", "ACME\n"],
-        ["a line separator", "AC\u2028ME"]
-    ])("a creator with %s keeps its block on denaturalize", (_, creator) => {
-        const warn = jest.spyOn(dcmjs.log, "warn").mockImplementation(() => {});
-        // log.warn is a shared jest.fn (jest.setup.js): drop earlier calls
-        warn.mockClear();
-        const naturalized = naturalizeWithCreator(creator);
+        ["a newline", "AC\nME", "AC\\nME"],
+        ["a carriage return and newline", "AC\r\nME", "AC\\r\\nME"],
+        ["a trailing newline", "ACME\n", "ACME\\n"],
+        ["a line separator", "AC\u2028ME", "AC\u2028ME"]
+    ])(
+        "a creator with %s keeps its block on denaturalize",
+        (_, creator, keyText) => {
+            const warn = jest
+                .spyOn(dcmjs.log, "warn")
+                .mockImplementation(() => {});
+            // log.warn is a shared jest.fn (jest.setup.js): drop earlier calls
+            warn.mockClear();
+            const naturalized = naturalizeWithCreator(creator);
 
-        expect(Object.keys(naturalized)).toEqual(["_vrMap", `0029:${creator}`]);
-        // the hex aliases of the block are defined
-        expect(naturalized["00290010"]).toBe(creator);
-        expect(naturalized["00291001"]).toEqual([7]);
+            expect(Object.keys(naturalized)).toEqual([
+                "_vrMap",
+                `0029:${keyText}`
+            ]);
+            expect(naturalized[`0029:${keyText}`].creator).toBe(creator);
+            // the hex aliases of the block are defined
+            expect(naturalized["00290010"]).toBe(creator);
+            expect(naturalized["00291001"]).toEqual([7]);
 
-        const dict = DicomMetaDictionary.denaturalizeDataset(naturalized);
-        expect(dict["00290010"]).toEqual({ vr: "LO", Value: [creator] });
-        expect(dict["00291001"].vr).toBe("US");
-        expect(dict["00291001"].Value.map(Number)).toEqual([7]);
-        expect(dict["00291002"]).toEqual({ vr: "LO", Value: ["kept"] });
-        expect(warn).not.toHaveBeenCalled();
-        warn.mockRestore();
-    });
+            const dict = DicomMetaDictionary.denaturalizeDataset(naturalized);
+            expect(dict["00290010"]).toEqual({ vr: "LO", Value: [creator] });
+            expect(dict["00291001"].vr).toBe("US");
+            expect(dict["00291001"].Value.map(Number)).toEqual([7]);
+            expect(dict["00291002"]).toEqual({ vr: "LO", Value: ["kept"] });
+            expect(warn).not.toHaveBeenCalled();
+            warn.mockRestore();
+        }
+    );
 
     it("a group with a plain creator and a creator with a newline keeps both blocks", () => {
         const naturalized = DicomMetaDictionary.naturalizeDataset({
@@ -471,7 +481,7 @@ describe("private creators with a line break", () => {
             "00291101": { vr: "LO", Value: ["two"] }
         });
         expect(naturalized["0029:ACME"].x01).toEqual(["one"]);
-        expect(naturalized["0029:AC\nME"].x01).toEqual(["two"]);
+        expect(naturalized["0029:AC\\nME"].x01).toEqual(["two"]);
 
         const dict = DicomMetaDictionary.denaturalizeDataset(naturalized);
         expect(dict["00290010"].Value).toEqual(["ACME"]);
@@ -504,5 +514,34 @@ describe("private creators with a line break", () => {
         expect(back["00290010"].Value).toEqual(["AC\nME"]);
         expect(back["00291001"].Value).toEqual([7]);
         expect(back["00291002"].Value).toEqual(["kept"]);
+    });
+});
+
+// NAT-U-PRIV-11: the dict-level helper (test/privateBlock.test.js) and the
+// naturalized form name a block by the same key.
+describe("private blocks of a dict and of the naturalized form", () => {
+    it("a block reserved in a dict naturalizes under the same key, and back", () => {
+        const dicomDict = new DicomDict({});
+        const block = dicomDict.privateBlock(0x4d43, "AC\nME");
+        block.set("x01", "CS", ["HYBRID"]);
+
+        const naturalized = DicomMetaDictionary.naturalizeDataset(
+            dicomDict.dict
+        );
+        expect(naturalized[block.key]).toEqual({
+            creator: "AC\nME",
+            reservedBlock: 0x10,
+            x01: ["HYBRID"]
+        });
+
+        naturalized["4D43:OTHER"] = { x02: ["new"] };
+        naturalized._vrMap["4D43:OTHER"] = { x02: "LO" };
+        const dict = DicomMetaDictionary.denaturalizeDataset(naturalized);
+        expect(
+            dcmjs.data.findPrivateBlock(dict, block.key).get("x01").Value
+        ).toEqual(["HYBRID"]);
+        const other = dcmjs.data.findPrivateBlock(dict, "4D43:OTHER");
+        expect(other.reservedBlock).toBe(0x11);
+        expect(other.get("x02").Value).toEqual(["new"]);
     });
 });
