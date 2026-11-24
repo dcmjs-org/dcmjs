@@ -21,6 +21,18 @@ describe("denaturalizeDataset DS formatting (#531)", () => {
         expect(Number(values[5])).toBeCloseTo(3.5163338899999997e-10, 20);
     });
 
+    it("formats a single DS number and a Number object the same way", () => {
+        const dataset = DicomMetaDictionary.denaturalizeDataset({
+            SliceThickness: 1.2345678901234e-10,
+            SliceLocation: -1.7763568394002505e-15,
+            SpacingBetweenSlices: [new Number(3.5163338899999997e-10)]
+        });
+
+        expect(dataset["00180050"].Value).toEqual(["1.2345678901e-10"]);
+        expect(dataset["00201041"].Value).toEqual(["-1.776356839e-15"]);
+        expect(dataset["00180088"].Value).toEqual(["3.5163338900e-10"]);
+    });
+
     // The test above checks what denaturalizeDataset returns. This one
     // checks what reaches the file and comes back out of it: DS is a string
     // on disk, so a value that was formatted correctly can still be lost if
