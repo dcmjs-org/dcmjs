@@ -27,7 +27,7 @@ not byte-identical to the input file (MIGRATION, "Writing").
 import {
     DicomEventStream,
     StreamingPart10Writer
-} from "@dcmjs/dcmjs/eventStream";
+} from "@dcmjs-org/dcmjs/eventStream";
 ```
 
 **A naturalized dataset in memory.** Put the file meta information on

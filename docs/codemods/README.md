@@ -17,11 +17,10 @@ the code.
 
 ## Package name
 
-These descriptions assume that 1.0 releases as **`@dcmjs/dcmjs`**, and that
-the workspace packages release under the same scope (`@dcmjs/core`,
-`@dcmjs/parser`, ...). During the beta the names are `@dcmjs-org/dcmjs` and
-`@dcmjs-org/core`. If the release uses a different name, replace the name in
-CM-1 and in the imports of CM-3 and CM-4. The other steps do not change.
+dcmjs 1.0 releases as **`@dcmjs-org/dcmjs`**, and the workspace packages
+release under the same scope (`@dcmjs-org/core`, `@dcmjs-org/parser`, ...).
+The beta uses the same names, so a project that already uses the beta skips
+CM-1 and changes only the version.
 
 ## Order
 
@@ -31,7 +30,7 @@ apply it one call site at a time.
 
 | ID                               | Phase | Codemod                                         | Automatic |
 | -------------------------------- | ----- | ----------------------------------------------- | --------- |
-| [CM-1](01-package-name.md)       | 1     | Change the package name to `@dcmjs/dcmjs`       | Yes       |
+| [CM-1](01-package-name.md)       | 1     | Change the package name to `@dcmjs-org/dcmjs`   | Yes       |
 | [CM-2](02-naturalized-values.md) | 1     | Adapt the code to the naturalized values of 1.0 | Partly    |
 | [CM-3](03-async-read.md)         | 2     | Read Part 10 directly to a naturalized dataset  | Partly    |
 | [CM-4](04-async-write.md)        | 2     | Write a naturalized dataset directly to Part 10 | Partly    |
@@ -40,7 +39,7 @@ apply it one call site at a time.
     `naturalizeDataset`, `denaturalizeDataset`, `DicomDict.write`). After
     phase 1 the project runs on 1.0 with the same structure.
 -   **Phase 2** replaces the read, naturalize, denaturalize and write steps with
-    the event stream of `@dcmjs/dcmjs/eventStream`. The event stream gives the
+    the event stream of `@dcmjs-org/dcmjs/eventStream`. The event stream gives the
     naturalized dataset directly, reads a file larger than memory, and is
     asynchronous. Apply phase 2 only after phase 1 passes, because phase 2
     gives the same naturalized values as phase 1.

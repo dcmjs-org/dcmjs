@@ -5,7 +5,7 @@ passes.
 
 The 0.x read is two steps: `DicomMessage.readFile` decodes the whole buffer to
 a tag-keyed dict, and `naturalizeDataset` converts the dict. The event stream
-of `@dcmjs/dcmjs/eventStream` does one step. It gives the naturalized dataset
+of `@dcmjs-org/dcmjs/eventStream` does one step. It gives the naturalized dataset
 directly, and it reads a file in chunks, so it can read a file larger than
 memory.
 
@@ -39,7 +39,7 @@ Import the facade from the subpath:
 import {
     DicomEventStream,
     NaturalizedListener
-} from "@dcmjs/dcmjs/eventStream";
+} from "@dcmjs-org/dcmjs/eventStream";
 ```
 
 **A buffer that is already in memory.**
@@ -125,7 +125,7 @@ can run again.
 ## Verify
 
 -   For each Part 10 fixture of the project, compare the old read and the new
-    read. A test can do the compare with `deepEqual` of `@dcmjs/core`. A
+    read. A test can do the compare with `deepEqual` of `@dcmjs-org/core`. A
     difference must match an item of the Review section.
 -   For a large file, measure the peak memory of the new read. The memory must
     stay near the size of the largest element, not the size of the file.

@@ -18,7 +18,7 @@ the six ways described below.
 person, an AI agent or a `jscodeshift` transform can apply.
 
 ```js
-// during the beta the package is @dcmjs-org/dcmjs; later it is "dcmjs"
+// the beta and the release both use the package name @dcmjs-org/dcmjs
 import dcmjs from "@dcmjs-org/dcmjs";
 const { DicomMessage, DicomDict, DicomMetaDictionary } = dcmjs.data;
 ```
@@ -343,8 +343,8 @@ earlier beta had `fromFhir()` and `toFhir()`). Give the result of
 The `dcmjs` package surface is the wrapper `@dcmjs-org/dcmjs`. It
 reproduces the 0.x surface, so a project can try 1.0 by changing only the
 import name. During the beta it publishes on the `beta` tag
-(`npm install @dcmjs-org/dcmjs@beta`); the unscoped `dcmjs` name starts
-publishing when the maintainers decide it is ready.
+(`npm install @dcmjs-org/dcmjs@beta`). The 1.0 release keeps the name
+`@dcmjs-org/dcmjs`; the unscoped `dcmjs` name stays on 0.x.
 
 The new engines are subpath entries, and they are ES modules only:
 `@dcmjs-org/dcmjs/eventStream`, `/media`, `/encapsulated` and `/image`.

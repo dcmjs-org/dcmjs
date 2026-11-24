@@ -19,7 +19,7 @@ Steps 2.1 and 2.6 need the dictionary VM of a keyword. A tool reads it from
 the dictionary:
 
 ```js
-import dcmjs from "@dcmjs/dcmjs";
+import dcmjs from "@dcmjs-org/dcmjs";
 const { nameMap } = dcmjs.data.DicomMetaDictionary;
 nameMap.WindowCenter.vm; // "1-n": a list
 nameMap.PatientID.vm; // "1": a single value
@@ -54,7 +54,7 @@ comparison with `===` to a number or a string. Typical keywords:
 +const center = Number(Array.isArray(ds.WindowCenter) ? ds.WindowCenter[0] : ds.WindowCenter);
 ```
 
-Phase 2 can use `toFloatFirst` and `toStringFirst` of `@dcmjs/core` in place
+Phase 2 can use `toFloatFirst` and `toStringFirst` of `@dcmjs-org/core` in place
 of the inline test.
 
 Do not change code that already tests `Array.isArray(...)` on the value. That

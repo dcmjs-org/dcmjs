@@ -1,16 +1,16 @@
-# CM-1: change the package name to `@dcmjs/dcmjs`
+# CM-1: change the package name to `@dcmjs-org/dcmjs`
 
-Phase 1. Automatic. See [README.md](README.md) for the name assumption.
+Phase 1. Automatic. A project that already uses the 1.0 beta skips this
+codemod.
 
-`@dcmjs/dcmjs` reproduces the 0.x surface of `dcmjs`, so this codemod changes
+`@dcmjs-org/dcmjs` reproduces the 0.x surface of `dcmjs`, so this codemod changes
 names only. It does not change a call.
 
 ## Detect
 
 -   `package.json`: `"dcmjs"` in `dependencies`, `devDependencies` or
-    `peerDependencies`. Also the beta name `"@dcmjs-org/dcmjs"`.
--   An import or a require of `"dcmjs"`, `"dcmjs/..."`, `"@dcmjs-org/dcmjs"` or
-    `"@dcmjs-org/dcmjs/..."`:
+    `peerDependencies`.
+-   An import or a require of `"dcmjs"` or `"dcmjs/..."`:
     -   `import dcmjs from "dcmjs"`
     -   `import { data, utilities } from "dcmjs"`
     -   `import * as dcmjs from "dcmjs"`
@@ -34,15 +34,15 @@ Do not change:
 ```diff
  // package.json
 -"dcmjs": "^0.38.0"
-+"@dcmjs/dcmjs": "^1.0.0"
++"@dcmjs-org/dcmjs": "^1.0.0"
 ```
 
 ```diff
 -import dcmjs from "dcmjs";
-+import dcmjs from "@dcmjs/dcmjs";
++import dcmjs from "@dcmjs-org/dcmjs";
 
 -const { data } = require("dcmjs");
-+const { data } = require("@dcmjs/dcmjs");
++const { data } = require("@dcmjs-org/dcmjs");
 ```
 
 Keep the local binding name (`dcmjs`), so no other line changes.
@@ -56,12 +56,12 @@ level and the `registerTag()` entries):
 ```js
 // jest.config.js
 moduleNameMapper: {
-    "^@dcmjs/dcmjs$":
-        "<rootDir>/node_modules/@dcmjs/dcmjs/build/dcmjs.es.js",
-    "^@dcmjs/dcmjs/(eventStream|media|encapsulated|image)$":
-        "<rootDir>/node_modules/@dcmjs/dcmjs/build/$1.es.js"
+    "^@dcmjs-org/dcmjs$":
+        "<rootDir>/node_modules/@dcmjs-org/dcmjs/build/dcmjs.es.js",
+    "^@dcmjs-org/dcmjs/(eventStream|media|encapsulated|image)$":
+        "<rootDir>/node_modules/@dcmjs-org/dcmjs/build/$1.es.js"
 },
-transformIgnorePatterns: ["/node_modules/(?!@dcmjs)"]
+transformIgnorePatterns: ["/node_modules/(?!@dcmjs-org)"]
 ```
 
 Jest must transform these files with a project-wide `babel.config.js`, because
