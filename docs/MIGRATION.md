@@ -14,6 +14,9 @@ changed on purpose to follow the DICOM standard (see
 [BREAKING_CHANGES.md](BREAKING_CHANGES.md)), and naturalization changed in
 the six ways described below.
 
+[codemods/](codemods/README.md) gives the code changes in a form that a
+person, an AI agent or a `jscodeshift` transform can apply.
+
 ```js
 // during the beta the package is @dcmjs-org/dcmjs; later it is "dcmjs"
 import dcmjs from "@dcmjs-org/dcmjs";
