@@ -365,7 +365,7 @@ class ValueRepresentation {
                 vr = Vrs.US;
             } else {
                 // Warn at most once per unknown type (issue #457): files can
-                // carry many elements of the same unregistered VR (OL/OV/SV),
+                // carry many elements of the same unregistered VR (OV/SV),
                 // and a per-element warning is pure log spam.
                 if (!unknownVrTypesWarned.has(type)) {
                     unknownVrTypesWarned.add(type);
@@ -1594,6 +1594,17 @@ class OtherFloatString extends BinaryRepresentation {
     }
 }
 
+// A stream of 32 bit words, for example Long Triangle Point Index List
+// (0066,0041), where the 16 bit OW form caps a surface at 65535 points.
+class OtherLongString extends BinaryRepresentation {
+    constructor() {
+        super("OL");
+        this.maxLength = null;
+        this.padByte = PADDING_NULL;
+        this.noMultiple = true;
+    }
+}
+
 /**
  * The shared VR instances by code (`Vrs.DS`); `registerVr` extends it.
  * @typedef {Object<string, ValueRepresentation>} VrRegistry
@@ -1615,6 +1626,7 @@ export const Vrs = {
     OB: new OtherByteString(),
     OD: new OtherDoubleString(),
     OF: new OtherFloatString(),
+    OL: new OtherLongString(),
     OW: new OtherWordString(),
     PN: new PersonName(),
     SH: new ShortString(),
@@ -1638,9 +1650,9 @@ export const Vrs = {
  * `code`. The flags default to the instance's isBinary/isLength32/
  * allowMultiple; singleVRs, BINARY_VRS and VALID_VRS follow.
  * @example
- * const otherLong = new Vrs.OW.constructor();
- * otherLong.type = "OL";
- * registerVr("OL", otherLong, { length32: true, single: true,
+ * const otherVeryLong = new Vrs.OW.constructor();
+ * otherVeryLong.type = "OV";
+ * registerVr("OV", otherVeryLong, { length32: true, single: true,
  *     readSingle: true, byteStream: true });
  *
  * @param {string} code the two-letter VR code

@@ -23,10 +23,11 @@ const {
 // semantics, ~1.5 KB more (×1.0651), the dict-level private block API
 // (privateBlockDict.js) adds ~8.7 KB (×1.0713), and the VR, SOP class and
 // character-set registries add ~10 KB (×1.079). dcmjs.es.js is 1.062 for
-// the same registries (×1.055 to ×1.061).
+// the same registries (×1.055 to ×1.061). The OL VR class (#632) adds
+// ~0.4 KB (×1.0801 and ×1.0623), so the ceilings are 1.081 and 1.063.
 const BUNDLES = {
-    "dcmjs.js": { baseline: 1384431, ceiling: 1.08 },
-    "dcmjs.es.js": { baseline: 1357418, ceiling: 1.062 }
+    "dcmjs.js": { baseline: 1384431, ceiling: 1.081 },
+    "dcmjs.es.js": { baseline: 1357418, ceiling: 1.063 }
 };
 
 // The public names of build/dcmjs.es.js: the named exports of src/index.js.

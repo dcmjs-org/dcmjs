@@ -68,7 +68,7 @@ describe("stream constructors (REG-U-16, REG-U-17)", () => {
 
 describe("VR registry (REG-U-2)", () => {
     it("API: registerVr makes an unknown VR decode with the registered instance", () => {
-        // (0066,0040) is OL; write it as OW, then change the VR bytes to OL
+        // write (0066,0040) as OW, then change the VR bytes to OV, which has no class
         const bytes = writePart10({
             "00660040": { vr: "OW", Value: [Uint8Array.of(1, 0, 0, 0).buffer] }
         });
@@ -79,11 +79,11 @@ describe("VR registry (REG-U-2)", () => {
                 bytes[i + 4] === 0x4f &&
                 bytes[i + 5] === 0x57
         );
-        bytes[at + 5] = "L".charCodeAt(0);
+        bytes[at + 5] = "V".charCodeAt(0);
 
-        const otherLong = new Vrs.OW.constructor();
-        otherLong.type = "OL";
-        registerVr("OL", otherLong, {
+        const otherVeryLong = new Vrs.OW.constructor();
+        otherVeryLong.type = "OV";
+        registerVr("OV", otherVeryLong, {
             length32: true,
             single: true,
             readSingle: true,
@@ -93,14 +93,14 @@ describe("VR registry (REG-U-2)", () => {
 
         const element = readDict(bytes)["00660040"];
 
-        expect(Vrs.OL).toBe(otherLong);
-        expect(element.vr).toBe("OL");
+        expect(Vrs.OV).toBe(otherVeryLong);
+        expect(element.vr).toBe("OV");
         expect(new Uint8Array(element.Value[0])).toEqual(
             Uint8Array.of(1, 0, 0, 0)
         );
         expect(warn).not.toHaveBeenCalledWith(
             "Invalid vr type",
-            "OL",
+            "OV",
             "- using UN"
         );
         warn.mockRestore();

@@ -45,10 +45,10 @@ different path.
   OD OF OL OV OW UN. The order of `singleVRs` changed; every consumer uses
   `indexOf`. (REG-U-4)
 - **REG-I-5.** The seed table keeps the members of the 0.x lists exactly:
-  `isBinary()` for FL FD SL SS UL US AT UV; `isLength32()` for OB OW OF SQ
-  UC UR UT UN OD UV; `allowMultiple()` false for SQ OF OW OB UN and the
-  binary VRs. dcmjs 1.0 has no OL, OV or SV class; OL and OV have the
-  `byteStream` flag only. (REG-U-4)
+  `isBinary()` for FL FD SL SS UL US AT UV; `isLength32()` for OB OW OF OL
+  SQ UC UR UT UN OD UV; `allowMultiple()` false for SQ OF OL OW OB UN and
+  the binary VRs. dcmjs 1.0 has no OV or SV class; OV has the `byteStream`
+  flag only. (REG-U-4)
 - **REG-I-6.** `VALID_VRS` and `BULKDATA_VRS` keep their hand-kept members.
   `registerVr` adds a new code to `VALID_VRS`, so the explicit VR readers
   accept it. (REG-U-2)

@@ -10,7 +10,8 @@
  *
  * Triage category: C (contract assertion). How 1.0 deliberately differs
  * from the upstream report: UV got a real Unsigned64BitVeryLong instance
- * (added for the Supplement 225 video arc), while OL/OV/SV intentionally
+ * (added for the Supplement 225 video arc), and OL got OtherLongString
+ * (PR #632), while OV/SV intentionally
  * remain UN fallbacks — safe byte-preserving reads/writes — with the log
  * demoted from error to warn; this file pins that split contract rather
  * than requiring four dedicated implementations.
@@ -22,7 +23,7 @@ validationLog.setLevel(5);
 
 describe("issue #457 — VR registry coverage for OL, OV, SV, UV", () => {
     // Runs first: the fallback warns once per type per module load, so this
-    // must observe the very first OL lookup in this suite.
+    // must observe the very first SV lookup in this suite.
     it("fallback logs at warn severity, not error (no validation-error spam)", () => {
         const warns = [];
         const errors = [];
@@ -31,7 +32,7 @@ describe("issue #457 — VR registry coverage for OL, OV, SV, UV", () => {
         validationLog.warn = (...args) => warns.push(args);
         validationLog.error = (...args) => errors.push(args);
         try {
-            ValueRepresentation.createByTypeString("OL");
+            ValueRepresentation.createByTypeString("SV");
         } finally {
             validationLog.warn = origWarn;
             validationLog.error = origError;
@@ -48,8 +49,8 @@ describe("issue #457 — VR registry coverage for OL, OV, SV, UV", () => {
         expect(vr.isBinary()).toBe(true);
     });
 
-    it("OL/OV/SV fall back to a usable UN instance without throwing", () => {
-        for (const type of ["OL", "OV", "SV"]) {
+    it("OV/SV fall back to a usable UN instance without throwing", () => {
+        for (const type of ["OV", "SV"]) {
             let vr;
             expect(() => {
                 vr = ValueRepresentation.createByTypeString(type);
@@ -62,8 +63,8 @@ describe("issue #457 — VR registry coverage for OL, OV, SV, UV", () => {
     });
 
     it("fallback lookups are stable (same shared instance every call)", () => {
-        const first = ValueRepresentation.createByTypeString("OL");
-        const second = ValueRepresentation.createByTypeString("OL");
+        const first = ValueRepresentation.createByTypeString("OV");
+        const second = ValueRepresentation.createByTypeString("OV");
         expect(second).toBe(first);
         expect(ValueRepresentation.createByTypeString("SV")).toBe(first);
     });
@@ -71,7 +72,7 @@ describe("issue #457 — VR registry coverage for OL, OV, SV, UV", () => {
     // Fixed: the UN fallback warns at most once per unknown type, so a file
     // with many such elements produces one log line instead of per-element
     // spam (the issue's — and #368's — complaint).
-    it("#457: OL/OV/SV fallback warns at most once per type", () => {
+    it("#457: OV/SV fallback warns at most once per type", () => {
         const warns = [];
         const origWarn = validationLog.warn;
         validationLog.warn = (...args) => warns.push(args);
