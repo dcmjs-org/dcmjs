@@ -5,7 +5,7 @@ on:
     branches:
       - master
       - 1.0-beta
-      - release/0.5x
+      - 0.x
     paths:
       - "packages/schemas/**"
       - "packages/core/src/dicom.*.js"

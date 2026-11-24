@@ -124,7 +124,7 @@ scope later; until then every name in this document reads `@dcmjs-org/`.
 | `master`                     | Stable. Publishes to npm `latest`. Stays at 0.52.x until 1.0 is done.                                                                                            |
 | `1.0-beta`                   | The release branch for 1.0. Each merge into it can publish a `1.0.0-beta.N` prerelease under the npm `beta` tag, so early adopters can `npm install dcmjs@beta`. |
 | `release/1.0-beta-<package>` | One staging branch per package — `release/1.0-beta-core`, `release/1.0-beta-fhir`, and so on. Work accumulates here in small steps.                              |
-| `release/0.5x`               | Maintenance line for the 0.52 series, for critical fixes after 1.0 ships. Created when first needed.                                                             |
+| `0.x`                        | Maintenance line for 0.x, made from `master` before the move of 1.0. Publishes 0.x fixes to the npm dist-tag `0.x`.                                              |
 
 This supersedes the earlier plan's `development` / `release/1.0` naming.
 
@@ -460,7 +460,7 @@ pipeline on `master` then releases `1.0.0` to npm `latest` for every
 public package.
 
 After GA, the 0.5x line winds down on the schedule from the earlier plan:
-a `release/0.5x` branch for critical fixes, a deprecation notice in the
+a `0.x` branch for critical fixes, a deprecation notice in the
 0.x README, an in-code warning shipped as 0.52.1, and `npm deprecate` on
 the pre-1.0 range. The stale npm dist-tags (`vNext`, `dev`) get cleaned up
 at the same time.
@@ -523,7 +523,7 @@ Named here so their absence is a decision, not an oversight:
 ```json
 {
     "branches": [
-        { "name": "release/0.5x", "range": "0.x" },
+        { "name": "0.x", "range": "0.x", "channel": "0.x" },
         "master",
         { "name": "1.0-beta", "prerelease": "beta", "channel": "beta" }
     ],
@@ -551,7 +551,7 @@ on:
         branches:
             - master
             - 1.0-beta
-            - release/0.5x
+            - 0.x
 ```
 
 The publish job authenticates to npm with **OIDC trusted publishing**
