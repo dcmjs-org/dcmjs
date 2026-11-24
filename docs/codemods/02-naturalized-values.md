@@ -10,8 +10,8 @@ gives the rules (`NAT-U-*`). This codemod lists the code patterns that the
 changes break, and the rewrite for each pattern.
 
 The rewrites of steps 2.1, 2.2, 2.3 and 2.5 also work on 0.x. So you can
-apply them before CM-1, and test the result on 0.x first. Test the `String()`
-rewrite of step 2.4 on 1.0.
+apply them before CM-1, and test the result on 0.x first. Test the rewrites
+of step 2.4 on 1.0.
 
 ## Find the value multiplicity of a keyword
 
@@ -123,10 +123,13 @@ item. Find the other references, and update each one after the rewrite.
 
 ## 2.4 A single person name is the component object
 
-0.x gave a list with accessors: `ds.PatientName[0].Alphabetic` and
-`ds.PatientName.Alphabetic` both worked. 1.0 gives the component object
-(NAT-U-VAL-5): `ds.PatientName[0]` is `undefined`. `String(ds.PatientName)`
-gives the DICOM PN string in both versions.
+0.x gave a list with accessors. 1.0 gives the component object, made
+array-like by the rule of a single-item sequence (NAT-U-VAL-5, NAT-U-SQ-1):
+`ds.PatientName[0] === ds.PatientName`, `ds.PatientName.length` is 1, and
+`for...of` gives the name once. So `ds.PatientName[0].Alphabetic` and
+`ds.PatientName.Alphabetic` work in both versions, and need no change.
+`Array.isArray(ds.PatientName)` is `false` in 1.0: treat it as in step 2.3.
+`String(ds.PatientName)` gives the DICOM PN string in both versions.
 
 An assignment of a string converts at once: after
 `ds.PatientName = "Doe^John"`, the value is `{ Alphabetic: "Doe^John" }`.
@@ -136,7 +139,7 @@ An assignment of a string converts at once: after
 example `PerformingPhysicianName`, VM 1-n) is a list of component objects
 (step 2.1).
 
--   `ds.PatientName[0]`;
+-   `Array.isArray(ds.PatientName)` or an array method (step 2.3);
 -   `typeof ds.PatientName === "string"`;
 -   a compare with a string: `ds.PatientName === "Doe^John"`;
 -   a string method on the value: `.split("^")`, `.toUpperCase()`, `.includes`.
@@ -144,9 +147,6 @@ example `PerformingPhysicianName`, VM 1-n) is a list of component objects
 **Transform.**
 
 ```diff
--const family = ds.PatientName[0].Alphabetic.split("^")[0];
-+const family = String(ds.PatientName).split("^")[0];
-
 -if (ds.PatientName === "Anonymous") {
 +if (String(ds.PatientName) === "Anonymous") {
 ```
@@ -157,6 +157,8 @@ needs the alphabetic group only.
 
 **Review.** A spread or a `deepCloneInstance` copy of the dataset has plain
 values and no PN setter. On the copy, an assigned string stays a string.
+`deepCloneInstance` keeps the `[0]` of a single name. A spread or JSON copy
+of the name does not.
 
 ## 2.5 Private elements: block keys, and a round trip that keeps them
 

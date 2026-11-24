@@ -181,7 +181,11 @@ Six things changed relative to 0.x:
    work on it, and `JSON.stringify` gives the item object. The tag Proxy is
    also gone: the readers and naturalize add the PN value accessors when
    they store a value, and a PN value that you assign is converted at once
-   by the PN setter (change 6). `ValueRepresentation.addTagAccessors`
+   by the PN setter (change 6). A single PN value follows the same rule as
+   a single-item sequence: it is the component object, with a hidden `[0]`
+   (the object), a `length` of 1 and an iterator, so both
+   `ds.PatientName.Alphabetic` and `ds.PatientName[0].Alphabetic` work, and
+   `Array.isArray(ds.PatientName)` is false. `ValueRepresentation.addTagAccessors`
    remains on the dcmjs surface as a no-op. Pinned by
    `test/issues/issue218-single-item-sq.test.js` and
    `test/core/naturalizeDataset.test.js`.

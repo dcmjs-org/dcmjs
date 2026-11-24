@@ -1,9 +1,12 @@
 import dicomJson from "./dicomJson.js";
+import addAccessors from "./addAccessors.js";
 
 /**
  * A PN value in the naturalized form (NAT-U-VAL-5): the component object
  * `{ Alphabetic, Ideographic, Phonetic }`, or a list of them, with the PN
- * value accessors (String() gives the DICOM PN string).
+ * value accessors (String() gives the DICOM PN string). A single component
+ * object is array-like, as a single-item sequence (NAT-U-SQ-1):
+ * `pn[0] === pn`, `pn.length === 1`, and `for...of` gives it once.
  *
  * The input is a PN string (`"Doe^John"`, `"A^B=C\\D^E"`), a component
  * object, or a list of strings and objects. `length` is the value count:
@@ -30,7 +33,7 @@ export function toPersonNameValue(value, length) {
     if (single && list.length <= 1) {
         const name = list[0];
         return name && Object.keys(name).length
-            ? dicomJson.pnAddValueAccessors(name)
+            ? addAccessors(dicomJson.pnAddValueAccessors(name))
             : null;
     }
     return dicomJson.pnAddValueAccessors(list);
