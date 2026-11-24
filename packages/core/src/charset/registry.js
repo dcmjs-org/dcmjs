@@ -126,7 +126,7 @@ export function lookupCharacterSet(code) {
  */
 export function createCharacterSetEncoder(values, writeOptions) {
     const list = [].concat(values ?? []);
-    const key = list.join("\\");
+    const key = list.map(normalizeCharacterSetTerm).join("\\");
     const encode =
         list.length < 2 &&
         lookupCharacterSet(normalizeCharacterSetTerm(list[0]))?.encode;

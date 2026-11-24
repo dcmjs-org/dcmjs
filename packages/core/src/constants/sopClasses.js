@@ -44,6 +44,9 @@ export const sopClassNamesByUID = Object.fromEntries(
 
 /** Adds or replaces a SOP class name and UID. */
 export function registerSopClass(name, uid) {
+    if (sopClassNamesByUID[SopClasses[name]] === name) {
+        delete sopClassNamesByUID[SopClasses[name]];
+    }
     SopClasses[name] = uid;
     sopClassNamesByUID[uid] = name;
 }

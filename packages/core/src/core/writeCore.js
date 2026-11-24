@@ -76,20 +76,31 @@ export function writeDataSet(jsonObjects, useStream, syntax, writeOptions) {
     const outerEncoder = useStream.encoder;
 
     var sortedTags = Object.keys(jsonObjects).sort();
-    sortedTags.forEach(function (tagString) {
-        var tag = Tag.fromString(tagString),
-            tagObject = jsonObjects[tagString],
-            vrType = tagObject.vr;
+    try {
+        sortedTags.forEach(function (tagString) {
+            var tag = Tag.fromString(tagString),
+                tagObject = jsonObjects[tagString],
+                vrType = tagObject.vr;
 
-        var values = getTagWriteValues(vrType, tagObject);
+            var values = getTagWriteValues(vrType, tagObject);
 
-        written += tag.write(useStream, vrType, values, syntax, writeOptions);
-        if (tagString === TagHex.SpecificCharacterSet) {
-            useStream.encoder = createCharacterSetEncoder(values, writeOptions);
-        }
-    });
-
-    useStream.encoder = outerEncoder;
+            written += tag.write(
+                useStream,
+                vrType,
+                values,
+                syntax,
+                writeOptions
+            );
+            if (tagString === TagHex.SpecificCharacterSet) {
+                useStream.encoder = createCharacterSetEncoder(
+                    values,
+                    writeOptions
+                );
+            }
+        });
+    } finally {
+        useStream.encoder = outerEncoder;
+    }
     return written;
 }
 

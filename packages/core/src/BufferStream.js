@@ -212,8 +212,9 @@ export class BufferStream {
     }
 
     writeUTF8String(value) {
-        // an empty (null) value is empty text, as in writeAsciiString
-        const encodedString = this.encoder.encode(value ?? "");
+        // an empty (null) value is empty text, as in writeAsciiString; a
+        // number in a text VR is written as its text
+        const encodedString = this.encoder.encode(String(value ?? ""));
         this.checkSize(encodedString.byteLength);
         this.view.writeBuffer(encodedString, this.offset);
         return this.increment(encodedString.byteLength);

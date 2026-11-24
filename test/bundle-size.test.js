@@ -17,11 +17,13 @@ const {
 } = require("./helper/build.js");
 
 // dcmjs@0.52.0 from npm, and the ceiling for each default bundle.
-// dcmjs.js is 1.075: the bundle is unminified, so frameDataset (#631) adds
+// dcmjs.js is 1.08: the bundle is unminified, so frameDataset (#631) adds
 // ~8 KB of documented source, past the ~2.4 KB that 1.06 left (×1.0638),
 // the addBuffer view fix (#621) documents the copy and transfer
-// semantics, ~1.5 KB more (×1.0651), and the dict-level private block API
-// (privateBlockDict.js) adds ~8.7 KB (×1.0713).
+// semantics, ~1.5 KB more (×1.0651), the dict-level private block API
+// (privateBlockDict.js) adds ~8.7 KB (×1.0713), and the VR, SOP class and
+// character-set registries add ~10 KB (×1.079). dcmjs.es.js is 1.062 for
+// the same registries (×1.055 to ×1.061).
 const BUNDLES = {
     "dcmjs.js": { baseline: 1384431, ceiling: 1.08 },
     "dcmjs.es.js": { baseline: 1357418, ceiling: 1.062 }

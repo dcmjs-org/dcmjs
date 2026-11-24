@@ -7,8 +7,10 @@ that the review removed before anything shipped. If you read that guide,
 unlearn it; this page documents only what is on this branch, and every
 behavioral claim below names the test suite that pins it.
 
-The short version: the reader and writer you call today are unchanged. The
-new work, a streaming engine that reads and writes files larger than
+The short version: the reader and writer you call today are unchanged,
+with one exception: the writer now encodes text in the character set that
+the dataset declares (see "Text is written in the declared character
+set"). The new work, a streaming engine that reads and writes files larger than
 memory, sits beside them and runs only when you call it. Three behaviors
 changed on purpose to follow the DICOM standard (see
 [BREAKING_CHANGES.md](BREAKING_CHANGES.md)), and naturalization changed in
@@ -410,10 +412,21 @@ new WriteBufferStream({ littleEndian: false }); // big endian
 
 The 0.x positional form still works, keeps all of its arguments and its
 0.x byte order (a missing or `null` byte order is big endian, as in 0.x),
-and logs one warning for each class. One call changed its byte order:
-`new ReadBufferStream(buffer)` was big endian in 0.x and is little endian
-now. The dcmjs readers and writers set the byte order of each element
-themselves, so their output does not change.
+and logs one warning for each class. These calls were big endian in 0.x
+and are little endian now:
+
+-   `new BufferStream()` (the default of `isLittleEndian` is now `true`).
+-   `new ReadBufferStream(buffer)` with no options.
+-   `new WriteBufferStream()` with no argument (in 0.x the same as
+    `new WriteBufferStream(undefined)`, which the shim cannot tell apart).
+-   The child stream of `BufferStream.more()`.
+-   `new DeflatedReadBufferStream(stream)`: 0.x read `stream.littleEndian`,
+    a property that does not exist, so it was big endian.
+
+The dcmjs readers and writers set the byte order of each element
+themselves (`setEndian` before they read or write), so their output does
+not change. Code outside dcmjs that reads from one of these streams
+without `setEndian` gets little endian now.
 [specs/registries.md](specs/registries.md) (REG-U-16, REG-U-17) gives the
 rules.
 
