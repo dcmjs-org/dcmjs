@@ -147,7 +147,7 @@ class Tag {
         stream.writeUint16(this.group());
         stream.writeUint16(this.element());
 
-        var tagStream = new WriteBufferStream(256),
+        var tagStream = new WriteBufferStream({ defaultSize: 256 }),
             valueLength;
         tagStream.setEndian(isLittleEndian);
 

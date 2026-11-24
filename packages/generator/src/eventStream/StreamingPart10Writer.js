@@ -135,7 +135,7 @@ export class StreamingPart10Writer extends EventStreamListener {
 
     _baseStartFileMetaInformation() {
         this._inMeta = true;
-        const stream = new WriteBufferStream(160, true);
+        const stream = new WriteBufferStream({ defaultSize: 160 });
         stream.writeUint8Repeat(0, 128);
         stream.writeAsciiString("DICM");
         this._emitStream(stream);
@@ -159,14 +159,14 @@ export class StreamingPart10Writer extends EventStreamListener {
         // Group length must cover the encoded meta elements, so the group is
         // the one part of the file that cannot stream element-by-element.
         delete this._meta[FMI_GROUP_LENGTH];
-        const metaStream = new WriteBufferStream(1024, true);
+        const metaStream = new WriteBufferStream({ defaultSize: 1024 });
         writeDataSet(
             this._meta,
             metaStream,
             EXPLICIT_LITTLE_ENDIAN,
             this._writeOptions
         );
-        const out = new WriteBufferStream(1024 + 16, true);
+        const out = new WriteBufferStream({ defaultSize: 1024 + 16 });
         writeTagObject(
             out,
             FMI_GROUP_LENGTH,
@@ -200,7 +200,10 @@ export class StreamingPart10Writer extends EventStreamListener {
             }
             return;
         }
-        const stream = new WriteBufferStream(256, this._bodyLittleEndian);
+        const stream = new WriteBufferStream({
+            defaultSize: 256,
+            littleEndian: this._bodyLittleEndian
+        });
         writeTagObject(
             stream,
             el.tag,
@@ -226,7 +229,10 @@ export class StreamingPart10Writer extends EventStreamListener {
         }
         this._encapsulated = true;
         this._current.emitted = true;
-        const stream = new WriteBufferStream(24, this._bodyLittleEndian);
+        const stream = new WriteBufferStream({
+            defaultSize: 24,
+            littleEndian: this._bodyLittleEndian
+        });
         this._writeLongHeader(
             stream,
             this._current.tag,
@@ -266,7 +272,10 @@ export class StreamingPart10Writer extends EventStreamListener {
             return;
         }
         const pad = bytes.byteLength % 2;
-        const header = new WriteBufferStream(8, this._bodyLittleEndian);
+        const header = new WriteBufferStream({
+            defaultSize: 8,
+            littleEndian: this._bodyLittleEndian
+        });
         this._writeRawTag(header, 0xfffe, 0xe000, bytes.byteLength + pad);
         this._emitStream(header);
         this._emit(bytes);
@@ -277,7 +286,10 @@ export class StreamingPart10Writer extends EventStreamListener {
 
     _baseEndBinary() {
         if (this._encapsulated) {
-            const stream = new WriteBufferStream(8, this._bodyLittleEndian);
+            const stream = new WriteBufferStream({
+                defaultSize: 8,
+                littleEndian: this._bodyLittleEndian
+            });
             this._writeRawTag(stream, 0xfffe, 0xe0dd, 0);
             this._emitStream(stream);
             this._encapsulated = false;
@@ -290,25 +302,37 @@ export class StreamingPart10Writer extends EventStreamListener {
         }
         // Undefined length streams without backpatching; items and the
         // delimiters below close it out (PS3.5 §7.5).
-        const stream = new WriteBufferStream(16, this._bodyLittleEndian);
+        const stream = new WriteBufferStream({
+            defaultSize: 16,
+            littleEndian: this._bodyLittleEndian
+        });
         this._writeLongHeader(stream, tag, info.vr || "SQ", UNDEFINED_LENGTH);
         this._emitStream(stream);
     }
 
     _baseStartItem() {
-        const stream = new WriteBufferStream(8, this._bodyLittleEndian);
+        const stream = new WriteBufferStream({
+            defaultSize: 8,
+            littleEndian: this._bodyLittleEndian
+        });
         this._writeRawTag(stream, 0xfffe, 0xe000, UNDEFINED_LENGTH);
         this._emitStream(stream);
     }
 
     _baseEndItem() {
-        const stream = new WriteBufferStream(8, this._bodyLittleEndian);
+        const stream = new WriteBufferStream({
+            defaultSize: 8,
+            littleEndian: this._bodyLittleEndian
+        });
         this._writeRawTag(stream, 0xfffe, 0xe00d, 0);
         this._emitStream(stream);
     }
 
     _baseEndSequence() {
-        const stream = new WriteBufferStream(8, this._bodyLittleEndian);
+        const stream = new WriteBufferStream({
+            defaultSize: 8,
+            littleEndian: this._bodyLittleEndian
+        });
         this._writeRawTag(stream, 0xfffe, 0xe0dd, 0);
         this._emitStream(stream);
     }

@@ -110,11 +110,11 @@ export function writePart10(
     writeOptions = { allowInvalidVRLength: false }
 ) {
     var metaSyntax = EXPLICIT_LITTLE_ENDIAN;
-    var fileStream = new WriteBufferStream(4096, true);
+    var fileStream = new WriteBufferStream({ defaultSize: 4096 });
     fileStream.writeUint8Repeat(0, 128);
     fileStream.writeAsciiString("DICM");
 
-    var metaStream = new WriteBufferStream(1024);
+    var metaStream = new WriteBufferStream({ defaultSize: 1024 });
     if (!meta[TagHex.TransferSyntaxUID]) {
         meta[TagHex.TransferSyntaxUID] = {
             vr: "UI",
@@ -155,7 +155,7 @@ export function writePart10(
  * @param {Object} writeOptions
  */
 function writeDeflatedDataSet(dict, fileStream, writeOptions) {
-    const bodyStream = new WriteBufferStream(4096, true);
+    const bodyStream = new WriteBufferStream({ defaultSize: 4096 });
     writeDataSet(dict, bodyStream, EXPLICIT_LITTLE_ENDIAN, writeOptions);
     fileStream.writeRawBytes(
         pako.deflateRaw(new Uint8Array(bodyStream.getBuffer()))

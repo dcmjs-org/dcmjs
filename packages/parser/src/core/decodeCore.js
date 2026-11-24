@@ -189,18 +189,15 @@ export function retainRaw(policy, vr, producedValue) {
  */
 export function buildElementStream(window, el, policy) {
     const start = window.baseOffset + el.dataOffset;
-    const stream = new ReadBufferStream(
-        window.arrayBuffer,
-        window.littleEndian,
-        {
-            start,
-            stop: start + effectiveElementLength(window, el, true),
-            // eager's body stream carries noCopy (getBuffer then returns
-            // Uint8Array instead of ArrayBuffer); its meta stream comes from
-            // stream.more(), which drops it
-            noCopy: policy.noCopy
-        }
-    );
+    const stream = new ReadBufferStream(window.arrayBuffer, {
+        littleEndian: window.littleEndian,
+        start,
+        stop: start + effectiveElementLength(window, el, true),
+        // eager's body stream carries noCopy (getBuffer then returns
+        // Uint8Array instead of ArrayBuffer); its meta stream comes from
+        // stream.more(), which drops it
+        noCopy: policy.noCopy
+    });
     if (window.decoder) {
         stream.setDecoder(window.decoder);
     }
@@ -266,15 +263,12 @@ export function decodeElementValues(window, el, vrInstance, policy) {
  * Returns { values, rawValues } in the same shape as decodeElementValues.
  */
 export function decodeUndefinedLengthValues(window, el, vrInstance, policy) {
-    const stream = new ReadBufferStream(
-        window.arrayBuffer,
-        window.littleEndian,
-        {
-            start: window.baseOffset + el.dataOffset,
-            stop: window.baseOffset + el.endOffset,
-            noCopy: policy.noCopy
-        }
-    );
+    const stream = new ReadBufferStream(window.arrayBuffer, {
+        littleEndian: window.littleEndian,
+        start: window.baseOffset + el.dataOffset,
+        stop: window.baseOffset + el.endOffset,
+        noCopy: policy.noCopy
+    });
     if (window.decoder) {
         stream.setDecoder(window.decoder);
     }

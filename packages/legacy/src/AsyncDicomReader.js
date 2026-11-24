@@ -35,9 +35,10 @@ export class AsyncDicomReader {
         this.isLittleEndian = options?.isLittleEndian;
         // Default maxFragmentSize is 128 MB (128 * 1024 * 1024 bytes)
         this.maxFragmentSize = options?.maxFragmentSize ?? 128 * 1024 * 1024;
-        this.stream = new ReadBufferStream(null, this.isLittleEndian, {
+        this.stream = new ReadBufferStream(null, {
             clearBuffers: true,
-            ...options
+            ...options,
+            littleEndian: this.isLittleEndian
         });
     }
 

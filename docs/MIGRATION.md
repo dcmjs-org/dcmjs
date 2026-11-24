@@ -393,6 +393,31 @@ any case, or a number from `0` to `5`) applies, and any other value gives
 `warn`. The UMD builds use the level
 fixed at build time.
 
+## Byte stream constructors take an options object
+
+`ReadBufferStream` and `WriteBufferStream` take one options object, and
+little endian is the default byte order (DICOM retired big endian):
+
+```js
+// 0.x
+new ReadBufferStream(buffer, true, { start, stop, noCopy, clearBuffers });
+new WriteBufferStream(4096, true);
+// 1.0
+new ReadBufferStream(buffer, { start, stop, noCopy, clearBuffers });
+new WriteBufferStream({ defaultSize: 4096 });
+new WriteBufferStream({ littleEndian: false }); // big endian
+```
+
+The 0.x positional form still works, keeps all of its arguments, and logs
+one warning for each class. An explicit `false` still gives big endian.
+Two calls changed their byte order: `new ReadBufferStream(buffer)` and a
+positional call with `null` or no byte order, for example
+`new WriteBufferStream(1024)`, were big endian in 0.x and are little
+endian now. The dcmjs readers and writers set the byte order of each
+element themselves, so their output does not change.
+[specs/registries.md](specs/registries.md) (REG-U-16, REG-U-17) gives the
+rules.
+
 ## What needs no migration, in one list
 
 -   `DicomMessage.readFile`: same call, same eager decode, same error
