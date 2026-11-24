@@ -56,23 +56,40 @@ _Parts of DICOM that dcmjs *will not* focus on:_
 
 ## In Node
 
-```None
-// To install latest _stable_ release
-npm install --save dcmjs
+Add **dcmjs** to your application (pnpm):
 
-// To install latest code merged to master
-npm install --save dcmjs@dev
+```bash
+pnpm add dcmjs       # latest stable release
+pnpm add dcmjs@dev   # latest code merged to master
 ```
+
+The same versions can be installed with `npm install` or Yarn in **your** project; those clients are fine for consuming the published package. **Building this repository** is pnpm-only (see below).
 
 ## For Developers
 
-```None
+Building and testing this repository requires **[pnpm](https://pnpm.io/)** and **Node.js 22.13 or newer** (pnpm 11 and this repo’s tooling expect that baseline; Rollup’s dependency chain expects a modern `crypto` global). CI runs tests on Node 22 and 24, and runs the production Rollup build on Node 24. The pnpm version is pinned under `packageManager` in `package.json`. Enable [Corepack](https://nodejs.org/api/corepack.html) (`corepack enable`) and use pnpm for every install and script:
+
+```bash
+corepack enable
 git clone https://github.com/dcmjs-org/dcmjs
 cd dcmjs
-npm install
-npm run build
-npm test
+pnpm install
+pnpm run build
+pnpm test
 ```
+
+Other common tasks:
+
+```bash
+pnpm run build:examples   # Rollup build + copy bundles into examples/js
+pnpm run lint             # ESLint (writes fixes)
+pnpm run format           # Prettier (writes)
+pnpm run format:check     # Prettier (check only)
+```
+
+**Yarn is no longer supported** for working in this repo: there is no `yarn.lock`, and installs, builds, and CI are aligned with `pnpm-lock.yaml` only. Use pnpm so dependency resolution matches lockfile and automation.
+
+After changing dependencies in `package.json`, refresh the lockfile with `pnpm run install:update-lockfile` (or `pnpm install --no-frozen-lockfile`) before opening a PR.
 
 ## For Maintainers and Contributors
 
@@ -94,8 +111,9 @@ It is advised to use the git-cz, i.e.:
 
 - install git-cz
 
-```
-npm install -g git-cz
+```bash
+pnpm add -g git-cz
+# or: npm install -g git-cz
 ```
 
 - how to commit
@@ -122,13 +140,13 @@ When DICOM standards are updated or new tags need to be added:
 
 1. **Generate the dictionary from DICOM standards** (downloads latest PS3.6 and PS3.7 XML from dicom.nema.org):
    ```bash
-   npm run generate-dictionary
+   pnpm run generate-dictionary
    ```
    This creates/updates `generate/dictionary.js` with the latest tag definitions.
 
 2. **Pack the dictionary into optimized format**:
    ```bash
-   npm run pack-dictionary
+   pnpm run pack-dictionary
    ```
    This generates the optimized `src/dictionary.fast.js` used at runtime.
 
@@ -168,7 +186,7 @@ Tests are written using the [Jest](https://jestjs.io) testing framework and live
 
 Pull requests should either update existing tests or add new tests in order to ensure good test coverage of the changes being made.
 
-To run all tests use `npm run test`. To only run specific tests use Jest's [`.only`](https://www.testim.io/blog/unit-testing-best-practices/) feature. If you're using VS Code, an extension such as [`firsttris.vscode-jest-runner`](https://marketplace.visualstudio.com/items?itemName=firsttris.vscode-jest-runner) can be used to step through specific tests in the debugger.
+To run all tests use `pnpm test`. To only run specific tests use Jest's [`.only`](https://www.testim.io/blog/unit-testing-best-practices/) feature. If you're using VS Code, an extension such as [`firsttris.vscode-jest-runner`](https://marketplace.visualstudio.com/items?itemName=firsttris.vscode-jest-runner) can be used to step through specific tests in the debugger.
 
 Read all about unit testing best practices [here](https://www.testim.io/blog/unit-testing-best-practices/).
 

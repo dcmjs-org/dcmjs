@@ -66,8 +66,20 @@ function toWindows(inputArray, size) {
 let DicomMessage, Tag, DicomMetaDictionary;
 
 var binaryVRs = ["FL", "FD", "SL", "SS", "UL", "US", "AT", "UV"],
-    length32VRs = ["OB", "OW", "OF", "SQ", "UC", "UR", "UT", "UN", "OD", "UV"],
-    singleVRs = ["SQ", "OF", "OW", "OB", "UN"];
+    length32VRs = [
+        "OB",
+        "OW",
+        "OF",
+        "OL",
+        "SQ",
+        "UC",
+        "UR",
+        "UT",
+        "UN",
+        "OD",
+        "UV"
+    ],
+    singleVRs = ["SQ", "OF", "OL", "OW", "OB", "UN"];
 
 class ValueRepresentation {
     constructor(type) {
@@ -629,6 +641,17 @@ class BinaryRepresentation extends ValueRepresentation {
             } else if (this.type == 'OB') {
                 bytes = stream.readUint8Array(length);
             }*/
+            // A declared value length longer than the data present means a
+            // truncated or malformed file, so read what is there rather than
+            // allocating the declared length, which the file controls.
+            // https://github.com/dcmjs-org/dcmjs/security/advisories/GHSA-xwvm-687g-rm36
+            const available = stream.endOffset - stream.offset;
+            if (length > available) {
+                validationLog.warn(
+                    `${this.type} value declares ${length} bytes but only ${available} are available - reading the available bytes`
+                );
+                length = available;
+            }
             bytes = stream.getBuffer(stream.offset, stream.offset + length);
             stream.increment(length);
             return [bytes];
@@ -741,6 +764,12 @@ class NumericStringRepresentation extends AsciiStringRepresentation {
     }
 }
 
+// DS/IS parsing hardening — https://github.com/dcmjs-org/dcmjs/security/advisories/GHSA-px68-xx5g-48q5
+function finiteParsedNumberOrNull(parsed) {
+    const n = Number(parsed);
+    return Number.isFinite(n) ? n : null;
+}
+
 class DecimalString extends NumericStringRepresentation {
     constructor() {
         super("DS");
@@ -750,8 +779,14 @@ class DecimalString extends NumericStringRepresentation {
 
     applyFormatting(value) {
         const formatNumber = numberStr => {
-            let returnVal = numberStr.trim().replace(/[^0-9.\\\-+e]/gi, "");
-            return returnVal === "" ? null : Number(returnVal);
+            if (numberStr === null || numberStr === undefined) {
+                return null;
+            }
+            const returnVal = String(numberStr)
+                .trim()
+                .replace(/[^0-9.\\\-+e]/gi, "");
+            if (returnVal === "") return null;
+            return finiteParsedNumberOrNull(returnVal);
         };
 
         if (Array.isArray(value)) {
@@ -889,8 +924,16 @@ class IntegerString extends NumericStringRepresentation {
 
     applyFormatting(value) {
         const formatNumber = numberStr => {
-            let returnVal = numberStr.trim().replace(/[^0-9.\\\-+e]/gi, "");
-            return returnVal === "" ? null : Number(returnVal);
+            if (numberStr === null || numberStr === undefined) {
+                return null;
+            }
+            const trimmed = String(numberStr).trim();
+            if (trimmed === "") return null;
+            // PS3.5: base-10 integer only (no decimal point, no exponent).
+            if (!/^[+-]?\d+$/.test(trimmed)) {
+                return null;
+            }
+            return finiteParsedNumberOrNull(trimmed);
         };
 
         if (Array.isArray(value)) {
@@ -1519,6 +1562,19 @@ class OtherFloatString extends BinaryRepresentation {
     }
 }
 
+// A stream of 32 bit words. Used by the large mesh attributes of Surface
+// Segmentation - Long Triangle Point Index List (0066,0041) and its Edge and
+// Vertex counterparts - where the 16 bit indices of the OW forms cap a surface
+// at 65535 points.
+class OtherLongString extends BinaryRepresentation {
+    constructor() {
+        super("OL");
+        this.maxLength = null;
+        this.padByte = PADDING_NULL;
+        this.noMultiple = true;
+    }
+}
+
 // these VR instances are precreate and are reused for each requested vr/tag
 let VRinstances = {
     AE: new ApplicationEntity(),
@@ -1536,6 +1592,7 @@ let VRinstances = {
     OB: new OtherByteString(),
     OD: new OtherDoubleString(),
     OF: new OtherFloatString(),
+    OL: new OtherLongString(),
     OW: new OtherWordString(),
     PN: new PersonName(),
     SH: new ShortString(),
