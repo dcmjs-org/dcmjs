@@ -202,9 +202,6 @@ importers:
       '@dcmjs-org/video':
         specifier: workspace:*
         version: link:packages/video
-      adm-zip:
-        specifier: '>=0.6.1'
-        version: 0.6.1
       gl-matrix:
         specifier: 3.4.4
         version: 3.4.4
@@ -275,6 +272,9 @@ importers:
       acorn-jsx:
         specifier: 5.3.2
         version: 5.3.2(acorn@7.4.1)
+      adm-zip:
+        specifier: '>=0.6.1'
+        version: 0.6.1
       ajv:
         specifier: 8.20.0
         version: 8.20.0
@@ -317,6 +317,8 @@ importers:
       xml2js:
         specifier: 0.6.2
         version: 0.6.2
+
+  packages/codemods: {}
 
   packages/core:
     dependencies:
