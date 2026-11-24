@@ -1,0 +1,54 @@
+{
+  "dcmjs-1-manual": [
+    {
+      "cardinality": {
+        "file": "input.js",
+        "line": "6",
+        "rule": "nameMap write: 1.0 denaturalizes registerTag() keywords, remove the write"
+      },
+      "count": 1
+    },
+    {
+      "cardinality": {
+        "file": "input.js",
+        "line": "7",
+        "rule": "00290010: the alias of a private creator is read-only, change the block key"
+      },
+      "count": 1
+    }
+  ],
+  "dcmjs-1-review": [
+    {
+      "cardinality": {
+        "file": "input.js",
+        "line": "10",
+        "rule": "Object.keys(_vrMap): _vrMap has hex-tag keys and an object for each private block"
+      },
+      "count": 1
+    },
+    {
+      "cardinality": {
+        "file": "input.js",
+        "line": "11",
+        "rule": "for...in _vrMap: _vrMap has hex-tag keys and an object for each private block"
+      },
+      "count": 1
+    },
+    {
+      "cardinality": {
+        "file": "input.js",
+        "line": "12",
+        "rule": "denaturalizeDataset: private elements are kept, remove them where the output must not hold them"
+      },
+      "count": 1
+    },
+    {
+      "cardinality": {
+        "file": "input.js",
+        "line": "9",
+        "rule": "a hex-tag pattern: private block elements are under the block key, their hex keys are not enumerable"
+      },
+      "count": 1
+    }
+  ]
+}

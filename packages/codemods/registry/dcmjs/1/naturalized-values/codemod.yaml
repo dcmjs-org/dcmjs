@@ -1,0 +1,20 @@
+schema_version: '1.0'
+name: '@dcmjs-org/dcmjs-1-naturalized-values'
+version: '0.1.0'
+description: 'Rewrite and report the code that depends on the 0.x shapes of naturalized dcmjs values.'
+author: 'dcmjs contributors'
+license: 'MIT'
+workflow: 'workflow.yaml'
+repository: 'https://github.com/dcmjs-org/dcmjs'
+category: 'migration'
+targets:
+  languages: ['typescript', 'tsx', 'javascript', 'jsx']
+keywords:
+  - dcmjs
+  - migration
+  - upgrade
+  - v1
+  - naturalized-values
+registry:
+  access: 'public'
+  visibility: 'public'

@@ -1,5 +1,7 @@
 import { types } from "util";
 import { DicomMetaDictionary, addAccessors } from "@dcmjs-org/core";
+import { NaturalizedListener } from "../../src/eventStream/NaturalizedListener";
+import { fromDataSet } from "../../src/eventStream/fromDataSet";
 
 const dict = {
     "00100010": { vr: "PN", Value: [{ Alphabetic: "Doe^Jane" }] },
@@ -35,6 +37,25 @@ describe("core naturalizeDataset (1.0 rules)", () => {
             _vrMap: {},
             ReferencedSOPClassUID: "1.2.3"
         });
+    });
+
+    test("a single PN value is array-like, as a single-item sequence", async () => {
+        const listener = new NaturalizedListener();
+        await fromDataSet({ meta: {}, dict }, listener);
+        const assigned = DicomMetaDictionary.naturalizeDataset(dict);
+        assigned.PatientName = "Roe^Rick";
+        for (const pn of [
+            DicomMetaDictionary.naturalizeDataset(dict).PatientName,
+            listener.result.PatientName,
+            assigned.PatientName
+        ]) {
+            expect(pn[0]).toBe(pn);
+            expect(pn.length).toBe(1);
+            expect([...pn]).toEqual([pn]);
+            expect(Array.isArray(pn)).toBe(false);
+            expect(Object.keys(pn)).toEqual(["Alphabetic"]);
+        }
+        expect(String(assigned.PatientName)).toBe("Roe^Rick");
     });
 
     test("the naturalized dataset denaturalizes to the source dict", () => {

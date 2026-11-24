@@ -1,0 +1,20 @@
+schema_version: '1.0'
+name: '@dcmjs-org/dcmjs-1-event-stream'
+version: '0.1.0'
+description: 'Replace DicomMessage.readFile with naturalizeDataset, and DicomDict.write with denaturalizeDataset, by the dcmjs 1.0 event stream.'
+author: 'dcmjs contributors'
+license: 'MIT'
+workflow: 'workflow.yaml'
+repository: 'https://github.com/dcmjs-org/dcmjs'
+category: 'migration'
+targets:
+  languages: ['typescript', 'tsx', 'javascript', 'jsx']
+keywords:
+  - dcmjs
+  - migration
+  - upgrade
+  - v1
+  - event-stream
+registry:
+  access: 'public'
+  visibility: 'public'

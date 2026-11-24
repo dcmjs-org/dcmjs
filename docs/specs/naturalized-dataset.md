@@ -123,6 +123,10 @@ A private value is a list (NAT-U-VAL-4). An assigned PN string converts:
   `"A^B\C^D"`), component object or list is stored in the component form,
   as one object for a VM of 1 and as a list otherwise. An assigned
   `undefined` stays `undefined`, so denaturalize omits the attribute.
+  - A single component object is array-like, by the rule of a single-item
+    sequence (NAT-U-SQ-1): `pn[0] === pn`, `pn.length` is 1, and `for...of`
+    gives it once. `Array.isArray(pn)` is false. So the 0.x form
+    `ds.PatientName[0].Alphabetic` keeps working.
   - The setter copies an assigned object, gives `null` (VM 1) or `[]` for
     `""`, and drops an empty name between two `\` delimiters.
   - A private PN element with no creator has the setter too. A PN element in

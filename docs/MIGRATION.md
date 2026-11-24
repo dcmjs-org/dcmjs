@@ -14,8 +14,15 @@ changed on purpose to follow the DICOM standard (see
 [BREAKING_CHANGES.md](BREAKING_CHANGES.md)), and naturalization changed in
 the six ways described below.
 
+The codemods in [packages/codemods](../packages/codemods/README.md) do the
+mechanical part of the upgrade, and report each site that needs a person:
+
+```sh
+npx codemod @dcmjs-org/dcmjs-1 --dry-run
+```
+
 ```js
-// during the beta the package is @dcmjs-org/dcmjs; later it is "dcmjs"
+// the beta and the release both use the package name @dcmjs-org/dcmjs
 import dcmjs from "@dcmjs-org/dcmjs";
 const { DicomMessage, DicomDict, DicomMetaDictionary } = dcmjs.data;
 ```
@@ -178,7 +185,11 @@ Six things changed relative to 0.x:
    work on it, and `JSON.stringify` gives the item object. The tag Proxy is
    also gone: the readers and naturalize add the PN value accessors when
    they store a value, and a PN value that you assign is converted at once
-   by the PN setter (change 6). `ValueRepresentation.addTagAccessors`
+   by the PN setter (change 6). A single PN value follows the same rule as
+   a single-item sequence: it is the component object, with a hidden `[0]`
+   (the object), a `length` of 1 and an iterator, so both
+   `ds.PatientName.Alphabetic` and `ds.PatientName[0].Alphabetic` work, and
+   `Array.isArray(ds.PatientName)` is false. `ValueRepresentation.addTagAccessors`
    remains on the dcmjs surface as a no-op. Pinned by
    `test/issues/issue218-single-item-sq.test.js` and
    `test/core/naturalizeDataset.test.js`.
@@ -189,105 +200,105 @@ Six things changed relative to 0.x:
    `` `${gggg}:${creator}` ``, and the element number within the block
    is the key `xEE`:
 
-   ```js
-   dataset["0029:ACME"]; // { creator: "ACME", reservedBlock: 0x10, x01: ["a"] }
-   dataset._vrMap["0029:ACME"]; // { x01: "LO" }
-   ```
+    ```js
+    dataset["0029:ACME"]; // { creator: "ACME", reservedBlock: 0x10, x01: ["a"] }
+    dataset._vrMap["0029:ACME"]; // { x01: "LO" }
+    ```
 
-   - The 8-digit hex tags (`dataset["00290010"]`, `dataset["00291001"]`)
-     remain as non-enumerable aliases. A read works as before, and a write
-     to an element alias goes to the block. The creator alias is read-only:
-     a write to it throws `TypeError` in strict-mode code. A `delete` of an
-     element alias still removes the element from the written output, and a
-     `delete` of the creator alias removes the whole block, so code that
-     removes private tags by hex key keeps working, through
-     `denaturalizeDataset` and through `fromNaturalized`. A delete always
-     wins, also over a later write into the block; set a value on the
-     deleted hex name to add the element again. `deepCloneInstance`
-     keeps the aliases and the deletes. Another copy of the dataset (an
-     object spread, JSON) does not keep such a delete, so delete in the
-     block (`delete dataset["0029:ACME"].x01`) when you copy the dataset
-     that way.
-     `Object.keys` and `JSON.stringify` no longer show the hex keys.
-   - A source that gives one creator two blocks in a group (PS3.5 7.8.1
-     does not permit this) gets one merged block and a warning.
-   - A line break in a creator is the text `\n` (or `\r`) in the block key:
-     the creator `"AC\nME"` gives the key `"0029:AC\\nME"`. The `creator`
-     value keeps the line break.
-   - At the dict level, `DicomDict#privateBlock()` and `findPrivateBlock()`
-     use the same block key and element keys, and choose the block number
-     for you. This replaces a hand-written creator element and a fixed
-     block number:
+    - The 8-digit hex tags (`dataset["00290010"]`, `dataset["00291001"]`)
+      remain as non-enumerable aliases. A read works as before, and a write
+      to an element alias goes to the block. The creator alias is read-only:
+      a write to it throws `TypeError` in strict-mode code. A `delete` of an
+      element alias still removes the element from the written output, and a
+      `delete` of the creator alias removes the whole block, so code that
+      removes private tags by hex key keeps working, through
+      `denaturalizeDataset` and through `fromNaturalized`. A delete always
+      wins, also over a later write into the block; set a value on the
+      deleted hex name to add the element again. `deepCloneInstance`
+      keeps the aliases and the deletes. Another copy of the dataset (an
+      object spread, JSON) does not keep such a delete, so delete in the
+      block (`delete dataset["0029:ACME"].x01`) when you copy the dataset
+      that way.
+      `Object.keys` and `JSON.stringify` no longer show the hex keys.
+    - A source that gives one creator two blocks in a group (PS3.5 7.8.1
+      does not permit this) gets one merged block and a warning.
+    - A line break in a creator is the text `\n` (or `\r`) in the block key:
+      the creator `"AC\nME"` gives the key `"0029:AC\\nME"`. The `creator`
+      value keeps the line break.
+    - At the dict level, `DicomDict#privateBlock()` and `findPrivateBlock()`
+      use the same block key and element keys, and choose the block number
+      for you. This replaces a hand-written creator element and a fixed
+      block number:
 
-     ```js
-     // before
-     dicomDict.upsertTag("4D430010", "LO", ["ACME 1.0"]);
-     dicomDict.upsertTag("4D431001", "CS", ["HYBRID"]);
-     // now
-     dicomDict.privateBlock("4D43:ACME 1.0").set("x01", "CS", ["HYBRID"]);
-     dcmjs.data.findPrivateBlock(dict, "4D43:ACME 1.0")?.get("x01").Value;
-     ```
-   - A `registerTag()` keyword for a private tag is a non-enumerable alias
-     on the dataset and in the block. A private dictionary keyword (for
-     example `CSAImageHeaderInfo`) is an alias in the block only.
-   - A private element without a creator keeps its hex tag as the key.
-   - A private or unknown element (no dictionary VM) is a list, also for
-     one value, as for VM > 1: `dataset["00311001"]` is `["a"]`, not `"a"`.
-     A private or unknown sequence with one item is the array-like item
-     object, as for a standard sequence.
-   - `denaturalizeDataset` accepts the block form and the hex-tag form. It
-     keeps `reservedBlock` when that block is free in the group, and moves
-     the block to the first free xx when it is not.
-   - `NaturalizedListener` (`toNaturalized()`) gives the same object as
-     `naturalizeDataset`, `_vrMap` included. Its earlier draft keys
-     (`"10:ACME"`, `originalTagOffset`) are gone. Its binary values are a
-     list of `ArrayBuffer`, as `naturalizeDataset` gives, in place of the
-     earlier `{ InlineBinary }` wrapper.
-   - A binary element with no value is `null` in both naturalizers, and a
-     binary element with values is always a list, also of one value.
-   - Both naturalizers take `{ binaryAs: "Uint8Array" }` to give each
-     binary fragment as a `Uint8Array` view with no copy. The default stays
-     `ArrayBuffer`. In the default mode, `toNaturalized()` copies a fragment
-     that is a view into a larger buffer (for example pixel data read from
-     Part 10 bytes) to its own `ArrayBuffer`. Before, it kept the view. Use
-     `Uint8Array` to avoid the copy for large pixel data.
-   - `DicomEventStream.fromNaturalized()` streams a naturalized dataset to
-     any sink, for example `Part10Writer`.
-   - A PN attribute converts an assigned string at once:
-     `dataset.PatientName = "Doe^John"` stores
-     `{ Alphabetic: "Doe^John" }`, and `String(dataset.PatientName)` gives
-     `"Doe^John"`. Code that compared the attribute with a string after
-     the assignment must compare `String(dataset.PatientName)`. The
-     setter copies an assigned object, gives `null` (VM 1) or `[]` for
-     `""`, and drops an
-     empty name between two `\` delimiters. A copy of the dataset (a
-     spread, `deepCloneInstance`) has plain values and no setter, and
-     `Object.freeze` does not stop a write through the setter.
-   - A present element with no `Value`, as DICOMweb JSON gives for an
-     empty element, is `[]` for a list VM (for example `ImageType`) and
-     `null` for a scalar VM, the same as an empty `Value`. Before, it was
-     always `null` from `naturalizeDataset`.
-   - A `null` entry in a value list (an empty value in DICOM JSON, or an
-     empty DS read as `Value: [null]`) now denaturalizes, and every writer
-     writes it as an empty value: empty text for a string VR (before, LO,
-     SH, ST, LT, UC and UT wrote the text `null`), an empty name in its
-     position for PN, and `0` with a warning for a binary number VR (US,
-     SS, UL, SL, FL, FD, UV, AT), which has no empty value. Before,
-     `denaturalizeDataset` threw on it. An element with no value (`null`,
-     not in a list) is written with zero length, with no warning.
-   - `@dcmjs-org/core` and `dcmjs.data` export `setAttribute`,
-     `setPersonName` and `setVr` to add or replace an attribute in the
-     naturalized form, and `definePrivateAliases`.
-   - `@dcmjs-org/core` and `dcmjs.data` export
-     `frameDataset(dataset, frameNumber, options)`, the view of one frame
-     of an enhanced multi-frame dataset: per-frame functional groups, then
-     shared functional groups, then the root (NAT-U-FRAME). It replaces a
-     local `combineFrameInstance` merge. [frameDataset.md](frameDataset.md)
-     is the usage guide.
+      ```js
+      // before
+      dicomDict.upsertTag("4D430010", "LO", ["ACME 1.0"]);
+      dicomDict.upsertTag("4D431001", "CS", ["HYBRID"]);
+      // now
+      dicomDict.privateBlock("4D43:ACME 1.0").set("x01", "CS", ["HYBRID"]);
+      dcmjs.data.findPrivateBlock(dict, "4D43:ACME 1.0")?.get("x01").Value;
+      ```
+    - A `registerTag()` keyword for a private tag is a non-enumerable alias
+      on the dataset and in the block. A private dictionary keyword (for
+      example `CSAImageHeaderInfo`) is an alias in the block only.
+    - A private element without a creator keeps its hex tag as the key.
+    - A private or unknown element (no dictionary VM) is a list, also for
+      one value, as for VM > 1: `dataset["00311001"]` is `["a"]`, not `"a"`.
+      A private or unknown sequence with one item is the array-like item
+      object, as for a standard sequence.
+    - `denaturalizeDataset` accepts the block form and the hex-tag form. It
+      keeps `reservedBlock` when that block is free in the group, and moves
+      the block to the first free xx when it is not.
+    - `NaturalizedListener` (`toNaturalized()`) gives the same object as
+      `naturalizeDataset`, `_vrMap` included. Its earlier draft keys
+      (`"10:ACME"`, `originalTagOffset`) are gone. Its binary values are a
+      list of `ArrayBuffer`, as `naturalizeDataset` gives, in place of the
+      earlier `{ InlineBinary }` wrapper.
+    - A binary element with no value is `null` in both naturalizers, and a
+      binary element with values is always a list, also of one value.
+    - Both naturalizers take `{ binaryAs: "Uint8Array" }` to give each
+      binary fragment as a `Uint8Array` view with no copy. The default stays
+      `ArrayBuffer`. In the default mode, `toNaturalized()` copies a fragment
+      that is a view into a larger buffer (for example pixel data read from
+      Part 10 bytes) to its own `ArrayBuffer`. Before, it kept the view. Use
+      `Uint8Array` to avoid the copy for large pixel data.
+    - `DicomEventStream.fromNaturalized()` streams a naturalized dataset to
+      any sink, for example `Part10Writer`.
+    - A PN attribute converts an assigned string at once:
+      `dataset.PatientName = "Doe^John"` stores
+      `{ Alphabetic: "Doe^John" }`, and `String(dataset.PatientName)` gives
+      `"Doe^John"`. Code that compared the attribute with a string after
+      the assignment must compare `String(dataset.PatientName)`. The
+      setter copies an assigned object, gives `null` (VM 1) or `[]` for
+      `""`, and drops an
+      empty name between two `\` delimiters. A copy of the dataset (a
+      spread, `deepCloneInstance`) has plain values and no setter, and
+      `Object.freeze` does not stop a write through the setter.
+    - A present element with no `Value`, as DICOMweb JSON gives for an
+      empty element, is `[]` for a list VM (for example `ImageType`) and
+      `null` for a scalar VM, the same as an empty `Value`. Before, it was
+      always `null` from `naturalizeDataset`.
+    - A `null` entry in a value list (an empty value in DICOM JSON, or an
+      empty DS read as `Value: [null]`) now denaturalizes, and every writer
+      writes it as an empty value: empty text for a string VR (before, LO,
+      SH, ST, LT, UC and UT wrote the text `null`), an empty name in its
+      position for PN, and `0` with a warning for a binary number VR (US,
+      SS, UL, SL, FL, FD, UV, AT), which has no empty value. Before,
+      `denaturalizeDataset` threw on it. An element with no value (`null`,
+      not in a list) is written with zero length, with no warning.
+    - `@dcmjs-org/core` and `dcmjs.data` export `setAttribute`,
+      `setPersonName` and `setVr` to add or replace an attribute in the
+      naturalized form, and `definePrivateAliases`.
+    - `@dcmjs-org/core` and `dcmjs.data` export
+      `frameDataset(dataset, frameNumber, options)`, the view of one frame
+      of an enhanced multi-frame dataset: per-frame functional groups, then
+      shared functional groups, then the root (NAT-U-FRAME). It replaces a
+      local `combineFrameInstance` merge. [frameDataset.md](frameDataset.md)
+      is the usage guide.
 
-   [specs/naturalized-dataset.md](specs/naturalized-dataset.md) gives the
-   full rules. Pinned by `test/core/privateBlocks.test.js` and
-   `test/issues/issue388-private-tags.test.js`.
+    [specs/naturalized-dataset.md](specs/naturalized-dataset.md) gives the
+    full rules. Pinned by `test/core/privateBlocks.test.js` and
+    `test/issues/issue388-private-tags.test.js`.
 
 ## Behavior changes made for standard compliance
 
@@ -356,8 +367,8 @@ earlier beta had `fromFhir()` and `toFhir()`). Give the result of
 The `dcmjs` package surface is the wrapper `@dcmjs-org/dcmjs`. It
 reproduces the 0.x surface, so a project can try 1.0 by changing only the
 import name. During the beta it publishes on the `beta` tag
-(`npm install @dcmjs-org/dcmjs@beta`); the unscoped `dcmjs` name starts
-publishing when the maintainers decide it is ready.
+(`npm install @dcmjs-org/dcmjs@beta`). The 1.0 release keeps the name
+`@dcmjs-org/dcmjs`; the unscoped `dcmjs` name stays on 0.x.
 
 The new engines are subpath entries, and they are ES modules only:
 `@dcmjs-org/dcmjs/eventStream`, `/media`, `/encapsulated` and `/image`.
