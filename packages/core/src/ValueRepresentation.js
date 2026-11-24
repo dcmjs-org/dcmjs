@@ -3,8 +3,10 @@ import {
     PADDING_NULL,
     PADDING_SPACE,
     PN_COMPONENT_DELIMITER,
+    VALID_VRS,
     VM_DELIMITER
 } from "./constants/dicom.js";
+import { setVrFlags, vrFlags } from "./constants/vrs.js";
 import { log, validationLog } from "./log.js";
 import dicomJson from "./utilities/dicomJson.js";
 
@@ -33,9 +35,12 @@ function toWindows(inputArray, size) {
 // eslint-disable-next-line no-unused-vars
 let Tag, DicomMetaDictionary, writeDataSet;
 
-var binaryVRs = ["FL", "FD", "SL", "SS", "UL", "US", "AT", "UV"],
-    length32VRs = ["OB", "OW", "OF", "SQ", "UC", "UR", "UT", "UN", "OD", "UV"],
-    singleVRs = ["SQ", "OF", "OW", "OB", "UN"];
+/** Copies the VR flags (constants/vrs.js) to the instance properties. */
+function applyVrFlags(vr, flags = {}) {
+    vr._isBinary = !!flags.binary;
+    vr._allowMultiple = !flags.binary && !flags.single;
+    vr._isLength32 = !!flags.length32;
+}
 
 // Unknown VR types already warned about by createByTypeString — the UN
 // fallback warns at most once per type (issue #457).
@@ -45,10 +50,7 @@ class ValueRepresentation {
     constructor(type) {
         this.type = type;
         this.multi = false;
-        this._isBinary = binaryVRs.indexOf(this.type) != -1;
-        this._allowMultiple =
-            !this._isBinary && singleVRs.indexOf(this.type) == -1;
-        this._isLength32 = length32VRs.indexOf(this.type) != -1;
+        applyVrFlags(this, vrFlags[type]);
         this._storeRaw = true;
     }
 
@@ -338,9 +340,9 @@ class ValueRepresentation {
     }
 
     static hasValueAccessors(type) {
-        if (type in VRinstances) {
+        if (Object.prototype.hasOwnProperty.call(Vrs, type)) {
             return (
-                VRinstances[type].addValueAccessors !==
+                Vrs[type].addValueAccessors !==
                 ValueRepresentation.prototype.addValueAccessors
             );
         }
@@ -349,16 +351,18 @@ class ValueRepresentation {
     }
 
     static createByTypeString(type) {
-        var vr = VRinstances[type];
+        var vr = Object.prototype.hasOwnProperty.call(Vrs, type)
+            ? Vrs[type]
+            : undefined;
         if (vr === undefined) {
             if (type == "ox") {
                 // TODO: determine VR based on context (could be 1 byte pixel data)
                 // https://github.com/dgobbi/vtk-dicom/issues/38
                 validationLog.debug("Invalid vr type", type, "- using OW");
-                vr = VRinstances["OW"];
+                vr = Vrs.OW;
             } else if (type == "xs") {
                 validationLog.debug("Invalid vr type", type, "- using US");
-                vr = VRinstances["US"];
+                vr = Vrs.US;
             } else {
                 // Warn at most once per unknown type (issue #457): files can
                 // carry many elements of the same unregistered VR (OL/OV/SV),
@@ -367,7 +371,7 @@ class ValueRepresentation {
                     unknownVrTypesWarned.add(type);
                     validationLog.warn("Invalid vr type", type, "- using UN");
                 }
-                vr = VRinstances["UN"];
+                vr = Vrs.UN;
             }
         }
         return vr;
@@ -449,10 +453,10 @@ class BinaryRepresentation extends ValueRepresentation {
                 bufferLength += fragmentsLength * 8;
             }
 
-            binaryStream = new WriteBufferStream(
-                bufferLength,
-                stream.isLittleEndian
-            );
+            binaryStream = new WriteBufferStream({
+                defaultSize: bufferLength,
+                littleEndian: stream.isLittleEndian
+            });
 
             for (i = 0; i < frames; i++) {
                 const needsPadding = Boolean(value[i].byteLength & 1);
@@ -582,8 +586,8 @@ class BinaryRepresentation extends ValueRepresentation {
                         // create a new readable stream based on the range
                         const rangeStream = new ReadBufferStream(
                             stream.buffer,
-                            stream.isLittleEndian,
                             {
+                                littleEndian: stream.isLittleEndian,
                                 start: start,
                                 stop: stop,
                                 noCopy: stream.noCopy
@@ -1528,7 +1532,7 @@ class ParsedUnknownValue extends BinaryRepresentation {
 
     read(stream, length, syntax, readOptions) {
         const arrayBuffer = this.readBytes(stream, length, syntax)[0];
-        const streamFromBuffer = new ReadBufferStream(arrayBuffer, true);
+        const streamFromBuffer = new ReadBufferStream(arrayBuffer);
         const vr = ValueRepresentation.createByTypeString(this.type);
 
         if (vr.isBinary() && length > vr.maxLength && !vr.noMultiple) {
@@ -1590,8 +1594,12 @@ class OtherFloatString extends BinaryRepresentation {
     }
 }
 
-// these VR instances are precreate and are reused for each requested vr/tag
-let VRinstances = {
+/**
+ * The shared VR instances by code (`Vrs.DS`); `registerVr` extends it.
+ * @typedef {Object<string, ValueRepresentation>} VrRegistry
+ * @type {VrRegistry}
+ */
+export const Vrs = {
     AE: new ApplicationEntity(),
     AS: new AgeString(),
     AT: new AttributeTag(),
@@ -1624,5 +1632,34 @@ let VRinstances = {
     UT: new UnlimitedText(),
     UV: new Unsigned64BitVeryLong()
 };
+
+/**
+ * Adds or replaces the VR of a code for read and write; `vr.type` must be
+ * `code`. The flags default to the instance's isBinary/isLength32/
+ * allowMultiple; singleVRs, BINARY_VRS and VALID_VRS follow.
+ * @example
+ * const otherLong = new Vrs.OW.constructor();
+ * otherLong.type = "OL";
+ * registerVr("OL", otherLong, { length32: true, single: true,
+ *     readSingle: true, byteStream: true });
+ *
+ * @param {string} code the two-letter VR code
+ * @param {ValueRepresentation} vr the instance
+ * @param {import("./constants/vrs.js").VrFlags} [flags]
+ * @returns {ValueRepresentation} vr
+ */
+export function registerVr(code, vr, flags) {
+    const ownFlags = flags ?? {
+        binary: vr.isBinary(),
+        length32: vr.isLength32(),
+        single: !vr.isBinary() && !vr.allowMultiple()
+    };
+    const merged = { ...vrFlags[code], ...ownFlags };
+    setVrFlags(code, merged);
+    applyVrFlags(vr, merged);
+    Vrs[code] = vr;
+    VALID_VRS.add(code);
+    return vr;
+}
 
 export { ValueRepresentation };

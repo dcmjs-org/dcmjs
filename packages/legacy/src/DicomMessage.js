@@ -203,7 +203,7 @@ export class DicomMessage {
             allowMissingHeader: false
         }
     ) {
-        var stream = new ReadBufferStream(buffer, null, {
+        var stream = new ReadBufferStream(buffer, {
                 noCopy: options.noCopy
             }),
             useSyntax = EXPLICIT_LITTLE_ENDIAN;

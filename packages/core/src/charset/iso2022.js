@@ -38,6 +38,7 @@
 import { encodingMapping } from "../constants/dicom.js";
 import { log } from "../log.js";
 import { createDecoder } from "./latin1.js";
+import { lookupCharacterSet, normalizeCharacterSetTerm } from "./registry.js";
 
 const ESC = 0x1b;
 
@@ -296,19 +297,6 @@ function decodeRun(runBytes, state) {
 }
 
 /**
- * Normalizes one (0008,0005) value to the encodingMapping key form.
- * NULs are stripped first: some older modalities illegally pad odd-length
- * values to even length with \0 instead of the space the standard requires.
- */
-function normalizeCode(value) {
-    return String(value ?? "")
-        .replace(/\0/g, "")
-        .trim()
-        .replace(/[_ ]/g, "-")
-        .toLowerCase();
-}
-
-/**
  * Resolves the decoder for a SpecificCharacterSet (0008,0005) value list.
  *
  * Returns a TextDecoder (single supported charset), an Iso2022Decoder
@@ -321,12 +309,13 @@ export function resolveCharsetDecoder(values, options = {}) {
     if (!values || values.length === 0) {
         return null;
     }
-    const codes = values.map(normalizeCode);
+    const codes = values.map(normalizeCharacterSetTerm);
 
     if (values.length === 1) {
         const coding = codes[0];
-        if (coding in encodingMapping) {
-            return createDecoder(encodingMapping[coding]);
+        const characterSet = lookupCharacterSet(coding);
+        if (characterSet) {
+            return characterSet.createDecoder();
         }
         if (ignoreErrors) {
             log.warn(
@@ -357,7 +346,7 @@ export function resolveCharsetDecoder(values, options = {}) {
         );
     }
     for (const code of codes) {
-        if (code !== "" && !(code in encodingMapping)) {
+        if (code !== "" && !lookupCharacterSet(code)) {
             if (ignoreErrors) {
                 log.warn(
                     `Unsupported character set: ${code}, using default character set`

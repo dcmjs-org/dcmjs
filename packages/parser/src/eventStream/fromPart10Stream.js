@@ -197,7 +197,7 @@ async function fromPart10StreamImpl(input, listener, options, parseState) {
     const iterable = normalizeInput(input);
 
     // K4: clearBuffers releases chunks as the parse advances (see JSDoc).
-    const stream = new ReadBufferStream(null, true, { clearBuffers: true });
+    const stream = new ReadBufferStream(null, { clearBuffers: true });
 
     // Feed runs unawaited so the FMI parse can proceed concurrently.
     const feedHighWater = options.feedHighWater ?? FEED_HIGH_WATER;
@@ -289,7 +289,7 @@ async function fromPart10StreamImpl(input, listener, options, parseState) {
     );
 
     if (rawTransferSyntaxUID === DEFLATED_EXPLICIT_LITTLE_ENDIAN) {
-        bodyStream = new ReadBufferStream(null, true, { clearBuffers: true });
+        bodyStream = new ReadBufferStream(null, { clearBuffers: true });
 
         // `stream.offset` is fixed at metaEndOffset throughout the body phase
         // for the deflate path — the body parser reads from bodyStream, never
