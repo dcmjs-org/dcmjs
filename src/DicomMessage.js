@@ -19,6 +19,22 @@ import { ValueRepresentation } from "./ValueRepresentation.js";
 
 export const singleVRs = ["SQ", "OF", "OW", "OB", "UN", "LT"];
 
+/**
+ * PS3.5 §6.2.2: a UN value that holds a sequence is Implicit VR LE.
+ * dcmjs finds that case by the item tag (FFFE,E000), FE FF 00 E0, at the
+ * start of a defined-length value.
+ */
+export function isUnSequenceValue(stream, length) {
+    return (
+        length >= 8 &&
+        length !== UNDEFINED_LENGTH &&
+        stream.peekUint8(0) === 0xfe &&
+        stream.peekUint8(1) === 0xff &&
+        stream.peekUint8(2) === 0x00 &&
+        stream.peekUint8(3) === 0xe0
+    );
+}
+
 export class DicomMessage {
     static read(
         bufferStream,
@@ -341,17 +357,11 @@ export class DicomMessage {
             }
         }
 
-        // DICOM PS3.5 §6.2.2: a UN element with a defined length whose payload
-        // begins with the item-start delimiter (0xFFFE,E000 = FE FF 00 E0 in
-        // Little Endian) must be parsed as a Sequence using Implicit VR LE,
-        // regardless of the file's transfer syntax.
         let readSyntax = syntax;
         if (
+            !implicit &&
             wireVrType === "UN" &&
-            length > 0 &&
-            length !== UNDEFINED_LENGTH &&
-            stream.peekUint8(0) === 0xfe &&
-            stream.peekUint8(1) === 0xff
+            isUnSequenceValue(stream, length)
         ) {
             vrType = "SQ";
             vr = ValueRepresentation.createByTypeString("SQ");

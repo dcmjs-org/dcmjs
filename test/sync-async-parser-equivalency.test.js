@@ -3,6 +3,7 @@ import dcmjs from "../src/index.js";
 import { EXPLICIT_LITTLE_ENDIAN } from "../src/constants/dicom.js";
 import { stripUntilDataset } from "./helper/sampleDicomPart10.js";
 import {
+    buildUnSequenceValueBytes,
     createPs352UnSequencePart10Buffer,
     PS352_UN_SEQUENCE_UDI
 } from "./helper/ps352UnSequenceFixture.js";
@@ -76,10 +77,8 @@ describe("sync and async parser equivalency tests", () => {
     });
 
     describe("PS3.5 6.2.2 UN defined-length sequence (Implicit LE value)", () => {
-        function expectPs352SequenceDict(dict) {
-            const sqKey = Object.keys(dict).find(
-                k => k.toUpperCase() === "0018100A"
-            );
+        function expectPs352SequenceDict(dict, tag = "0018100A") {
+            const sqKey = Object.keys(dict).find(k => k.toUpperCase() === tag);
             expect(sqKey).toBeTruthy();
             expect(dict[sqKey].vr).toBe("SQ");
             expect(dict[sqKey].Value.length).toBe(1);
@@ -101,6 +100,11 @@ describe("sync and async parser equivalency tests", () => {
                 false
             );
             expectPs352SequenceDict(dict);
+
+            // Write round trip: the sequence keeps one item and a small length.
+            const written = DicomMessage.readFile(part10).write();
+            expect(written.byteLength).toBeLessThan(1024);
+            expectPs352SequenceDict(DicomMessage.readFile(written).dict);
         });
 
         test("async parser reads PS3.5 UN sequence via readFile on Part 10", async () => {
@@ -112,6 +116,39 @@ describe("sync and async parser equivalency tests", () => {
 
             const { dict } = await reader.readFile();
             expectPs352SequenceDict(dict);
+        });
+
+        async function readSyncAndAsync(dict) {
+            const part10 = createPs352UnSequencePart10Buffer(dict);
+            const reader = new AsyncDicomReader();
+            reader.stream.addBuffer(new Uint8Array(part10));
+            reader.stream.setComplete();
+            return [
+                DicomMessage.readFile(part10).dict,
+                (await reader.readFile()).dict
+            ];
+        }
+
+        test("a private UN tag that holds a sequence is read as SQ", async () => {
+            const dicts = await readSyncAndAsync({
+                "00090010": { vr: "LO", Value: ["X"] },
+                "00091010": { vr: "UN", Value: [buildUnSequenceValueBytes()] }
+            });
+            dicts.forEach(dict => expectPs352SequenceDict(dict, "00091010"));
+        });
+
+        test("a private UN value that starts with FE FF but not the item tag stays UN", async () => {
+            const bytes = [0xfe, 0xff, 1, 2, 3, 4, 5, 6];
+            const dicts = await readSyncAndAsync({
+                "00090010": { vr: "LO", Value: ["X"] },
+                "00091010": { vr: "UN", Value: [new Uint8Array(bytes).buffer] }
+            });
+            for (const dict of dicts) {
+                expect(dict["00091010"].vr).toBe("UN");
+                expect([...new Uint8Array(dict["00091010"].Value[0])]).toEqual(
+                    bytes
+                );
+            }
         });
     });
 });

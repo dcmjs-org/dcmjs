@@ -16,7 +16,7 @@ export const PS352_UN_SEQUENCE_UDI = "*+B220INTUITION040/$$+7INTUITION4.10.1%*";
 /**
  * @returns {ArrayBuffer} UN element value only (item wrapper + implicit item dataset).
  */
-function buildUnSequenceValueBytes() {
+export function buildUnSequenceValueBytes() {
     const udi = PS352_UN_SEQUENCE_UDI;
     const udiBytes = new Uint8Array(udi.length);
     for (let i = 0; i < udi.length; i++) udiBytes[i] = udi.charCodeAt(i);
@@ -63,23 +63,21 @@ export function createPs352UnSequenceDatasetElementBuffer() {
 }
 
 /**
- * Minimal Part 10 file: meta (Explicit LE) + dataset containing (0018,100A)
- * as UN with the PS3.5 6.2.2-shaped value bytes.
+ * Minimal Part 10 file: meta (Explicit LE) + dataset. The default dataset holds
+ * (0018,100A) as UN with the PS3.5 6.2.2-shaped value bytes.
  *
+ * @param {object} [dict] dataset elements to write
  * @returns {ArrayBuffer}
  */
-export function createPs352UnSequencePart10Buffer() {
+export function createPs352UnSequencePart10Buffer(
+    dict = { "0018100A": { vr: "UN", Value: [buildUnSequenceValueBytes()] } }
+) {
     const dicomDict = new DicomDict({
         [TagHex.TransferSyntaxUID]: {
             vr: "UI",
             Value: [EXPLICIT_LITTLE_ENDIAN]
         }
     });
-    dicomDict.dict = {
-        "0018100A": {
-            vr: "UN",
-            Value: [buildUnSequenceValueBytes()]
-        }
-    };
+    dicomDict.dict = dict;
     return dicomDict.write();
 }

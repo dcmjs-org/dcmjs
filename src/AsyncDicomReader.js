@@ -13,7 +13,7 @@ import {
     isVideoTransferSyntax
 } from "./constants/dicom";
 import { Tag } from "./Tag";
-import { DicomMessage, singleVRs } from "./DicomMessage";
+import { DicomMessage, isUnSequenceValue, singleVRs } from "./DicomMessage";
 import { DicomMetaDictionary } from "./DicomMetaDictionary";
 import { DicomMetadataListener } from "./utilities/DicomMetadataListener.js";
 import { log } from "./log.js";
@@ -705,10 +705,7 @@ export class AsyncDicomReader {
         if (
             !implicit &&
             wireVrType === "UN" &&
-            length > 0 &&
-            length !== UNDEFINED_LENGTH &&
-            stream.peekUint8(0) === 0xfe &&
-            stream.peekUint8(1) === 0xff
+            isUnSequenceValue(stream, length)
         ) {
             vr = ValueRepresentation.createByTypeString("SQ");
             sequenceReadSyntax = IMPLICIT_LITTLE_ENDIAN;
