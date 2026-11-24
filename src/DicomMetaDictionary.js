@@ -8,6 +8,27 @@ import log from "./log.js";
 import addAccessors from "./utilities/addAccessors";
 import { ValueRepresentation } from "./ValueRepresentation";
 
+/**
+ * Add a registerTag() entry to a name map. A registration never replaces a
+ * name that the map already has for a different tag (a standard keyword or an
+ * earlier registration): the existing entry wins, and a warning names both
+ * tags. Entries with version "PrivateTag" are skipped.
+ */
+function addRegisteredToNameMap(nameMap, dict) {
+    if (!dict || dict.version === "PrivateTag") {
+        return;
+    }
+    const existing = nameMap[dict.name];
+    if (existing && existing.tag.toUpperCase() !== dict.tag.toUpperCase()) {
+        log.warn(
+            `registerTag: name ${dict.name} already maps to ${existing.tag}; ` +
+                `${dict.tag} is not writable by that name`
+        );
+        return;
+    }
+    nameMap[dict.name] = dict;
+}
+
 export class DicomMetaDictionary {
     // intakes a custom dictionary that will be used to parse/denaturalize the dataset
     constructor(customDictionary) {
@@ -367,13 +388,10 @@ export class DicomMetaDictionary {
                 DicomMetaDictionary.nameMap[dict.name] = dict;
             }
         });
-        // Entries added through registerTag(), which go in the module's own map
-        // and so are not visible to Object.keys() above.
-        registeredTagEntries().forEach(dict => {
-            if (dict && dict.version !== "PrivateTag") {
-                DicomMetaDictionary.nameMap[dict.name] = dict;
-            }
-        });
+        // registerTag() entries are in their own map, not in Object.keys() above.
+        registeredTagEntries().forEach(dict =>
+            addRegisteredToNameMap(DicomMetaDictionary.nameMap, dict)
+        );
     }
 
     static _generateCustomNameMap(dictionary) {
@@ -396,11 +414,9 @@ export class DicomMetaDictionary {
                     nameMap[dict.name] = dict;
                 }
             });
-            registeredTagEntries().forEach(dict => {
-                if (dict && dict.version !== "PrivateTag") {
-                    nameMap[dict.name] = dict;
-                }
-            });
+            registeredTagEntries().forEach(dict =>
+                addRegisteredToNameMap(nameMap, dict)
+            );
             return nameMap;
         }
         Object.keys(dictionary).forEach(tag => {
@@ -472,9 +488,7 @@ DicomMetaDictionary.dictionary = dictionary;
 DicomMetaDictionary._generateNameMap();
 // From here on, registerTag() adds straight to nameMap, so a tag registered at
 // any point can be written by name.
-setNameMapRegistrar(entry => {
-    if (entry && entry.version !== "PrivateTag") {
-        DicomMetaDictionary.nameMap[entry.name] = entry;
-    }
-});
+setNameMapRegistrar(entry =>
+    addRegisteredToNameMap(DicomMetaDictionary.nameMap, entry)
+);
 DicomMetaDictionary._generateUIDMap();

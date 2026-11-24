@@ -67,6 +67,13 @@ function _toParenKeyFromHex8(hex8) {
 /**
  * Register a tag entry in the cache so it is returned by the dictionary for that tag.
  * Use for tags not in the standard or private dictionaries.
+ * The name becomes writable through DicomMetaDictionary.nameMap, unless the map
+ * already has that name for another tag: the existing entry wins and a warning
+ * is logged.
+ * A private element registered by its position, for example (gggg,10xx),
+ * assumes that its creator holds block 0x10. Use findPrivateBlock(),
+ * reservePrivateBlock() and privateBlockKey() to find the real block by the
+ * creator, as PS3.5 Section 7.8.1 requires.
  *
  * @param {string} tagOrHex - Tag as '(GGGG,EEEE)' or 'GGGGEEEE'
  * @param {{ name: string, vr: string, vm?: string, [key: string]: unknown }} entry - At least name and vr; vm and other fields optional

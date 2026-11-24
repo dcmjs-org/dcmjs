@@ -1,5 +1,6 @@
 import dcmjs from "../src/index.js";
 import { EXPLICIT_LITTLE_ENDIAN } from "../src/constants/dicom.js";
+import log from "../src/log.js";
 
 const { DicomMetaDictionary, DicomMessage, datasetToDict, registerTag } =
     dcmjs.data;
@@ -128,6 +129,28 @@ describe("registerTag", () => {
             expect(philips.version).toEqual("PrivateTag");
             expect(DicomMetaDictionary.nameMap[philips.name]).toBeUndefined();
         }
+    });
+
+    it("never replaces a standard keyword, and warns", () => {
+        const warn = jest.spyOn(log, "warn").mockImplementation(() => {});
+        registerTag("(4d51,1001)", { name: "PatientID", vr: "LO" });
+        expect(
+            Object.keys(
+                DicomMetaDictionary.denaturalizeDataset({ PatientID: "X" })
+            )
+        ).toEqual(["00100020"]);
+        expect(warn).toHaveBeenCalled();
+        warn.mockRestore();
+    });
+
+    it("keeps the first registration of a name", () => {
+        const warn = jest.spyOn(log, "warn").mockImplementation(() => {});
+        registerTag("(4d52,1001)", { name: "TestFirstName", vr: "LO" });
+        registerTag("(4d52,1002)", { name: "TestFirstName", vr: "LO" });
+        expect(DicomMetaDictionary.nameMap.TestFirstName.tag).toEqual(
+            "(4D52,1001)"
+        );
+        warn.mockRestore();
     });
 
     it("ignores malformed input", () => {
