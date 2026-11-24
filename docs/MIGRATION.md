@@ -469,6 +469,9 @@ the VR and SOP class registries; the 0.x lists and maps
 `sopClassNamesByUID`) keep their members and their property access.
 [specs/registries.md](specs/registries.md) gives the rules.
 
+An OL element now reads and writes as `OL`, not `UN`: code that matched
+`vr === "UN"` for an OL tag must match `"OL"`.
+
 ## What needs no migration, in one list
 
 -   `DicomMessage.readFile`: same call, same eager decode, same error

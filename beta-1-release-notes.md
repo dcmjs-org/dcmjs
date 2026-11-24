@@ -71,6 +71,9 @@ when a better approach appears.
   explicit `transfer: true` keeps a reference to the buffer instead of
   copying it when the range covers the whole `ArrayBuffer`; a partial view
   or range is always copied, and the source is not detached.
+- An OL element reads and writes as OL. Before, the reader and the writer
+  used UN, and a rewrite of Long Triangle Point Index List (0066,0041) came
+  back as UL numbers (#632).
 - New packages: `@dcmjs-org/core`, `@dcmjs-org/legacy`, `@dcmjs-org/parser`
   and `@dcmjs-org/generator`. Each package publishes a built `dist/` folder
   (ES module and CommonJS), so it loads in plain Node without a bundler.
