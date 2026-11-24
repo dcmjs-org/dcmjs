@@ -1,7 +1,6 @@
 # Migrating from dcmjs 0.x
 
-This page describes the 1.0 beta (`@dcmjs-org/dcmjs`) as it stands on the
-`1.0-beta` branch. It replaces the migration guide from the earlier 1.0 draft
+This page describes dcmjs 1.0 (`@dcmjs-org/dcmjs`). It replaces the migration guide from the earlier 1.0 draft
 (PR #512), which described a lazy read core and a byte-faithful write path
 that the review removed before anything shipped. If you read that guide,
 unlearn it; this page documents only what is on this branch, and every
@@ -15,7 +14,6 @@ changed on purpose to follow the DICOM standard (see
 the six ways described below.
 
 ```js
-// during the beta the package is @dcmjs-org/dcmjs; later it is "dcmjs"
 import dcmjs from "@dcmjs-org/dcmjs";
 const { DicomMessage, DicomDict, DicomMetaDictionary } = dcmjs.data;
 ```
@@ -355,9 +353,8 @@ earlier beta had `fromFhir()` and `toFhir()`). Give the result of
 
 The `dcmjs` package surface is the wrapper `@dcmjs-org/dcmjs`. It
 reproduces the 0.x surface, so a project can try 1.0 by changing only the
-import name. During the beta it publishes on the `beta` tag
-(`npm install @dcmjs-org/dcmjs@beta`); the unscoped `dcmjs` name starts
-publishing when the maintainers decide it is ready.
+import name. Install it with `npm install @dcmjs-org/dcmjs`. The unscoped
+`dcmjs` name keeps the 0.x line.
 
 The new engines are subpath entries, and they are ES modules only:
 `@dcmjs-org/dcmjs/eventStream`, `/media`, `/encapsulated` and `/image`.

@@ -524,8 +524,7 @@ Named here so their absence is a decision, not an oversight:
 {
     "branches": [
         { "name": "0.x", "range": "0.x", "channel": "0.x" },
-        "master",
-        { "name": "1.0-beta", "prerelease": "beta", "channel": "beta" }
+        "master"
     ],
     "plugins": [
         "@semantic-release/commit-analyzer",
@@ -550,7 +549,6 @@ on:
     push:
         branches:
             - master
-            - 1.0-beta
             - 0.x
 ```
 
