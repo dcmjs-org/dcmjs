@@ -76,6 +76,9 @@ when a better approach appears.
   Before, the value had the declared size with zero padding. A file that ends
   inside a multi-byte header field now throws a `RangeError`. Before, the
   reader read zero bytes for the missing part.
+- `denaturalizeDataset` writes a DS number, single or in a list, in 16
+  characters or less, and keeps the exponent. Before, it cut
+  `3.5163338899999997e-10` to `3.51633388999999` (issue #531, #610).
 - New packages: `@dcmjs-org/core`, `@dcmjs-org/legacy`, `@dcmjs-org/parser`
   and `@dcmjs-org/generator`. Each package publishes a built `dist/` folder
   (ES module and CommonJS), so it loads in plain Node without a bundler.
