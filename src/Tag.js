@@ -14,6 +14,21 @@ function paddingLeft(paddingValue, string) {
 
 let DicomMessage;
 
+/** True when every value is an item dataset object, not binary data. */
+function isItemList(values) {
+    return (
+        Array.isArray(values) &&
+        values.length > 0 &&
+        values.every(
+            v =>
+                v !== null &&
+                typeof v === "object" &&
+                !(v instanceof ArrayBuffer) &&
+                !ArrayBuffer.isView(v)
+        )
+    );
+}
+
 class Tag {
     constructor(value) {
         this.value = value;
@@ -133,6 +148,10 @@ class Tag {
     }
 
     write(stream, vrType, values, syntax, writeOptions) {
+        // A UN whose values are item datasets is a sequence: write it as SQ (PS3.5 §6.2.2).
+        if (vrType === "UN" && isItemList(values)) {
+            vrType = "SQ";
+        }
         const vr = ValueRepresentation.createByTypeString(vrType);
         const useSyntax = DicomMessage._normalizeSyntax(syntax);
 

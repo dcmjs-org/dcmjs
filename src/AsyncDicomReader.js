@@ -13,10 +13,11 @@ import {
     isVideoTransferSyntax
 } from "./constants/dicom";
 import { Tag } from "./Tag";
-import { DicomMessage, singleVRs } from "./DicomMessage";
+import { DicomMessage, isUnSequenceValue, singleVRs } from "./DicomMessage";
 import { DicomMetaDictionary } from "./DicomMetaDictionary";
 import { DicomMetadataListener } from "./utilities/DicomMetadataListener.js";
 import { log } from "./log.js";
+import { swapBytes } from "./utilities/byteSwap.js";
 
 const readLog = log.getLogger("AsyncDicomReader");
 
@@ -33,6 +34,8 @@ export class AsyncDicomReader {
 
     constructor(options = {}) {
         this.isLittleEndian = options?.isLittleEndian;
+        // Number of sequence items being read, 0 at the top level
+        this.sequenceDepth = 0;
         // Default maxFragmentSize is 128 MB (128 * 1024 * 1024 bytes)
         this.maxFragmentSize = options?.maxFragmentSize ?? 128 * 1024 * 1024;
         this.stream = new ReadBufferStream(null, this.isLittleEndian, {
@@ -311,16 +314,39 @@ export class AsyncDicomReader {
         return listener.pop();
     }
 
+    /**
+     * The number of frames of the Pixel Data being read. NumberOfFrames is
+     * tracked for the top-level data set only, so Pixel Data inside a sequence
+     * item (an Icon Image Sequence item, for example) is a single frame.
+     */
+    getNumberOfFrames() {
+        if (this.sequenceDepth > 0) {
+            return 1;
+        }
+        return parseInt(this.listener?.information?.numberOfFrames || 1);
+    }
+
     async readSequence(listener, sqTagInfo, options) {
+        // untilTag stops the read at the top level only, not inside the items
+        const itemOptions = {
+            ...options,
+            untilTag: null,
+            includeUntilTagValue: false
+        };
         const { length } = sqTagInfo;
-        const { stream, syntax } = this;
+        const { stream } = this;
+        const sequenceReadSyntax =
+            sqTagInfo.sequenceReadSyntax ?? options?.readSyntax ?? this.syntax;
         const endOffset =
             length === UNDEFINED_LENGTH_FIX
                 ? Number.MAX_SAFE_INTEGER
                 : stream.offset + length;
         while (stream.offset < endOffset && (await stream.ensureAvailable())) {
             readLog.debug("readSequence loop", stream.offset, endOffset);
-            const tagInfo = this.readTagHeader(syntax, options);
+            const tagInfo = this.readTagHeader({
+                ...itemOptions,
+                readSyntax: sequenceReadSyntax
+            });
             const { tag } = tagInfo;
             if (tag === TagHex.Item) {
                 listener.startObject();
@@ -335,16 +361,29 @@ export class AsyncDicomReader {
                     itemLength === UNDEFINED_LENGTH_FIX
                         ? endOffset
                         : Math.min(stream.offset + itemLength, endOffset);
-                await this.read(listener, {
-                    ...options,
-                    untilOffset: itemUntilOffset
-                });
+                // A SpecificCharacterSet in the item applies only to that
+                // item (PS3.5 7.5.3), but the item is read on this stream:
+                // put back the decoder the item started with.
+                const { decoder } = stream;
+                this.sequenceDepth++;
+                try {
+                    await this.read(listener, {
+                        ...itemOptions,
+                        untilOffset: itemUntilOffset,
+                        readSyntax: sequenceReadSyntax
+                    });
+                } finally {
+                    this.sequenceDepth--;
+                }
+                stream.setDecoder(decoder);
             } else if (tag === TagHex.SequenceDelimitationEnd) {
                 // Sequence of undefined lengths end in sequence delimitation item
                 return;
             } else {
                 console.warn("Unknown tag info", length, tagInfo);
-                throw new Error();
+                throw new Error(
+                    `Expected an item or a sequence delimitation item in a sequence, found tag ${tag}`
+                );
             }
         }
         // Sequences of defined length end at the end offset
@@ -362,7 +401,7 @@ export class AsyncDicomReader {
      * Emits one or more listener.value() calls for a fragment, splitting if needed.
      * This does NOT start/pop any array contexts; callers control the surrounding structure.
      */
-    async _emitSplitValues(length) {
+    async _emitSplitValues(length, wordWidth = 1) {
         const { stream, listener } = this;
         await listener.awaitDrain?.();
         const { maxFragmentSize } = this;
@@ -371,12 +410,24 @@ export class AsyncDicomReader {
                 `maxFragmentSize must be a positive number, got ${maxFragmentSize}`
             );
         }
+        const bigEndian = this.syntax === EXPLICIT_BIG_ENDIAN && wordWidth > 1;
+        // Fragments have to hold whole words to be byte swapped, so that a word
+        // is never split across two of them
+        const fragmentSize = bigEndian
+            ? Math.max(
+                  wordWidth,
+                  maxFragmentSize - (maxFragmentSize % wordWidth)
+              )
+            : maxFragmentSize;
         let offset = 0;
         while (offset < length) {
             readLog.trace("_emitSplitValues loop", offset, length);
-            const chunkSize = Math.min(maxFragmentSize, length - offset);
+            const chunkSize = Math.min(fragmentSize, length - offset);
             await stream.ensureAvailable(chunkSize);
             const buffer = stream.readArrayBuffer(chunkSize);
+            if (bigEndian) {
+                swapBytes(buffer, wordWidth);
+            }
             listener.value(buffer);
             offset += chunkSize;
             stream.consume();
@@ -396,8 +447,8 @@ export class AsyncDicomReader {
         const isVideo = isVideoTransferSyntax(transferSyntaxUid);
 
         // Check number of frames - only use video logic for single frame (or undefined)
-        const numberOfFrames = listener.information?.numberOfFrames;
-        const isSingleFrame = !numberOfFrames || parseInt(numberOfFrames) <= 1;
+        const numberOfFrames = this.getNumberOfFrames();
+        const isSingleFrame = numberOfFrames <= 1;
 
         let offsets = await this.readOffsets();
 
@@ -472,10 +523,10 @@ export class AsyncDicomReader {
     async readUncompressed(tagInfo) {
         const { length } = tagInfo;
         const { listener } = this;
+        // The big endian syntax stores OW pixel data big endian, OB as is
+        const wordWidth = tagInfo.vrObj?.wordWidth ?? 1;
 
-        const numberOfFrames = parseInt(
-            listener.information?.numberOfFrames || 1
-        );
+        const numberOfFrames = this.getNumberOfFrames();
         const frameLength = Math.floor(length / numberOfFrames);
         if (numberOfFrames > 1) {
             const rows = listener.information?.rows;
@@ -503,7 +554,7 @@ export class AsyncDicomReader {
         for (let frameNumber = 0; frameNumber < numberOfFrames; frameNumber++) {
             readLog.trace("readUncompressed loop", frameNumber, numberOfFrames);
             listener.startObject([]);
-            await this._emitSplitValues(frameLength);
+            await this._emitSplitValues(frameLength, wordWidth);
             listener.pop();
             // console.log(stream.getBufferMemoryInfo());
         }
@@ -526,9 +577,7 @@ export class AsyncDicomReader {
         const { length } = tagInfo;
         const { listener, stream } = this;
 
-        const numberOfFrames = parseInt(
-            listener.information?.numberOfFrames || 1
-        );
+        const numberOfFrames = this.getNumberOfFrames();
 
         const rows = listener.information?.rows;
         const cols = listener.information?.columns;
@@ -562,6 +611,10 @@ export class AsyncDicomReader {
         await stream.ensureAvailable(length);
         const allPixelData = stream.readArrayBuffer(totalBytes);
         stream.consume();
+        if (this.syntax === EXPLICIT_BIG_ENDIAN) {
+            // the packed bits of OW data are stored as big endian words
+            swapBytes(allPixelData, tagInfo.vrObj?.wordWidth ?? 1);
+        }
 
         // Extract each frame, unpacking bits so each frame starts at byte 0
         for (let frameNumber = 0; frameNumber < numberOfFrames; frameNumber++) {
@@ -627,10 +680,11 @@ export class AsyncDicomReader {
             includeUntilTagValue: false
         }
     ) {
-        const { stream, syntax } = this;
+        const { stream } = this;
         const { untilTag, includeUntilTagValue } = options;
-        const implicit = syntax == IMPLICIT_LITTLE_ENDIAN;
-        const isLittleEndian = syntax !== EXPLICIT_BIG_ENDIAN;
+        const effectiveSyntax = options?.readSyntax ?? this.syntax;
+        const implicit = effectiveSyntax == IMPLICIT_LITTLE_ENDIAN;
+        const isLittleEndian = effectiveSyntax !== EXPLICIT_BIG_ENDIAN;
         stream.setEndian(isLittleEndian);
         const tagObj = Tag.readTag(stream);
         const tag = tagObj.cleanString;
@@ -644,6 +698,7 @@ export class AsyncDicomReader {
         let length = null;
         let vr = null;
         let vrType;
+        let wireVrType = null;
 
         const isCommand = tagObj.group() === 0;
         if (tagObj.isInstruction()) {
@@ -675,6 +730,7 @@ export class AsyncDicomReader {
             vr = ValueRepresentation.createByTypeString(vrType);
         } else {
             vrType = stream.readVR();
+            wireVrType = vrType;
 
             if (vrType === "UN" && DicomMessage.lookupTag(tagObj)?.vr) {
                 vrType = DicomMessage.lookupTag(tagObj).vr;
@@ -692,6 +748,16 @@ export class AsyncDicomReader {
             }
         }
 
+        let sequenceReadSyntax;
+        if (
+            !implicit &&
+            wireVrType === "UN" &&
+            isUnSequenceValue(stream, length)
+        ) {
+            vr = ValueRepresentation.createByTypeString("SQ");
+            sequenceReadSyntax = IMPLICIT_LITTLE_ENDIAN;
+        }
+
         const punctuatedTag = DicomMetaDictionary.punctuateTag(tag);
         const entry = DicomMetaDictionary.dictionary[punctuatedTag];
 
@@ -703,7 +769,8 @@ export class AsyncDicomReader {
             tagObj,
             vm: entry?.vm,
             name: entry?.name,
-            length: length === UNDEFINED_LENGTH ? -1 : length
+            length: length === UNDEFINED_LENGTH ? -1 : length,
+            ...(sequenceReadSyntax !== undefined && { sequenceReadSyntax })
         };
         return header;
     }
@@ -716,7 +783,8 @@ export class AsyncDicomReader {
      */
     async readSingle(tagInfo, listener, options) {
         const { length } = tagInfo;
-        const { stream, syntax } = this;
+        const { stream } = this;
+        const readSyntax = options?.readSyntax ?? this.syntax;
         await this.stream.ensureAvailable(length);
         const vr = ValueRepresentation.createByTypeString(tagInfo.vr);
         let values = [];
@@ -725,11 +793,11 @@ export class AsyncDicomReader {
             let i = 0;
             while (i++ < times) {
                 readLog.trace("readSingle multi-value loop", i, times);
-                const { value } = vr.read(stream, vr.maxLength, syntax);
+                const { value } = vr.read(stream, vr.maxLength, readSyntax);
                 values.push(value);
             }
         } else {
-            const value = vr.read(stream, length, syntax)?.value;
+            const value = vr.read(stream, length, readSyntax)?.value;
             if (!vr.isBinary() && singleVRs.indexOf(vr.type) == -1) {
                 values = value;
                 if (typeof value === "string") {
