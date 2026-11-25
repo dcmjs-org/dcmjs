@@ -1230,6 +1230,8 @@ class SequenceOfItems extends ValueRepresentation {
                             );
                         }
                         elements.push(readOptions.readItem(itemStream, syntax));
+                    } else {
+                        elements.push({});
                     }
                     if (!undefLength && read == sqlength) {
                         break;
@@ -1542,7 +1544,9 @@ class ParsedUnknownValue extends BinaryRepresentation {
 
     read(stream, length, syntax, readOptions) {
         const arrayBuffer = this.readBytes(stream, length, syntax)[0];
-        const streamFromBuffer = new ReadBufferStream(arrayBuffer);
+        const streamFromBuffer = new ReadBufferStream(arrayBuffer, {
+            decoder: stream.decoder
+        });
         const vr = ValueRepresentation.createByTypeString(this.type);
 
         if (vr.isBinary() && length > vr.maxLength && !vr.noMultiple) {

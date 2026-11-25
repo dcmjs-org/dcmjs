@@ -155,7 +155,8 @@ A private value is a list (NAT-U-VAL-4). An assigned PN string converts:
   list of one, and a list of values that are not bytes (for example a UN
   element with a string `Value`). A binary element with no value is `null`,
   not `[]`, in both producers. No value includes a value whose fragments
-  all have zero bytes, as a Part 10 reader gives for an empty element.
+  all have zero bytes, as a Part 10 reader gives for an empty element. A UN
+  element that holds a sequence is the exception (NAT-U-BIN-6).
 - **NAT-U-BIN-2.** By default, each fragment or frame is an `ArrayBuffer`
   that holds only the bytes of that fragment. So
   `new Uint16Array(dataset.PixelData[0])` reads the samples, as in 0.x.
@@ -170,6 +171,13 @@ A private value is a list (NAT-U-VAL-4). An assigned PN string converts:
   DICOM JSON element that has `InlineBinary` and no `Value`.
 - **NAT-U-BIN-5.** The writers accept an `ArrayBuffer`, any view (at any
   offset), or `{ InlineBinary }` for each fragment.
+- **NAT-U-BIN-6.** A UN element in an explicit VR file that holds a sequence
+  (PS3.5 §6.2.2) reads as a sequence (VR `SQ`, a list of items), with the
+  same result from each reader. The rule applies only to a tag that the
+  dictionary does not know, or that the dictionary gives as `SQ`. Any other
+  UN value keeps its bytes (NAT-U-BIN-1). A UN element whose values are all
+  item datasets writes as a sequence; a UN element whose values are bytes or
+  references (NAT-U-BIN-4) writes as UN.
 
 ### NAT-U-VR — the `_vrMap` side table
 
@@ -327,6 +335,12 @@ A private value is a list (NAT-U-VAL-4). An assigned PN string converts:
   list of only `undefined` entries (`[undefined]`, which a reader can give
   for a zero-length element, issue #417). For every VR, an element with no
   value is written with zero length (an SQ: no items), and with no warning.
+- **NAT-U-RT-8.** A DS number, single or in a list, is written in 16
+  characters or less. The written value keeps the exponent and the
+  significant digits that fit. For example, `3.5163338899999997e-10` is
+  written as `3.5163338900e-10`, not cut to `3.51633388999999`. PS3.5
+  [Section 6.2, Table 6.2-1](https://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_6.2.html)
+  gives DS "16 bytes maximum" and the characters that DS allows.
 
 ### NAT-U-SET — utilities to add or replace an attribute
 
@@ -510,6 +524,11 @@ view of one frame of an enhanced multi-frame dataset (PS3.3 C.7.6.16).
   is copied to a new `ArrayBuffer`.
 - **NAT-I-BIN-2.** `checkBinaryAs` rejects a `binaryAs` value other than
   `"ArrayBuffer"` or `"Uint8Array"` with a `TypeError`.
+- **NAT-I-BIN-3.** For NAT-U-BIN-6, `isUnSequenceValue` and
+  `isItemDictLike` in `packages/core/src/utilities/unSequence.js` are the
+  one copy of the read check and the write check. The read check also needs
+  a first item length that is undefined or fits in the value. The sequence
+  items are Implicit VR Little Endian, also in a Big Endian body.
 
 ### NAT-I-ALIAS — aliases
 
@@ -620,8 +639,10 @@ block form, and they apply to standard attributes too.
 | NAT-U-HIST-3, NAT-U-RT-2 | `test/issues/issue388-private-tags.test.js` |
 | NAT-U-HIST-4, NAT-U-PRIV-5 | `test/eventStream/NaturalizedListener.test.js` |
 | NAT-U-BIN-1/2/3, NAT-U-PROD-1 (binary) | `test/core/binaryValues.test.js` |
+| NAT-U-BIN-6 | `test/sync-async-parser-equivalency.test.js` |
 | NAT-U-VAL-5 (PN setter), NAT-U-SET | `test/core/naturalizedAttributes.test.js` |
 | NAT-U-VAL, NAT-U-SQ | `test/core/naturalizeDataset.test.js`, `test/issues/issue218-single-item-sq.test.js` |
 | NAT-U-HIST-9, NAT-I-ALIAS-4 (`Object.create` children) | `test/core/privateBlocks.test.js` |
 | NAT-U-HIST-6, NAT-U-SQ-1 (`deepCloneInstance`) | `packages/core/test/createInstance.test.js` |
 | NAT-U-FRAME | `test/core/frameDataset.test.js` |
+| NAT-U-RT-8 | `test/issues/issue531-ds-exponent.test.js` |

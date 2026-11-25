@@ -33,6 +33,7 @@ import {
     DEFLATED_EXPLICIT_LITTLE_ENDIAN,
     VALID_VRS,
     normalizeSyntax,
+    isUnSequenceValue,
     ValueRepresentation
 } from "@dcmjs-org/core";
 import { emitValues, emitDecodedLeaf } from "./emit.js";
@@ -406,8 +407,9 @@ async function fromPart10StreamImpl(input, listener, options, parseState) {
     const bsrc = bodyStream ?? stream;
 
     // Body transfer syntax characteristics — drive all element reads.
-    const bodyLittleEndian = transferSyntaxUID !== EXPLICIT_BIG_ENDIAN;
-    const bodyImplicit = transferSyntaxUID === IMPLICIT_LITTLE_ENDIAN;
+    // `let`: a UN sequence (PS3.5 §6.2.2) switches them, see withImplicitLE.
+    let bodyLittleEndian = transferSyntaxUID !== EXPLICIT_BIG_ENDIAN;
+    let bodyImplicit = transferSyntaxUID === IMPLICIT_LITTLE_ENDIAN;
 
     // Chunk release is LIVE for all paths: clearBuffers=true on both `stream`
     // (non-deflate) and `bodyStream` (deflate). The relay releases raw chunks
@@ -634,7 +636,8 @@ async function fromPart10StreamImpl(input, listener, options, parseState) {
      * Defined length: resolveVrInstance is the single canonical implicit-VR
      * contract (AD-1) — dictionary-miss elements resolve to UN and are never
      * data-peek-promoted to SQ (eager parity). Only dictionary-known SQs take
-     * the sequence path.
+     * the sequence path, with one exception: an explicit UN whose value holds
+     * a PS3.5 §6.2.2 sequence (core isUnSequenceValue) reads as SQ.
      *
      * Undefined length: the element is classified as SQ
      * ({@link isUndefinedLengthSequence}), encapsulated pixel data, or an
@@ -700,6 +703,29 @@ async function fromPart10StreamImpl(input, listener, options, parseState) {
             hadUndefinedLength: undef
         };
         let vrInstance = resolveVrInstance(elLike, EMPTY_WIN);
+        // The one data-peek promotion to SQ (PS3.5 §6.2.2), see the JSDoc.
+        if (
+            vrStr === "UN" &&
+            !undef &&
+            (await ensureAbs(valueStartAbs + 8)) &&
+            isUnSequenceValue(
+                bsrc.view,
+                valueStartAbs,
+                valueLength,
+                vrInstance.type
+            )
+        ) {
+            await withImplicitLE(() =>
+                emitSequence(
+                    target,
+                    tagStr,
+                    valueStartAbs,
+                    valueLength,
+                    currentDecoder
+                )
+            );
+            return currentDecoder;
+        }
 
         if (!undef) {
             // Only dictionary-known SQs take the sequence path (AD-1).
@@ -753,6 +779,23 @@ async function fromPart10StreamImpl(input, listener, options, parseState) {
             currentDecoder
         );
         return currentDecoder;
+    }
+
+    /** Runs `fn` with the body read as Implicit VR LE, then restores the syntax. */
+    async function withImplicitLE(fn) {
+        const saved = [transferSyntaxUID, bodyLittleEndian, bodyImplicit];
+        const setSyntax = (syntax, littleEndian, implicit) => {
+            transferSyntaxUID = syntax;
+            bodyLittleEndian = littleEndian;
+            bodyImplicit = implicit;
+            Object.assign(EMPTY_WIN, { syntax, littleEndian, implicit });
+        };
+        setSyntax(IMPLICIT_LITTLE_ENDIAN, true, true);
+        try {
+            return await fn();
+        } finally {
+            setSyntax(...saved);
+        }
     }
 
     /**
