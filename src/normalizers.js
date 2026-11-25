@@ -133,6 +133,39 @@ class ImageNormalizer extends Normalizer {
         return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
     }
 
+    static sharedImagePlaneGroups(dataset, pixelMeasures) {
+        return {
+            PlaneOrientationSequence: {
+                ImageOrientationPatient: dataset.ImageOrientationPatient
+            },
+            PixelMeasuresSequence: {
+                PixelSpacing: dataset.PixelSpacing,
+                ...pixelMeasures
+            }
+        };
+    }
+
+    static planePositionGroup(dataset) {
+        return {
+            PlanePositionSequence: {
+                ImagePositionPatient: dataset.ImagePositionPatient
+            }
+        };
+    }
+
+    static framesInPixelData(ds) {
+        const frameBytes =
+            (ds.Rows *
+                ds.Columns *
+                (ds.SamplesPerPixel || 1) *
+                ds.BitsAllocated) /
+            8;
+        const bytes = []
+            .concat(ds.PixelData || [])
+            .reduce((sum, data) => sum + ((data && data.byteLength) || 0), 0);
+        return frameBytes > 0 ? Math.floor(bytes / frameBytes) : 0;
+    }
+
     convertToMultiframe() {
         if (
             this.datasets.length === 1 &&
@@ -246,16 +279,11 @@ class ImageNormalizer extends Normalizer {
         // shared
         const SpacingBetweenSlices = Math.abs(distance1 - distance0);
 
-        ds.SharedFunctionalGroupsSequence = {
-            PlaneOrientationSequence: {
-                ImageOrientationPatient: dataset0.ImageOrientationPatient
-            },
-            PixelMeasuresSequence: {
-                PixelSpacing: dataset0.PixelSpacing,
-                SpacingBetweenSlices: SpacingBetweenSlices,
+        ds.SharedFunctionalGroupsSequence =
+            ImageNormalizer.sharedImagePlaneGroups(dataset0, {
+                SpacingBetweenSlices,
                 SliceThickness: SpacingBetweenSlices
-            }
-        };
+            });
 
         ds.ReferencedSeriesSequence = {
             SeriesInstanceUID: dataset0.SeriesInstanceUID,
@@ -271,9 +299,7 @@ class ImageNormalizer extends Normalizer {
             const dataset = pair[1];
 
             ds.PerFrameFunctionalGroupsSequence.push({
-                PlanePositionSequence: {
-                    ImagePositionPatient: dataset.ImagePositionPatient
-                },
+                ...ImageNormalizer.planePositionGroup(dataset),
                 FrameVOILUTSequence: {
                     WindowCenter: dataset.WindowCenter,
                     WindowWidth: dataset.WindowWidth
@@ -328,9 +354,21 @@ class ImageNormalizer extends Normalizer {
         }
 
         if (!ds.SharedFunctionalGroupsSequence) {
-            log.error(
-                "Can only process multiframe data with SharedFunctionalGroupsSequence"
+            log.warn(
+                "Missing SharedFunctionalGroupsSequence; using the top-level image plane attributes"
             );
+            ds.SharedFunctionalGroupsSequence =
+                ImageNormalizer.sharedImagePlaneGroups(ds, {
+                    SliceThickness: ds.SliceThickness,
+                    SpacingBetweenSlices: ds.SpacingBetweenSlices
+                });
+            const frames = ImageNormalizer.framesInPixelData(ds);
+            if (frames > 0 && frames < ds.NumberOfFrames) {
+                log.warn(
+                    `NumberOfFrames ${ds.NumberOfFrames} is more than the ${frames} frame(s) in PixelData; using ${frames}`
+                );
+                ds.NumberOfFrames = frames;
+            }
         }
 
         // TODO: special case!
@@ -353,11 +391,17 @@ class ImageNormalizer extends Normalizer {
             RescaleType: "US"
         };
         let frameNumber = 1;
+        if (!ds.PerFrameFunctionalGroupsSequence) {
+            ds.PerFrameFunctionalGroupsSequence = [
+                ImageNormalizer.planePositionGroup(ds)
+            ];
+        } else if (!Array.isArray(ds.PerFrameFunctionalGroupsSequence)) {
+            ds.PerFrameFunctionalGroupsSequence = [
+                ds.PerFrameFunctionalGroupsSequence
+            ];
+        }
         this.datasets.forEach(dataset => {
-            if (ds.NumberOfFrames === 1)
-                ds.PerFrameFunctionalGroupsSequence = [
-                    ds.PerFrameFunctionalGroupsSequence
-                ];
+            ds.PerFrameFunctionalGroupsSequence[frameNumber - 1] ||= {};
             ds.PerFrameFunctionalGroupsSequence[
                 frameNumber - 1
             ].FrameContentSequence = {
