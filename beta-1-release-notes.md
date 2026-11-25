@@ -80,6 +80,10 @@ when a better approach appears.
   Before, the value had the declared size with zero padding. A file that ends
   inside a multi-byte header field now throws a `RangeError`. Before, the
   reader read zero bytes for the missing part.
+- `Colors` converts CIELab with the D50 white point, as PS3.3 C.10.7.1.1
+  requires. New: `dicomlab2RGB8`, `rgb82DICOMLAB` and `d50WhitePointXYZ`. The
+  colors of a SEG or SR object that an older dcmjs wrote can shift: a
+  saturated blue `[0, 0, 255]` now displays as `[91, 0, 255]` (#598).
 - New packages: `@dcmjs-org/core`, `@dcmjs-org/legacy`, `@dcmjs-org/parser`
   and `@dcmjs-org/generator`. Each package publishes a built `dist/` folder
   (ES module and CommonJS), so it loads in plain Node without a bundler.

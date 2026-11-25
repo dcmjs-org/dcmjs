@@ -23,10 +23,9 @@ const {
 // semantics, ~1.5 KB more (×1.0651), the dict-level private block API
 // (privateBlockDict.js) adds ~8.7 KB (×1.0713), and the VR, SOP class and
 // character-set registries add ~10 KB (×1.079). dcmjs.es.js is 1.062 for
-// the same registries (×1.055 to ×1.061). The OL VR class (#632) adds
-// ~0.4 KB (×1.0801 and ×1.0623). With the declared length clamp (#652),
-// the OV and SV classes add ~3 KB (×1.0828 and ×1.0643), so the ceilings
-// are 1.083 and 1.065.
+// the same registries (×1.055 to ×1.061). The D50 CIELab conversion of
+// #598 adds ~3.5 KB (×1.0825 and ×1.0649), so the ceilings are 1.083 and
+// 1.065.
 const BUNDLES = {
     "dcmjs.js": { baseline: 1384431, ceiling: 1.083 },
     "dcmjs.es.js": { baseline: 1357418, ceiling: 1.065 }
