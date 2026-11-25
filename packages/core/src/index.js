@@ -56,6 +56,7 @@ export {
 } from "./core/writeCore.js";
 export { toFloat } from "./utilities/toFloat.js";
 export { toInt } from "./utilities/toInt.js";
+export { swapBytes, swappedCopy } from "./utilities/byteSwap.js";
 export { deepEqual } from "./utilities/deepEqual.js";
 export { toStringFirst, toFloatFirst } from "./utilities/firstValue.js";
 export { MODALITY_DISPLAY } from "./constants/modality.js";

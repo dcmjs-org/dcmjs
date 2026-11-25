@@ -1,0 +1,777 @@
+import fs from "fs";
+import path from "path";
+import dcmjs from "../src/index.js";
+import { fromPart10 } from "../src/eventStream/fromPart10.js";
+import { fromPart10Stream } from "../src/eventStream/fromPart10Stream.js";
+import { CollectorListener } from "../src/eventStream/CollectorListener.js";
+import {
+    EXPLICIT_BIG_ENDIAN,
+    EXPLICIT_LITTLE_ENDIAN,
+    TagHex,
+    UNDEFINED_LENGTH
+} from "../src/constants/dicom.js";
+
+const { DicomDict, DicomMessage } = dcmjs.data;
+const { AsyncDicomReader } = dcmjs.async;
+
+// VRs whose explicit encoding is VR (2) + reserved (2) + length (4)
+const LENGTH_32_VRS = [
+    "OB",
+    "OD",
+    "OF",
+    "OL",
+    "OV",
+    "OW",
+    "SQ",
+    "SV",
+    "UC",
+    "UN",
+    "UR",
+    "UT",
+    "UV"
+];
+
+// Values of the synthetic dataset, chosen to be asymmetric byte wise and, for
+// the floating point ones, exactly representable at both 32 and 64 bits.
+const pixelValues = [0x0102, 0x0304, 2, 512, 0xfffe, 0x00ff, 0xff00, 0x1234];
+const lutValues = [0x0000, 0x7fff, 0x8000, 0xffff];
+const documentBytes = [0xde, 0xad, 0xbe, 0xef];
+const pointValues = [1.5, -2.5, 0.75, 1024.5];
+const doublePointValues = [1.5, -2.5];
+const overlayValues = [0x1122, 0x3344];
+const pointIndexValues = [0x01020304, 0xa0b0c0d0];
+
+/*
+ * A minimal explicit VR encoder and parser, written independently of the
+ * library, so that the bytes the tests expect on either side of a read or a
+ * write don't come from the code under test.
+ */
+
+const setterNames = {
+    Uint16Array: "setUint16",
+    Uint32Array: "setUint32",
+    Float32Array: "setFloat32",
+    Float64Array: "setFloat64"
+};
+
+/** Encodes values as words of the given type, in the given byte order */
+function encodeWords(values, ArrayType, littleEndian) {
+    const width = ArrayType.BYTES_PER_ELEMENT;
+    const buffer = new ArrayBuffer(values.length * width);
+    const view = new DataView(buffer);
+    values.forEach((value, i) =>
+        view[setterNames[ArrayType.name]](i * width, value, littleEndian)
+    );
+    return Array.from(new Uint8Array(buffer));
+}
+
+const encodeUint16 = (value, littleEndian) =>
+    encodeWords([value], Uint16Array, littleEndian);
+
+const encodeUint32 = (value, littleEndian) =>
+    littleEndian
+        ? [
+              value & 0xff,
+              (value >>> 8) & 0xff,
+              (value >>> 16) & 0xff,
+              value >>> 24
+          ]
+        : [
+              value >>> 24,
+              (value >>> 16) & 0xff,
+              (value >>> 8) & 0xff,
+              value & 0xff
+          ];
+
+const asciiBytes = text =>
+    Array.from(text, character => character.charCodeAt(0));
+
+/** Ascii value field, padded to an even length with a null, as UI requires */
+const paddedAsciiBytes = text =>
+    text.length & 1 ? asciiBytes(text).concat(0) : asciiBytes(text);
+
+/** One data element: tag, VR, length and value field */
+function encodeElement(tag, vr, valueBytes, littleEndian) {
+    const header = [
+        ...encodeUint16(parseInt(tag.slice(0, 4), 16), littleEndian),
+        ...encodeUint16(parseInt(tag.slice(4), 16), littleEndian),
+        ...asciiBytes(vr)
+    ];
+    if (LENGTH_32_VRS.includes(vr)) {
+        return [
+            ...header,
+            0,
+            0, // reserved
+            ...encodeUint32(valueBytes.length, littleEndian),
+            ...valueBytes
+        ];
+    }
+    return [
+        ...header,
+        ...encodeUint16(valueBytes.length, littleEndian),
+        ...valueBytes
+    ];
+}
+
+/** An (fffe,xxxx) item, item delimiter or sequence delimiter tag */
+const encodeItemTag = (element, length, littleEndian) => [
+    ...encodeUint16(0xfffe, littleEndian),
+    ...encodeUint16(element, littleEndian),
+    ...encodeUint32(length, littleEndian)
+];
+
+/**
+ * The dataset of the synthetic file: one element of every binary VR with
+ * multi-byte words (OW, OF, OD), an OB element, string and scalar elements as
+ * controls, and an OW element nested in a sequence, in tag order.
+ */
+function encodeDataset(littleEndian) {
+    return [
+        // Modality
+        ...encodeElement("00080060", "CS", asciiBytes("MR"), littleEndian),
+        // ReferencedOverlaySequence, with undefined lengths, as dcmjs writes
+        ...encodeElement("00081130", "SQ", [], littleEndian).slice(0, 8),
+        ...encodeUint32(UNDEFINED_LENGTH, littleEndian),
+        ...encodeItemTag(0xe000, UNDEFINED_LENGTH, littleEndian),
+        // OverlayData
+        ...encodeElement(
+            "60003000",
+            "OW",
+            encodeWords(overlayValues, Uint16Array, littleEndian),
+            littleEndian
+        ),
+        ...encodeItemTag(0xe00d, 0, littleEndian),
+        ...encodeItemTag(0xe0dd, 0, littleEndian),
+        // SamplesPerPixel, Rows, Columns, BitsAllocated, BitsStored,
+        // PixelRepresentation
+        ...encodeElement(
+            "00280002",
+            "US",
+            encodeUint16(1, littleEndian),
+            littleEndian
+        ),
+        ...encodeElement(
+            "00280010",
+            "US",
+            encodeUint16(2, littleEndian),
+            littleEndian
+        ),
+        ...encodeElement(
+            "00280011",
+            "US",
+            encodeUint16(4, littleEndian),
+            littleEndian
+        ),
+        ...encodeElement(
+            "00280100",
+            "US",
+            encodeUint16(16, littleEndian),
+            littleEndian
+        ),
+        ...encodeElement(
+            "00280101",
+            "US",
+            encodeUint16(16, littleEndian),
+            littleEndian
+        ),
+        ...encodeElement(
+            "00280103",
+            "US",
+            encodeUint16(0, littleEndian),
+            littleEndian
+        ),
+        // RedPaletteColorLookupTableData
+        ...encodeElement(
+            "00281201",
+            "OW",
+            encodeWords(lutValues, Uint16Array, littleEndian),
+            littleEndian
+        ),
+        // EncapsulatedDocument
+        ...encodeElement("00420011", "OB", documentBytes, littleEndian),
+        // PointCoordinatesData
+        ...encodeElement(
+            "00660016",
+            "OF",
+            encodeWords(pointValues, Float32Array, littleEndian),
+            littleEndian
+        ),
+        // DoublePointCoordinatesData
+        ...encodeElement(
+            "00660022",
+            "OD",
+            encodeWords(doublePointValues, Float64Array, littleEndian),
+            littleEndian
+        ),
+        // PixelData
+        ...encodeElement(
+            "7FE00010",
+            "OW",
+            encodeWords(pixelValues, Uint16Array, littleEndian),
+            littleEndian
+        )
+    ];
+}
+
+/** The whole part 10 file: preamble, DICM, meta group and dataset */
+function encodeFile(syntax) {
+    return encodePart10(syntax, encodeDataset(syntax !== EXPLICIT_BIG_ENDIAN));
+}
+
+/** Preamble, DICM and meta group, followed by the encoded dataset bytes */
+function encodePart10(syntax, datasetBytes) {
+    // The meta group is always explicit VR little endian
+    const meta = encodeElement(
+        TagHex.TransferSyntaxUID,
+        "UI",
+        paddedAsciiBytes(syntax),
+        true
+    );
+    return new Uint8Array([
+        ...new Array(128).fill(0),
+        ...asciiBytes("DICM"),
+        ...encodeElement(
+            TagHex.FileMetaInformationGroupLength,
+            "UL",
+            encodeUint32(meta.length, true),
+            true
+        ),
+        ...meta,
+        ...datasetBytes
+    ]);
+}
+
+/** Offset of the dataset, past the preamble, DICM and the meta group */
+function datasetOffset(buffer) {
+    const view = new DataView(buffer);
+    // (0002,0000) UL 4 comes first: tag (4) + VR (2) + length (2) + value (4)
+    const metaLength = view.getUint32(128 + 4 + 8, true);
+    return 128 + 4 + 12 + metaLength;
+}
+
+/** The VR and raw value field bytes of each top level element, keyed by tag */
+function parseExplicitElements(buffer, offset, littleEndian) {
+    const view = new DataView(buffer);
+    const elements = {};
+    while (offset + 8 <= buffer.byteLength) {
+        const group = view.getUint16(offset, littleEndian);
+        const element = view.getUint16(offset + 2, littleEndian);
+        const tag = (
+            group.toString(16).padStart(4, "0") +
+            element.toString(16).padStart(4, "0")
+        ).toUpperCase();
+        if (group === 0xfffe) {
+            // item or delimiter: tag (4) + length (4), no VR and no value
+            offset += 8;
+            continue;
+        }
+        const vr = String.fromCharCode(
+            view.getUint8(offset + 4),
+            view.getUint8(offset + 5)
+        );
+        let length;
+        if (LENGTH_32_VRS.includes(vr)) {
+            length = view.getUint32(offset + 8, littleEndian);
+            offset += 12;
+        } else {
+            length = view.getUint16(offset + 6, littleEndian);
+            offset += 8;
+        }
+        if (length === UNDEFINED_LENGTH) {
+            // a sequence, whose items are walked as part of this same loop
+            elements[tag] = { vr, bytes: [] };
+            continue;
+        }
+        elements[tag] = {
+            vr,
+            bytes: Array.from(new Uint8Array(buffer, offset, length))
+        };
+        offset += length;
+    }
+    return elements;
+}
+
+/** The same dataset as encodeDataset, as a DicomDict in little endian memory */
+function makeDicomDict(syntax) {
+    const dicomDict = new DicomDict({
+        [TagHex.TransferSyntaxUID]: { vr: "UI", Value: [syntax] }
+    });
+    dicomDict.dict = {
+        "00080060": { vr: "CS", Value: ["MR"] },
+        "00081130": {
+            vr: "SQ",
+            Value: [
+                {
+                    60003000: {
+                        vr: "OW",
+                        Value: [new Uint16Array(overlayValues).buffer]
+                    }
+                }
+            ]
+        },
+        "00280002": { vr: "US", Value: [1] },
+        "00280010": { vr: "US", Value: [2] },
+        "00280011": { vr: "US", Value: [4] },
+        "00280100": { vr: "US", Value: [16] },
+        "00280101": { vr: "US", Value: [16] },
+        "00280103": { vr: "US", Value: [0] },
+        "00281201": { vr: "OW", Value: [new Uint16Array(lutValues).buffer] },
+        "00420011": { vr: "OB", Value: [new Uint8Array(documentBytes).buffer] },
+        "00660016": { vr: "OF", Value: [new Float32Array(pointValues).buffer] },
+        "00660022": {
+            vr: "OD",
+            Value: [new Float64Array(doublePointValues).buffer]
+        },
+        "7FE00010": { vr: "OW", Value: [new Uint16Array(pixelValues).buffer] }
+    };
+    return dicomDict;
+}
+
+/**
+ * Pixel data as the async reader delivers it, one array of fragments per frame,
+ * viewed as little endian words
+ */
+function hostFrameWords(element, ArrayType) {
+    const [frames] = element.Value;
+    expect(frames).toHaveLength(1); // a single frame, in a single fragment
+    return Array.from(new ArrayType(frames[0]));
+}
+
+/** The value of a binary element, viewed as little endian words */
+function hostWords(element, ArrayType) {
+    const value = element.Value[0];
+    return Array.from(
+        new ArrayType(ArrayBuffer.isView(value) ? value.buffer : value)
+    );
+}
+
+/**
+ * A second synthetic file, in which every interesting element is declared UN
+ * even though the dictionary knows a better VR. Reading one of these goes
+ * through ParsedUnknownValue, which reads the raw bytes and then re-reads them
+ * as the dictionary's VR - a second pass that has its own byte order to get
+ * right. The four cases below are the four combinations that pass differs on.
+ */
+function encodeUnFile(syntax) {
+    const littleEndian = syntax !== EXPLICIT_BIG_ENDIAN;
+    const un = (tag, valueBytes) =>
+        encodeElement(tag, "UN", valueBytes, littleEndian);
+    return encodePart10(syntax, [
+        // BitsAllocated: the dictionary says US, a scalar VR, so the raw read
+        // leaves the bytes in the file's order and the re-read must swap them
+        ...un("00280100", encodeUint16(16, littleEndian)),
+        // RedPaletteColorLookupTableData: the dictionary says OW, so the raw
+        // read has already swapped, and the re-read must not swap again
+        ...un("00281201", encodeWords(lutValues, Uint16Array, littleEndian)),
+        // PointCoordinatesData: as above with 4 byte words
+        ...un("00660016", encodeWords(pointValues, Float32Array, littleEndian)),
+        // LongPrimitivePointIndexList: the 1.0 dictionary says UL, a scalar
+        // VR with 4 byte words, so the re-read must swap them
+        ...un(
+            "00660040",
+            encodeWords(pointIndexValues, Uint32Array, littleEndian)
+        ),
+        // PixelData: the dictionary says "ox", which resolves to OW but is not
+        // itself a binary VR, so the raw read does not swap and the re-read must
+        ...un("7FE00010", encodeWords(pixelValues, Uint16Array, littleEndian)),
+        // control: a string VR is unaffected by byte order
+        ...encodeElement("00080060", "CS", asciiBytes("MR"), littleEndian)
+    ]);
+}
+
+/**
+ * 8-bit pixel data stored as OW in big endian: 2 frames of 3x3 pixels, the
+ * bytes 1..18. A frame is 9 bytes, so the word of bytes 9 and 10 spans both.
+ */
+const oddFrameBytes = Array.from({ length: 18 }, (_, i) => i + 1);
+
+function encodeOddFrameFile() {
+    const us = (tag, value) =>
+        encodeElement(tag, "US", encodeUint16(value, false), false);
+    const words = [];
+    for (let i = 0; i < oddFrameBytes.length; i += 2) {
+        words.push(oddFrameBytes[i] | (oddFrameBytes[i + 1] << 8));
+    }
+    return encodePart10(EXPLICIT_BIG_ENDIAN, [
+        ...us("00280002", 1), // SamplesPerPixel
+        ...encodeElement("00280008", "IS", asciiBytes("2 "), false),
+        ...us("00280010", 3), // Rows
+        ...us("00280011", 3), // Columns
+        ...us("00280100", 8), // BitsAllocated
+        ...encodeElement(
+            "7FE00010",
+            "OW",
+            encodeWords(words, Uint16Array, false),
+            false
+        )
+    ]);
+}
+
+/** The meta and dict that an event-stream parser gives */
+async function collect(parse, input) {
+    const listener = new CollectorListener();
+    await parse(input, listener);
+    return listener.result;
+}
+
+/** The bytes of buffer in chunks of size bytes, to split the words */
+async function* chunks(buffer, size) {
+    const bytes = new Uint8Array(buffer);
+    for (let offset = 0; offset < bytes.length; offset += size) {
+        yield bytes.slice(offset, offset + size);
+    }
+}
+
+const syntaxes = [
+    ["Explicit VR Little Endian", EXPLICIT_LITTLE_ENDIAN],
+    ["Explicit VR Big Endian", EXPLICIT_BIG_ENDIAN]
+];
+
+describe("binary value fields and the transfer syntax byte order", () => {
+    // little endian is the control: the same test must pass without a swap
+    test.each(syntaxes)(
+        "writes the words of the value field in the byte order of %s",
+        (_name, syntax) => {
+            const littleEndian = syntax === EXPLICIT_LITTLE_ENDIAN;
+            const buffer = makeDicomDict(syntax).write();
+            const elements = parseExplicitElements(
+                buffer,
+                datasetOffset(buffer),
+                littleEndian
+            );
+
+            expect(elements["7FE00010"].vr).toEqual("OW");
+            expect(elements["7FE00010"].bytes).toEqual(
+                encodeWords(pixelValues, Uint16Array, littleEndian)
+            );
+            expect(elements["00281201"].bytes).toEqual(
+                encodeWords(lutValues, Uint16Array, littleEndian)
+            );
+            expect(elements["00660016"].bytes).toEqual(
+                encodeWords(pointValues, Float32Array, littleEndian)
+            );
+            expect(elements["00660022"].bytes).toEqual(
+                encodeWords(doublePointValues, Float64Array, littleEndian)
+            );
+            expect(elements["60003000"].bytes).toEqual(
+                encodeWords(overlayValues, Uint16Array, littleEndian)
+            );
+
+            // OB is a byte stream, the same in either byte order
+            expect(elements["00420011"].bytes).toEqual(documentBytes);
+
+            // controls: a scalar and a string VR
+            expect(elements["00280100"].bytes).toEqual(
+                encodeUint16(16, littleEndian)
+            );
+            expect(elements["00080060"].bytes).toEqual(asciiBytes("MR"));
+
+            // and the file as a whole is encoded as the standard describes
+            expect(new Uint8Array(buffer)).toEqual(encodeFile(syntax));
+        }
+    );
+
+    describe("Explicit VR Big Endian", () => {
+        const syntax = EXPLICIT_BIG_ENDIAN;
+
+        test("reads the words of the value field to little endian", () => {
+            const dict = DicomMessage.readFile(encodeFile(syntax).buffer).dict;
+
+            expect(hostWords(dict["7FE00010"], Uint16Array)).toEqual(
+                pixelValues
+            );
+            expect(hostWords(dict["00281201"], Uint16Array)).toEqual(lutValues);
+            expect(hostWords(dict["00660016"], Float32Array)).toEqual(
+                pointValues
+            );
+            expect(hostWords(dict["00660022"], Float64Array)).toEqual(
+                doublePointValues
+            );
+            expect(
+                hostWords(dict["00081130"].Value[0]["60003000"], Uint16Array)
+            ).toEqual(overlayValues);
+
+            // OB is a byte stream, and the controls are unaffected
+            expect(hostWords(dict["00420011"], Uint8Array)).toEqual(
+                documentBytes
+            );
+            expect(dict["00280100"].Value).toEqual([16]);
+            expect(dict["00080060"].Value).toEqual(["MR"]);
+        });
+
+        test("reads the words of the value field to little endian asynchronously", async () => {
+            const reader = new AsyncDicomReader();
+            reader.stream.addBuffer(encodeFile(syntax).buffer);
+            reader.stream.setComplete();
+            const { dict } = await reader.readFile();
+
+            expect(hostFrameWords(dict["7FE00010"], Uint16Array)).toEqual(
+                pixelValues
+            );
+            expect(hostWords(dict["00281201"], Uint16Array)).toEqual(lutValues);
+            expect(hostWords(dict["00660016"], Float32Array)).toEqual(
+                pointValues
+            );
+            expect(hostWords(dict["00660022"], Float64Array)).toEqual(
+                doublePointValues
+            );
+            expect(hostWords(dict["00420011"], Uint8Array)).toEqual(
+                documentBytes
+            );
+            expect(dict["00280100"].Value).toEqual([16]);
+        });
+
+        test("reads whole words when the async reader splits the value", async () => {
+            const reader = new AsyncDicomReader({ maxFragmentSize: 3 });
+            reader.stream.addBuffer(encodeFile(syntax).buffer);
+            reader.stream.setComplete();
+            const { dict } = await reader.readFile();
+            const [fragments] = dict["7FE00010"].Value;
+
+            const bytes = Buffer.concat(fragments.map(f => new Uint8Array(f)));
+
+            expect(fragments.length).toBeGreaterThan(1);
+            expect(
+                Array.from(new Uint16Array(bytes.buffer, bytes.byteOffset, 8))
+            ).toEqual(pixelValues);
+        });
+
+        test("gives expectsRaw OW words as little endian and OB bytes unchanged", async () => {
+            const rawTags = new Set(["00281201", "00420011"]);
+            const listener = new dcmjs.utilities.DicomMetadataListener({
+                addTag(next, tag, tagInfo) {
+                    const result = next(tag, tagInfo);
+                    return rawTags.has(tag) ? { expectsRaw: true } : result;
+                }
+            });
+            const reader = new AsyncDicomReader();
+            reader.stream.addBuffer(encodeFile(syntax).buffer);
+            reader.stream.setComplete();
+            const { dict } = await reader.readFile({ listener });
+
+            expect(hostWords(dict["00281201"], Uint16Array)).toEqual(lutValues);
+            expect(hostWords(dict["00420011"], Uint8Array)).toEqual(
+                documentBytes
+            );
+        });
+
+        test.each([
+            ["fromPart10", buffer => collect(fromPart10, buffer)],
+            [
+                "fromPart10Stream",
+                buffer => collect(fromPart10Stream, chunks(buffer, 3))
+            ]
+        ])(
+            "reads the words of the value field to little endian with %s",
+            async (_name, read) => {
+                const { dict } = await read(encodeFile(syntax).buffer);
+
+                expect(hostWords(dict["7FE00010"], Uint16Array)).toEqual(
+                    pixelValues
+                );
+                expect(hostWords(dict["00281201"], Uint16Array)).toEqual(
+                    lutValues
+                );
+                expect(hostWords(dict["00660016"], Float32Array)).toEqual(
+                    pointValues
+                );
+                expect(hostWords(dict["00660022"], Float64Array)).toEqual(
+                    doublePointValues
+                );
+                expect(
+                    hostWords(
+                        dict["00081130"].Value[0]["60003000"],
+                        Uint16Array
+                    )
+                ).toEqual(overlayValues);
+                expect(hostWords(dict["00420011"], Uint8Array)).toEqual(
+                    documentBytes
+                );
+                expect(dict["00280100"].Value).toEqual([16]);
+            }
+        );
+
+        test.each([
+            ["DicomMessage", buffer => DicomMessage.readFile(buffer)],
+            [
+                "AsyncDicomReader",
+                async buffer => {
+                    const reader = new AsyncDicomReader();
+                    reader.stream.addBuffer(buffer);
+                    reader.stream.setComplete();
+                    return reader.readFile();
+                }
+            ],
+            ["fromPart10", buffer => collect(fromPart10, buffer)],
+            [
+                "fromPart10Stream",
+                buffer => collect(fromPart10Stream, chunks(buffer, 3))
+            ]
+        ])(
+            "reads OW frames that are not a whole number of words with %s",
+            async (_name, read) => {
+                const { dict } = await read(encodeOddFrameFile().buffer);
+                const flat = [dict["7FE00010"].Value].flat(3);
+                const bytes = flat.flatMap(f =>
+                    Array.from(
+                        ArrayBuffer.isView(f)
+                            ? new Uint8Array(
+                                  f.buffer,
+                                  f.byteOffset,
+                                  f.byteLength
+                              )
+                            : new Uint8Array(f)
+                    )
+                );
+
+                expect(bytes).toEqual(oddFrameBytes);
+            }
+        );
+
+        test("round trips read and write losslessly", () => {
+            const original = encodeFile(syntax);
+            const rewritten = DicomMessage.readFile(original.buffer).write();
+
+            expect(new Uint8Array(rewritten)).toEqual(original);
+        });
+
+        test("leaves the value passed in untouched when writing", () => {
+            const dicomDict = makeDicomDict(syntax);
+            const pixelData = dicomDict.dict["7FE00010"].Value[0];
+            dicomDict.write();
+
+            expect(Array.from(new Uint16Array(pixelData))).toEqual(pixelValues);
+        });
+
+        test("reads a UN value field through the dictionary's VR", () => {
+            const dict = DicomMessage.readFile(
+                encodeUnFile(syntax).buffer
+            ).dict;
+
+            // dictionary VR US: a scalar, swapped by the re-read
+            expect(dict["00280100"].Value).toEqual([16]);
+            // dictionary VR OW and OF: already swapped by the raw read
+            expect(hostWords(dict["00281201"], Uint16Array)).toEqual(lutValues);
+            expect(hostWords(dict["00660016"], Float32Array)).toEqual(
+                pointValues
+            );
+            // dictionary VR UL: a scalar with 4 byte words, swapped by the re-read
+            expect(dict["00660040"].Value).toEqual(pointIndexValues);
+            // dictionary VR "ox": resolves to OW, but is not a binary VR
+            // itself, so it is the re-read that swaps
+            expect(hostWords(dict["7FE00010"], Uint16Array)).toEqual(
+                pixelValues
+            );
+            // control
+            expect(dict["00080060"].Value).toEqual(["MR"]);
+        });
+
+        // ExtendedOffsetTable (dictionary VR OV), (0066,0040) written as
+        // explicit OL, and UN elements whose dictionary VR is OW or OF
+        test.each([
+            ["7FE00001", "UN", 8],
+            ["7FE00001", "OV", 8],
+            ["00660040", "OL", 4],
+            ["00281201", "UN", 2],
+            ["00660016", "UN", 4]
+        ])(
+            "reads %s %s as little endian words with every reader",
+            async (tag, vr, width) => {
+                const fileBytes = Array.from({ length: 16 }, (_, i) => i + 1);
+                const buffer = encodePart10(syntax, [
+                    ...encodeElement(tag, vr, fileBytes, false)
+                ]).buffer;
+                const asyncRead = async listener => {
+                    const reader = new AsyncDicomReader();
+                    reader.stream.addBuffer(buffer);
+                    reader.stream.setComplete();
+                    return reader.readFile({ listener });
+                };
+                const rawListener = new dcmjs.utilities.DicomMetadataListener({
+                    addTag(next, tag, tagInfo) {
+                        next(tag, tagInfo);
+                        return { expectsRaw: true };
+                    }
+                });
+                const results = [
+                    DicomMessage.readFile(buffer),
+                    await asyncRead(),
+                    await asyncRead(rawListener),
+                    await collect(fromPart10, buffer),
+                    await collect(fromPart10Stream, chunks(buffer, 3))
+                ];
+                const bytes = results.map(({ dict }) =>
+                    [dict[tag].Value]
+                        .flat(3)
+                        .flatMap(f => Array.from(new Uint8Array(f)))
+                );
+                const littleEndian = fileBytes.map(
+                    (_, i) =>
+                        fileBytes[i - (i % width) + width - 1 - (i % width)]
+                );
+
+                bytes.forEach(b => expect(b).toEqual(littleEndian));
+            }
+        );
+    });
+
+    test.each([
+        [
+            "big endian to little endian",
+            EXPLICIT_BIG_ENDIAN,
+            EXPLICIT_LITTLE_ENDIAN
+        ],
+        [
+            "little endian to big endian",
+            EXPLICIT_LITTLE_ENDIAN,
+            EXPLICIT_BIG_ENDIAN
+        ]
+    ])("transcodes %s", (_name, fromSyntax, toSyntax) => {
+        const dicomDict = DicomMessage.readFile(encodeFile(fromSyntax).buffer);
+        dicomDict.meta[TagHex.TransferSyntaxUID].Value = [toSyntax];
+
+        expect(new Uint8Array(dicomDict.write())).toEqual(encodeFile(toSyntax));
+    });
+});
+
+describe("a big endian file and its little endian copy", () => {
+    const fixture = syntax =>
+        fs.readFileSync(
+            path.join(
+                __dirname,
+                `../packages/fixtures/testImages/CT1_UNC.explicit_${syntax}_endian.dcm`
+            )
+        );
+    const toArrayBuffer = data =>
+        data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
+    const pixelBytes = value => {
+        const flat = [value].flat(3);
+        return Buffer.concat(flat.map(f => new Uint8Array(f)));
+    };
+
+    test.each([
+        ["DicomMessage", data => DicomMessage.readFile(toArrayBuffer(data))],
+        [
+            "AsyncDicomReader",
+            async data => {
+                const reader = new AsyncDicomReader({ maxFragmentSize: 1001 });
+                reader.stream.addBuffer(toArrayBuffer(data));
+                reader.stream.setComplete();
+                return reader.readFile();
+            }
+        ],
+        [
+            "fromPart10Stream",
+            data => collect(fromPart10Stream, chunks(data, 999))
+        ]
+    ])("give the same pixel data with %s", async (_name, read) => {
+        const big = await read(fixture("big"));
+        const little = await read(fixture("little"));
+
+        const bigPixels = pixelBytes(big.dict["7FE00010"].Value);
+        expect(bigPixels.length).toBeGreaterThan(0);
+        expect(
+            bigPixels.equals(pixelBytes(little.dict["7FE00010"].Value))
+        ).toBe(true);
+    });
+});

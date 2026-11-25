@@ -16,10 +16,10 @@ const {
     withChunks
 } = require("./helper/build.js");
 
-// dcmjs@0.52.0 from npm; ceiling = measured ratio rounded up (normalizer functional groups: ×1.09014, ×1.07183).
+// dcmjs@0.52.0 from npm; ceiling = measured ratio rounded up (normalizer functional groups on #663: ×1.09435, ×1.07600).
 const BUNDLES = {
-    "dcmjs.js": { baseline: 1384431, ceiling: 1.091 },
-    "dcmjs.es.js": { baseline: 1357418, ceiling: 1.072 }
+    "dcmjs.js": { baseline: 1384431, ceiling: 1.095 },
+    "dcmjs.es.js": { baseline: 1357418, ceiling: 1.076 }
 };
 
 // The public names of build/dcmjs.es.js: the named exports of src/index.js.
