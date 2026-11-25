@@ -34,6 +34,8 @@ export class AsyncDicomReader {
 
     constructor(options = {}) {
         this.isLittleEndian = options?.isLittleEndian;
+        // Number of sequence items being read, 0 at the top level
+        this.sequenceDepth = 0;
         // Default maxFragmentSize is 128 MB (128 * 1024 * 1024 bytes)
         this.maxFragmentSize = options?.maxFragmentSize ?? 128 * 1024 * 1024;
         this.stream = new ReadBufferStream(null, {
@@ -320,8 +322,17 @@ export class AsyncDicomReader {
      * item boundary and returns control here for the next item. Without that
      * offset, read() skips the later Item tags as instructions, and all items
      * of a defined-length sequence merge into the first item.
+     *
+     * untilTag and includeUntilTagValue apply to the top-level data set only,
+     * so the items are read without them: an Icon Image Sequence item has its
+     * own Pixel Data, which must not stop a read with untilTag 7FE00010.
      */
     async readSequence(listener, sqTagInfo, options) {
+        const itemOptions = {
+            ...options,
+            untilTag: null,
+            includeUntilTagValue: false
+        };
         const { length } = sqTagInfo;
         const { stream } = this;
         const readSyntax =
@@ -332,7 +343,7 @@ export class AsyncDicomReader {
                 : stream.offset + length;
         while (stream.offset < endOffset && (await stream.ensureAvailable())) {
             readLog.debug("readSequence loop", stream.offset, endOffset);
-            const tagInfo = this.readTagHeader({ ...options, readSyntax });
+            const tagInfo = this.readTagHeader({ ...itemOptions, readSyntax });
             const { tag } = tagInfo;
             if (tag === TagHex.Item) {
                 listener.startObject();
@@ -346,21 +357,40 @@ export class AsyncDicomReader {
                 // item (PS3.5 7.5.3), but the item is read on this stream:
                 // put back the decoder the item started with.
                 const { decoder } = stream;
-                await this.read(listener, {
-                    ...options,
-                    untilOffset: itemUntilOffset,
-                    readSyntax
-                });
+                this.sequenceDepth++;
+                try {
+                    await this.read(listener, {
+                        ...itemOptions,
+                        untilOffset: itemUntilOffset,
+                        readSyntax
+                    });
+                } finally {
+                    this.sequenceDepth--;
+                }
                 stream.setDecoder(decoder);
             } else if (tag === TagHex.SequenceDelimitationEnd) {
                 // Sequence of undefined lengths end in sequence delimitation item
                 return;
             } else {
                 console.warn("Unknown tag info", length, tagInfo);
-                throw new Error();
+                throw new Error(
+                    `Expected an item or a sequence delimitation item in a sequence, found tag ${tag}`
+                );
             }
         }
         // Sequences of defined length end at the end offset
+    }
+
+    /**
+     * The number of frames of the Pixel Data being read. NumberOfFrames is
+     * tracked for the top-level data set only, so Pixel Data inside a sequence
+     * item (an Icon Image Sequence item, for example) is a single frame.
+     */
+    getNumberOfFrames() {
+        if (this.sequenceDepth > 0) {
+            return 1;
+        }
+        return parseInt(this.listener?.information?.numberOfFrames || 1);
     }
 
     readPixelData(tagInfo) {
@@ -409,8 +439,7 @@ export class AsyncDicomReader {
         const isVideo = isVideoTransferSyntax(transferSyntaxUid);
 
         // Check number of frames - only use video logic for single frame (or undefined)
-        const numberOfFrames = listener.information?.numberOfFrames;
-        const isSingleFrame = !numberOfFrames || parseInt(numberOfFrames) <= 1;
+        const isSingleFrame = this.getNumberOfFrames() <= 1;
 
         let offsets = await this.readOffsets();
 
@@ -486,9 +515,7 @@ export class AsyncDicomReader {
         const { length } = tagInfo;
         const { listener } = this;
 
-        const numberOfFrames = parseInt(
-            listener.information?.numberOfFrames || 1
-        );
+        const numberOfFrames = this.getNumberOfFrames();
         const frameLength = Math.floor(length / numberOfFrames);
         if (numberOfFrames > 1) {
             const rows = listener.information?.rows;
@@ -539,9 +566,7 @@ export class AsyncDicomReader {
         const { length } = tagInfo;
         const { listener, stream } = this;
 
-        const numberOfFrames = parseInt(
-            listener.information?.numberOfFrames || 1
-        );
+        const numberOfFrames = this.getNumberOfFrames();
 
         const rows = listener.information?.rows;
         const cols = listener.information?.columns;
