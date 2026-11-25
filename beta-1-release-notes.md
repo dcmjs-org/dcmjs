@@ -82,6 +82,9 @@ when a better approach appears.
   Before, the value had the declared size with zero padding. A file that ends
   inside a multi-byte header field now throws a `RangeError`. Before, the
   reader read zero bytes for the missing part.
+- `denaturalizeDataset` writes a DS number, single or in a list, in 16
+  characters or less, and keeps the exponent. Before, it cut
+  `3.5163338899999997e-10` to `3.51633388999999` (issue #531, #610).
 - `Colors` converts CIELab with the D50 white point, as PS3.3 C.10.7.1.1
   requires. New: `dicomlab2RGB8`, `rgb82DICOMLAB` and `d50WhitePointXYZ`. The
   colors of a SEG or SR object that an older dcmjs wrote can shift: a

@@ -258,7 +258,12 @@ export class DicomMetaDictionary {
         return value;
     }
 
-    // keep the static function to support previous calls to the class
+    /**
+     * Converts a naturalized dataset to a DICOM JSON style dict. A DS
+     * number is formatted to 16 characters or less (PS3.5 Table 6.2-1,
+     * https://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_6.2.html).
+     * Kept static to support previous calls to the class.
+     */
     static denaturalizeDataset(dataset, nameMap = DicomMetaDictionary.nameMap) {
         var unnaturalDataset = {};
         // reserved private blocks become a creator plus hex-tag elements
@@ -324,6 +329,17 @@ export class DicomMetaDictionary {
                     let vr = ValueRepresentation.createByTypeString(
                         dataItem.vr
                     );
+
+                    if (dataItem.vr === "DS") {
+                        // Fit numbers to 16 characters; String(number) is cut below
+                        const formatDs = value =>
+                            typeof value === "number" || value instanceof Number
+                                ? vr.convertToString(Number(value))
+                                : value;
+                        dataItem.Value = Array.isArray(dataItem.Value)
+                            ? dataItem.Value.map(formatDs)
+                            : formatDs(dataItem.Value);
+                    }
 
                     dataItem.Value = DicomMetaDictionary.denaturalizeValue(
                         dataItem.Value
