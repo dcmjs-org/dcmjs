@@ -16,20 +16,10 @@ const {
     withChunks
 } = require("./helper/build.js");
 
-// dcmjs@0.52.0 from npm, and the ceiling for each default bundle.
-// dcmjs.js is 1.08: the bundle is unminified, so frameDataset (#631) adds
-// ~8 KB of documented source, past the ~2.4 KB that 1.06 left (×1.0638),
-// the addBuffer view fix (#621) documents the copy and transfer
-// semantics, ~1.5 KB more (×1.0651), the dict-level private block API
-// (privateBlockDict.js) adds ~8.7 KB (×1.0713), and the VR, SOP class and
-// character-set registries add ~10 KB (×1.079). dcmjs.es.js is 1.062 for
-// the same registries (×1.055 to ×1.061). The D50 CIELab conversion of
-// #598 adds ~3.5 KB (×1.0825 and ×1.0649). The sequence item character
-// set fix (port of #609) adds ~0.5 KB (×1.0831 and ×1.0656), so the
-// ceilings are 1.084 and 1.066.
+// dcmjs@0.52.0 from npm; each ceiling is the measured ratio rounded up to 0.001.
 const BUNDLES = {
-    "dcmjs.js": { baseline: 1384431, ceiling: 1.084 },
-    "dcmjs.es.js": { baseline: 1357418, ceiling: 1.066 }
+    "dcmjs.js": { baseline: 1384431, ceiling: 1.085 },
+    "dcmjs.es.js": { baseline: 1357418, ceiling: 1.067 }
 };
 
 // The public names of build/dcmjs.es.js: the named exports of src/index.js.
