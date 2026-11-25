@@ -369,7 +369,7 @@ class ValueRepresentation {
                 vr = Vrs.US;
             } else {
                 // Warn at most once per unknown type (issue #457): files can
-                // carry many elements of the same unregistered VR (OL/OV/SV),
+                // carry many elements of the same unregistered VR,
                 // and a per-element warning is pure log spam.
                 if (!unknownVrTypesWarned.has(type)) {
                     unknownVrTypesWarned.add(type);
@@ -1441,9 +1441,15 @@ class UnsignedLong extends ValueRepresentation {
     }
 }
 
+/**
+ * UV, Unsigned 64-bit Very Long, and the base of SV (PS3.5 Section 6.2,
+ * Table 6.2-1,
+ * https://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_6.2.html).
+ */
 class Unsigned64BitVeryLong extends ValueRepresentation {
-    constructor() {
-        super("UV");
+    constructor(type = "UV", accessor = "BigUint64") {
+        super(type);
+        this.accessor = accessor;
         this.maxLength = 8;
         this.padByte = PADDING_NULL;
         this.fixed = true;
@@ -1451,13 +1457,13 @@ class Unsigned64BitVeryLong extends ValueRepresentation {
     }
 
     readBytes(stream) {
-        return stream.readBigUint64();
+        return stream[`read${this.accessor}`]();
     }
 
     /**
-     * DataView.setBigUint64 only accepts BigInt values, so this method
-     * coerces Numbers and numeric strings, as the other numeric VRs do with
-     * toInt/toFloat. A null or undefined entry becomes 0, as US/UL write null
+     * DataView.setBigUint64 and setBigInt64 only accept BigInt values, so
+     * this method coerces Numbers and numeric strings, as the other numeric
+     * VRs do with toInt/toFloat. A null or undefined entry becomes 0, as US/UL write null
      * entries. A null, undefined or empty scalar stays as it is, so the base
      * write() writes a zero-length element (PS3.5 7.4, Type 2).
      */
@@ -1479,9 +1485,20 @@ class Unsigned64BitVeryLong extends ValueRepresentation {
         return super.writeBytes(
             stream,
             coercedValue,
-            super.write(stream, "BigUint64", coercedValue),
+            super.write(stream, this.accessor, coercedValue),
             writeOptions
         );
+    }
+}
+
+/**
+ * SV, Signed 64-bit Very Long (PS3.5 Section 6.2, Table 6.2-1,
+ * https://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_6.2.html).
+ * Reads give BigInt values; writes take a BigInt, a Number or a numeric string.
+ */
+class Signed64BitVeryLong extends Unsigned64BitVeryLong {
+    constructor() {
+        super("SV", "BigInt64");
     }
 }
 
@@ -1626,6 +1643,31 @@ class OtherFloatString extends BinaryRepresentation {
     }
 }
 
+// A stream of 32 bit words, for example Long Triangle Point Index List
+// (0066,0041), where the 16 bit OW form caps a surface at 65535 points.
+class OtherLongString extends BinaryRepresentation {
+    constructor() {
+        super("OL");
+        this.maxLength = null;
+        this.padByte = PADDING_NULL;
+        this.noMultiple = true;
+    }
+}
+
+/**
+ * OV, Other 64-bit Very Long: a stream of 64 bit words, read and written as
+ * raw bytes (PS3.5 Section 6.2, Table 6.2-1,
+ * https://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_6.2.html).
+ */
+class OtherVeryLongString extends BinaryRepresentation {
+    constructor() {
+        super("OV");
+        this.maxLength = null;
+        this.padByte = PADDING_NULL;
+        this.noMultiple = true;
+    }
+}
+
 /**
  * The shared VR instances by code (`Vrs.DS`); `registerVr` extends it.
  * @typedef {Object<string, ValueRepresentation>} VrRegistry
@@ -1647,12 +1689,15 @@ export const Vrs = {
     OB: new OtherByteString(),
     OD: new OtherDoubleString(),
     OF: new OtherFloatString(),
+    OL: new OtherLongString(),
+    OV: new OtherVeryLongString(),
     OW: new OtherWordString(),
     PN: new PersonName(),
     SH: new ShortString(),
     SL: new SignedLong(),
     SQ: new SequenceOfItems(),
     SS: new SignedShort(),
+    SV: new Signed64BitVeryLong(),
     ST: new ShortText(),
     TM: new TimeValue(),
     UC: new UnlimitedCharacters(),
@@ -1670,9 +1715,9 @@ export const Vrs = {
  * `code`. The flags default to the instance's isBinary/isLength32/
  * allowMultiple; singleVRs, BINARY_VRS and VALID_VRS follow.
  * @example
- * const otherLong = new Vrs.OW.constructor();
- * otherLong.type = "OL";
- * registerVr("OL", otherLong, { length32: true, single: true,
+ * const vendorWords = new Vrs.OW.constructor();
+ * vendorWords.type = "ZZ"; // a code that is not a DICOM VR
+ * registerVr("ZZ", vendorWords, { length32: true, single: true,
  *     readSingle: true, byteStream: true });
  *
  * @param {string} code the two-letter VR code

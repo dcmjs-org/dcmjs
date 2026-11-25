@@ -16,10 +16,10 @@ const {
     withChunks
 } = require("./helper/build.js");
 
-// dcmjs@0.52.0 from npm; each ceiling is the measured ratio rounded up to 0.001.
+// dcmjs@0.52.0 from npm; ceiling = measured ratio rounded up (merge of #653 into #663: ×1.09295, ×1.07460).
 const BUNDLES = {
-    "dcmjs.js": { baseline: 1384431, ceiling: 1.091 },
-    "dcmjs.es.js": { baseline: 1357418, ceiling: 1.073 }
+    "dcmjs.js": { baseline: 1384431, ceiling: 1.093 },
+    "dcmjs.es.js": { baseline: 1357418, ceiling: 1.075 }
 };
 
 // The public names of build/dcmjs.es.js: the named exports of src/index.js.

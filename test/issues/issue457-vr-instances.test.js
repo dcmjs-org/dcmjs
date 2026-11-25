@@ -10,19 +10,19 @@
  *
  * Triage category: C (contract assertion). How 1.0 deliberately differs
  * from the upstream report: UV got a real Unsigned64BitVeryLong instance
- * (added for the Supplement 225 video arc), while OL/OV/SV intentionally
- * remain UN fallbacks — safe byte-preserving reads/writes — with the log
- * demoted from error to warn; this file pins that split contract rather
- * than requiring four dedicated implementations.
+ * (added for the Supplement 225 video arc), OL got OtherLongString (PR
+ * #632), and OV and SV got their own classes. A code that is not a DICOM VR
+ * falls back to UN — safe byte-preserving reads/writes — with the log
+ * demoted from error to warn; this file pins that fallback.
  */
 import { ValueRepresentation } from "../../src/ValueRepresentation.js";
 import { validationLog } from "../../src/log.js";
 
 validationLog.setLevel(5);
 
-describe("issue #457 — VR registry coverage for OL, OV, SV, UV", () => {
+describe("issue #457 — the UN fallback for an unknown VR code", () => {
     // Runs first: the fallback warns once per type per module load, so this
-    // must observe the very first OL lookup in this suite.
+    // must observe the very first ZZ lookup in this suite.
     it("fallback logs at warn severity, not error (no validation-error spam)", () => {
         const warns = [];
         const errors = [];
@@ -31,7 +31,7 @@ describe("issue #457 — VR registry coverage for OL, OV, SV, UV", () => {
         validationLog.warn = (...args) => warns.push(args);
         validationLog.error = (...args) => errors.push(args);
         try {
-            ValueRepresentation.createByTypeString("OL");
+            ValueRepresentation.createByTypeString("ZZ");
         } finally {
             validationLog.warn = origWarn;
             validationLog.error = origError;
@@ -48,8 +48,8 @@ describe("issue #457 — VR registry coverage for OL, OV, SV, UV", () => {
         expect(vr.isBinary()).toBe(true);
     });
 
-    it("OL/OV/SV fall back to a usable UN instance without throwing", () => {
-        for (const type of ["OL", "OV", "SV"]) {
+    it("codes that are not DICOM VRs fall back to a usable UN instance", () => {
+        for (const type of ["ZZ", "QQ"]) {
             let vr;
             expect(() => {
                 vr = ValueRepresentation.createByTypeString(type);
@@ -62,26 +62,26 @@ describe("issue #457 — VR registry coverage for OL, OV, SV, UV", () => {
     });
 
     it("fallback lookups are stable (same shared instance every call)", () => {
-        const first = ValueRepresentation.createByTypeString("OL");
-        const second = ValueRepresentation.createByTypeString("OL");
+        const first = ValueRepresentation.createByTypeString("QQ");
+        const second = ValueRepresentation.createByTypeString("QQ");
         expect(second).toBe(first);
-        expect(ValueRepresentation.createByTypeString("SV")).toBe(first);
+        expect(ValueRepresentation.createByTypeString("ZZ")).toBe(first);
     });
 
     // Fixed: the UN fallback warns at most once per unknown type, so a file
     // with many such elements produces one log line instead of per-element
     // spam (the issue's — and #368's — complaint).
-    it("#457: OL/OV/SV fallback warns at most once per type", () => {
+    it("#457: the UN fallback warns once per type", () => {
         const warns = [];
         const origWarn = validationLog.warn;
         validationLog.warn = (...args) => warns.push(args);
         try {
-            ValueRepresentation.createByTypeString("OV");
-            ValueRepresentation.createByTypeString("OV");
-            ValueRepresentation.createByTypeString("OV");
+            ValueRepresentation.createByTypeString("XX");
+            ValueRepresentation.createByTypeString("XX");
+            ValueRepresentation.createByTypeString("XX");
         } finally {
             validationLog.warn = origWarn;
         }
-        expect(warns.length).toBeLessThanOrEqual(1);
+        expect(warns).toHaveLength(1);
     });
 });

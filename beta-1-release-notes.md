@@ -71,6 +71,12 @@ when a better approach appears.
   explicit `transfer: true` keeps a reference to the buffer instead of
   copying it when the range covers the whole `ArrayBuffer`; a partial view
   or range is always copied, and the source is not detached.
+- An OL, OV or SV element reads and writes with its own VR. Before, the
+  reader and the writer used UN, and a rewrite of Long Triangle Point Index
+  List (0066,0041) came back as UL numbers (#632). An SV value is a BigInt,
+  as a UV value is. `DicomWebJsonWriter` writes an SV or UV value as a JSON
+  Number, or as a decimal string when the value is not a safe integer
+  (PS3.18 Table F.2.3-1). Before, an SV element was UN with `InlineBinary`.
 - A binary value with a declared length longer than the data reads the
   bytes that are present, and logs a validation warning (GHSA-xwvm-687g-rm36).
   Before, the value had the declared size with zero padding. A file that ends

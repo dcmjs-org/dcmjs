@@ -1,7 +1,6 @@
 /**
  * The classification of each VR, stored once. ValueRepresentation copies
  * the flags to each instance; singleVRs and BINARY_VRS are computed here.
- * OL/OV have flags but no VR class in 1.0.
  * @typedef {Object} VrFlags
  * @property {boolean} [binary] binary number or tag: isBinary()
  * @property {boolean} [length32] 32-bit explicit VR length: isLength32()
@@ -17,12 +16,13 @@ const SEED = {
     OB: "length32 single readSingle byteStream",
     OD: "length32 byteStream",
     OF: "length32 single readSingle byteStream",
-    OL: "byteStream",
-    OV: "byteStream",
+    OL: "length32 single byteStream",
+    OV: "length32 single byteStream",
     OW: "length32 single readSingle byteStream",
     SL: "binary",
     SQ: "length32 single readSingle",
     SS: "binary",
+    SV: "binary length32",
     UC: "length32",
     UL: "binary",
     UN: "length32 single readSingle byteStream",
