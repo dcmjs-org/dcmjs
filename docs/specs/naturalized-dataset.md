@@ -340,6 +340,12 @@ A private value is a list (NAT-U-VAL-4). An assigned PN string converts:
   list of only `undefined` entries (`[undefined]`, which a reader can give
   for a zero-length element, issue #417). For every VR, an element with no
   value is written with zero length (an SQ: no items), and with no warning.
+- **NAT-U-RT-8.** A DS number, single or in a list, is written in 16
+  characters or less. The written value keeps the exponent and the
+  significant digits that fit. For example, `3.5163338899999997e-10` is
+  written as `3.5163338900e-10`, not cut to `3.51633388999999`. PS3.5
+  [Section 6.2, Table 6.2-1](https://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_6.2.html)
+  gives DS "16 bytes maximum" and the characters that DS allows.
 
 ### NAT-U-SET — utilities to add or replace an attribute
 
@@ -654,3 +660,4 @@ block form, and they apply to standard attributes too.
 | NAT-U-HIST-9, NAT-I-ALIAS-4 (`Object.create` children) | `test/core/privateBlocks.test.js` |
 | NAT-U-HIST-6, NAT-U-SQ-1 (`deepCloneInstance`) | `packages/core/test/createInstance.test.js` |
 | NAT-U-FRAME | `test/core/frameDataset.test.js` |
+| NAT-U-RT-8 | `test/issues/issue531-ds-exponent.test.js` |
