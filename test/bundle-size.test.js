@@ -24,11 +24,12 @@ const {
 // (privateBlockDict.js) adds ~8.7 KB (×1.0713), and the VR, SOP class and
 // character-set registries add ~10 KB (×1.079). dcmjs.es.js is 1.062 for
 // the same registries (×1.055 to ×1.061). The D50 CIELab conversion of
-// #598 adds ~3.5 KB (×1.0825 and ×1.0649), so the ceilings are 1.083 and
-// 1.065.
+// #598 adds ~3.5 KB (×1.0825 and ×1.0649). The sequence item character
+// set fix (port of #609) adds ~0.5 KB (×1.0831 and ×1.0656), so the
+// ceilings are 1.084 and 1.066.
 const BUNDLES = {
-    "dcmjs.js": { baseline: 1384431, ceiling: 1.083 },
-    "dcmjs.es.js": { baseline: 1357418, ceiling: 1.065 }
+    "dcmjs.js": { baseline: 1384431, ceiling: 1.084 },
+    "dcmjs.es.js": { baseline: 1357418, ceiling: 1.066 }
 };
 
 // The public names of build/dcmjs.es.js: the named exports of src/index.js.

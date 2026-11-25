@@ -476,6 +476,11 @@ export class BufferStream {
         return this.view.hasData(start, end);
     }
 
+    /**
+     * Returns a read stream over the next `length` bytes and moves past them.
+     * The new stream decodes text with this stream's decoder, so sequence items
+     * use the dataset's SpecificCharacterSet (PS3.5 7.5.3).
+     */
     more(length) {
         if (this.offset + length > this.endOffset) {
             throw new Error("Request more than currently allocated buffer");
@@ -488,7 +493,8 @@ export class BufferStream {
         //   stop: this.offset + length
         // });
         const newBuf = new ReadBufferStream(
-            this.slice(this.offset, this.offset + length)
+            this.slice(this.offset, this.offset + length),
+            { decoder: this.decoder }
         );
         this.increment(length);
         newBuf.setComplete();
@@ -539,7 +545,8 @@ export class BufferStream {
 export class ReadBufferStream extends BufferStream {
     /**
      * @param {ArrayBuffer|ArrayBufferView|BufferStream|null} buffer
-     * @param {{littleEndian?: boolean, start?: number, stop?: number, noCopy?: boolean, clearBuffers?: boolean}} [options]
+     * @param {{littleEndian?: boolean, start?: number, stop?: number, noCopy?: boolean, clearBuffers?: boolean, decoder?: TextDecoder}} [options]
+     *   `decoder` decodes text; the default is latin1.
      */
     constructor(buffer, options, legacyOptions) {
         // any explicit non-object 2nd argument is the 0.x byte order
@@ -560,11 +567,13 @@ export class ReadBufferStream extends BufferStream {
             stop,
             noCopy = false,
             clearBuffers = false,
+            decoder,
             ...rest
         } = options;
         super({ ...rest, littleEndian, clearBuffers });
         this.noCopy = noCopy;
-        this.decoder = new TextDecoder("latin1");
+        // a stream over part of a dataset gets the dataset's decoder
+        this.decoder = decoder ?? new TextDecoder("latin1");
 
         if (buffer instanceof BufferStream) {
             this.view.from(buffer.view, options);
