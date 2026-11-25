@@ -14,6 +14,7 @@ import {
     Tag,
     DicomMetaDictionary,
     DicomMetadataListener,
+    isUnSequenceValue,
     log
 } from "@dcmjs-org/core";
 import { DicomMessage, singleVRs } from "./DicomMessage.js";
@@ -322,14 +323,16 @@ export class AsyncDicomReader {
      */
     async readSequence(listener, sqTagInfo, options) {
         const { length } = sqTagInfo;
-        const { stream, syntax } = this;
+        const { stream } = this;
+        const readSyntax =
+            sqTagInfo.sequenceReadSyntax ?? options?.readSyntax ?? this.syntax;
         const endOffset =
             length === UNDEFINED_LENGTH_FIX
                 ? Number.MAX_SAFE_INTEGER
                 : stream.offset + length;
         while (stream.offset < endOffset && (await stream.ensureAvailable())) {
             readLog.debug("readSequence loop", stream.offset, endOffset);
-            const tagInfo = this.readTagHeader(syntax, options);
+            const tagInfo = this.readTagHeader({ ...options, readSyntax });
             const { tag } = tagInfo;
             if (tag === TagHex.Item) {
                 listener.startObject();
@@ -341,7 +344,8 @@ export class AsyncDicomReader {
                         : Math.min(stream.offset + itemLength, endOffset);
                 await this.read(listener, {
                     ...options,
-                    untilOffset: itemUntilOffset
+                    untilOffset: itemUntilOffset,
+                    readSyntax
                 });
             } else if (tag === TagHex.SequenceDelimitationEnd) {
                 // Sequence of undefined lengths end in sequence delimitation item
@@ -631,8 +635,9 @@ export class AsyncDicomReader {
             includeUntilTagValue: false
         }
     ) {
-        const { stream, syntax } = this;
+        const { stream } = this;
         const { untilTag, includeUntilTagValue } = options;
+        const syntax = options.readSyntax ?? this.syntax;
         const implicit = syntax == IMPLICIT_LITTLE_ENDIAN;
         const isLittleEndian = syntax !== EXPLICIT_BIG_ENDIAN;
         stream.setEndian(isLittleEndian);
@@ -648,6 +653,7 @@ export class AsyncDicomReader {
         let length = null;
         let vr = null;
         let vrType;
+        let wireVrType = null;
 
         const isCommand = tagObj.group() === 0;
         if (tagObj.isInstruction()) {
@@ -683,6 +689,7 @@ export class AsyncDicomReader {
             vr = ValueRepresentation.createByTypeString(vrType);
         } else {
             vrType = stream.readVR();
+            wireVrType = vrType;
 
             if (vrType === "UN" && DicomMessage.lookupTag(tagObj)?.vr) {
                 vrType = DicomMessage.lookupTag(tagObj).vr;
@@ -707,6 +714,16 @@ export class AsyncDicomReader {
             }
         }
 
+        let sequenceReadSyntax;
+        if (
+            !implicit &&
+            wireVrType === "UN" &&
+            isUnSequenceValue(stream.view, stream.offset, length, vr.type)
+        ) {
+            vr = ValueRepresentation.createByTypeString("SQ");
+            sequenceReadSyntax = IMPLICIT_LITTLE_ENDIAN;
+        }
+
         const punctuatedTag = DicomMetaDictionary.punctuateTag(tag);
         const entry = DicomMetaDictionary.dictionary[punctuatedTag];
 
@@ -718,7 +735,8 @@ export class AsyncDicomReader {
             tagObj,
             vm: entry?.vm,
             name: entry?.name,
-            length: length === UNDEFINED_LENGTH ? -1 : length
+            length: length === UNDEFINED_LENGTH ? -1 : length,
+            ...(sequenceReadSyntax && { sequenceReadSyntax })
         };
         return header;
     }
@@ -731,7 +749,8 @@ export class AsyncDicomReader {
      */
     async readSingle(tagInfo, listener, options) {
         const { length } = tagInfo;
-        const { stream, syntax } = this;
+        const { stream } = this;
+        const syntax = options?.readSyntax ?? this.syntax;
         await this.stream.ensureAvailable(length);
         const vr = ValueRepresentation.createByTypeString(tagInfo.vr);
         let values = [];

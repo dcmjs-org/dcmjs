@@ -18,7 +18,8 @@ import {
     normalizeSyntax,
     writeDataSet,
     writeTagObject,
-    getTagWriteValues
+    getTagWriteValues,
+    isUnSequenceValue
 } from "@dcmjs-org/core";
 import { DicomDict } from "./DicomDict.js";
 
@@ -361,7 +362,8 @@ export class DicomMessage {
 
         var length = null,
             vr = null,
-            vrType;
+            vrType,
+            wireVrType = null;
 
         if (implicit) {
             length = stream.readUint32();
@@ -392,6 +394,7 @@ export class DicomMessage {
             vr = ValueRepresentation.createByTypeString(vrType);
         } else {
             vrType = stream.readVR();
+            wireVrType = vrType;
 
             if (
                 vrType === "UN" &&
@@ -420,6 +423,17 @@ export class DicomMessage {
             }
         }
 
+        let readSyntax = syntax;
+        if (
+            !implicit &&
+            wireVrType === "UN" &&
+            isUnSequenceValue(stream.view, stream.offset, length, vr.type)
+        ) {
+            vr = ValueRepresentation.createByTypeString("SQ");
+            readSyntax = IMPLICIT_LITTLE_ENDIAN;
+            stream.setEndian(true); // the items are LE in a BE body too
+        }
+
         var values = [];
         var rawValues = [];
         if (vr.isBinary() && length > vr.maxLength && !vr.noMultiple) {
@@ -429,7 +443,7 @@ export class DicomMessage {
                 const { rawValue, value } = vr.read(
                     stream,
                     vr.maxLength,
-                    syntax,
+                    readSyntax,
                     options
                 );
                 rawValues.push(rawValue);
@@ -440,7 +454,7 @@ export class DicomMessage {
             const readOptions =
                 vr.type === "SQ" ? { ...options, readItem: readItem } : options;
             const { rawValue, value } =
-                vr.read(stream, length, syntax, readOptions) || {};
+                vr.read(stream, length, readSyntax, readOptions) || {};
             if (!vr.isBinary() && singleVRs.indexOf(vr.type) == -1) {
                 rawValues = rawValue;
                 values = value;
