@@ -665,6 +665,44 @@ describe("binary value fields and the transfer syntax byte order", () => {
             // control
             expect(dict["00080060"].Value).toEqual(["MR"]);
         });
+
+        test("reads a UN value field with dictionary VR OV the same with every reader", async () => {
+            // ExtendedOffsetTable: the dictionary says OV
+            const buffer = encodePart10(syntax, [
+                ...encodeElement(
+                    "7FE00001",
+                    "UN",
+                    Array.from({ length: 16 }, (_, i) => i + 1),
+                    false
+                )
+            ]).buffer;
+            const asyncRead = async listener => {
+                const reader = new AsyncDicomReader();
+                reader.stream.addBuffer(buffer);
+                reader.stream.setComplete();
+                return reader.readFile({ listener });
+            };
+            const rawListener = new dcmjs.utilities.DicomMetadataListener({
+                addTag(next, tag, tagInfo) {
+                    next(tag, tagInfo);
+                    return { expectsRaw: true };
+                }
+            });
+            const results = [
+                DicomMessage.readFile(buffer),
+                await asyncRead(),
+                await asyncRead(rawListener),
+                await collect(fromPart10, buffer)
+            ];
+            const bytes = results.map(({ dict }) =>
+                [dict["7FE00001"].Value]
+                    .flat(3)
+                    .flatMap(f => Array.from(new Uint8Array(f)))
+            );
+
+            expect(bytes[0]).toHaveLength(16);
+            bytes.forEach(b => expect(b).toEqual(bytes[0]));
+        });
     });
 
     test.each([

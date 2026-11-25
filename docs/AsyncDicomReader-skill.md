@@ -583,7 +583,7 @@ Starting with the `expectsRaw` feature, listeners can request raw binary data fo
 4. Multiple fragments are delivered sequentially via multiple `listener.value()` calls
 5. Data is split into fragments based on `maxFragmentSize` (default 128MB) with buffer consumption between chunks for memory efficiency
 6. This only works for non-pixel data tags with positive length
-7. Byte order in Explicit VR Big Endian: OW, OF and OD values (and OL and OV, where the VR is supported) come as little endian words, the same as on the other read paths. OB, UN and all other VRs (including US, SS, UL, SL, FL, FD and AT) come in the byte order of the file
+7. Byte order in Explicit VR Big Endian: OW, OF and OD values (and OL and OV, where the VR is supported) come as little endian words, the same as on the other read paths. OB, UN and all other VRs (including US, SS, UL, SL, FL, FD and AT) come in the byte order of the file. The VR here is the VR in `tagInfo.vr`: an element that the file stores as UN, whose dictionary VR is OW, OF or OD, comes with that VR in `tagInfo.vr`, and its words come as little endian
 8. Pixel data and sequences continue to use their specialized handlers
 
 **Example:**

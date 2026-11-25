@@ -656,7 +656,7 @@ export class AsyncDicomReader {
 
     /**
      * Reads raw binary data in chunks and delivers it to the listener.
-     * This method reads data in 64KB chunks to manage memory efficiently.
+     * Reads the value in fragments of `maxFragmentSize` bytes.
      * OW/OF/OL/OD/OV words come as little endian, as on the other read paths.
      */
     async readRawBinary(tagInfo) {
