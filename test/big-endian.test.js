@@ -536,6 +536,25 @@ describe("binary value fields and the transfer syntax byte order", () => {
             ).toEqual(pixelValues);
         });
 
+        test("gives expectsRaw OW words as little endian and OB bytes unchanged", async () => {
+            const rawTags = new Set(["00281201", "00420011"]);
+            const listener = new dcmjs.utilities.DicomMetadataListener({
+                addTag(next, tag, tagInfo) {
+                    const result = next(tag, tagInfo);
+                    return rawTags.has(tag) ? { expectsRaw: true } : result;
+                }
+            });
+            const reader = new AsyncDicomReader();
+            reader.stream.addBuffer(encodeFile(syntax).buffer);
+            reader.stream.setComplete();
+            const { dict } = await reader.readFile({ listener });
+
+            expect(hostWords(dict["00281201"], Uint16Array)).toEqual(lutValues);
+            expect(hostWords(dict["00420011"], Uint8Array)).toEqual(
+                documentBytes
+            );
+        });
+
         test.each([
             ["fromPart10", buffer => collect(fromPart10, buffer)],
             [

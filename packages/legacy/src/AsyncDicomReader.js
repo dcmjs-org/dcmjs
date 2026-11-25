@@ -657,10 +657,11 @@ export class AsyncDicomReader {
     /**
      * Reads raw binary data in chunks and delivers it to the listener.
      * This method reads data in 64KB chunks to manage memory efficiently.
+     * OW/OF/OL/OD/OV words come as little endian, as on the other read paths.
      */
     async readRawBinary(tagInfo) {
         const { length } = tagInfo;
-        await this._emitSplitValues(length);
+        await this._emitSplitValues(length, this.wordWidth(tagInfo));
     }
 
     /** Bytes per word of the value field; "ox" (a UN pixel data) is OW. */
