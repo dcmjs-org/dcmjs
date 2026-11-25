@@ -9,6 +9,7 @@ import {
 import { setVrFlags, vrFlags } from "./constants/vrs.js";
 import { log, validationLog } from "./log.js";
 import dicomJson from "./utilities/dicomJson.js";
+import { swapBytes, swappedCopy } from "./utilities/byteSwap.js";
 
 function rtrim(str) {
     return str.replace(/\s*$/g, "");
@@ -41,6 +42,9 @@ function applyVrFlags(vr, flags = {}) {
     vr._allowMultiple = !flags.binary && !flags.single;
     vr._isLength32 = !!flags.length32;
 }
+
+// Bytes per word of a binary value field, for Explicit VR Big Endian (OB, UN: 1)
+const WORD_WIDTHS = { OD: 8, OF: 4, OL: 4, OV: 8, OW: 2 };
 
 // Unknown VR types already warned about by createByTypeString — the UN
 // fallback warns at most once per type (issue #457).
@@ -428,6 +432,11 @@ class BinaryRepresentation extends ValueRepresentation {
         this._storeRaw = false;
     }
 
+    /** Bytes per word of the value field; 1 for a byte stream. */
+    get wordWidth() {
+        return WORD_WIDTHS[this.type] ?? 1;
+    }
+
     writeBytes(stream, value, _syntax, isEncapsulated, writeOptions = {}) {
         var i;
         var binaryStream;
@@ -516,6 +525,9 @@ class BinaryRepresentation extends ValueRepresentation {
             return 0xffffffff;
         } else {
             var binaryData = value[0];
+            if (!stream.isLittleEndian) {
+                binaryData = swappedCopy(binaryData, this.wordWidth);
+            }
             binaryStream = new ReadBufferStream(binaryData);
             stream.concat(binaryStream);
             return super.writeBytes(
@@ -645,12 +657,6 @@ class BinaryRepresentation extends ValueRepresentation {
             }
             return frames;
         } else {
-            var bytes;
-            /*if (this.type == 'OW') {
-                bytes = stream.readUint16Array(length);
-            } else if (this.type == 'OB') {
-                bytes = stream.readUint8Array(length);
-            }*/
             // A declared length longer than the data present means a
             // truncated or malformed file: read the bytes that are present.
             // https://github.com/dcmjs-org/dcmjs/security/advisories/GHSA-xwvm-687g-rm36
@@ -661,8 +667,15 @@ class BinaryRepresentation extends ValueRepresentation {
                 );
                 length = available;
             }
-            bytes = stream.getBuffer(stream.offset, stream.offset + length);
+            const bytes = stream.getBuffer(
+                stream.offset,
+                stream.offset + length
+            );
             stream.increment(length);
+            if (!stream.isLittleEndian) {
+                // getBuffer gives a copy
+                swapBytes(bytes, this.wordWidth);
+            }
             return [bytes];
         }
     }
@@ -1540,9 +1553,12 @@ class ParsedUnknownValue extends BinaryRepresentation {
         this._storeRaw = true;
     }
 
+    /** The second read swaps only what readBytes did not (scalar VRs, "ox"). */
     read(stream, length, syntax, readOptions) {
         const arrayBuffer = this.readBytes(stream, length, syntax)[0];
-        const streamFromBuffer = new ReadBufferStream(arrayBuffer);
+        const streamFromBuffer = new ReadBufferStream(arrayBuffer, {
+            littleEndian: stream.isLittleEndian || this.wordWidth > 1
+        });
         const vr = ValueRepresentation.createByTypeString(this.type);
 
         if (vr.isBinary() && length > vr.maxLength && !vr.noMultiple) {
