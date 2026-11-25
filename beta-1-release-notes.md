@@ -79,6 +79,10 @@ when a better approach appears.
 - `denaturalizeDataset` writes a DS number, single or in a list, in 16
   characters or less, and keeps the exponent. Before, it cut
   `3.5163338899999997e-10` to `3.51633388999999` (issue #531, #610).
+- `Colors` converts CIELab with the D50 white point, as PS3.3 C.10.7.1.1
+  requires. New: `dicomlab2RGB8`, `rgb82DICOMLAB` and `d50WhitePointXYZ`. The
+  colors of a SEG or SR object that an older dcmjs wrote can shift: a
+  saturated blue `[0, 0, 255]` now displays as `[91, 0, 255]` (#598).
 - New packages: `@dcmjs-org/core`, `@dcmjs-org/legacy`, `@dcmjs-org/parser`
   and `@dcmjs-org/generator`. Each package publishes a built `dist/` folder
   (ES module and CommonJS), so it loads in plain Node without a bundler.
