@@ -15,7 +15,8 @@ import {
     DicomMetaDictionary,
     DicomMetadataListener,
     isUnSequenceValue,
-    log
+    log,
+    swapBytes
 } from "@dcmjs-org/core";
 import { DicomMessage, singleVRs } from "./DicomMessage.js";
 
@@ -36,7 +37,7 @@ export class AsyncDicomReader {
         this.isLittleEndian = options?.isLittleEndian;
         // Number of sequence items being read, 0 at the top level
         this.sequenceDepth = 0;
-        // Default maxFragmentSize is 128 MB (128 * 1024 * 1024 bytes)
+        // Default maxFragmentSize is 128 MB; a Big Endian fragment is at least one word, so it can be larger
         this.maxFragmentSize = options?.maxFragmentSize ?? 128 * 1024 * 1024;
         this.stream = new ReadBufferStream(null, {
             clearBuffers: true,
@@ -404,8 +405,10 @@ export class AsyncDicomReader {
     /**
      * Emits one or more listener.value() calls for a fragment, splitting if needed.
      * This does NOT start/pop any array contexts; callers control the surrounding structure.
+     * In Explicit VR Big Endian, each fragment holds whole words of wordWidth
+     * bytes, swapped to little endian.
      */
-    async _emitSplitValues(length) {
+    async _emitSplitValues(length, wordWidth = 1) {
         const { stream, listener } = this;
         await listener.awaitDrain?.();
         const { maxFragmentSize } = this;
@@ -414,12 +417,22 @@ export class AsyncDicomReader {
                 `maxFragmentSize must be a positive number, got ${maxFragmentSize}`
             );
         }
+        const swap = this.syntax === EXPLICIT_BIG_ENDIAN && wordWidth > 1;
+        const fragmentSize = swap
+            ? Math.max(
+                  wordWidth,
+                  maxFragmentSize - (maxFragmentSize % wordWidth)
+              )
+            : maxFragmentSize;
         let offset = 0;
         while (offset < length) {
             readLog.trace("_emitSplitValues loop", offset, length);
-            const chunkSize = Math.min(maxFragmentSize, length - offset);
+            const chunkSize = Math.min(fragmentSize, length - offset);
             await stream.ensureAvailable(chunkSize);
             const buffer = stream.readArrayBuffer(chunkSize);
+            if (swap) {
+                swapBytes(buffer, wordWidth);
+            }
             listener.value(buffer);
             offset += chunkSize;
             stream.consume();
@@ -514,6 +527,7 @@ export class AsyncDicomReader {
     async readUncompressed(tagInfo) {
         const { length } = tagInfo;
         const { listener } = this;
+        const wordWidth = this.wordWidth(tagInfo);
 
         const numberOfFrames = this.getNumberOfFrames();
         const frameLength = Math.floor(length / numberOfFrames);
@@ -540,10 +554,29 @@ export class AsyncDicomReader {
             }
         }
 
+        if (
+            this.syntax === EXPLICIT_BIG_ENDIAN &&
+            frameLength % wordWidth !== 0
+        ) {
+            // A word spans two frames, so swap the whole value before it is cut into frames
+            await this.stream.ensureAvailable(length);
+            const allPixelData = this.stream.readArrayBuffer(length);
+            this.stream.consume();
+            swapBytes(allPixelData, wordWidth);
+            for (let offset = 0; offset < length; offset += frameLength) {
+                listener.startObject([]);
+                listener.value(
+                    allPixelData.slice(offset, offset + frameLength)
+                );
+                listener.pop();
+            }
+            return;
+        }
+
         for (let frameNumber = 0; frameNumber < numberOfFrames; frameNumber++) {
             readLog.trace("readUncompressed loop", frameNumber, numberOfFrames);
             listener.startObject([]);
-            await this._emitSplitValues(frameLength);
+            await this._emitSplitValues(frameLength, wordWidth);
             listener.pop();
             // console.log(stream.getBufferMemoryInfo());
         }
@@ -600,6 +633,10 @@ export class AsyncDicomReader {
         await stream.ensureAvailable(length);
         const allPixelData = stream.readArrayBuffer(totalBytes);
         stream.consume();
+        if (this.syntax === EXPLICIT_BIG_ENDIAN) {
+            // the bits of OW data are packed in big endian words
+            swapBytes(allPixelData, this.wordWidth(tagInfo));
+        }
 
         // Extract each frame, unpacking bits so each frame starts at byte 0
         for (let frameNumber = 0; frameNumber < numberOfFrames; frameNumber++) {
@@ -644,11 +681,19 @@ export class AsyncDicomReader {
 
     /**
      * Reads raw binary data in chunks and delivers it to the listener.
-     * This method reads data in 64KB chunks to manage memory efficiently.
+     * Reads the value in fragments of `maxFragmentSize` bytes.
+     * OW/OF/OL/OD/OV words come as little endian, as on the other read paths.
      */
     async readRawBinary(tagInfo) {
         const { length } = tagInfo;
-        await this._emitSplitValues(length);
+        await this._emitSplitValues(length, this.wordWidth(tagInfo));
+    }
+
+    /** Bytes per word of the value field; "ox" (a UN pixel data) is OW. */
+    wordWidth(tagInfo) {
+        return (
+            ValueRepresentation.createByTypeString(tagInfo.vr).wordWidth ?? 1
+        );
     }
 
     isSequence(tagInfo) {
