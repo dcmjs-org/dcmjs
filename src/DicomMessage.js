@@ -5,6 +5,7 @@ import {
     EXPLICIT_LITTLE_ENDIAN,
     IMPLICIT_LITTLE_ENDIAN,
     VM_DELIMITER,
+    SEQUENCE_ITEM_TAG,
     TagHex,
     encodingMapping,
     unencapsulatedTransferSyntaxes,
@@ -23,16 +24,15 @@ export const singleVRs = ["SQ", "OF", "OW", "OB", "UN", "LT"];
  * PS3.5 §6.2.2: a UN value that holds a sequence is Implicit VR LE.
  * dcmjs finds that case by the item tag (FFFE,E000), FE FF 00 E0, at the
  * start of a defined-length value, with an item length that is undefined or
- * fits in the value. Only for a tag with dictionary VR SQ or no dictionary entry.
+ * fits in the value. The tag must have the dictionary VR SQ or no dictionary entry.
  */
 export function isUnSequenceValue(stream, length, tag) {
+    const peekUint16LE = offset =>
+        stream.peekUint8(offset) | (stream.peekUint8(offset + 1) << 8);
     if (
         length < 8 ||
         length === UNDEFINED_LENGTH ||
-        stream.peekUint8(0) !== 0xfe ||
-        stream.peekUint8(1) !== 0xff ||
-        stream.peekUint8(2) !== 0x00 ||
-        stream.peekUint8(3) !== 0xe0
+        ((peekUint16LE(0) << 16) | peekUint16LE(2)) >>> 0 !== SEQUENCE_ITEM_TAG
     ) {
         return false;
     }
@@ -40,12 +40,7 @@ export function isUnSequenceValue(stream, length, tag) {
     if (dictVr && dictVr !== "SQ") {
         return false;
     }
-    const itemLength =
-        (stream.peekUint8(4) |
-            (stream.peekUint8(5) << 8) |
-            (stream.peekUint8(6) << 16) |
-            (stream.peekUint8(7) << 24)) >>>
-        0;
+    const itemLength = (peekUint16LE(4) | (peekUint16LE(6) << 16)) >>> 0;
     return itemLength === UNDEFINED_LENGTH || itemLength <= length - 8;
 }
 

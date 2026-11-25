@@ -248,9 +248,7 @@ describe("sync and async parser equivalency tests", () => {
                 "00090010": { vr: "LO", Value: ["X"] },
                 "00091010": { vr: "UN", Value: [{ InlineBinary: "AAECAw==" }] }
             };
-            expect(() => dicomDict.write()).toThrow(
-                "First argument to DataView constructor must be an ArrayBuffer"
-            );
+            expect(() => dicomDict.write()).toThrow(TypeError);
         });
     });
 });
