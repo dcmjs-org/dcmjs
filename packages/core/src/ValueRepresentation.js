@@ -1230,6 +1230,8 @@ class SequenceOfItems extends ValueRepresentation {
                             );
                         }
                         elements.push(readOptions.readItem(itemStream, syntax));
+                    } else {
+                        elements.push({});
                     }
                     if (!undefLength && read == sqlength) {
                         break;
