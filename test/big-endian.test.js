@@ -23,6 +23,7 @@ const LENGTH_32_VRS = [
     "OV",
     "OW",
     "SQ",
+    "SV",
     "UC",
     "UN",
     "UR",
@@ -665,11 +666,14 @@ describe("binary value fields and the transfer syntax byte order", () => {
             expect(dict["00080060"].Value).toEqual(["MR"]);
         });
 
-        // ExtendedOffsetTable (dictionary VR OV), LongPrimitivePointIndexList (OL)
+        // ExtendedOffsetTable (dictionary VR OV), (0066,0040) written as
+        // explicit OL, and UN elements whose dictionary VR is OW or OF
         test.each([
             ["7FE00001", "UN", 8],
             ["7FE00001", "OV", 8],
-            ["00660040", "OL", 4]
+            ["00660040", "OL", 4],
+            ["00281201", "UN", 2],
+            ["00660016", "UN", 4]
         ])(
             "reads %s %s as little endian words with every reader",
             async (tag, vr, width) => {
@@ -693,7 +697,8 @@ describe("binary value fields and the transfer syntax byte order", () => {
                     DicomMessage.readFile(buffer),
                     await asyncRead(),
                     await asyncRead(rawListener),
-                    await collect(fromPart10, buffer)
+                    await collect(fromPart10, buffer),
+                    await collect(fromPart10Stream, chunks(buffer, 3))
                 ];
                 const bytes = results.map(({ dict }) =>
                     [dict[tag].Value]

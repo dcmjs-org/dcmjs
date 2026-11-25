@@ -321,12 +321,12 @@ the standard and a way forward for code that relied on the old behavior:
     the opt-out recipe are documented ahead of it.
 
 One more behavior change is not a standard violation fix in the list above:
-in Explicit VR Big Endian, the readers now give OW, OF and OD values (and
-OL and OV values, where the VR is supported) as little endian words, also
+in Explicit VR Big Endian, the readers now give OW, OF, OD, OL and OV
+values as little endian words, also
 to an `AsyncDicomReader` listener that asks for raw bytes (`expectsRaw`),
 and the writers swap them to big endian
 ([NAT-U-BIN-7](specs/naturalized-dataset.md)). A value that the file
-stores as UN, whose dictionary VR is OW, OF or OD, reads as that VR and
+stores as UN, whose dictionary VR is OW, OF, OD, OL or OV, reads as that VR and
 also gets the swap. Code that swapped the bytes
 of these values itself now gets them swapped two times; remove that swap.
 

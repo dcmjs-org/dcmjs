@@ -432,12 +432,9 @@ class BinaryRepresentation extends ValueRepresentation {
         this._storeRaw = false;
     }
 
-    /**
-     * Bytes per word of the value field; 1 for a byte stream, and 1 for a
-     * type with no registered VR class, which the readers read as UN.
-     */
+    /** Bytes per word of the value field; 1 for a byte stream. */
     get wordWidth() {
-        return Vrs[this.type] ? WORD_WIDTHS[this.type] ?? 1 : 1;
+        return WORD_WIDTHS[this.type] ?? 1;
     }
 
     writeBytes(stream, value, _syntax, isEncapsulated, writeOptions = {}) {
