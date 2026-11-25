@@ -729,7 +729,7 @@ export class AsyncDicomReader {
         if (
             !implicit &&
             wireVrType === "UN" &&
-            isUnSequenceValue(stream, length)
+            isUnSequenceValue(stream, length, tagObj)
         ) {
             vr = ValueRepresentation.createByTypeString("SQ");
             sequenceReadSyntax = IMPLICIT_LITTLE_ENDIAN;

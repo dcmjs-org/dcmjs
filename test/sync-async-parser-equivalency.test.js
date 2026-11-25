@@ -1,6 +1,7 @@
 import { ReadBufferStream } from "../src/BufferStream.js";
 import dcmjs from "../src/index.js";
 import {
+    EXPLICIT_BIG_ENDIAN,
     EXPLICIT_LITTLE_ENDIAN,
     IMPLICIT_LITTLE_ENDIAN
 } from "../src/constants/dicom.js";
@@ -165,8 +166,8 @@ describe("sync and async parser equivalency tests", () => {
             expectPs352SequenceDict(dict);
         });
 
-        async function readSyncAndAsync(dict) {
-            const part10 = createPs352UnSequencePart10Buffer(dict);
+        async function readSyncAndAsync(dict, syntax) {
+            const part10 = createPs352UnSequencePart10Buffer(dict, syntax);
             const reader = new AsyncDicomReader();
             reader.stream.addBuffer(new Uint8Array(part10));
             reader.stream.setComplete();
@@ -196,6 +197,60 @@ describe("sync and async parser equivalency tests", () => {
                     bytes
                 );
             }
+        });
+
+        test("Explicit VR Big Endian: a private UN sequence keeps its item", async () => {
+            const dicts = await readSyncAndAsync(
+                {
+                    "00090010": { vr: "LO", Value: ["X"] },
+                    "00091010": {
+                        vr: "UN",
+                        Value: [buildUnSequenceValueBytes()]
+                    },
+                    "00091011": { vr: "LO", Value: ["AFTER"] }
+                },
+                EXPLICIT_BIG_ENDIAN
+            );
+            for (const dict of dicts) {
+                expectPs352SequenceDict(dict, "00091010");
+                expect(dict["00091011"].Value[0].trim()).toBe("AFTER");
+            }
+        });
+
+        test.each([
+            [
+                "a private UN with the item tag and a bad item length",
+                "00091010",
+                [0xfe, 0xff, 0x00, 0xe0, 0, 0, 1, 0, 1, 2, 3, 4, 5, 6, 7, 8]
+            ],
+            [
+                "a standard OB tag sent as UN that starts with the item tag",
+                "00420011",
+                [0xfe, 0xff, 0x00, 0xe0, 4, 0, 0, 0, 9, 9, 9, 9]
+            ]
+        ])("%s keeps its bytes", async (_name, tag, bytes) => {
+            const dicts = await readSyncAndAsync({
+                "00090010": { vr: "LO", Value: ["X"] },
+                [tag]: { vr: "UN", Value: [new Uint8Array(bytes).buffer] }
+            });
+            for (const dict of dicts) {
+                expect(dict[tag].vr).not.toBe("SQ");
+                expect([...new Uint8Array(dict[tag].Value[0])]).toEqual(bytes);
+            }
+        });
+
+        // The 0.x UN writer has no InlineBinary support, so the write throws, as before #496.
+        test("a UN with an InlineBinary reference is not written as SQ", () => {
+            const dicomDict = new DicomDict({
+                "00020010": { vr: "UI", Value: [EXPLICIT_LITTLE_ENDIAN] }
+            });
+            dicomDict.dict = {
+                "00090010": { vr: "LO", Value: ["X"] },
+                "00091010": { vr: "UN", Value: [{ InlineBinary: "AAECAw==" }] }
+            };
+            expect(() => dicomDict.write()).toThrow(
+                "First argument to DataView constructor must be an ArrayBuffer"
+            );
         });
     });
 });
