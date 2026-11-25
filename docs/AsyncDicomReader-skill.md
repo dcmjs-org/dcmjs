@@ -424,7 +424,7 @@ Reads the dataset portion using the provided listener.
 Reads a single tag header (tag, VR, length).
 
 **Options:**
-- `untilTag` (string): Stop when reaching this tag
+- `untilTag` (string): Stop when reaching this tag in the top-level data set (it does not stop inside sequence items)
 - `includeUntilTagValue` (boolean): Include the stop tag's value
 
 **Returns:** `Object` - Tag information with structure:
