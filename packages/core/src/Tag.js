@@ -9,7 +9,7 @@ import {
 } from "./constants/dicom";
 import { normalizeSyntax } from "./core/normalizeSyntax.js";
 import { ValueRepresentation } from "./ValueRepresentation.js";
-import { isBinaryData } from "./utilities/binaryFragment.js";
+import { isItemDictLike } from "./utilities/unSequence.js";
 
 function paddingLeft(paddingValue, string) {
     return String(paddingValue + string).slice(-paddingValue.length);
@@ -137,7 +137,7 @@ class Tag {
             vrType === "UN" &&
             Array.isArray(values) &&
             values.length > 0 &&
-            values.every(v => v && typeof v === "object" && !isBinaryData(v))
+            values.every(isItemDictLike)
         ) {
             vrType = "SQ";
         }

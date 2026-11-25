@@ -1,6 +1,7 @@
 import dcmjs from "../src/index.js";
 import { ReadBufferStream } from "../src/BufferStream.js";
 import {
+    EXPLICIT_BIG_ENDIAN,
     EXPLICIT_LITTLE_ENDIAN,
     IMPLICIT_LITTLE_ENDIAN
 } from "../src/constants/dicom.js";
@@ -165,24 +166,72 @@ describe("sync and async parser equivalency tests", () => {
             dicts.forEach(dict => expectPs352SequenceDict(dict, "00091010"));
         });
 
-        test("a private UN value that starts with FE FF but not the item tag stays UN", async () => {
-            const bytes = [0xfe, 0xff, 1, 2, 3, 4, 5, 6];
+        test("all readers read a UN sequence in Explicit VR Big Endian, and the element after it", async () => {
+            const dicts = await readAll(
+                createPs352UnSequencePart10Buffer(
+                    {
+                        "00090010": { vr: "LO", Value: ["X"] },
+                        "00091010": {
+                            vr: "UN",
+                            Value: [buildUnSequenceValueBytes()]
+                        },
+                        "00100020": { vr: "LO", Value: ["ID1"] }
+                    },
+                    EXPLICIT_BIG_ENDIAN
+                )
+            );
+            for (const dict of dicts) {
+                expectPs352SequenceDict(dict, "00091010");
+                expect(dict["00100020"].Value).toEqual(["ID1"]);
+            }
+        });
+
+        // Values that start with the item tag but are not a §6.2.2 sequence.
+        test.each([
+            [
+                "a private UN with an item length larger than the value",
+                "00091010",
+                [0xfe, 0xff, 0, 0xe0, 0, 0, 1, 0, 1, 2, 3, 4, 5, 6, 7, 8],
+                "UN"
+            ],
+            [
+                "a standard UN tag whose dictionary VR is OB",
+                "00420011",
+                [0xfe, 0xff, 0, 0xe0, 4, 0, 0, 0, 9, 9, 9, 9],
+                "OB"
+            ]
+        ])("all readers keep the bytes of %s", async (_, tag, bytes, vr) => {
             const dicts = await readAll(
                 createPs352UnSequencePart10Buffer({
                     "00090010": { vr: "LO", Value: ["X"] },
-                    "00091010": {
-                        vr: "UN",
-                        Value: [new Uint8Array(bytes).buffer]
-                    }
+                    [tag]: { vr: "UN", Value: [new Uint8Array(bytes).buffer] }
                 })
             );
             for (const dict of dicts) {
-                expect(dict["00091010"].vr).toBe("UN");
-                expect([...new Uint8Array(dict["00091010"].Value[0])]).toEqual(
-                    bytes
-                );
+                expect(dict[tag].vr).toBe(vr);
+                expect([...new Uint8Array(dict[tag].Value[0])]).toEqual(bytes);
             }
         });
+
+        test.each([
+            [{ InlineBinary: "AAECAw==" }],
+            [{ BulkDataURI: "http://example.com/bulk" }]
+        ])(
+            "a UN element with the binary reference %j is not written as SQ",
+            ref => {
+                const dicomDict = new DicomDict({
+                    "00020010": { vr: "UI", Value: [EXPLICIT_LITTLE_ENDIAN] }
+                });
+                dicomDict.dict = {
+                    "00090010": { vr: "LO", Value: ["X"] },
+                    "00091010": { vr: "UN", Value: [ref] }
+                };
+                const written = dicomDict.write();
+                expect(elementHeaderHex(written, "09001010").slice(8, 12)).toBe(
+                    "554e"
+                );
+            }
+        );
 
         test.each([
             [EXPLICIT_LITTLE_ENDIAN, "0900101053510000ffffffff"],

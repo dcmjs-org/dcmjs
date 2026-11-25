@@ -42,17 +42,15 @@ export function createPs352UnSequenceDatasetElementBuffer() {
 }
 
 /**
- * Minimal Explicit VR LE Part 10 file. The default dataset holds (0018,100A)
- * as UN with the §6.2.2 value bytes.
+ * Minimal Explicit VR Part 10 file (LE by default). The default dataset holds
+ * (0018,100A) as UN with the §6.2.2 value bytes.
  */
 export function createPs352UnSequencePart10Buffer(
-    dict = { "0018100A": { vr: "UN", Value: [buildUnSequenceValueBytes()] } }
+    dict = { "0018100A": { vr: "UN", Value: [buildUnSequenceValueBytes()] } },
+    syntax = EXPLICIT_LITTLE_ENDIAN
 ) {
     const dicomDict = new DicomDict({
-        [TagHex.TransferSyntaxUID]: {
-            vr: "UI",
-            Value: [EXPLICIT_LITTLE_ENDIAN]
-        }
+        [TagHex.TransferSyntaxUID]: { vr: "UI", Value: [syntax] }
     });
     dicomDict.dict = dict;
     return dicomDict.write();

@@ -18,29 +18,14 @@ import {
     normalizeSyntax,
     writeDataSet,
     writeTagObject,
-    getTagWriteValues
+    getTagWriteValues,
+    isUnSequenceValue
 } from "@dcmjs-org/core";
 import { DicomDict } from "./DicomDict.js";
 
 // Relocated to @dcmjs-org/core (constants/dicom.js); re-exported here because it
 // has always lived on this module's surface.
 export { singleVRs };
-
-/**
- * PS3.5 §6.2.2: a UN value that holds a sequence is Implicit VR LE. The
- * reader finds that case by the item tag (FFFE,E000), FE FF 00 E0, at the
- * start of a defined-length value.
- */
-export function isUnSequenceValue(stream, length) {
-    return (
-        length >= 8 &&
-        length !== UNDEFINED_LENGTH &&
-        stream.peekUint8(0) === 0xfe &&
-        stream.peekUint8(1) === 0xff &&
-        stream.peekUint8(2) === 0x00 &&
-        stream.peekUint8(3) === 0xe0
-    );
-}
 
 export class DicomMessage {
     static read(
@@ -378,7 +363,7 @@ export class DicomMessage {
         var length = null,
             vr = null,
             vrType,
-            wireVrType = null; // the VR in the stream, before a dictionary override
+            wireVrType = null;
 
         if (implicit) {
             length = stream.readUint32();
@@ -442,10 +427,11 @@ export class DicomMessage {
         if (
             !implicit &&
             wireVrType === "UN" &&
-            isUnSequenceValue(stream, length)
+            isUnSequenceValue(stream.view, stream.offset, length, vr.type)
         ) {
             vr = ValueRepresentation.createByTypeString("SQ");
             readSyntax = IMPLICIT_LITTLE_ENDIAN;
+            stream.setEndian(true); // the items are LE in a BE body too
         }
 
         var values = [];

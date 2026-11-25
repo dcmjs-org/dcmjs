@@ -51,6 +51,8 @@ import {
  * to SQ, regardless of its value bytes; an UNDEFINED-length dictionary
  * miss resolves to SQ by the length rule. The parser's el.items (its
  * framing peek) is metadata only and must not influence VR resolution.
+ * One exception, outside this function: an explicit UN whose value holds a
+ * PS3.5 §6.2.2 sequence reads as SQ (isUnSequenceValue in @dcmjs-org/core).
  *
  * `window.implicit` is already resolved by the caller: a meta window
  * always carries implicit=false; a body window carries the negotiated value.

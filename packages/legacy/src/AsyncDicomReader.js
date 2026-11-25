@@ -14,9 +14,10 @@ import {
     Tag,
     DicomMetaDictionary,
     DicomMetadataListener,
+    isUnSequenceValue,
     log
 } from "@dcmjs-org/core";
-import { DicomMessage, isUnSequenceValue, singleVRs } from "./DicomMessage.js";
+import { DicomMessage, singleVRs } from "./DicomMessage.js";
 
 const readLog = log.getLogger("AsyncDicomReader");
 
@@ -717,7 +718,7 @@ export class AsyncDicomReader {
         if (
             !implicit &&
             wireVrType === "UN" &&
-            isUnSequenceValue(stream, length)
+            isUnSequenceValue(stream.view, stream.offset, length, vr.type)
         ) {
             vr = ValueRepresentation.createByTypeString("SQ");
             sequenceReadSyntax = IMPLICIT_LITTLE_ENDIAN;

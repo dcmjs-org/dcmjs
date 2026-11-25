@@ -33,6 +33,7 @@ import {
     DEFLATED_EXPLICIT_LITTLE_ENDIAN,
     VALID_VRS,
     normalizeSyntax,
+    isUnSequenceValue,
     ValueRepresentation
 } from "@dcmjs-org/core";
 import { emitValues, emitDecodedLeaf } from "./emit.js";
@@ -635,7 +636,8 @@ async function fromPart10StreamImpl(input, listener, options, parseState) {
      * Defined length: resolveVrInstance is the single canonical implicit-VR
      * contract (AD-1) — dictionary-miss elements resolve to UN and are never
      * data-peek-promoted to SQ (eager parity). Only dictionary-known SQs take
-     * the sequence path.
+     * the sequence path, with one exception: an explicit UN whose value holds
+     * a PS3.5 §6.2.2 sequence (core isUnSequenceValue) reads as SQ.
      *
      * Undefined length: the element is classified as SQ
      * ({@link isUndefinedLengthSequence}), encapsulated pixel data, or an
@@ -700,11 +702,18 @@ async function fromPart10StreamImpl(input, listener, options, parseState) {
             length: valueLength,
             hadUndefinedLength: undef
         };
+        let vrInstance = resolveVrInstance(elLike, EMPTY_WIN);
+        // The one data-peek promotion to SQ (PS3.5 §6.2.2), see the JSDoc.
         if (
             vrStr === "UN" &&
             !undef &&
-            valueLength >= 8 &&
-            (await isUnSequenceValueAt(valueStartAbs))
+            (await ensureAbs(valueStartAbs + 8)) &&
+            isUnSequenceValue(
+                bsrc.view,
+                valueStartAbs,
+                valueLength,
+                vrInstance.type
+            )
         ) {
             await withImplicitLE(() =>
                 emitSequence(
@@ -717,7 +726,6 @@ async function fromPart10StreamImpl(input, listener, options, parseState) {
             );
             return currentDecoder;
         }
-        let vrInstance = resolveVrInstance(elLike, EMPTY_WIN);
 
         if (!undef) {
             // Only dictionary-known SQs take the sequence path (AD-1).
@@ -771,21 +779,6 @@ async function fromPart10StreamImpl(input, listener, options, parseState) {
             currentDecoder
         );
         return currentDecoder;
-    }
-
-    /**
-     * PS3.5 §6.2.2: a defined-length UN value that starts with the item tag
-     * (FFFE,E000), FE FF 00 E0, holds a sequence in Implicit VR LE.
-     */
-    async function isUnSequenceValueAt(valueStartAbs) {
-        if (!(await ensureAbs(valueStartAbs + 4))) return false;
-        const v = bsrc.view;
-        return (
-            v.getUint8(valueStartAbs) === 0xfe &&
-            v.getUint8(valueStartAbs + 1) === 0xff &&
-            v.getUint8(valueStartAbs + 2) === 0x00 &&
-            v.getUint8(valueStartAbs + 3) === 0xe0
-        );
     }
 
     /** Runs `fn` with the body read as Implicit VR LE, then restores the syntax. */
