@@ -70,6 +70,13 @@ export class DicomWebJsonWriter extends EventStreamListener {
                 return raw;
             }
         }
+        // SV/UV are BigInt, which JSON.stringify rejects; F.2.3 allows a string
+        if (typeof v === "bigint") {
+            const safe =
+                v >= BigInt(Number.MIN_SAFE_INTEGER) &&
+                v <= BigInt(Number.MAX_SAFE_INTEGER);
+            return safe ? Number(v) : v.toString();
+        }
         return v;
     }
 

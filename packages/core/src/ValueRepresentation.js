@@ -1443,9 +1443,9 @@ class Unsigned64BitVeryLong extends ValueRepresentation {
     }
 
     /**
-     * DataView.setBigUint64 and setBigInt64 only accept BigInt values, so this method
-     * coerces Numbers and numeric strings, as the other numeric VRs do with
-     * toInt/toFloat. A null or undefined entry becomes 0, as US/UL write null
+     * DataView.setBigUint64 and setBigInt64 only accept BigInt values, so
+     * this method coerces Numbers and numeric strings, as the other numeric
+     * VRs do with toInt/toFloat. A null or undefined entry becomes 0, as US/UL write null
      * entries. A null, undefined or empty scalar stays as it is, so the base
      * write() writes a zero-length element (PS3.5 7.4, Type 2).
      */

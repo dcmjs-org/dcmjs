@@ -20,7 +20,7 @@ import { validationLog } from "../../src/log.js";
 
 validationLog.setLevel(5);
 
-describe("issue #457 — VR registry coverage for OL, OV, SV, UV", () => {
+describe("issue #457 — the UN fallback for an unknown VR code", () => {
     // Runs first: the fallback warns once per type per module load, so this
     // must observe the very first ZZ lookup in this suite.
     it("fallback logs at warn severity, not error (no validation-error spam)", () => {

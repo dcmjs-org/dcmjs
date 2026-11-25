@@ -5,6 +5,8 @@
  */
 import dcmjs from "../../src/index.js";
 import { EXPLICIT_LITTLE_ENDIAN } from "../../src/constants/dicom.js";
+import { DicomWebJsonWriter } from "../../src/eventStream/DicomWebJsonWriter";
+import { fromPart10 } from "../../src/eventStream/fromPart10";
 
 const { DicomDict, DicomMessage } = dcmjs.data;
 
@@ -27,6 +29,7 @@ function writeThenRead(tag, vr, value) {
         tagBytes.every((b, j) => bytes[i + j] === b)
     );
     return {
+        bytes,
         wireVr: String.fromCharCode(bytes[at + 4], bytes[at + 5]),
         element: DicomMessage.readFile(bytes.buffer).dict[tag]
     };
@@ -63,5 +66,19 @@ describe("OV and SV value representations", () => {
             0x7fffffffffffffffn,
             -5n
         ]);
+    });
+
+    // PS3.18 Table F.2.3-1: an SV value is a JSON Number or String
+    it("writes SV to DICOM JSON as a Number, or as a string when not safe", async () => {
+        const { bytes } = writeThenRead(SELECTOR_SV_VALUE, "SV", [
+            -2n,
+            -0x8000000000000000n
+        ]);
+        const writer = new DicomWebJsonWriter();
+        await fromPart10(bytes.buffer, writer);
+
+        expect(
+            JSON.parse(JSON.stringify(writer.result))[SELECTOR_SV_VALUE]
+        ).toEqual({ vr: "SV", Value: [-2, "-9223372036854775808"] });
     });
 });

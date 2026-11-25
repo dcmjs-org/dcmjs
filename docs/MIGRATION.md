@@ -471,7 +471,9 @@ the VR and SOP class registries; the 0.x lists and maps
 
 An OL, OV or SV element now reads and writes with its own VR, not `UN`:
 code that matched `vr === "UN"` for such a tag must match `"OL"`, `"OV"` or
-`"SV"`. An SV value reads as a BigInt, as a UV value does.
+`"SV"`. An SV value reads as a BigInt, as a UV value does. In DICOM JSON
+from `DicomWebJsonWriter`, an SV or UV value is a Number, or a decimal
+string when the value is not a safe integer.
 
 ## What needs no migration, in one list
 
