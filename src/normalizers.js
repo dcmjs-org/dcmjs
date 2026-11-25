@@ -324,8 +324,9 @@ class ImageNormalizer extends Normalizer {
      * top-level image plane attributes; a one-item array is used as its item.
      * The PerFrameFunctionalGroupsSequence is filled up to the declared
      * NumberOfFrames with items at the top-level position, existing items keep
-     * their content, and each item gets a FrameContentSequence. Items beyond
-     * NumberOfFrames are kept unchanged.
+     * their content, and each item without a FrameContentSequence gets one.
+     * Added items share the position but get increasing InStackPositionNumber.
+     * Items beyond NumberOfFrames are kept unchanged.
      */
     normalizeMultiframe() {
         let ds = this.dataset;
@@ -403,10 +404,14 @@ class ImageNormalizer extends Normalizer {
             );
         }
         for (let frameNumber = 1; frameNumber <= frameCount; frameNumber++) {
-            const dataset = this.datasets[frameNumber - 1] || {};
-            ds.PerFrameFunctionalGroupsSequence[
+            const item = (ds.PerFrameFunctionalGroupsSequence[
                 frameNumber - 1
-            ].FrameContentSequence = {
+            ] ||= {});
+            if (item.FrameContentSequence) {
+                continue;
+            }
+            const dataset = this.datasets[frameNumber - 1] || {};
+            item.FrameContentSequence = {
                 FrameAcquisitionDuration: 0,
                 StackID: 1,
                 InStackPositionNumber: frameNumber,
@@ -414,11 +419,8 @@ class ImageNormalizer extends Normalizer {
             };
             let frameTime = dataset.AcquisitionDate + dataset.AcquisitionTime;
             if (!isNaN(frameTime)) {
-                let frameContentSequence =
-                    ds.PerFrameFunctionalGroupsSequence[frameNumber - 1]
-                        .FrameContentSequence;
-                frameContentSequence.FrameAcquisitionDateTime = frameTime;
-                frameContentSequence.FrameReferenceDateTime = frameTime;
+                item.FrameContentSequence.FrameAcquisitionDateTime = frameTime;
+                item.FrameContentSequence.FrameReferenceDateTime = frameTime;
             }
         }
 

@@ -1,5 +1,6 @@
 import { NMImageNormalizer, SEGImageNormalizer } from "../src/normalizers.js";
 import Segmentation from "../src/derivations/Segmentation.js";
+import { DicomMetaDictionary } from "@dcmjs-org/core";
 
 const ENHANCED_MR_SOP_CLASS_UID = "1.2.840.10008.5.1.4.1.1.4.1";
 
@@ -130,6 +131,36 @@ it("treats an empty shared sequence as missing and keeps the shared groups", () 
         PixelMeasuresSequence: { PixelSpacing: [1, 1] },
         PixelValueTransformationSequence: { RescaleType: "US" }
     });
+
+    // The shared groups survive a write
+    const written = DicomMetaDictionary.naturalizeDataset(
+        DicomMetaDictionary.denaturalizeDataset(normalizer.dataset)
+    );
+    expect(
+        written.SharedFunctionalGroupsSequence.PixelValueTransformationSequence
+            .RescaleType
+    ).toBe("US");
+    expect(
+        written.SharedFunctionalGroupsSequence.PixelMeasuresSequence.PixelSpacing.map(
+            Number
+        )
+    ).toEqual([1, 1]);
+});
+
+it("keeps the FrameContentSequence of an existing per-frame item", () => {
+    const dataset = buildSingleFrameOfMultiframeInstance();
+    dataset.NumberOfFrames = 3;
+    const content = i => ({ DimensionIndexValues: [7, i], StackID: "S9" });
+    dataset.PerFrameFunctionalGroupsSequence = [1, 2].map(i => ({
+        FrameContentSequence: content(i)
+    }));
+    const normalizer = new NMImageNormalizer([dataset]);
+    normalizer.normalize();
+
+    const perFrame = normalizer.dataset.PerFrameFunctionalGroupsSequence;
+    expect(perFrame[0].FrameContentSequence).toEqual(content(1));
+    expect(perFrame[1].FrameContentSequence).toEqual(content(2));
+    expect(perFrame[2].FrameContentSequence.InStackPositionNumber).toBe(3);
 });
 
 it.each([3, 8])(
