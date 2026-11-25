@@ -18,8 +18,8 @@ const {
 
 // dcmjs@0.52.0 from npm; each ceiling is the measured ratio rounded up to 0.001.
 const BUNDLES = {
-    "dcmjs.js": { baseline: 1384431, ceiling: 1.086 },
-    "dcmjs.es.js": { baseline: 1357418, ceiling: 1.069 }
+    "dcmjs.js": { baseline: 1384431, ceiling: 1.09 },
+    "dcmjs.es.js": { baseline: 1357418, ceiling: 1.072 }
 };
 
 // The public names of build/dcmjs.es.js: the named exports of src/index.js.

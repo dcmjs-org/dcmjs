@@ -320,6 +320,12 @@ the standard and a way forward for code that relied on the old behavior:
     The corrected list arrives with the anonymizer port; the contract and
     the opt-out recipe are documented ahead of it.
 
+One more behavior change is not a standard violation fix in the list above:
+in Explicit VR Big Endian, the readers now give OW, OF and OD values as
+little endian words, and the writers swap them to big endian
+([NAT-U-BIN-7](specs/naturalized-dataset.md)). Code that swapped the bytes
+of these values itself now gets them swapped two times; remove that swap.
+
 ## The streaming engine: new and opt-in
 
 Everything above concerns the classic whole-buffer engine, which remains

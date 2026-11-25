@@ -178,6 +178,10 @@ A private value is a list (NAT-U-VAL-4). An assigned PN string converts:
   UN value keeps its bytes (NAT-U-BIN-1). A UN element whose values are all
   item datasets writes as a sequence; a UN element whose values are bytes or
   references (NAT-U-BIN-4) writes as UN.
+- **NAT-U-BIN-7.** The bytes of an OW, OF, OD, OL or OV value are in little
+  endian order for every transfer syntax, also Explicit VR Big Endian. The
+  readers give little endian words, and the writers take little endian words
+  and write the byte order of the transfer syntax.
 
 ### NAT-U-VR — the `_vrMap` side table
 
@@ -523,6 +527,12 @@ view of one frame of an enhanced multi-frame dataset (PS3.3 C.7.6.16).
   one copy of the read check and the write check. The read check also needs
   a first item length that is undefined or fits in the value. The sequence
   items are Implicit VR Little Endian, also in a Big Endian body.
+- **NAT-I-BIN-4.** For NAT-U-BIN-7, `swapBytes` and `swappedCopy` in
+  `packages/core/src/utilities/byteSwap.js` are the one byte swap. The word
+  width of each VR comes from `BinaryRepresentation.wordWidth`. The readers
+  swap once, on a copy, and the writers swap a copy, so the value of the
+  caller does not change. The async reader swaps whole words, and swaps the
+  whole pixel value before it cuts the frames when a word spans two frames.
 
 ### NAT-I-ALIAS — aliases
 
@@ -634,6 +644,7 @@ block form, and they apply to standard attributes too.
 | NAT-U-HIST-4, NAT-U-PRIV-5 | `test/eventStream/NaturalizedListener.test.js` |
 | NAT-U-BIN-1/2/3, NAT-U-PROD-1 (binary) | `test/core/binaryValues.test.js` |
 | NAT-U-BIN-6 | `test/sync-async-parser-equivalency.test.js` |
+| NAT-U-BIN-7 | `test/big-endian.test.js` |
 | NAT-U-VAL-5 (PN setter), NAT-U-SET | `test/core/naturalizedAttributes.test.js` |
 | NAT-U-VAL, NAT-U-SQ | `test/core/naturalizeDataset.test.js`, `test/issues/issue218-single-item-sq.test.js` |
 | NAT-U-HIST-9, NAT-I-ALIAS-4 (`Object.create` children) | `test/core/privateBlocks.test.js` |

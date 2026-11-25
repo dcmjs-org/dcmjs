@@ -583,7 +583,8 @@ Starting with the `expectsRaw` feature, listeners can request raw binary data fo
 4. Multiple fragments are delivered sequentially via multiple `listener.value()` calls
 5. Data is split into fragments based on `maxFragmentSize` (default 128MB) with buffer consumption between chunks for memory efficiency
 6. This only works for non-pixel data tags with positive length
-7. Pixel data and sequences continue to use their specialized handlers
+7. The raw bytes are in the byte order of the file: in Explicit VR Big Endian, the reader does not swap them
+8. Pixel data and sequences continue to use their specialized handlers
 
 **Example:**
 
@@ -679,7 +680,7 @@ The value of both uncompressed and compressed image frames is one of:
 **Important behaviors:**
 
 - **Video transfer syntaxes**: Video is handled as though it were a single frame. All video frames are delivered as a single array containing all frame fragments.
-- **Fragmented binary data**: Binary data can be delivered fragmented. A single frame may be split across multiple ArrayBuffer fragments based on `maxFragmentSize` (default 128MB). Multiple fragments are combined into one array per frame.
+- **Fragmented binary data**: Binary data can be delivered fragmented. A single frame may be split across multiple ArrayBuffer fragments based on `maxFragmentSize` (default 128MB). Multiple fragments are combined into one array per frame. In Explicit VR Big Endian, each fragment of OW, OF or OD data holds whole words, so when `maxFragmentSize` is smaller than the word width (2, 4 or 8 bytes), a fragment is rounded up to one word and is larger than `maxFragmentSize`.
 - **Frame delivery**: Each frame is delivered via `listener.startObject([])` followed by one or more `listener.value(fragment)` calls (one per fragment), then `listener.pop()`.
 
 ## Best Practices
