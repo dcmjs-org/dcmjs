@@ -161,7 +161,8 @@ class ImageNormalizer extends Normalizer {
     static planePositionGroup(dataset) {
         return {
             PlanePositionSequence: {
-                ImagePositionPatient: dataset.ImagePositionPatient
+                // A copy, so that no two frames share one array
+                ImagePositionPatient: dataset.ImagePositionPatient?.slice()
             }
         };
     }
@@ -384,17 +385,16 @@ class ImageNormalizer extends Normalizer {
             RescaleType: "US"
         };
         let frameCount = this.datasets.length;
-        if (!ds.PerFrameFunctionalGroupsSequence) {
-            // One item per declared frame, all at the top-level position
+        const perFrame = ds.PerFrameFunctionalGroupsSequence;
+        if (!perFrame || (Array.isArray(perFrame) && !perFrame.length)) {
+            // Missing or empty: one item per declared frame, all at the top-level position
             frameCount = Math.max(frameCount, Number(ds.NumberOfFrames) || 0);
             ds.PerFrameFunctionalGroupsSequence = Array.from(
                 { length: frameCount },
                 () => ImageNormalizer.planePositionGroup(ds)
             );
-        } else if (!Array.isArray(ds.PerFrameFunctionalGroupsSequence)) {
-            ds.PerFrameFunctionalGroupsSequence = [
-                ds.PerFrameFunctionalGroupsSequence
-            ];
+        } else if (!Array.isArray(perFrame)) {
+            ds.PerFrameFunctionalGroupsSequence = [perFrame];
         }
         for (let frameNumber = 1; frameNumber <= frameCount; frameNumber++) {
             const dataset = this.datasets[frameNumber - 1] || {};
