@@ -527,6 +527,25 @@ export class AsyncDicomReader {
             }
         }
 
+        if (
+            this.syntax === EXPLICIT_BIG_ENDIAN &&
+            frameLength % wordWidth !== 0
+        ) {
+            // A word spans two frames, so swap the whole value before it is cut into frames
+            await this.stream.ensureAvailable(length);
+            const allPixelData = this.stream.readArrayBuffer(length);
+            this.stream.consume();
+            swapBytes(allPixelData, wordWidth);
+            for (let offset = 0; offset < length; offset += frameLength) {
+                listener.startObject([]);
+                listener.value(
+                    allPixelData.slice(offset, offset + frameLength)
+                );
+                listener.pop();
+            }
+            return;
+        }
+
         for (let frameNumber = 0; frameNumber < numberOfFrames; frameNumber++) {
             readLog.trace("readUncompressed loop", frameNumber, numberOfFrames);
             listener.startObject([]);

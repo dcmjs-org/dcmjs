@@ -215,7 +215,11 @@ function encodeDataset(littleEndian) {
 
 /** The whole part 10 file: preamble, DICM, meta group and dataset */
 function encodeFile(syntax) {
-    const littleEndian = syntax !== EXPLICIT_BIG_ENDIAN;
+    return encodePart10(syntax, encodeDataset(syntax !== EXPLICIT_BIG_ENDIAN));
+}
+
+/** Preamble, DICM and meta group, followed by the encoded dataset bytes */
+function encodePart10(syntax, datasetBytes) {
     // The meta group is always explicit VR little endian
     const meta = encodeElement(
         TagHex.TransferSyntaxUID,
@@ -233,7 +237,7 @@ function encodeFile(syntax) {
             true
         ),
         ...meta,
-        ...encodeDataset(littleEndian)
+        ...datasetBytes
     ]);
 }
 
@@ -350,24 +354,9 @@ function hostWords(element, ArrayType) {
  */
 function encodeUnFile(syntax) {
     const littleEndian = syntax !== EXPLICIT_BIG_ENDIAN;
-    const meta = encodeElement(
-        TagHex.TransferSyntaxUID,
-        "UI",
-        paddedAsciiBytes(syntax),
-        true
-    );
     const un = (tag, valueBytes) =>
         encodeElement(tag, "UN", valueBytes, littleEndian);
-    return new Uint8Array([
-        ...new Array(128).fill(0),
-        ...asciiBytes("DICM"),
-        ...encodeElement(
-            TagHex.FileMetaInformationGroupLength,
-            "UL",
-            encodeUint32(meta.length, true),
-            true
-        ),
-        ...meta,
+    return encodePart10(syntax, [
         // BitsAllocated: the dictionary says US, a scalar VR, so the raw read
         // leaves the bytes in the file's order and the re-read must swap them
         ...un("00280100", encodeUint16(16, littleEndian)),
@@ -387,6 +376,34 @@ function encodeUnFile(syntax) {
         ...un("7FE00010", encodeWords(pixelValues, Uint16Array, littleEndian)),
         // control: a string VR is unaffected by byte order
         ...encodeElement("00080060", "CS", asciiBytes("MR"), littleEndian)
+    ]);
+}
+
+/**
+ * 8-bit pixel data stored as OW in big endian: 2 frames of 3x3 pixels, the
+ * bytes 1..18. A frame is 9 bytes, so the word of bytes 9 and 10 spans both.
+ */
+const oddFrameBytes = Array.from({ length: 18 }, (_, i) => i + 1);
+
+function encodeOddFrameFile() {
+    const us = (tag, value) =>
+        encodeElement(tag, "US", encodeUint16(value, false), false);
+    const words = [];
+    for (let i = 0; i < oddFrameBytes.length; i += 2) {
+        words.push(oddFrameBytes[i] | (oddFrameBytes[i + 1] << 8));
+    }
+    return encodePart10(EXPLICIT_BIG_ENDIAN, [
+        ...us("00280002", 1), // SamplesPerPixel
+        ...encodeElement("00280008", "IS", asciiBytes("2 "), false),
+        ...us("00280010", 3), // Rows
+        ...us("00280011", 3), // Columns
+        ...us("00280100", 8), // BitsAllocated
+        ...encodeElement(
+            "7FE00010",
+            "OW",
+            encodeWords(words, Uint16Array, false),
+            false
+        )
     ]);
 }
 
@@ -411,10 +428,11 @@ const syntaxes = [
 ];
 
 describe("binary value fields and the transfer syntax byte order", () => {
-    describe.each(syntaxes)("%s", (_name, syntax) => {
-        const littleEndian = syntax === EXPLICIT_LITTLE_ENDIAN;
-
-        test("writes the words of the value field in the transfer syntax byte order", () => {
+    // little endian is the control: the same test must pass without a swap
+    test.each(syntaxes)(
+        "writes the words of the value field in the byte order of %s",
+        (_name, syntax) => {
+            const littleEndian = syntax === EXPLICIT_LITTLE_ENDIAN;
             const buffer = makeDicomDict(syntax).write();
             const elements = parseExplicitElements(
                 buffer,
@@ -450,7 +468,11 @@ describe("binary value fields and the transfer syntax byte order", () => {
 
             // and the file as a whole is encoded as the standard describes
             expect(new Uint8Array(buffer)).toEqual(encodeFile(syntax));
-        });
+        }
+    );
+
+    describe("Explicit VR Big Endian", () => {
+        const syntax = EXPLICIT_BIG_ENDIAN;
 
         test("reads the words of the value field to little endian", () => {
             const dict = DicomMessage.readFile(encodeFile(syntax).buffer).dict;
@@ -547,6 +569,43 @@ describe("binary value fields and the transfer syntax byte order", () => {
                     documentBytes
                 );
                 expect(dict["00280100"].Value).toEqual([16]);
+            }
+        );
+
+        test.each([
+            ["DicomMessage", buffer => DicomMessage.readFile(buffer)],
+            [
+                "AsyncDicomReader",
+                async buffer => {
+                    const reader = new AsyncDicomReader();
+                    reader.stream.addBuffer(buffer);
+                    reader.stream.setComplete();
+                    return reader.readFile();
+                }
+            ],
+            ["fromPart10", buffer => collect(fromPart10, buffer)],
+            [
+                "fromPart10Stream",
+                buffer => collect(fromPart10Stream, chunks(buffer, 3))
+            ]
+        ])(
+            "reads OW frames that are not a whole number of words with %s",
+            async (_name, read) => {
+                const { dict } = await read(encodeOddFrameFile().buffer);
+                const flat = [dict["7FE00010"].Value].flat(3);
+                const bytes = flat.flatMap(f =>
+                    Array.from(
+                        ArrayBuffer.isView(f)
+                            ? new Uint8Array(
+                                  f.buffer,
+                                  f.byteOffset,
+                                  f.byteLength
+                              )
+                            : new Uint8Array(f)
+                    )
+                );
+
+                expect(bytes).toEqual(oddFrameBytes);
             }
         );
 
