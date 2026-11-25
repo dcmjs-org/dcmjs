@@ -55,6 +55,10 @@ it.each([true, false])(
             });
             expect(item.FrameContentSequence.InStackPositionNumber).toBe(i + 1);
         });
+        const [first, second] = multiframe.PerFrameFunctionalGroupsSequence;
+        expect(first.PlanePositionSequence.ImagePositionPatient).not.toBe(
+            second.PlanePositionSequence.ImagePositionPatient
+        );
 
         const seg = new Segmentation([multiframe], { includeSliceSpacing });
         seg.setNumberOfFrames(1);
@@ -94,6 +98,24 @@ it.each([2, 10])(
         ).toHaveLength(8);
     }
 );
+
+it("treats an empty per-frame sequence as missing for NumberOfFrames 8", () => {
+    const dataset = buildSingleFrameOfMultiframeInstance();
+    dataset.NumberOfFrames = 8;
+    dataset.PerFrameFunctionalGroupsSequence = [];
+    const normalizer = new NMImageNormalizer([dataset]);
+    normalizer.normalize();
+
+    const perFrame = normalizer.dataset.PerFrameFunctionalGroupsSequence;
+    expect(perFrame).toHaveLength(8);
+    perFrame.forEach(item => {
+        expect(item.PlanePositionSequence).toBeDefined();
+        expect(item.FrameContentSequence).toBeDefined();
+    });
+    expect(perFrame[0].PlanePositionSequence.ImagePositionPatient).not.toBe(
+        perFrame[1].PlanePositionSequence.ImagePositionPatient
+    );
+});
 
 it("gives an object, not an array, as the per-frame item for NumberOfFrames 1", () => {
     const dataset = buildSingleFrameOfMultiframeInstance();
