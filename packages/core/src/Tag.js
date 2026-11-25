@@ -9,6 +9,7 @@ import {
 } from "./constants/dicom";
 import { normalizeSyntax } from "./core/normalizeSyntax.js";
 import { ValueRepresentation } from "./ValueRepresentation.js";
+import { isBinaryData } from "./utilities/binaryFragment.js";
 
 function paddingLeft(paddingValue, string) {
     return String(paddingValue + string).slice(-paddingValue.length);
@@ -131,6 +132,15 @@ class Tag {
     }
 
     write(stream, vrType, values, syntax, writeOptions) {
+        // A UN whose values are item datasets is a sequence (PS3.5 §6.2.2).
+        if (
+            vrType === "UN" &&
+            Array.isArray(values) &&
+            values.length > 0 &&
+            values.every(v => v && typeof v === "object" && !isBinaryData(v))
+        ) {
+            vrType = "SQ";
+        }
         const vr = ValueRepresentation.createByTypeString(vrType);
         const useSyntax = normalizeSyntax(syntax);
         // No value (NAT-U-RT-7): absent, null, "" or only undefined entries is

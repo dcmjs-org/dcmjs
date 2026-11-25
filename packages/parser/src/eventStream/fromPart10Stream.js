@@ -406,8 +406,9 @@ async function fromPart10StreamImpl(input, listener, options, parseState) {
     const bsrc = bodyStream ?? stream;
 
     // Body transfer syntax characteristics — drive all element reads.
-    const bodyLittleEndian = transferSyntaxUID !== EXPLICIT_BIG_ENDIAN;
-    const bodyImplicit = transferSyntaxUID === IMPLICIT_LITTLE_ENDIAN;
+    // `let`: a UN sequence (PS3.5 §6.2.2) switches them, see withImplicitLE.
+    let bodyLittleEndian = transferSyntaxUID !== EXPLICIT_BIG_ENDIAN;
+    let bodyImplicit = transferSyntaxUID === IMPLICIT_LITTLE_ENDIAN;
 
     // Chunk release is LIVE for all paths: clearBuffers=true on both `stream`
     // (non-deflate) and `bodyStream` (deflate). The relay releases raw chunks
@@ -699,6 +700,23 @@ async function fromPart10StreamImpl(input, listener, options, parseState) {
             length: valueLength,
             hadUndefinedLength: undef
         };
+        if (
+            vrStr === "UN" &&
+            !undef &&
+            valueLength >= 8 &&
+            (await isUnSequenceValueAt(valueStartAbs))
+        ) {
+            await withImplicitLE(() =>
+                emitSequence(
+                    target,
+                    tagStr,
+                    valueStartAbs,
+                    valueLength,
+                    currentDecoder
+                )
+            );
+            return currentDecoder;
+        }
         let vrInstance = resolveVrInstance(elLike, EMPTY_WIN);
 
         if (!undef) {
@@ -753,6 +771,38 @@ async function fromPart10StreamImpl(input, listener, options, parseState) {
             currentDecoder
         );
         return currentDecoder;
+    }
+
+    /**
+     * PS3.5 §6.2.2: a defined-length UN value that starts with the item tag
+     * (FFFE,E000), FE FF 00 E0, holds a sequence in Implicit VR LE.
+     */
+    async function isUnSequenceValueAt(valueStartAbs) {
+        if (!(await ensureAbs(valueStartAbs + 4))) return false;
+        const v = bsrc.view;
+        return (
+            v.getUint8(valueStartAbs) === 0xfe &&
+            v.getUint8(valueStartAbs + 1) === 0xff &&
+            v.getUint8(valueStartAbs + 2) === 0x00 &&
+            v.getUint8(valueStartAbs + 3) === 0xe0
+        );
+    }
+
+    /** Runs `fn` with the body read as Implicit VR LE, then restores the syntax. */
+    async function withImplicitLE(fn) {
+        const saved = [transferSyntaxUID, bodyLittleEndian, bodyImplicit];
+        const setSyntax = (syntax, littleEndian, implicit) => {
+            transferSyntaxUID = syntax;
+            bodyLittleEndian = littleEndian;
+            bodyImplicit = implicit;
+            Object.assign(EMPTY_WIN, { syntax, littleEndian, implicit });
+        };
+        setSyntax(IMPLICIT_LITTLE_ENDIAN, true, true);
+        try {
+            return await fn();
+        } finally {
+            setSyntax(...saved);
+        }
     }
 
     /**
