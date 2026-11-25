@@ -1,4 +1,4 @@
-import { SEGImageNormalizer } from "../src/normalizers.js";
+import { NMImageNormalizer, SEGImageNormalizer } from "../src/normalizers.js";
 import Segmentation from "../src/derivations/Segmentation.js";
 
 const ENHANCED_MR_SOP_CLASS_UID = "1.2.840.10008.5.1.4.1.1.4.1";
@@ -40,18 +40,21 @@ it.each([true, false])(
         normalizer.normalize();
         const multiframe = normalizer.dataset;
 
-        // PixelData holds 1 frame, so NumberOfFrames 4 is reduced to 1.
-        expect(multiframe.NumberOfFrames).toBe(1);
+        // PixelData holds 1 frame, but the declared NumberOfFrames stays.
+        expect(multiframe.NumberOfFrames).toBe(4);
         expect(multiframe.SharedFunctionalGroupsSequence).toMatchObject({
             PlaneOrientationSequence: {
                 ImageOrientationPatient: [1, 0, 0, 0, 1, 0]
             },
             PixelMeasuresSequence: { PixelSpacing: [1, 1] }
         });
-        expect(multiframe.PerFrameFunctionalGroupsSequence).toHaveLength(1);
-        expect(
-            multiframe.PerFrameFunctionalGroupsSequence[0].PlanePositionSequence
-        ).toEqual({ ImagePositionPatient: [0, 0, 0] });
+        expect(multiframe.PerFrameFunctionalGroupsSequence).toHaveLength(4);
+        multiframe.PerFrameFunctionalGroupsSequence.forEach((item, i) => {
+            expect(item.PlanePositionSequence).toEqual({
+                ImagePositionPatient: [0, 0, 0]
+            });
+            expect(item.FrameContentSequence.InStackPositionNumber).toBe(i + 1);
+        });
 
         const seg = new Segmentation([multiframe], { includeSliceSpacing });
         seg.setNumberOfFrames(1);
@@ -70,6 +73,25 @@ it.each([true, false])(
             seg.dataset.PerFrameFunctionalGroupsSequence[0]
                 .PlanePositionSequence
         ).toEqual({ ImagePositionPatient: [0, 0, 0] });
+    }
+);
+
+it.each([2, 10])(
+    "keeps NumberOfFrames 8 for encapsulated PixelData with %s fragments",
+    fragments => {
+        const dataset = buildSingleFrameOfMultiframeInstance();
+        dataset.NumberOfFrames = 8;
+        dataset.PixelData = Array.from(
+            { length: fragments },
+            () => new ArrayBuffer(10)
+        );
+        const normalizer = new NMImageNormalizer([dataset]);
+        normalizer.normalize();
+
+        expect(normalizer.dataset.NumberOfFrames).toBe(8);
+        expect(
+            normalizer.dataset.PerFrameFunctionalGroupsSequence
+        ).toHaveLength(8);
     }
 );
 

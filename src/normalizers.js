@@ -153,19 +153,6 @@ class ImageNormalizer extends Normalizer {
         };
     }
 
-    static framesInPixelData(ds) {
-        const frameBytes =
-            (ds.Rows *
-                ds.Columns *
-                (ds.SamplesPerPixel || 1) *
-                ds.BitsAllocated) /
-            8;
-        const bytes = []
-            .concat(ds.PixelData || [])
-            .reduce((sum, data) => sum + ((data && data.byteLength) || 0), 0);
-        return frameBytes > 0 ? Math.floor(bytes / frameBytes) : 0;
-    }
-
     convertToMultiframe() {
         if (
             this.datasets.length === 1 &&
@@ -362,13 +349,6 @@ class ImageNormalizer extends Normalizer {
                     SliceThickness: ds.SliceThickness,
                     SpacingBetweenSlices: ds.SpacingBetweenSlices
                 });
-            const frames = ImageNormalizer.framesInPixelData(ds);
-            if (frames > 0 && frames < ds.NumberOfFrames) {
-                log.warn(
-                    `NumberOfFrames ${ds.NumberOfFrames} is more than the ${frames} frame(s) in PixelData; using ${frames}`
-                );
-                ds.NumberOfFrames = frames;
-            }
         }
 
         // TODO: special case!
@@ -390,17 +370,21 @@ class ImageNormalizer extends Normalizer {
             RescaleSlope: rescaleSlope,
             RescaleType: "US"
         };
-        let frameNumber = 1;
+        let frameCount = this.datasets.length;
         if (!ds.PerFrameFunctionalGroupsSequence) {
-            ds.PerFrameFunctionalGroupsSequence = [
-                ImageNormalizer.planePositionGroup(ds)
-            ];
+            // One item per declared frame, all at the top-level position
+            frameCount = Math.max(frameCount, Number(ds.NumberOfFrames) || 0);
+            ds.PerFrameFunctionalGroupsSequence = Array.from(
+                { length: frameCount },
+                () => ImageNormalizer.planePositionGroup(ds)
+            );
         } else if (!Array.isArray(ds.PerFrameFunctionalGroupsSequence)) {
             ds.PerFrameFunctionalGroupsSequence = [
                 ds.PerFrameFunctionalGroupsSequence
             ];
         }
-        this.datasets.forEach(dataset => {
+        for (let frameNumber = 1; frameNumber <= frameCount; frameNumber++) {
+            const dataset = this.datasets[frameNumber - 1] || {};
             ds.PerFrameFunctionalGroupsSequence[frameNumber - 1] ||= {};
             ds.PerFrameFunctionalGroupsSequence[
                 frameNumber - 1
@@ -418,9 +402,7 @@ class ImageNormalizer extends Normalizer {
                 frameContentSequence.FrameAcquisitionDateTime = frameTime;
                 frameContentSequence.FrameReferenceDateTime = frameTime;
             }
-
-            frameNumber++;
-        });
+        }
 
         //
         // TODO: convert this to shared functional group not top level element
