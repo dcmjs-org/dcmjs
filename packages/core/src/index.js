@@ -78,6 +78,7 @@ export {
     isEmptyBinary,
     naturalBinaryFragment
 } from "./utilities/binaryFragment.js";
+export { isUnSequenceValue, isItemDictLike } from "./utilities/unSequence.js";
 export {
     isPrivateTag,
     placePrivateElements,

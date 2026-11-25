@@ -1559,7 +1559,8 @@ class ParsedUnknownValue extends BinaryRepresentation {
     read(stream, length, syntax, readOptions) {
         const arrayBuffer = this.readBytes(stream, length, syntax)[0];
         const streamFromBuffer = new ReadBufferStream(arrayBuffer, {
-            littleEndian: stream.isLittleEndian || this.wordWidth > 1
+            littleEndian: stream.isLittleEndian || this.wordWidth > 1,
+            decoder: stream.decoder
         });
         const vr = ValueRepresentation.createByTypeString(this.type);
 
