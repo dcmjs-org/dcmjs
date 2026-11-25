@@ -3,6 +3,7 @@ import { Tag } from "../Tag.js";
 import { ValueRepresentation } from "../ValueRepresentation.js";
 import { deepEqual } from "../utilities/deepEqual.js";
 import { WriteBufferStream } from "../BufferStream.js";
+import { createCharacterSetEncoder } from "../charset/registry.js";
 import {
     DEFLATED_EXPLICIT_LITTLE_ENDIAN,
     EXPLICIT_LITTLE_ENDIAN,
@@ -65,21 +66,41 @@ export function writeTagObject(
     tag.write(stream, vr, values, syntax, writeOptions);
 }
 
-/** Relocated from DicomMessage.write: one tag-keyed object, sorted tag order. */
+/**
+ * Relocated from DicomMessage.write: one tag-keyed object, sorted tag order.
+ * A written (0008,0005) sets the stream's text encoder until the end of
+ * this dataset or item; the caller's encoder is then restored.
+ */
 export function writeDataSet(jsonObjects, useStream, syntax, writeOptions) {
     var written = 0;
+    const outerEncoder = useStream.encoder;
 
     var sortedTags = Object.keys(jsonObjects).sort();
-    sortedTags.forEach(function (tagString) {
-        var tag = Tag.fromString(tagString),
-            tagObject = jsonObjects[tagString],
-            vrType = tagObject.vr;
+    try {
+        sortedTags.forEach(function (tagString) {
+            var tag = Tag.fromString(tagString),
+                tagObject = jsonObjects[tagString],
+                vrType = tagObject.vr;
 
-        var values = getTagWriteValues(vrType, tagObject);
+            var values = getTagWriteValues(vrType, tagObject);
 
-        written += tag.write(useStream, vrType, values, syntax, writeOptions);
-    });
-
+            written += tag.write(
+                useStream,
+                vrType,
+                values,
+                syntax,
+                writeOptions
+            );
+            if (tagString === TagHex.SpecificCharacterSet) {
+                useStream.encoder = createCharacterSetEncoder(
+                    values,
+                    writeOptions
+                );
+            }
+        });
+    } finally {
+        useStream.encoder = outerEncoder;
+    }
     return written;
 }
 
@@ -110,11 +131,11 @@ export function writePart10(
     writeOptions = { allowInvalidVRLength: false }
 ) {
     var metaSyntax = EXPLICIT_LITTLE_ENDIAN;
-    var fileStream = new WriteBufferStream(4096, true);
+    var fileStream = new WriteBufferStream({ defaultSize: 4096 });
     fileStream.writeUint8Repeat(0, 128);
     fileStream.writeAsciiString("DICM");
 
-    var metaStream = new WriteBufferStream(1024);
+    var metaStream = new WriteBufferStream({ defaultSize: 1024 });
     if (!meta[TagHex.TransferSyntaxUID]) {
         meta[TagHex.TransferSyntaxUID] = {
             vr: "UI",
@@ -155,7 +176,7 @@ export function writePart10(
  * @param {Object} writeOptions
  */
 function writeDeflatedDataSet(dict, fileStream, writeOptions) {
-    const bodyStream = new WriteBufferStream(4096, true);
+    const bodyStream = new WriteBufferStream({ defaultSize: 4096 });
     writeDataSet(dict, bodyStream, EXPLICIT_LITTLE_ENDIAN, writeOptions);
     fileStream.writeRawBytes(
         pako.deflateRaw(new Uint8Array(bodyStream.getBuffer()))

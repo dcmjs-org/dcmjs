@@ -321,11 +321,11 @@ function pinOffsetVRs(dict) {
  */
 function writePart10(meta, dict, writeOptions) {
     const metaSyntax = EXPLICIT_LITTLE_ENDIAN;
-    const fileStream = new WriteBufferStream(4096, true);
+    const fileStream = new WriteBufferStream({ defaultSize: 4096 });
     fileStream.writeUint8Repeat(0, 128);
     fileStream.writeAsciiString("DICM");
 
-    const metaStream = new WriteBufferStream(1024);
+    const metaStream = new WriteBufferStream({ defaultSize: 1024 });
     if (!meta[TagHex.TransferSyntaxUID]) {
         meta[TagHex.TransferSyntaxUID] = {
             vr: "UI",

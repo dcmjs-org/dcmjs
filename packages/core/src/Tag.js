@@ -133,6 +133,15 @@ class Tag {
     write(stream, vrType, values, syntax, writeOptions) {
         const vr = ValueRepresentation.createByTypeString(vrType);
         const useSyntax = normalizeSyntax(syntax);
+        // No value (NAT-U-RT-7): absent, null, "" or only undefined entries is
+        // an empty list; an undefined entry beside a value is a null entry
+        if (values === undefined || values === null || values === "") {
+            values = [];
+        } else if (Array.isArray(values) && values.includes(undefined)) {
+            values = values.every(v => v === undefined)
+                ? []
+                : values.map(v => (v === undefined ? null : v));
+        }
 
         const implicit = useSyntax === IMPLICIT_LITTLE_ENDIAN;
         const isLittleEndian =
@@ -147,9 +156,11 @@ class Tag {
         stream.writeUint16(this.group());
         stream.writeUint16(this.element());
 
-        var tagStream = new WriteBufferStream(256),
+        var tagStream = new WriteBufferStream({ defaultSize: 256 }),
             valueLength;
         tagStream.setEndian(isLittleEndian);
+        // sequence items are written through tagStream: keep the charset
+        tagStream.encoder = stream.encoder;
 
         if (vrType == "OW" || vrType == "OB" || vrType == "UN") {
             valueLength = vr.writeBytes(

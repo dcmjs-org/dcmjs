@@ -1,0 +1,28 @@
+{
+  "dcmjs-1-manual": [
+    {
+      "cardinality": {
+        "file": "input.js",
+        "line": "10",
+        "rule": "readFile: the option untilTag has no event stream form"
+      },
+      "count": 1
+    },
+    {
+      "cardinality": {
+        "file": "input.js",
+        "line": "16",
+        "rule": "readFile: dicomDict has other uses, move them to the naturalized dataset first"
+      },
+      "count": 1
+    },
+    {
+      "cardinality": {
+        "file": "input.js",
+        "line": "4",
+        "rule": "readFile: the function is not async"
+      },
+      "count": 1
+    }
+  ]
+}

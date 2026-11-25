@@ -1,0 +1,12 @@
+{
+  "dcmjs-1-manual": [
+    {
+      "cardinality": {
+        "file": "input.js",
+        "line": "14",
+        "rule": "new DicomDict: the function is not async"
+      },
+      "count": 1
+    }
+  ]
+}

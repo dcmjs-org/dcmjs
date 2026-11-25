@@ -37,7 +37,7 @@ const ITEM_DELIMITER_BYTES = 8; // FFFE,E00D + 4-byte zero length
 
 /** Bytes writeDataSet produces for one tag-keyed object. */
 function measure(jsonObject, writeOptions) {
-    const stream = new WriteBufferStream(1024);
+    const stream = new WriteBufferStream({ defaultSize: 1024 });
     writeDataSet(jsonObject, stream, EXPLICIT_LITTLE_ENDIAN, writeOptions);
     return stream.size;
 }
@@ -61,7 +61,7 @@ export function computeDirectoryOffsets(dicomDict, writeOptions) {
     // is measured with the real meta size as its value — UL again, so the
     // element size is value-independent, but measuring keeps zero assumptions.
     const metaSize = measure(dicomDict.meta, writeOptions);
-    const groupLengthStream = new WriteBufferStream(64);
+    const groupLengthStream = new WriteBufferStream({ defaultSize: 64 });
     writeTagObject(
         groupLengthStream,
         TagHex.FileMetaInformationGroupLength,

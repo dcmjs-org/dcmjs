@@ -18,6 +18,11 @@ import {
 } from "./utilities/privateBlocks.js";
 import { recordVr } from "./utilities/vrMap.js";
 import { setPersonName } from "./utilities/naturalizedAttributes.js";
+import {
+    SopClasses,
+    sopClassNamesByUID,
+    registerSopClass
+} from "./constants/sopClasses.js";
 
 /**
  * The naturalized value of one DICOM JSON element (see naturalizeDataset).
@@ -480,12 +485,16 @@ export class DicomMetaDictionary {
         return nameMap;
     }
 
+    /**
+     * Registers each entry of `sopClassNamesByUID` (constants/sopClasses.js
+     * `registerSopClass`), for 0.x code that edits that map directly. It
+     * adds entries; `sopClassUIDsByName` stays the `SopClasses` object.
+     */
     static _generateUIDMap() {
-        DicomMetaDictionary.sopClassUIDsByName = {};
-        Object.keys(DicomMetaDictionary.sopClassNamesByUID).forEach(uid => {
-            var name = DicomMetaDictionary.sopClassNamesByUID[uid];
-            DicomMetaDictionary.sopClassUIDsByName[name] = uid;
-        });
+        const namesByUid = DicomMetaDictionary.sopClassNamesByUID;
+        Object.keys(namesByUid).forEach(uid =>
+            registerSopClass(namesByUid[uid], uid)
+        );
     }
 
     // denaturalizes dataset using custom dictionary and nameMap
@@ -497,40 +506,10 @@ export class DicomMetaDictionary {
     }
 }
 
-// Subset of those listed at:
-// http://dicom.nema.org/medical/dicom/current/output/html/part04.html#sect_B.5
-DicomMetaDictionary.sopClassNamesByUID = {
-    "1.2.840.10008.5.1.4.1.1.20": "NMImage",
-    "1.2.840.10008.5.1.4.1.1.2": "CTImage",
-    "1.2.840.10008.5.1.4.1.1.2.1": "EnhancedCTImage",
-    "1.2.840.10008.5.1.4.1.1.2.2": "LegacyConvertedEnhancedCTImage",
-    "1.2.840.10008.5.1.4.1.1.3.1": "USMultiframeImage",
-    "1.2.840.10008.5.1.4.1.1.4": "MRImage",
-    "1.2.840.10008.5.1.4.1.1.4.1": "EnhancedMRImage",
-    "1.2.840.10008.5.1.4.1.1.4.2": "MRSpectroscopy",
-    "1.2.840.10008.5.1.4.1.1.4.3": "EnhancedMRColorImage",
-    "1.2.840.10008.5.1.4.1.1.4.4": "LegacyConvertedEnhancedMRImage",
-    "1.2.840.10008.5.1.4.1.1.6.1": "USImage",
-    "1.2.840.10008.5.1.4.1.1.6.2": "EnhancedUSVolume",
-    "1.2.840.10008.5.1.4.1.1.7": "SecondaryCaptureImage",
-    "1.2.840.10008.5.1.4.1.1.30": "ParametricMapStorage",
-    "1.2.840.10008.5.1.4.1.1.66": "RawData",
-    "1.2.840.10008.5.1.4.1.1.66.1": "SpatialRegistration",
-    "1.2.840.10008.5.1.4.1.1.66.2": "SpatialFiducials",
-    "1.2.840.10008.5.1.4.1.1.66.3": "DeformableSpatialRegistration",
-    "1.2.840.10008.5.1.4.1.1.66.4": "Segmentation",
-    "1.2.840.10008.5.1.4.1.1.66.7": "LabelmapSegmentation", // Labelmap Segmentation SOP Class UID
-    "1.2.840.10008.5.1.4.1.1.67": "RealWorldValueMapping",
-    "1.2.840.10008.5.1.4.1.1.88.11": "BasicTextSR",
-    "1.2.840.10008.5.1.4.1.1.88.22": "EnhancedSR",
-    "1.2.840.10008.5.1.4.1.1.88.33": "ComprehensiveSR",
-    "1.2.840.10008.5.1.4.1.1.88.34": "Comprehensive3DSR",
-    "1.2.840.10008.5.1.4.1.1.128": "PETImage",
-    "1.2.840.10008.5.1.4.1.1.130": "EnhancedPETImage",
-    "1.2.840.10008.5.1.4.1.1.128.1": "LegacyConvertedEnhancedPETImage",
-    "1.2.840.10008.5.1.4.1.1.77.1.5.1": "OphthalmicPhotography8BitImage",
-    "1.2.840.10008.5.1.4.1.1.77.1.5.4": "OphthalmicTomographyImage"
-};
+// The SOP class registry (constants/sopClasses.js); both are the registry's
+// own objects, so registerSopClass shows in them.
+DicomMetaDictionary.sopClassNamesByUID = sopClassNamesByUID;
+DicomMetaDictionary.sopClassUIDsByName = SopClasses;
 
 // Avoid loops in imports
 ValueRepresentation.setDicomMetaDictionary(DicomMetaDictionary);
@@ -538,4 +517,3 @@ ValueRepresentation.setDicomMetaDictionary(DicomMetaDictionary);
 DicomMetaDictionary.dictionary = dictionary;
 
 DicomMetaDictionary._generateNameMap();
-DicomMetaDictionary._generateUIDMap();
