@@ -16,9 +16,9 @@ const {
     withChunks
 } = require("./helper/build.js");
 
-// dcmjs@0.52.0 from npm; ceiling = measured ratio rounded up (OL/OV/SV VRs: ×1.08975, ×1.07144).
+// dcmjs@0.52.0 from npm; ceiling = measured ratio rounded up (normalizer functional groups: ×1.09014, ×1.07183).
 const BUNDLES = {
-    "dcmjs.js": { baseline: 1384431, ceiling: 1.09 },
+    "dcmjs.js": { baseline: 1384431, ceiling: 1.091 },
     "dcmjs.es.js": { baseline: 1357418, ceiling: 1.072 }
 };
 

@@ -117,6 +117,46 @@ it("treats an empty per-frame sequence as missing for NumberOfFrames 8", () => {
     );
 });
 
+it("treats an empty shared sequence as missing and keeps the shared groups", () => {
+    const dataset = buildSingleFrameOfMultiframeInstance();
+    dataset.SharedFunctionalGroupsSequence = [];
+    const normalizer = new NMImageNormalizer([dataset]);
+    normalizer.normalize();
+
+    expect(normalizer.dataset.SharedFunctionalGroupsSequence).toMatchObject({
+        PlaneOrientationSequence: {
+            ImageOrientationPatient: [1, 0, 0, 0, 1, 0]
+        },
+        PixelMeasuresSequence: { PixelSpacing: [1, 1] },
+        PixelValueTransformationSequence: { RescaleType: "US" }
+    });
+});
+
+it.each([3, 8])(
+    "completes a per-frame sequence of %s items to NumberOfFrames 8",
+    count => {
+        const dataset = buildSingleFrameOfMultiframeInstance();
+        dataset.NumberOfFrames = 8;
+        dataset.PerFrameFunctionalGroupsSequence = Array.from(
+            { length: count },
+            (_, i) => ({
+                PlanePositionSequence: { ImagePositionPatient: [0, 0, i] }
+            })
+        );
+        const normalizer = new NMImageNormalizer([dataset]);
+        normalizer.normalize();
+
+        const perFrame = normalizer.dataset.PerFrameFunctionalGroupsSequence;
+        expect(perFrame).toHaveLength(8);
+        perFrame.forEach((item, i) => {
+            expect(item.PlanePositionSequence.ImagePositionPatient).toEqual(
+                i < count ? [0, 0, i] : [0, 0, 0]
+            );
+            expect(item.FrameContentSequence.InStackPositionNumber).toBe(i + 1);
+        });
+    }
+);
+
 it("gives an object, not an array, as the per-frame item for NumberOfFrames 1", () => {
     const dataset = buildSingleFrameOfMultiframeInstance();
     dataset.NumberOfFrames = 1;

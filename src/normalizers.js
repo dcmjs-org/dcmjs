@@ -146,10 +146,13 @@ class ImageNormalizer extends Normalizer {
     }
 
     static planePositionGroup(dataset) {
+        const position = dataset.ImagePositionPatient;
         return {
             PlanePositionSequence: {
                 // A copy, so that no two frames share one array
-                ImagePositionPatient: dataset.ImagePositionPatient?.slice()
+                ImagePositionPatient: Array.isArray(position)
+                    ? position.slice()
+                    : position
             }
         };
     }
@@ -314,6 +317,16 @@ class ImageNormalizer extends Normalizer {
         ];
     }
 
+    /**
+     * Fills in the functional groups of a multiframe dataset.
+     *
+     * A missing or empty SharedFunctionalGroupsSequence is built from the
+     * top-level image plane attributes; a one-item array is used as its item.
+     * The PerFrameFunctionalGroupsSequence is filled up to the declared
+     * NumberOfFrames with items at the top-level position, existing items keep
+     * their content, and each item gets a FrameContentSequence. Items beyond
+     * NumberOfFrames are kept unchanged.
+     */
     normalizeMultiframe() {
         let ds = this.dataset;
 
@@ -341,6 +354,11 @@ class ImageNormalizer extends Normalizer {
             ds.PresentationLUTShape = "IDENTITY";
         }
 
+        if (Array.isArray(ds.SharedFunctionalGroupsSequence)) {
+            // The shared group has one item; an empty array counts as missing
+            ds.SharedFunctionalGroupsSequence =
+                ds.SharedFunctionalGroupsSequence[0];
+        }
         if (!ds.SharedFunctionalGroupsSequence) {
             log.warn(
                 "Missing SharedFunctionalGroupsSequence; using the top-level image plane attributes"
@@ -371,21 +389,21 @@ class ImageNormalizer extends Normalizer {
             RescaleSlope: rescaleSlope,
             RescaleType: "US"
         };
-        let frameCount = this.datasets.length;
-        const perFrame = ds.PerFrameFunctionalGroupsSequence;
-        if (!perFrame || (Array.isArray(perFrame) && !perFrame.length)) {
-            // Missing or empty: one item per declared frame, all at the top-level position
-            frameCount = Math.max(frameCount, Number(ds.NumberOfFrames) || 0);
-            ds.PerFrameFunctionalGroupsSequence = Array.from(
-                { length: frameCount },
-                () => ImageNormalizer.planePositionGroup(ds)
+        const frameCount = Math.max(
+            this.datasets.length,
+            Number(ds.NumberOfFrames) || 0
+        );
+        const perFrame = ds.PerFrameFunctionalGroupsSequence || [];
+        ds.PerFrameFunctionalGroupsSequence = Array.isArray(perFrame)
+            ? perFrame
+            : [perFrame];
+        while (ds.PerFrameFunctionalGroupsSequence.length < frameCount) {
+            ds.PerFrameFunctionalGroupsSequence.push(
+                ImageNormalizer.planePositionGroup(ds)
             );
-        } else if (!Array.isArray(perFrame)) {
-            ds.PerFrameFunctionalGroupsSequence = [perFrame];
         }
         for (let frameNumber = 1; frameNumber <= frameCount; frameNumber++) {
             const dataset = this.datasets[frameNumber - 1] || {};
-            ds.PerFrameFunctionalGroupsSequence[frameNumber - 1] ||= {};
             ds.PerFrameFunctionalGroupsSequence[
                 frameNumber - 1
             ].FrameContentSequence = {
