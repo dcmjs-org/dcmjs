@@ -2,7 +2,7 @@
     "branches": [
         { "name": "release/0.5x", "range": "0.x" },
         "master",
-        { "name": "1.0-beta", "prerelease": "beta", "channel": "beta" }
+        { "name": "1.0-beta", "channel": false }
     ],
     "plugins": [
         "@semantic-release/commit-analyzer",

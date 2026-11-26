@@ -65,12 +65,12 @@ pnpm add dcmjs@dev   # latest code merged to master
 
 The same versions can be installed with `npm install` or Yarn in **your** project; those clients are fine for consuming the published package. **Building this repository** is pnpm-only (see below).
 
-## The 1.0 beta (`@dcmjs-org/dcmjs`)
+## dcmjs 1.0 (`@dcmjs-org/dcmjs`)
 
-The 1.0 beta publishes as `@dcmjs-org/dcmjs` on the npm `beta` tag, so install it with the tag:
+dcmjs 1.0 publishes as `@dcmjs-org/dcmjs`. The unscoped `dcmjs` name stays on 0.x.
 
 ```bash
-npm install @dcmjs-org/dcmjs@beta
+npm install @dcmjs-org/dcmjs
 ```
 
 Its default export has exactly the 0.52 names. The new engines are subpath imports, so the default bundle does not contain them:

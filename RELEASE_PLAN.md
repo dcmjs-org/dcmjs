@@ -416,8 +416,10 @@ The mechanics, for those who want them:
 -   One git tag per release (`v1.0.0-beta.N`), never per-package tags — the
     version calculator keys off the last tag, and multiple tag families would
     confuse it.
--   The `.releaserc.json` in Appendix A tells semantic-release that
-    `1.0-beta` is a prerelease branch publishing to the npm `beta` channel.
+-   During the beta, the `.releaserc.json` told semantic-release that
+    `1.0-beta` is a prerelease branch publishing to the npm `beta` channel
+    (`{ "name": "1.0-beta", "prerelease": "beta", "channel": "beta" }`).
+    Section 10 removes the prerelease entry for `1.0.0`.
     The `prerelease: "beta"` entry is required, not decorative: the branch
     name itself is not a valid prerelease identifier, and without the entry
     the tool refuses to start.
@@ -454,10 +456,15 @@ Two points from review discussion, adopted here:
 
 ## 10. Finishing: general availability
 
-When the package set is complete and the beta has had time in the field, a
-single merge-commit PR takes `1.0-beta` into `master`. The publish
-pipeline on `master` then releases `1.0.0` to npm `latest` for every
-public package.
+The `1.0-beta` branch releases `1.0.0` itself. A PR removes the
+`prerelease` entry of `1.0-beta` in `.releaserc.json` (Appendix A), and the
+next publish on `1.0-beta` releases `1.0.0` to npm `latest` for every public
+`@dcmjs-org/*` package. The branch keeps its name, and later merges into it
+release `1.x` versions. `master` stays on 0.x, and the `master` entry before
+`1.0-beta` keeps `master` below `1.0.0`.
+
+A later merge-commit PR takes `1.0-beta` into `master`. That PR moves the
+1.x release stream to `master`.
 
 After GA, the 0.5x line winds down on the schedule from the earlier plan:
 a `release/0.5x` branch for critical fixes, a deprecation notice in the
@@ -525,7 +532,7 @@ Named here so their absence is a decision, not an oversight:
     "branches": [
         { "name": "release/0.5x", "range": "0.x" },
         "master",
-        { "name": "1.0-beta", "prerelease": "beta", "channel": "beta" }
+        { "name": "1.0-beta", "channel": false }
     ],
     "plugins": [
         "@semantic-release/commit-analyzer",
