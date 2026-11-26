@@ -171,6 +171,26 @@ class ImageNormalizer extends Normalizer {
         };
     }
 
+    /**
+     * Returns the number of whole uncompressed frames that ds.PixelData can
+     * hold, or 0 when the size is unknown.
+     *
+     * @deprecated The normalizer no longer calls this method; it keeps the
+     * declared NumberOfFrames. Kept for callers outside dcmjs.
+     */
+    static framesInPixelData(ds) {
+        const frameBytes =
+            (ds.Rows *
+                ds.Columns *
+                (ds.SamplesPerPixel || 1) *
+                ds.BitsAllocated) /
+            8;
+        const bytes = []
+            .concat(ds.PixelData || [])
+            .reduce((sum, data) => sum + ((data && data.byteLength) || 0), 0);
+        return frameBytes > 0 ? Math.floor(bytes / frameBytes) : 0;
+    }
+
     convertToMultiframe() {
         if (
             this.datasets.length === 1 &&
@@ -337,7 +357,8 @@ class ImageNormalizer extends Normalizer {
      * A missing or empty SharedFunctionalGroupsSequence is built from the
      * top-level image plane attributes. A one-item array gets the list
      * accessors (addAccessors), so both `SharedFunctionalGroupsSequence.X`
-     * and `SharedFunctionalGroupsSequence[0].X` work.
+     * and `SharedFunctionalGroupsSequence[0].X` work. The standard permits
+     * one shared item; an array with 2 or more items keeps only item 0.
      * The PerFrameFunctionalGroupsSequence is filled up to the declared
      * NumberOfFrames with items at the top-level position, existing items keep
      * their content, and each item without a FrameContentSequence gets one.
@@ -414,8 +435,9 @@ class ImageNormalizer extends Normalizer {
             Number(ds.NumberOfFrames) || 0
         );
         const perFrame = ds.PerFrameFunctionalGroupsSequence || [];
+        // A plain copy: push on an addAccessors Proxy writes into item 0
         ds.PerFrameFunctionalGroupsSequence = Array.isArray(perFrame)
-            ? perFrame
+            ? [...perFrame]
             : [perFrame];
         // Missing, empty or short: fill up to the declared NumberOfFrames
         while (ds.PerFrameFunctionalGroupsSequence.length < frameCount) {

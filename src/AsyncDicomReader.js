@@ -410,7 +410,8 @@ export class AsyncDicomReader {
                 `maxFragmentSize must be a positive number, got ${maxFragmentSize}`
             );
         }
-        const bigEndian = this.syntax === EXPLICIT_BIG_ENDIAN && wordWidth > 1;
+        // The stream byte order: items of a UN sequence are little endian
+        const bigEndian = !stream.isLittleEndian && wordWidth > 1;
         // Fragments have to hold whole words to be byte swapped, so that a word
         // is never split across two of them
         const fragmentSize = bigEndian
@@ -551,10 +552,7 @@ export class AsyncDicomReader {
             }
         }
 
-        if (
-            this.syntax === EXPLICIT_BIG_ENDIAN &&
-            frameLength % wordWidth !== 0
-        ) {
+        if (!this.stream.isLittleEndian && frameLength % wordWidth !== 0) {
             // A word spans two frames, so swap the whole value before it is cut into frames
             await this.stream.ensureAvailable(length);
             const allPixelData = this.stream.readArrayBuffer(length);
@@ -678,7 +676,8 @@ export class AsyncDicomReader {
 
     /**
      * Reads raw binary data in chunks and delivers it to the listener.
-     * This method reads data in 64KB chunks to manage memory efficiently.
+     * Reads the value in fragments of `maxFragmentSize` bytes.
+     * OW/OF/OL/OD/OV words come as little endian, as on the other read paths.
      */
     async readRawBinary(tagInfo) {
         const { length } = tagInfo;

@@ -192,6 +192,27 @@ it.each([
     });
 });
 
+it("completes a naturalized one-item per-frame sequence and writes it", () => {
+    const source = buildSingleFrameOfMultiframeInstance();
+    source.NumberOfFrames = 3;
+    source.PerFrameFunctionalGroupsSequence = positionedItems(1);
+    // naturalizeDataset wraps a one-item sequence in the addAccessors Proxy
+    const dataset = DicomMetaDictionary.naturalizeDataset(
+        DicomMetaDictionary.denaturalizeDataset(source)
+    );
+    const normalizer = new NMImageNormalizer([dataset]);
+    normalizer.normalize();
+
+    const perFrame = normalizer.dataset.PerFrameFunctionalGroupsSequence;
+    expect(perFrame).toHaveLength(3);
+    // No pushed item may land in item 0 as a key "1", "2", ...
+    expect(Object.keys(perFrame[0]).filter(key => /^\d+$/.test(key))).toEqual(
+        []
+    );
+    const written = DicomMetaDictionary.denaturalizeDataset(normalizer.dataset);
+    expect(written["52009230"].Value).toHaveLength(3);
+});
+
 it("does not throw for a null per-frame item after NumberOfFrames", () => {
     const dataset = buildSingleFrameOfMultiframeInstance();
     dataset.NumberOfFrames = 3;

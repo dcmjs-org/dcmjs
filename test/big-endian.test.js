@@ -640,4 +640,36 @@ describe("binary value fields and the transfer syntax byte order", () => {
             expect(bytes).toEqual(results.map(() => littleEndian.join(",")));
         }
     );
+
+    test("reads an OW value in a UN sequence of a Big Endian file as raw binary unswapped", async () => {
+        // The items of a UN sequence are Implicit VR Little Endian
+        const inner = [
+            ...encodeUint16(0x0028, true),
+            ...encodeUint16(0x1201, true),
+            ...encodeUint32(4, true),
+            1,
+            2,
+            3,
+            4
+        ];
+        const item = [...encodeItemTag(0xe000, inner.length, true), ...inner];
+        const reader = new AsyncDicomReader();
+        reader.stream.addBuffer(
+            encodePart10(EXPLICIT_BIG_ENDIAN, [
+                ...encodeElement("00091010", "UN", item, false)
+            ]).buffer
+        );
+        reader.stream.setComplete();
+        const listener = new dcmjs.utilities.DicomMetadataListener({
+            addTag(next, tag, tagInfo) {
+                next(tag, tagInfo);
+                return tag === "00281201" ? { expectsRaw: true } : undefined;
+            }
+        });
+        const { dict } = await reader.readFile({ listener });
+
+        expect(
+            hostWords(dict["00091010"].Value[0]["00281201"], Uint8Array)
+        ).toEqual([1, 2, 3, 4]);
+    });
 });
