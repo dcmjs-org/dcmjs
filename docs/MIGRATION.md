@@ -496,8 +496,15 @@ string when the value is not a safe integer.
     and the single-value collapse changed; see "Naturalization".)
 -   `DicomMessage.read` and `DicomMessage.readTag`: still present, still
     deprecated, still warning.
--   The `DICOMWEB` class, structured reports, derivations, normalizers,
-    utilities: untouched by the engine work on this branch.
+-   The `DICOMWEB` class, structured reports, derivations, utilities:
+    untouched by the engine work on this branch.
+-   Normalizers: same API, with three changes to the multiframe output:
+    -   A one-item `SharedFunctionalGroupsSequence` becomes that item, with
+        list accessors. `[0]` still works; `Array.isArray` gives `false`.
+    -   An existing `FrameContentSequence` stays. (0.x replaced the one of
+        item 1.)
+    -   A short per-frame sequence is filled to `NumberOfFrames`. An empty
+        shared or per-frame array counts as missing.
 -   `adapters`: still exported by `@dcmjs-org/dcmjs` and unchanged, but
     deprecated. The adapters moved to `@cornerstonejs/adapters`; import
     them from there. The `packages/*` libraries do not export them.
