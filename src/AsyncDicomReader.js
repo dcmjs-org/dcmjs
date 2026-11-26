@@ -628,6 +628,7 @@ export class AsyncDicomReader {
         await stream.ensureAvailable(length);
         const allPixelData = stream.readArrayBuffer(totalBytes);
         stream.consume();
+        // Top level only (1 frame inside an item), so the file syntax is the stream order
         if (this.syntax === EXPLICIT_BIG_ENDIAN) {
             // the packed bits of OW data are stored as big endian words
             swapBytes(allPixelData, this.wordWidth(tagInfo));

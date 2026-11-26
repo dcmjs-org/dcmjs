@@ -434,11 +434,14 @@ class ImageNormalizer extends Normalizer {
             this.datasets.length,
             Number(ds.NumberOfFrames) || 0
         );
-        const perFrame = ds.PerFrameFunctionalGroupsSequence || [];
-        // A plain copy: push on an addAccessors Proxy writes into item 0
-        ds.PerFrameFunctionalGroupsSequence = Array.isArray(perFrame)
-            ? [...perFrame]
-            : [perFrame];
+        let perFrame = ds.PerFrameFunctionalGroupsSequence || [];
+        if (!Array.isArray(perFrame)) {
+            perFrame = [perFrame];
+        } else if (perFrame.length < frameCount) {
+            // A plain copy: push on an addAccessors Proxy writes into item 0
+            perFrame = [...perFrame];
+        }
+        ds.PerFrameFunctionalGroupsSequence = perFrame;
         // Missing, empty or short: fill up to the declared NumberOfFrames
         while (ds.PerFrameFunctionalGroupsSequence.length < frameCount) {
             ds.PerFrameFunctionalGroupsSequence.push(
