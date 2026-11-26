@@ -524,7 +524,7 @@ export class AsyncDicomReader {
         const { length } = tagInfo;
         const { listener } = this;
         // The big endian syntax stores OW pixel data big endian, OB as is
-        const wordWidth = tagInfo.vrObj?.wordWidth ?? 1;
+        const wordWidth = this.wordWidth(tagInfo);
 
         const numberOfFrames = this.getNumberOfFrames();
         const frameLength = Math.floor(length / numberOfFrames);
@@ -632,7 +632,7 @@ export class AsyncDicomReader {
         stream.consume();
         if (this.syntax === EXPLICIT_BIG_ENDIAN) {
             // the packed bits of OW data are stored as big endian words
-            swapBytes(allPixelData, tagInfo.vrObj?.wordWidth ?? 1);
+            swapBytes(allPixelData, this.wordWidth(tagInfo));
         }
 
         // Extract each frame, unpacking bits so each frame starts at byte 0
@@ -682,7 +682,18 @@ export class AsyncDicomReader {
      */
     async readRawBinary(tagInfo) {
         const { length } = tagInfo;
-        await this._emitSplitValues(length);
+        await this._emitSplitValues(length, this.wordWidth(tagInfo));
+    }
+
+    /**
+     * Bytes per word of the value field, from the resolved VR: a UN element
+     * with dictionary VR OW/OF/OD/OL/OV uses that VR, "ox" is OW, and
+     * OB and an unresolved UN are 1 (no Big Endian swap).
+     */
+    wordWidth(tagInfo) {
+        return (
+            ValueRepresentation.createByTypeString(tagInfo.vr).wordWidth ?? 1
+        );
     }
 
     isSequence(tagInfo) {

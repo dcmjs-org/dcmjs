@@ -592,4 +592,52 @@ describe("binary value fields and the transfer syntax byte order", () => {
 
         expect(new Uint8Array(dicomDict.write())).toEqual(encodeFile(toSyntax));
     });
+
+    // ExtendedOffsetTable (dictionary VR OV), (0066,0040) written as explicit
+    // OL, and UN elements whose dictionary VR is OW or OF; OB never swaps
+    test.each([
+        ["7FE00001", "UN", 8],
+        ["7FE00001", "OV", 8],
+        ["00660040", "OL", 4],
+        ["00281201", "UN", 2],
+        ["00660016", "UN", 4],
+        ["00420011", "OB", 1]
+    ])(
+        "reads Big Endian %s %s as little endian words, also as raw binary",
+        async (tag, vr, width) => {
+            const fileBytes = Array.from({ length: 16 }, (_, i) => i + 1);
+            const buffer = encodePart10(EXPLICIT_BIG_ENDIAN, [
+                ...encodeElement(tag, vr, fileBytes, false)
+            ]).buffer;
+            const asyncRead = async listener => {
+                const reader = new AsyncDicomReader();
+                reader.stream.addBuffer(buffer);
+                reader.stream.setComplete();
+                return reader.readFile({ listener });
+            };
+            const rawListener = new dcmjs.utilities.DicomMetadataListener({
+                addTag(next, tag, tagInfo) {
+                    next(tag, tagInfo);
+                    return { expectsRaw: true };
+                }
+            });
+            const results = [
+                DicomMessage.readFile(buffer),
+                await asyncRead(),
+                await asyncRead(rawListener)
+            ];
+            const littleEndian = fileBytes.map(
+                (_, i) => fileBytes[i - (i % width) + width - 1 - (i % width)]
+            );
+
+            const bytes = results.map(({ dict }) =>
+                [dict[tag].Value]
+                    .flat(3)
+                    .flatMap(f => Array.from(new Uint8Array(f)))
+                    .join(",")
+            );
+
+            expect(bytes).toEqual(results.map(() => littleEndian.join(",")));
+        }
+    );
 });
