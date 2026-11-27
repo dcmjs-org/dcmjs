@@ -405,7 +405,7 @@ export class AsyncDicomReader {
     /**
      * Emits one or more listener.value() calls for a fragment, splitting if needed.
      * This does NOT start/pop any array contexts; callers control the surrounding structure.
-     * In Explicit VR Big Endian, each fragment holds whole words of wordWidth
+     * In a big endian stream, each fragment holds whole words of wordWidth
      * bytes, swapped to little endian.
      */
     async _emitSplitValues(length, wordWidth = 1) {
@@ -417,7 +417,7 @@ export class AsyncDicomReader {
                 `maxFragmentSize must be a positive number, got ${maxFragmentSize}`
             );
         }
-        const swap = this.syntax === EXPLICIT_BIG_ENDIAN && wordWidth > 1;
+        const swap = !stream.isLittleEndian && wordWidth > 1;
         const fragmentSize = swap
             ? Math.max(
                   wordWidth,
@@ -554,10 +554,7 @@ export class AsyncDicomReader {
             }
         }
 
-        if (
-            this.syntax === EXPLICIT_BIG_ENDIAN &&
-            frameLength % wordWidth !== 0
-        ) {
+        if (!this.stream.isLittleEndian && frameLength % wordWidth !== 0) {
             // A word spans two frames, so swap the whole value before it is cut into frames
             await this.stream.ensureAvailable(length);
             const allPixelData = this.stream.readArrayBuffer(length);
@@ -633,7 +630,7 @@ export class AsyncDicomReader {
         await stream.ensureAvailable(length);
         const allPixelData = stream.readArrayBuffer(totalBytes);
         stream.consume();
-        if (this.syntax === EXPLICIT_BIG_ENDIAN) {
+        if (!stream.isLittleEndian) {
             // the bits of OW data are packed in big endian words
             swapBytes(allPixelData, this.wordWidth(tagInfo));
         }
