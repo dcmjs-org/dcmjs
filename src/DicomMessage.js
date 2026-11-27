@@ -17,7 +17,7 @@ import { log } from "./log.js";
 import { deepEqual } from "./utilities/deepEqual";
 import { ValueRepresentation } from "./ValueRepresentation.js";
 
-export const singleVRs = ["SQ", "OF", "OW", "OB", "UN", "LT"];
+export const singleVRs = ["SQ", "OF", "OW", "OB", "UN", "LT", "ST", "UT", "UR"];
 
 /**
  * PS3.5 §6.2.2: a UN value that holds a sequence is Implicit VR LE.
