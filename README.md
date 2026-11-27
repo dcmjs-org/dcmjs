@@ -11,9 +11,9 @@
 
 This is a community effort so please help improve support for a wide range of DICOM data and use cases.
 
-This is the 0.x maintenance line (branch `0.x`), for fixes only. dcmjs 1.0 is on the `main` branch.
+This is the 0.x maintenance line (branch `0.x`), for fixes only. dcmjs 1.x is on the `main` branch. See [Releases from the 0.x branch](#releases-from-the-0x-branch) before you merge a PR.
 
-See [live examples here](https://0x--dcmjs2.netlify.app/)
+See [live examples of 0.x here](https://0x--dcmjs2.netlify.app/). The examples of dcmjs 1.x are at [dcmjs2.netlify.app](https://dcmjs2.netlify.app/).
 
 # Goals
 
@@ -105,6 +105,20 @@ Note: Be wary of `BREAKING_CHANGE` in commit message descriptions, as this can f
 Be sure to use lower case for the first letter of your semantic commit message, so use `fix` not `Fix` or `feat` not `Feat`, have a space after the : and make the PR github review title follow the SAME rules.  It is the PR review title that determins the final commit message and will be used for semantic detection.
 
 Note: a new package version will be published only if the commit comes from a PR.
+
+### Releases from the 0.x branch
+
+The `0.x` branch releases fixes only, as `0.54.N`, under the npm dist-tag `0.x`. `.releaserc.json` limits the branch to the range `0.54.x`.
+
+- Give each PR into `0.x` a `fix:` title, or a title that releases nothing (`ci:`, `docs:`, `test:`, `chore:`). The squash merge uses the PR title as the commit message.
+- Do not use a `feat:` title. A `feat:` commit makes the next version `0.55.0`, which is outside the range. The publish job then fails with `EINVALIDNEXTVERSION`, and no version goes to npm.
+- Do not use a `BREAKING CHANGE:` footer or a `!` after the type. The next version is then `1.0.0`, and the publish job fails in the same way.
+
+The failure blocks each later release from `0.x`, because each release run reads all commits since the last release. If a `feat:` commit is on `0.x`, a maintainer must fix the range:
+
+1. Open a PR into `0.x` that changes `"range": "0.54.x"` to `"range": "0.55.x"` in `.releaserc.json`.
+2. Give that PR a `ci:` title. Do not give it a `feat:` title.
+3. Merge the PR. The publish job releases `0.55.0`, and later fixes release `0.55.N`.
 
 ### Optional Tooling
 
