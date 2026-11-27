@@ -3,9 +3,8 @@ name: Schema artifacts are reproducible
 on:
   push:
     branches:
-      - master
-      - 1.0-beta
-      - release/0.5x
+      - main
+      - 0.x
     paths:
       - "packages/schemas/**"
       - "packages/core/src/dicom.*.js"

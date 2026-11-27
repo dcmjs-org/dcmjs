@@ -3,9 +3,8 @@ name: Run tests
 on:
   push:
     branches:
-      - master
-      - 1.0-beta
-      - release/0.5x
+      - main
+      - 0.x
   pull_request:
   workflow_dispatch:
 

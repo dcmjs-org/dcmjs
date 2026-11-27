@@ -13,6 +13,3 @@ reader can eventually be deprecated and removed without touching them.
 For surface compatibility this package also re-exports `DicomMetaDictionary`,
 the `BufferStream` classes, and `SplitDataView` from `@dcmjs-org/core` — they
 lived on the legacy surface historically, but their code is core's.
-
-During the 1.0 beta this package is marked private; the publish flag flips when
-the workspace layout settles, per RELEASE_PLAN.md.

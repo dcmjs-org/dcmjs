@@ -17,9 +17,6 @@ are internal: their export names collide by design (each is a module-shaped
 data blob), so they are reachable by direct module path but are not re-exported
 from the index.
 
-During the 1.0 beta this package is marked private; the publish flag flips when
-the workspace layout settles, per RELEASE_PLAN.md.
-
 ## Instance creation
 
 `createInstance(options)` creates a naturalized instance. The builders of the

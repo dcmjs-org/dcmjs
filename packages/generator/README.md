@@ -19,6 +19,3 @@ Dependencies, by design:
   envelope was relocated into core as `writePart10` and `DicomDict.write()`
   became a delegating call; `test/standalone.test.js` in this package pins
   the legacy-free module graph.
-
-During the 1.0 beta this package is marked private; the publish flag flips when
-the workspace layout settles, per RELEASE_PLAN.md.
