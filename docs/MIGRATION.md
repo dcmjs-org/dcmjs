@@ -35,7 +35,9 @@ const { DicomMessage, DicomDict, DicomMetaDictionary } = dcmjs.data;
 every value in the file is decoded inside the call, and a parsed
 `DicomDict` comes out with the same shape: the same `meta` / `dict` split,
 the same uppercase string keys (`"00100010"`), the same
-`{ vr, Value, _rawValue }` entries.
+`{ vr, Value, _rawValue }` entries. One difference: an ST, UT or UR value
+with a backslash reads as one value
+([see below](#behavior-changes-made-for-standard-compliance)).
 
 ```js
 // 0.x and 1.0 are the same call with the same timing:
@@ -520,6 +522,8 @@ defined term, for example a vendor spelling, for read and write.
 the VR and SOP class registries; the 0.x lists and maps
 (`singleVRs`, `BINARY_VRS`, `DicomMetaDictionary.sopClassUIDsByName`,
 `sopClassNamesByUID`) keep their members and their property access.
+`singleVRs` also has ST, UT and UR since 1.0.1 (see
+[Behavior changes](#behavior-changes-made-for-standard-compliance)).
 [specs/registries.md](specs/registries.md) gives the rules.
 
 An OL, OV or SV element now reads and writes with its own VR, not `UN`:
