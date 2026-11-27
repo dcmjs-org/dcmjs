@@ -7,6 +7,8 @@ import {
     dicomJson,
     isPrivateTag,
     placePrivateElements,
+    overlayItem,
+    placeOverlayItems,
     registeredTagEntry,
     recordVr,
     checkBinaryAs,
@@ -176,22 +178,23 @@ export class NaturalizedListener extends EventStreamListener {
         // registerTag() entries included
         const entry = registeredTagEntry(frame.tag);
         const key = (entry && entry.name) || frame.tag.toUpperCase();
-        recordVr(targetFrame.obj._vrMap, key, entry, frame.vr);
+        const target = targetObject(targetFrame, frame.tag);
+        recordVr(target._vrMap, key, entry, frame.vr);
         if (frame.binary !== undefined) {
-            targetFrame.obj[key] = frame.binary;
+            target[key] = frame.binary;
             return;
         }
         if (BINARY_VRS.has(frame.vr)) {
-            targetFrame.obj[key] = binaryValue(frame.values);
+            target[key] = binaryValue(frame.values);
             return;
         }
         const shaped = this._shapeValues(frame, entry, key);
         if (frame.vr === "PN") {
             // one conversion, and the converting setter (NAT-U-VAL-5)
-            setPersonName(targetFrame.obj, key, shaped, valueLength(entry));
+            setPersonName(target, key, shaped, valueLength(entry));
             return;
         }
-        targetFrame.obj[key] = shaped;
+        target[key] = shaped;
     }
 
     _baseStartSequence(tag, info = {}) {
@@ -228,8 +231,9 @@ export class NaturalizedListener extends EventStreamListener {
         const entry = registeredTagEntry(frame.tag);
         const shaped = this._shapeSequence(frame, entry);
         const key = (entry && entry.name) || frame.tag.toUpperCase();
-        recordVr(targetFrame.obj._vrMap, key, entry, frame.vr);
-        targetFrame.obj[key] = shaped;
+        const target = targetObject(targetFrame, frame.tag);
+        recordVr(target._vrMap, key, entry, frame.vr);
+        target[key] = shaped;
     }
 
     // --- cardinality shaping ------------------------------------------------
@@ -290,12 +294,20 @@ export class NaturalizedListener extends EventStreamListener {
 /**
  * A dataset or item frame. Its private elements wait in `privates` until the
  * level ends, so a creator that comes after its data still applies (§18).
+ * Its overlay elements wait in the item of their group in `overlays`.
  */
 function objectFrame(obj) {
-    return { kind: "object", obj, privates: [] };
+    return { kind: "object", obj, privates: [], overlays: {} };
+}
+
+/** The object of a frame that receives `tag`: its overlay item, or `obj`. */
+function targetObject(frame, tag) {
+    return overlayItem(frame.overlays, tag) || frame.obj;
 }
 
 function endObject(frame) {
+    placeOverlayItems(frame.obj, frame.overlays);
+    frame.overlays = {};
     placePrivateElements(frame.obj, frame.obj._vrMap, frame.privates);
     frame.privates = [];
 }

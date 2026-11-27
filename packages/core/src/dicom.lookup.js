@@ -58,6 +58,8 @@ export function lookupTagRangeHex(hex8) {
     const group = parseInt(hex8.slice(0, 4), 16);
     const elem = parseInt(hex8.slice(4, 8), 16);
     if (!Number.isFinite(group) || !Number.isFinite(elem)) return undefined;
+    // An odd group is private, also in the 50xx and 60xx ranges.
+    if (group & 1) return undefined;
     for (let i = 0; i < rangeEntries.length; i++) {
         const r = rangeEntries[i];
         if (group >= r.groupMin && group <= r.groupMax && elem === r.elem) {

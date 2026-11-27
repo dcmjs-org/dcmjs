@@ -95,6 +95,12 @@ export {
 } from "./utilities/privateBlockDict.js";
 export { recordVr } from "./utilities/vrMap.js";
 export {
+    OVERLAY_SEQUENCE,
+    overlayItem,
+    placeOverlayItems,
+    defineOverlayAliases
+} from "./utilities/overlaySequence.js";
+export {
     toPersonNameValue,
     definePersonNameAccessor
 } from "./utilities/personNameValue.js";

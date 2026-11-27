@@ -1,5 +1,6 @@
 import addAccessors from "./addAccessors.js";
 import { copyPrivateAliases } from "./privateBlocks.js";
+import { copyOverlayAliases } from "./overlaySequence.js";
 
 /**
  * Deep clone of a naturalized instance, or of one naturalized value. It
@@ -52,5 +53,6 @@ export function deepCloneInstance(value, options = {}) {
         copy[key] = clone(value[key]);
     }
     copyPrivateAliases(value, copy);
+    copyOverlayAliases(value, copy);
     return value[0] === value ? addAccessors(copy) : copy;
 }

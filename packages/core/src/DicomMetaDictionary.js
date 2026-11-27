@@ -1,4 +1,8 @@
-import { dictionary, lookupRegisteredTagByName } from "./dictionary.fast.js";
+import {
+    dictionary,
+    lookupRegisteredTagByName,
+    setKeywordLookup
+} from "./dictionary.fast.js";
 import { getAllStandardTagEntries } from "./dicom.lookup.js";
 import log from "./log.js";
 import { valueLength } from "./utilities/isMultiVM.js";
@@ -17,6 +21,12 @@ import {
     expandPrivateBlocks
 } from "./utilities/privateBlocks.js";
 import { recordVr } from "./utilities/vrMap.js";
+import {
+    isOverlayKey,
+    overlayItem,
+    placeOverlayItems,
+    denaturalizeOverlays
+} from "./utilities/overlaySequence.js";
 import { setPersonName } from "./utilities/naturalizedAttributes.js";
 import {
     SopClasses,
@@ -56,6 +66,13 @@ function naturalizeElement(data, entry, options) {
         data.vr,
         simpleValue(values, valueLength(entry))
     );
+}
+
+/** The own entry of `name`, so `constructor` and other prototype keys miss. */
+function ownEntry(nameMap, name) {
+    return Object.prototype.hasOwnProperty.call(nameMap, name)
+        ? nameMap[name]
+        : undefined;
 }
 
 export class DicomMetaDictionary {
@@ -99,8 +116,21 @@ export class DicomMetaDictionary {
         return integerValue;
     }
 
+    /**
+     * The dictionary entry of a keyword: a standard keyword from `nameMap`
+     * first, then a registerTag() name. registerTag() names are kept out of
+     * the shared nameMap, so a read never changes global state.
+     *
+     * @param {string} name - A keyword
+     * @param {object} [nameMap] - The name map to search first
+     * @returns {{ tag: string, name: string, vr: string } | undefined}
+     */
+    static entryForName(name, nameMap = DicomMetaDictionary.nameMap) {
+        return ownEntry(nameMap, name) || lookupRegisteredTagByName(name);
+    }
+
     static tagAsIntegerFromName(name) {
-        const item = DicomMetaDictionary.nameMap[name];
+        const item = DicomMetaDictionary.entryForName(name);
         if (item != undefined) {
             return this.parseIntFromTag(item.tag);
         } else {
@@ -176,7 +206,10 @@ export class DicomMetaDictionary {
      *   hidden [0] and length (see addAccessors); otherwise it is a list;
      * - PN values get their value accessors here, when the value is built;
      * - private elements group by reserved block under `${group}:${creator}`
-     *   keys, with non-enumerable hex-tag aliases (see privateBlocks.js).
+     *   keys, with non-enumerable hex-tag aliases (see privateBlocks.js);
+     * - each overlay group (60xx, xx even) is one item of `OverlaySequence`,
+     *   with its group as `group` ("6000") and its attributes by keyword
+     *   and non-enumerable hex-tag aliases (see overlaySequence.js).
      *
      * The result is a plain object: there is no Proxy. The 0.x shapes are in
      * the DicomMetaDictionary of @dcmjs-org/legacy.
@@ -190,9 +223,12 @@ export class DicomMetaDictionary {
         options = { ...options, binaryAs: checkBinaryAs(options.binaryAs) };
         const naturalDataset = { _vrMap: {} };
         const privateElements = [];
+        const overlays = {};
 
         Object.keys(dataset).forEach(tag => {
             const data = dataset[tag];
+            // an overlay element goes into the item of its group
+            const target = overlayItem(overlays, tag) || naturalDataset;
             const punctuatedTag = DicomMetaDictionary.punctuateTag(tag);
             const entry = DicomMetaDictionary.dictionary[punctuatedTag];
             if (isPrivateTag(tag)) {
@@ -207,25 +243,22 @@ export class DicomMetaDictionary {
             // no dictionary entry: the tag stays the key, and the VR goes
             // into _vrMap so denaturalizeDataset can rebuild it
             const naturalName = entry ? entry.name : tag.toUpperCase();
-            recordVr(naturalDataset._vrMap, naturalName, entry, data.vr);
+            recordVr(target._vrMap, naturalName, entry, data.vr);
 
             if (data.vr === "PN") {
                 // one conversion, and the converting setter (NAT-U-VAL-5)
                 setPersonName(
-                    naturalDataset,
+                    target,
                     naturalName,
                     data.Value ?? null,
                     valueLength(entry)
                 );
                 return;
             }
-            naturalDataset[naturalName] = naturalizeElement(
-                data,
-                entry,
-                options
-            );
+            target[naturalName] = naturalizeElement(data, entry, options);
         });
 
+        placeOverlayItems(naturalDataset, overlays);
         placePrivateElements(
             naturalDataset,
             naturalDataset._vrMap,
@@ -266,19 +299,17 @@ export class DicomMetaDictionary {
      */
     static denaturalizeDataset(dataset, nameMap = DicomMetaDictionary.nameMap) {
         var unnaturalDataset = {};
+        // the overlay alias record is on the dataset, not on the view below
+        const source = dataset;
         // reserved private blocks become a creator plus hex-tag elements
         dataset = expandPrivateBlocks(dataset);
         Object.keys(dataset).forEach(naturalName => {
+            if (isOverlayKey(naturalName)) {
+                return; // denaturalizeOverlays below
+            }
             // check if it's a sequence
             var name = naturalName;
-            var entry = nameMap[name];
-            if (!entry) {
-                // registerTag() names are kept in a registry-local index
-                // instead of being written into the shared nameMap, so a
-                // registered keyword denaturalizes symmetrically without
-                // naturalizeDataset ever mutating global state
-                entry = lookupRegisteredTagByName(name);
-            }
+            var entry = DicomMetaDictionary.entryForName(name, nameMap);
             if (
                 !entry &&
                 isHexTag(name) &&
@@ -399,6 +430,10 @@ export class DicomMetaDictionary {
                 }
             }
         });
+        // After the flat attributes, so an item wins over a flat overlay keyword.
+        denaturalizeOverlays(source, unnaturalDataset, item =>
+            DicomMetaDictionary.denaturalizeDataset(item, nameMap)
+        );
         return unnaturalDataset;
     }
 
@@ -533,3 +568,4 @@ ValueRepresentation.setDicomMetaDictionary(DicomMetaDictionary);
 DicomMetaDictionary.dictionary = dictionary;
 
 DicomMetaDictionary._generateNameMap();
+setKeywordLookup(name => ownEntry(DicomMetaDictionary.nameMap, name));
