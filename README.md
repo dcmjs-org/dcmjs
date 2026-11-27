@@ -108,7 +108,7 @@ Note: a new package version will be published only if the commit comes from a PR
 
 ### Releases from the 0.x branch
 
-The `0.x` branch releases fixes only, as `0.54.N`, under the npm dist-tag `release-0.x`. npm does not permit a dist-tag that is a version range, so semantic-release adds the prefix `release-` to the channel `0.x`. `dcmjs@0.x` installs the same release, because npm reads `0.x` as a version range. `.releaserc.json` limits the branch to the range `0.54.x`.
+The `0.x` branch releases fixes only, as `0.54.N`, under the npm dist-tag `release-0.x` (the semantic-release channel of the branch). `dcmjs@0.x` installs the same release, because npm reads `0.x` as a version range. A dist-tag cannot be `0.x`, because npm does not permit a dist-tag that is a version range. `.releaserc.json` limits the branch to the range `0.54.x`.
 
 - The commit that lands on `0.x` must have a `fix:` title, or a title that releases nothing (`ci:`, `docs:`, `test:`, `chore:`). For a PR with one commit, the squash merge uses the commit title, not the PR title. The squash body lists the messages of all commits. Check the title and the body in the merge dialog before you merge.
 - Do not use a `feat:` title. A `feat:` commit makes the next version `0.55.0`, which is outside the range. The publish job then fails with `EINVALIDNEXTVERSION`, and no version goes to npm.
