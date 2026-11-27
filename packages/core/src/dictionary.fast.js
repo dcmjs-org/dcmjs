@@ -1,4 +1,5 @@
 import { lookupTagHex, lookupTagRangeHex } from "./dicom.lookup.js";
+import log from "./log.js";
 
 /** Set by registerPrivatesModule() at startup (index.js / index.umd). */
 let privateModule = null;
@@ -33,6 +34,10 @@ function _toParenKeyFromHex8(hex8) {
 /**
  * Register a tag entry in the cache so it is returned by the dictionary for that tag.
  * Use for tags not in the standard or private dictionaries.
+ * The tag is stored in upper case, the case that a reader makes, and lookups
+ * accept both cases. When two registrations use one name, the first one keeps
+ * the name and a warning names both tags. A standard keyword always wins over
+ * a registered name (DicomMetaDictionary.entryForName()).
  *
  * @param {string} tagOrHex - Tag as '(GGGG,EEEE)' or 'GGGGEEEE'
  * @param {{ name: string, vr: string, vm?: string, [key: string]: unknown }} entry - At least name and vr; vm and other fields optional
@@ -63,13 +68,31 @@ export function registerTag(tagOrHex, entry) {
     } else {
         return;
     }
+    const upperHex = hex8.toUpperCase();
+    const lowerHex = hex8.toLowerCase();
     const cached = {
-        tag: parenKey,
+        tag: _toParenKeyFromHex8(upperHex),
         ...entry,
         version: entry.version ?? "User"
     };
-    cache.set(parenKey, cached);
-    cache.set(hex8, cached);
+    for (const key of new Set([
+        upperHex,
+        lowerHex,
+        hex8,
+        parenKey,
+        _toParenKeyFromHex8(upperHex),
+        _toParenKeyFromHex8(lowerHex)
+    ])) {
+        cache.set(key, cached);
+    }
+    const existing = nameCache.get(cached.name);
+    if (existing && existing.tag !== cached.tag) {
+        log.warn(
+            `registerTag: name ${cached.name} already maps to ${existing.tag}; ` +
+                `${cached.tag} is not writable by that name`
+        );
+        return;
+    }
     nameCache.set(cached.name, cached);
 }
 

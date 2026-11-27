@@ -105,8 +105,21 @@ export class DicomMetaDictionary {
         return integerValue;
     }
 
+    /**
+     * The dictionary entry of a keyword: a standard keyword from `nameMap`
+     * first, then a registerTag() name. registerTag() names are kept out of
+     * the shared nameMap, so a read never changes global state.
+     *
+     * @param {string} name - A keyword
+     * @param {object} [nameMap] - The name map to search first
+     * @returns {{ tag: string, name: string, vr: string } | undefined}
+     */
+    static entryForName(name, nameMap = DicomMetaDictionary.nameMap) {
+        return nameMap[name] || lookupRegisteredTagByName(name);
+    }
+
     static tagAsIntegerFromName(name) {
-        const item = DicomMetaDictionary.nameMap[name];
+        const item = DicomMetaDictionary.entryForName(name);
         if (item != undefined) {
             return this.parseIntFromTag(item.tag);
         } else {
@@ -285,14 +298,7 @@ export class DicomMetaDictionary {
             }
             // check if it's a sequence
             var name = naturalName;
-            var entry = nameMap[name];
-            if (!entry) {
-                // registerTag() names are kept in a registry-local index
-                // instead of being written into the shared nameMap, so a
-                // registered keyword denaturalizes symmetrically without
-                // naturalizeDataset ever mutating global state
-                entry = lookupRegisteredTagByName(name);
-            }
+            var entry = DicomMetaDictionary.entryForName(name, nameMap);
             if (
                 !entry &&
                 isHexTag(name) &&

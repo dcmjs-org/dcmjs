@@ -1,5 +1,4 @@
 import { DicomMetaDictionary } from "../DicomMetaDictionary.js";
-import { lookupRegisteredTagByName } from "../dictionary.fast.js";
 import BINARY_VRS from "./binaryVRs.js";
 import { valueLength } from "./isMultiVM.js";
 import { binaryValue, sequenceValue, simpleValue } from "./naturalValues.js";
@@ -53,7 +52,7 @@ function assertNotCreator(dataset, key) {
 /** The dictionary entry of a keyword, a registerTag() keyword or a hex tag. */
 function entryFor(key) {
     if (isHexTag(key)) return registeredTagEntry(key);
-    return DicomMetaDictionary.nameMap[key] || lookupRegisteredTagByName(key);
+    return DicomMetaDictionary.entryForName(key);
 }
 
 /**

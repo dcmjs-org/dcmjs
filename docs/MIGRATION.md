@@ -167,10 +167,11 @@ Six things changed relative to 0.x:
    element. Registration is now symmetric: the registry keeps its own
    name index, which `denaturalizeDataset` consults after the standard
    `nameMap`. Reading or naturalizing a dataset never mutates the shared
-   `DicomMetaDictionary.nameMap`. (An intermediate 1.0 draft achieved
-   symmetry by writing into the global `nameMap` as a side effect of
-   `naturalizeDataset`; review finding 32 removed that, and this branch
-   carries the side-effect-free form.)
+   `DicomMetaDictionary.nameMap`. In 0.53.3 and 0.54, `registerTag()`
+   also added its names to `nameMap`. In 1.0 it does not: use
+   `DicomMetaDictionary.entryForName()`, which `tagAsIntegerFromName()`
+   and `cleanTags()` also use. `dcmjs.data.registerTag` and
+   `dcmjs.data.dictionary` stay available, as in 0.53.3.
 
 4. **The dictionary VM decides between a single value and a list.** In
    0.x, every one-value list collapsed to its value. Now a VM of "1" or
@@ -349,9 +350,8 @@ the standard and a way forward for code that relied on the old behavior:
     elements 0x0010 through 0x00FF, and the formerly accepted
     0x0001 through 0x000F range now reads as UN with bytes preserved.
 -   The anonymizer's default keyword list is corrected so `cleanTags()`
-    actually empties attributes the misspelled 0.x list silently skipped.
-    The corrected list arrives with the anonymizer port; the contract and
-    the opt-out recipe are documented ahead of it.
+    actually empties attributes the misspelled list of 0.x before 0.53.3
+    silently skipped. 0.53.3 already has the corrected list.
 
 One more behavior change is not a standard violation fix in the list above:
 in Explicit VR Big Endian, the readers now give OW, OF, OD, OL and OV

@@ -8,6 +8,7 @@ import { ValueRepresentation } from "./ValueRepresentation.js";
 // left in place (issue #345). Retired attributes use the dictionary's
 // RETIRED_ keyword prefix. All 103 previously non-resolving names were
 // mapped to their intended keywords; none had to be removed.
+// ResponsiblePersonRole was added to match 0.53.3.
 var tagNamesToEmpty = [
     // please override these in specificReplaceDefaults to have useful values
     "PatientID",
@@ -127,6 +128,7 @@ var tagNamesToEmpty = [
     "PatientReligiousPreference",
     "PatientSexNeutered",
     "ResponsiblePerson",
+    "ResponsiblePersonRole",
     "ResponsibleOrganization",
     "PatientComments",
     "DeviceSerialNumber",
@@ -261,7 +263,7 @@ export function cleanTags(
             ? customTagNamesToEmpty
             : tagNamesToEmpty;
     tags.forEach(function (tag) {
-        var tagInfo = DicomMetaDictionary.nameMap[tag];
+        var tagInfo = DicomMetaDictionary.entryForName(tag);
         if (tagInfo && tagInfo.version != "PrivateTag") {
             var tagNumber = tagInfo.tag,
                 tagString = Tag.fromPString(tagNumber).toCleanString();
