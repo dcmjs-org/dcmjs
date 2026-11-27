@@ -713,6 +713,57 @@ describe("binary value fields and the transfer syntax byte order", () => {
                 bytes.forEach(b => expect(b).toEqual(littleEndian));
             }
         );
+
+        // The items of a UN sequence are Implicit VR Little Endian, so the
+        // words in them must not be swapped, even in a big endian file
+        test.each(["00281201", "7FE00010"])(
+            "reads %s in a UN sequence item without a swap",
+            async tag => {
+                const valueBytes = [1, 2, 3, 4];
+                const implicitElement = [
+                    ...encodeUint16(parseInt(tag.slice(0, 4), 16), true),
+                    ...encodeUint16(parseInt(tag.slice(4), 16), true),
+                    ...encodeUint32(valueBytes.length, true),
+                    ...valueBytes
+                ];
+                const buffer = encodePart10(syntax, [
+                    ...encodeElement(
+                        "00091010",
+                        "UN",
+                        [
+                            ...encodeItemTag(
+                                0xe000,
+                                implicitElement.length,
+                                true
+                            ),
+                            ...implicitElement
+                        ],
+                        false
+                    )
+                ]).buffer;
+                const rawListener = new dcmjs.utilities.DicomMetadataListener({
+                    addTag(next, tag, tagInfo) {
+                        next(tag, tagInfo);
+                        return { expectsRaw: true };
+                    }
+                });
+                const reader = new AsyncDicomReader();
+                reader.stream.addBuffer(buffer);
+                reader.stream.setComplete();
+                const results = [
+                    DicomMessage.readFile(buffer),
+                    await reader.readFile({ listener: rawListener })
+                ];
+
+                results.forEach(({ dict }) =>
+                    expect(
+                        [dict["00091010"].Value[0][tag].Value]
+                            .flat(3)
+                            .flatMap(f => Array.from(new Uint8Array(f)))
+                    ).toEqual(valueBytes)
+                );
+            }
+        );
     });
 
     test.each([
