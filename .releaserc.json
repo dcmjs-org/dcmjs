@@ -1,5 +1,8 @@
 {
-    "branches": [{ "name": "0.x", "range": "0.x", "channel": false }, "main"],
+    "branches": [
+        { "name": "0.x", "range": "0.54.x", "channel": false },
+        "main"
+    ],
     "plugins": [
         "@semantic-release/commit-analyzer",
         "@semantic-release/release-notes-generator",
@@ -11,6 +14,6 @@
                 "publishCmd": "pnpm -r publish --tag ${nextRelease.channel || 'latest'} --access public --no-git-checks"
             }
         ],
-        ["@semantic-release/github", { "successComment": false }]
+        "@semantic-release/github"
     ]
 }
