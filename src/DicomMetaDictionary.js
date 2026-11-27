@@ -6,6 +6,12 @@ import {
 import { getAllStandardTagEntries } from "./dicom.lookup.js";
 import log from "./log.js";
 import addAccessors from "./utilities/addAccessors";
+import {
+    overlayGroupOfTag,
+    isOverlayKey,
+    placeOverlayItems,
+    denaturalizeOverlays
+} from "./utilities/overlaySequence.js";
 import { ValueRepresentation } from "./ValueRepresentation";
 
 /**
@@ -134,13 +140,45 @@ export class DicomMetaDictionary {
      *     with single element lists remaining lists, but being a
      *     proxy for the child values, see addAccessors for examples
      * - object member names are dictionary, not group/element tag
+     * - each overlay group (60xx, xx even) becomes one item of
+     *     `OverlaySequence`, with its group as `group` ("6000") and its
+     *     attributes by keyword (`OverlayRows`, `OverlayData`, ...).
+     *     All overlay groups share the same keywords, so a flat keyword
+     *     can hold only one group. The hex tag of each element
+     *     ("60023000") is a non-enumerable alias of the item value.
+     *     See README "Overlay planes".
      */
     static naturalizeDataset(dataset) {
+        const overlayGroups = {};
+        const naturalDataset = DicomMetaDictionary._naturalizeElements(
+            dataset,
+            overlayGroups
+        );
+        Object.keys(overlayGroups).forEach(group => {
+            overlayGroups[group] = DicomMetaDictionary._naturalizeElements(
+                overlayGroups[group]
+            );
+        });
+        placeOverlayItems(naturalDataset, overlayGroups);
+        return naturalDataset;
+    }
+
+    /**
+     * Naturalizes the elements of one dataset level. When `overlayGroups` is
+     * given, the overlay elements go into it by group, not into the result.
+     */
+    static _naturalizeElements(dataset, overlayGroups) {
         const naturalDataset = ValueRepresentation.addTagAccessors({
             _vrMap: {}
         });
 
         Object.keys(dataset).forEach(tag => {
+            const overlayGroup = overlayGroups && overlayGroupOfTag(tag);
+            if (overlayGroup) {
+                overlayGroups[overlayGroup] = overlayGroups[overlayGroup] || {};
+                overlayGroups[overlayGroup][tag] = dataset[tag];
+                return;
+            }
             const data = dataset[tag];
             const punctuatedTag = DicomMetaDictionary.punctuateTag(tag);
             const entry = DicomMetaDictionary.dictionary[punctuatedTag];
@@ -237,6 +275,9 @@ export class DicomMetaDictionary {
     static denaturalizeDataset(dataset, nameMap = DicomMetaDictionary.nameMap) {
         var unnaturalDataset = {};
         Object.keys(dataset).forEach(naturalName => {
+            if (isOverlayKey(naturalName)) {
+                return; // denaturalizeOverlays below
+            }
             // check if it's a sequence
             var name = naturalName;
             var entry = nameMap[name];
@@ -337,6 +378,10 @@ export class DicomMetaDictionary {
                 }
             }
         });
+        // After the flat attributes, so an item wins over a flat overlay keyword.
+        denaturalizeOverlays(dataset, unnaturalDataset, item =>
+            DicomMetaDictionary.denaturalizeDataset(item, nameMap)
+        );
         return unnaturalDataset;
     }
 
