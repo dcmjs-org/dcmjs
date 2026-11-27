@@ -3,9 +3,7 @@ name: Publish package to NPM
 on:
   push:
     branches:
-      - master
-      - 1.0-beta
-      - release/0.5x
+      - main
 
 permissions:
   contents: write

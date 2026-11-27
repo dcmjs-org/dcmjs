@@ -3,8 +3,8 @@ Write for a motivated reader who may not know programming, radiology, or
 imaging jargon. Define terms on first use; one good metaphor beats a
 formal definition.
 
-Small PRs into a staging branch need the first section and the checklist.
-The one merge per package into 1.0-beta needs every section.
+Small PRs need the first section and the checklist.
+A PR that adds or changes a package surface on main needs every section.
 See RELEASE_PLAN.md, section 5.
 -->
 
@@ -14,8 +14,8 @@ See RELEASE_PLAN.md, section 5.
 
 ## The idea, in plain terms
 
-<!-- One concept, one metaphor. Required for package merges into
-1.0-beta; optional for small staging PRs. -->
+<!-- One concept, one metaphor. Required for package surface
+changes on main; optional for small PRs. -->
 
 ## Try it
 
