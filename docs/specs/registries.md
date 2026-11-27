@@ -51,9 +51,7 @@ user requirement does not cite an implementation requirement.
   backslash, and a byte stream. Each check of dcmjs that uses one of these
   classifications gives the same answer for the added VR.
 - **REG-U-4.** The VR lists that dcmjs exported before the registry keep
-  their names, their types, and their members. One exception: the list of
-  VRs that a reader never splits on a backslash also has ST, UT and UR,
-  because these VRs have one value (PS3.5 6.2). A VR that a developer adds
+  their names, their types, and their members. A VR that a developer adds
   appears in each list that its classification selects.
 
 ### SOP classes
