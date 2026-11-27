@@ -11,7 +11,9 @@
 
 This is a community effort so please help improve support for a wide range of DICOM data and use cases.
 
-See [live examples here](https://master--dcmjs2.netlify.app/)
+This is the 0.x maintenance line (branch `0.x`), for fixes only. dcmjs 1.0 is on the `main` branch.
+
+See [live examples here](https://0x--dcmjs2.netlify.app/)
 
 # Goals
 
@@ -51,7 +53,7 @@ _Parts of DICOM that dcmjs *will not* focus on:_
 ## In Browser
 
 ```html
-<script type="text/javascript" src="https://unpkg.com/dcmjs"></script>
+<script type="text/javascript" src="https://unpkg.com/dcmjs@0.x"></script>
 ```
 
 ## In Node
@@ -59,8 +61,7 @@ _Parts of DICOM that dcmjs *will not* focus on:_
 Add **dcmjs** to your application (pnpm):
 
 ```bash
-pnpm add dcmjs       # latest stable release
-pnpm add dcmjs@dev   # latest code merged to master
+pnpm add dcmjs@0.x   # the latest 0.x release
 ```
 
 The same versions can be installed with `npm install` or Yarn in **your** project; those clients are fine for consuming the published package. **Building this repository** is pnpm-only (see below).
