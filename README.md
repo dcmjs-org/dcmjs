@@ -174,6 +174,82 @@ The fast dictionary reduces initial load time by over 9x, making it especially b
 - Applications with frequent module reloading during development
 - Environments where startup time is critical
 
+## Overlay planes in the naturalized dataset
+
+DICOM stores each overlay plane in its own repeating group: (6000,xxxx),
+(6002,xxxx), up to (601E,xxxx). All the groups use the same keywords, for
+example `OverlayRows` and `OverlayData`. A flat keyword can hold the value of
+one group only. So `naturalizeDataset` puts the overlay groups in the
+`OverlaySequence` list, one item for each group, as if the overlays were a
+sequence.
+
+The item has the same form as a private block in the dcmjs 1.0 naturalized
+form, with a keyword in place of each element key:
+
+-   `group` is the 4-digit hex group of the source, for example `"6002"`. It
+    is not an attribute, as `creator` and `reservedBlock` of a private block
+    are not attributes.
+-   Each attribute of the group has its keyword as its key, for example
+    `OverlayRows` for (6002,0010).
+-   The item has its own `_vrMap`, for example `_vrMap.OverlayData` is `"OW"`.
+
+The DICOM JSON dict
+
+```js
+{
+  "60000010": { vr: "US", Value: [512] },
+  "60003000": { vr: "OW", BulkDataURI: "https://host/overlay0" },
+  "60020010": { vr: "US", Value: [256] },
+  "60023000": { vr: "OW", BulkDataURI: "https://host/overlay2" }
+}
+```
+
+naturalizes to
+
+```js
+{
+  _vrMap: {},
+  OverlaySequence: [
+    {
+      _vrMap: { OverlayData: "OW" },
+      group: "6000",
+      OverlayRows: 512,
+      OverlayData: { BulkDataURI: "https://host/overlay0" }
+    },
+    {
+      _vrMap: { OverlayData: "OW" },
+      group: "6002",
+      OverlayRows: 256,
+      OverlayData: { BulkDataURI: "https://host/overlay2" }
+    }
+  ]
+}
+```
+
+The rules:
+
+-   The items are in the order of their groups.
+-   One overlay group gives a list of one item, with the accessors of a
+    sequence of one item: `ds.OverlaySequence.OverlayRows` and
+    `ds.OverlaySequence[0].OverlayRows` give the same value.
+-   An odd group in the range 6001 to 60FF is a private group, not an
+    overlay. Its elements keep their hex tags.
+-   `denaturalizeDataset` writes each item into the group that `group` gives.
+    `group` can also be a number, for example `0x6002`. An item with no
+    `group` uses group 6000 + 2 × its index. An item attribute that is not an
+    overlay attribute is skipped with a warning.
+-   A flat overlay keyword, for example `ds.OverlayRows`, still writes to
+    group 6000. When `OverlaySequence` also has an item for group 6000, the
+    item value replaces the flat value.
+
+To read the overlays:
+
+```js
+for (const overlay of ds.OverlaySequence || []) {
+    console.log(overlay.group, overlay.OverlayRows, overlay.OverlayColumns);
+}
+```
+
 ## Community Participation
 
 Use this repository's issues page to report any bugs. Please follow [SSCCE](http://sscce.org/) guidelines when submitting issues.
