@@ -367,6 +367,13 @@ stores as UN, whose dictionary VR is OW, OF, OD, OL or OV, reads as that VR and
 also gets the swap. Code that swapped the bytes
 of these values itself now gets them swapped two times; remove that swap.
 
+Since 1.0.1, the readers do not split an ST, UT or UR value on a backslash,
+as before for LT. PS3.5 6.2 gives these VRs one value, and the backslash is
+part of the text. For example, an `InstitutionAddress` of
+`Dept A\Floor 2\Room 10` reads as one string. Before, it read as three
+values, and `naturalizeDataset` gave an array. Code that joined these
+values again with a backslash can use the string as it is.
+
 ## The streaming engine: new and opt-in
 
 Everything above concerns the classic whole-buffer engine, which remains

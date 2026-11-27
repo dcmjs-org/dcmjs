@@ -22,13 +22,14 @@ const SEED = {
     SL: "binary",
     SQ: "length32 single readSingle",
     SS: "binary",
+    ST: "readSingle",
     SV: "binary length32",
     UC: "length32",
     UL: "binary",
     UN: "length32 single readSingle byteStream",
-    UR: "length32",
+    UR: "length32 readSingle",
     US: "binary",
-    UT: "length32",
+    UT: "length32 readSingle",
     UV: "binary length32"
 };
 

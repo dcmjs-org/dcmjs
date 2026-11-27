@@ -40,10 +40,10 @@ different path.
 - **REG-I-4.** `singleVRs` (re-exported by `constants/dicom.js`) and
   `BINARY_VRS` (re-exported by `utilities/binaryVRs.js`) are computed from
   the seed table. `setVrFlags` recomputes them in place, so the exported
-  array and Set objects stay the same. The members at load are the members
-  before the registry: `singleVRs` = SQ OF OW OB UN LT, `BINARY_VRS` = OB
-  OD OF OL OV OW UN. The order of `singleVRs` changed; every consumer uses
-  `indexOf`. (REG-U-4)
+  array and Set objects stay the same. The members at load:
+  `singleVRs` = SQ OF OW OB UN LT ST UT UR (ST, UT and UR since the port of
+  #671), `BINARY_VRS` = OB OD OF OL OV OW UN. The order of `singleVRs`
+  changed; every consumer uses `indexOf`. (REG-U-4)
 - **REG-I-5.** The seed table keeps the members of the 0.x lists, and adds
   OV and SV: `isBinary()` for FL FD SL SS SV UL US AT UV; `isLength32()` for
   OB OW OF OL OV SQ SV UC UR UT UN OD UV; `allowMultiple()` false for SQ OF
