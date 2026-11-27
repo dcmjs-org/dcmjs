@@ -67,6 +67,48 @@ describe("OverlaySequence", () => {
         expect(Object.keys(dict).sort()).toEqual(Object.keys(source).sort());
     });
 
+    it("gives each element a hex-tag alias that is not enumerable", () => {
+        const natural = DicomMetaDictionary.naturalizeDataset({
+            ...overlay("6000", 16, "uri0"),
+            ...overlay("6002", 32, "uri2")
+        });
+
+        expect(natural["60020010"]).toBe(32);
+        expect(natural["60003000"]).toEqual({ BulkDataURI: "uri0" });
+        expect(Object.keys(natural)).not.toContain("60020010");
+        natural["60020010"] = 7;
+        expect(natural.OverlaySequence[1].OverlayRows).toBe(7);
+    });
+
+    it("leaves out an element whose alias was deleted", () => {
+        const natural = DicomMetaDictionary.naturalizeDataset({
+            ...overlay("6000", 16, "uri0"),
+            ...overlay("6002", 32, "uri2")
+        });
+        delete natural["60023000"];
+
+        const dict = DicomMetaDictionary.denaturalizeDataset(natural);
+        expect(dict["60023000"]).toBeUndefined();
+        expect(dict["60003000"]).toBeDefined();
+        expect(dict["60020010"].Value).toEqual(["32"]);
+    });
+
+    it("writes a flat overlay hex key to its group, and an item wins", () => {
+        const dict = DicomMetaDictionary.denaturalizeDataset({
+            _vrMap: { 60043000: "OW" },
+            60040010: 5,
+            60043000: [new ArrayBuffer(2)],
+            60000010: 1,
+            OverlaySequence: { group: "6000", OverlayRows: 2 }
+        });
+
+        expect(dict["60040010"]).toEqual(
+            expect.objectContaining({ vr: "US", Value: ["5"] })
+        );
+        expect(dict["60043000"].vr).toBe("OW");
+        expect(dict["60000010"].Value).toEqual(["2"]);
+    });
+
     it("gives an item without a group the group of its position", () => {
         const dict = DicomMetaDictionary.denaturalizeDataset({
             OverlaySequence: [

@@ -232,15 +232,28 @@ The rules:
 -   One overlay group gives a list of one item, with the accessors of a
     sequence of one item: `ds.OverlaySequence.OverlayRows` and
     `ds.OverlaySequence[0].OverlayRows` give the same value.
+-   The dataset has no flat overlay keyword, for example no `ds.OverlayRows`.
+-   The 8-digit hex tag of each element of an item is a non-enumerable alias
+    on the dataset, as in dcmjs 0.49 and earlier: `ds["60020010"]` reads
+    `OverlayRows` of the item of group 6002, and a write to it changes the
+    item. `Object.keys(ds)` and `JSON.stringify(ds)` do not show the hex tags.
+    When the dataset no longer has an item for that group, a write makes a
+    plain hex key.
+-   A `delete` of a hex-tag alias, for example `delete ds["60003000"]`,
+    removes that element from the output of `denaturalizeDataset`. To add the
+    element again, set a value on the deleted name.
 -   An odd group in the range 6001 to 60FF is a private group, not an
     overlay. Its elements keep their hex tags.
 -   `denaturalizeDataset` writes each item into the group that `group` gives.
     `group` can also be a number, for example `0x6002`. An item with no
     `group` uses group 6000 + 2 × its index. An item attribute that is not an
     overlay attribute is skipped with a warning.
--   A flat overlay keyword, for example `ds.OverlayRows`, still writes to
-    group 6000. When `OverlaySequence` also has an item for group 6000, the
-    item value replaces the flat value.
+-   `denaturalizeDataset` also writes a plain overlay hex key, for example
+    `ds["60043000"]`, into its group, with the VR of `ds._vrMap["60043000"]`
+    or of the dictionary. An item value wins over a hex key.
+-   A flat overlay keyword that you set, for example `ds.OverlayRows`, writes
+    to group 6000. When an item or a hex key gives the same element of group
+    6000, the item or the hex key wins.
 
 To read the overlays:
 

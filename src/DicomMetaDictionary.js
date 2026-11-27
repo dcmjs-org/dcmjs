@@ -6,6 +6,12 @@ import {
 import { getAllStandardTagEntries } from "./dicom.lookup.js";
 import log from "./log.js";
 import addAccessors from "./utilities/addAccessors";
+import {
+    overlayGroupOfTag,
+    isOverlayKey,
+    placeOverlayItems,
+    denaturalizeOverlays
+} from "./utilities/overlaySequence.js";
 import { ValueRepresentation } from "./ValueRepresentation";
 
 /**
@@ -27,62 +33,6 @@ function addRegisteredToNameMap(nameMap, dict) {
         return;
     }
     nameMap[dict.name] = dict;
-}
-
-/** Naturalized name of the overlay groups, which DICOM has as groups 60xx. */
-export const OVERLAY_SEQUENCE = "OverlaySequence";
-
-/**
- * The overlay group ("6000" to "60FE", even) of an 8-digit hex tag, else
- * undefined. An odd 60xx group is private, not an overlay.
- */
-function overlayGroupOfTag(tag) {
-    if (tag.length !== 8 || !/^60[0-9A-F][02468ACE]/i.test(tag)) {
-        return undefined;
-    }
-    return tag.slice(0, 4).toUpperCase();
-}
-
-/**
- * Writes each OverlaySequence item into its overlay group of `target`.
- * An item without `group` takes group 6000 + 2 * index.
- */
-function denaturalizeOverlays(overlays, target, nameMap) {
-    if (!overlays) {
-        return;
-    }
-    const items = Array.isArray(overlays) ? overlays : [overlays];
-    items.forEach((item, index) => {
-        if (!item) {
-            return;
-        }
-        const { group: itemGroup, ...attributes } = item;
-        const groupValue = itemGroup ?? 0x6000 + 2 * index;
-        const group = (
-            typeof groupValue === "number"
-                ? groupValue.toString(16)
-                : String(groupValue)
-        ).toUpperCase();
-        if (!overlayGroupOfTag(`${group}0000`)) {
-            log.warn(
-                `${OVERLAY_SEQUENCE}: group ${group} is not an overlay group`
-            );
-            return;
-        }
-        const tags = DicomMetaDictionary.denaturalizeDataset(
-            attributes,
-            nameMap
-        );
-        Object.keys(tags).forEach(tag => {
-            if (!overlayGroupOfTag(tag)) {
-                log.warn(
-                    `${OVERLAY_SEQUENCE}: ${tag} is not an overlay attribute`
-                );
-                return;
-            }
-            target[group + tag.slice(4)] = tags[tag];
-        });
-    });
 }
 
 export class DicomMetaDictionary {
@@ -194,7 +144,9 @@ export class DicomMetaDictionary {
      *     `OverlaySequence`, with its group as `group` ("6000") and its
      *     attributes by keyword (`OverlayRows`, `OverlayData`, ...).
      *     All overlay groups share the same keywords, so a flat keyword
-     *     can hold only one group. See README "Overlay planes".
+     *     can hold only one group. The hex tag of each element
+     *     ("60023000") is a non-enumerable alias of the item value.
+     *     See README "Overlay planes".
      */
     static naturalizeDataset(dataset) {
         const overlayGroups = {};
@@ -202,18 +154,12 @@ export class DicomMetaDictionary {
             dataset,
             overlayGroups
         );
-        const groups = Object.keys(overlayGroups).sort();
-        if (groups.length) {
-            const items = groups.map(group => {
-                const item = DicomMetaDictionary._naturalizeElements(
-                    overlayGroups[group]
-                );
-                item.group = group;
-                return item;
-            });
-            naturalDataset[OVERLAY_SEQUENCE] =
-                items.length === 1 ? addAccessors(items, items[0]) : items;
-        }
+        Object.keys(overlayGroups).forEach(group => {
+            overlayGroups[group] = DicomMetaDictionary._naturalizeElements(
+                overlayGroups[group]
+            );
+        });
+        placeOverlayItems(naturalDataset, overlayGroups);
         return naturalDataset;
     }
 
@@ -329,8 +275,8 @@ export class DicomMetaDictionary {
     static denaturalizeDataset(dataset, nameMap = DicomMetaDictionary.nameMap) {
         var unnaturalDataset = {};
         Object.keys(dataset).forEach(naturalName => {
-            if (naturalName === OVERLAY_SEQUENCE) {
-                return;
+            if (isOverlayKey(naturalName)) {
+                return; // denaturalizeOverlays below
             }
             // check if it's a sequence
             var name = naturalName;
@@ -433,10 +379,8 @@ export class DicomMetaDictionary {
             }
         });
         // After the flat attributes, so an item wins over a flat overlay keyword.
-        denaturalizeOverlays(
-            dataset[OVERLAY_SEQUENCE],
-            unnaturalDataset,
-            nameMap
+        denaturalizeOverlays(dataset, unnaturalDataset, item =>
+            DicomMetaDictionary.denaturalizeDataset(item, nameMap)
         );
         return unnaturalDataset;
     }
