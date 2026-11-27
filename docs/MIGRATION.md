@@ -14,7 +14,7 @@ written in the declared character set"). The new work, a streaming engine that r
 memory, sits beside them and runs only when you call it. Three behaviors
 changed on purpose to follow the DICOM standard (see
 [BREAKING_CHANGES.md](BREAKING_CHANGES.md)), and naturalization changed in
-the six ways described below.
+the seven ways described below.
 
 The codemods in [packages/codemods](../packages/codemods/README.md) do the
 mechanical part of the upgrade, and report each site that needs a person:
@@ -130,7 +130,7 @@ file without inflating, it now receives a real deflate stream. Either keep
 writing plain explicit little endian (set the transfer syntax UID to
 `1.2.840.10008.1.2.1` before writing) or teach the consumer to inflate.
 
-## Naturalization: six changes
+## Naturalization: seven changes
 
 Naturalization turns the tag-keyed dict into a keyword-keyed dataset
 (`dataset.PatientName` instead of `dict["00100010"]`), and
@@ -301,6 +301,39 @@ Six things changed relative to 0.x:
     [specs/naturalized-dataset.md](specs/naturalized-dataset.md) gives the
     full rules. Pinned by `test/core/privateBlocks.test.js` and
     `test/issues/issue388-private-tags.test.js`.
+
+7. **Overlay groups naturalize to `OverlaySequence`.** DICOM stores each
+   overlay plane in its own group, (6000,xxxx) to (601E,xxxx), and all the
+   groups use the same keywords. In 0.50 to 0.52, each flat keyword (for
+   example `OverlayRows`) kept the value of the last group only. Now each
+   overlay group is one item of `OverlaySequence`, as if the overlays were
+   a sequence. The item has the form of a private block, with keywords in
+   place of the element keys:
+
+    ```js
+    dataset.OverlaySequence[1];
+    // { _vrMap: { OverlayData: "OW" }, group: "6002", OverlayRows: 256,
+    //   OverlayData: [ArrayBuffer], ... }
+    dataset["60020010"]; // 256, a non-enumerable alias of the item value
+    ```
+
+    - Read the overlays with
+      `for (const overlay of dataset.OverlaySequence || [])`. One overlay
+      group gives the array-like item, as for any sequence with one item.
+    - `dataset.OverlayRows` and the other flat overlay keywords are no longer
+      set. The 60xx hex tags of dcmjs 0.49 and earlier are readable and
+      writable again, as non-enumerable aliases. A `delete` of an alias
+      removes the element from the written output.
+    - `denaturalizeDataset` writes each item into the group that `group`
+      gives, and an enumerable 60xx hex key into its group. A flat overlay
+      keyword that you set still writes to group 6000.
+    - `setAttribute(dataset, "60020010", 256)` sets the item of group 6002.
+    - An odd group from 6001 to 60FF is a private group, and no longer gets
+      an overlay keyword.
+
+    The rules are NAT-U-OVL in
+    [specs/naturalized-dataset.md](specs/naturalized-dataset.md). Pinned by
+    `test/core/overlaySequence.test.js`.
 
 ## Behavior changes made for standard compliance
 

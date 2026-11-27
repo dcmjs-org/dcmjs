@@ -74,7 +74,7 @@ describe("private reserved blocks", () => {
             // present and empty: [] for a list VM (NAT-U-VAL-2, NAT-U-VAL-4)
             expect(naturalized.ImageType).toEqual([]);
             expect(naturalized["00311001"]).toEqual([]);
-            expect(naturalized.OverlayRows).toBe(512);
+            expect(naturalized.OverlaySequence.OverlayRows).toBe(512);
         }
     });
 

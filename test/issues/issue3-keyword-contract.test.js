@@ -94,7 +94,7 @@ describe("issues #3/#6 — dictionary keywords are used verbatim", () => {
 describe("issue #114 — naturalizer does NOT unpack OverlayData (deliberate contract)", () => {
     it("OverlayData (6000,3000) stays binary ArrayBuffer, not a bit array", () => {
         const dataset = readNaturalized();
-        const overlay = dataset.OverlayData;
+        const overlay = dataset.OverlaySequence.OverlayData;
         expect(overlay).toBeDefined();
         // Single-element binary value: proxy array of one ArrayBuffer
         const buffer = Array.isArray(overlay) ? overlay[0] : overlay;

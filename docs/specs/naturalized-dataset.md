@@ -5,8 +5,8 @@
 This specification defines the naturalized dataset of dcmjs 1.0: the
 keyword-keyed JavaScript object that applications read and edit in place of
 the tag-keyed DICOM JSON model. It covers the keys, the value shapes, the
-`_vrMap` side table, private data elements, the historical names, and the
-conversion back to DICOM.
+`_vrMap` side table, private data elements, the overlay groups, the
+historical names, and the conversion back to DICOM.
 
 Two producers make a naturalized dataset, and the two must give the same
 object:
@@ -47,6 +47,7 @@ rules:
 | Block key | The key `` `${gggg}:${creator}` `` of a reserved block, for example `"0029:ACME"`. |
 | Element key | The key `` `x${ee}` `` of a value in a block, for example `x01`. |
 | Alias | A non-enumerable property that gives a second name for a value. |
+| Overlay group | An even group `60xx` from `6000` to `60FE`. Each group holds one overlay plane (PS3.3 C.9.2). All the groups use the same keywords. |
 
 All hex digits in keys are uppercase.
 
@@ -302,6 +303,59 @@ A private value is a list (NAT-U-VAL-4). An assigned PN string converts:
   the copy, and a write under a deleted creator makes a flat element on
   the child, as it would on the parent.
 
+### NAT-U-OVL — overlay groups
+
+The overlay groups use the same keywords, so a flat keyword can hold the
+value of one group only. The overlay groups naturalize as if they were a
+sequence. Each item has the form of a private block (NAT-U-PRIV-2), with a
+keyword in place of each element key, and the hex tags stay readable as
+for a private block (NAT-U-HIST).
+
+- **NAT-U-OVL-1.** The elements of all overlay groups of a dataset
+  naturalize to the key `OverlaySequence`. It holds one item for each
+  overlay group, in the order of the groups.
+- **NAT-U-OVL-2.** The item holds `group`, the 4-digit uppercase hex group
+  of the source (for example `"6002"`), and one keyword key for each element
+  of the group (for example `OverlayRows` for `(6002,0010)`). `group` is not
+  an attribute, as `creator` and `reservedBlock` of a block are not
+  attributes. Each of these is enumerable.
+- **NAT-U-OVL-3.** The item has its own `_vrMap` (NAT-U-VR-2), for example
+  `_vrMap.OverlayData` is `"OW"`. The values follow NAT-U-VAL and NAT-U-BIN.
+- **NAT-U-OVL-4.** `OverlaySequence` follows NAT-U-SQ-1 and NAT-U-SQ-2: one
+  overlay group gives the array-like item, so
+  `dataset.OverlaySequence.OverlayRows` and
+  `dataset.OverlaySequence[0].OverlayRows` give the same value.
+- **NAT-U-OVL-5.** A naturalized dataset holds no flat overlay keyword and
+  no enumerable `60xx` hex key from the source. The 8-digit hex tag of each
+  element of an item stays readable on the dataset, for example
+  `dataset["60023000"]` gives the `OverlayData` of the item of group
+  `6002`. A write to that name changes the value in the item. When the
+  dataset no longer holds an item for that group, the write makes a flat hex
+  element (NAT-U-OVL-8). The hex tags are not enumerable (NAT-U-HIST-5).
+- **NAT-U-OVL-6.** A `delete` of a hex-tag alias removes that element from
+  the output of `denaturalizeDataset` and of `fromNaturalized`, as for a
+  private element (NAT-U-HIST-7). `deepCloneInstance` keeps the aliases and
+  the deletes. To add the element again, set a value on the deleted name.
+- **NAT-U-OVL-7.** An odd group from `6001` to `60FF` is a private group
+  (NAT-U-PRIV), not an overlay group. Its elements never get an overlay
+  keyword.
+- **NAT-U-OVL-8.** Each dataset level (the dataset, a sequence item) has its
+  own `OverlaySequence`. `denaturalizeDataset` and `fromNaturalized` write:
+  - each item into the group that `group` gives. `group` can also be a
+    number, for example `0x6002`. An item with no `group` uses group `6000`
+    + 2 × its index. An item whose `group` is not an overlay group is
+    skipped with a warning. An item attribute that is not an overlay
+    attribute is skipped with a warning.
+  - each enumerable overlay hex key (for example `dataset["60043000"]`, the
+    form of dcmjs 0.49) into its group, with the VR of `_vrMap[hexTag]` or
+    of the dictionary. An item value wins over a hex key.
+- **NAT-U-OVL-9.** A flat overlay keyword that the user sets, for example
+  `dataset.OverlayRows`, writes to group `6000`. When an item or a hex key
+  gives the same element of group `6000`, the item or the hex key wins.
+- **NAT-U-OVL-10.** `setAttribute`, `setVr` and `setPersonName` with an
+  overlay hex tag change the item of that group, and add the item when the
+  dataset holds none (NAT-U-SET).
+
 ### NAT-U-RT — conversion back to DICOM
 
 - **NAT-U-RT-1.** `denaturalizeDataset` and `fromNaturalized` accept the
@@ -495,6 +549,7 @@ view of one frame of an enhanced multi-frame dataset (PS3.3 C.7.6.16).
   - `privateBlockKey(group, creator)`: the block key, with the line-break
     escape of NAT-U-PRIV-1. Every producer builds the key with it, and
     `parsePrivateBlockKey` undoes the escape.
+  - the overlay rules in `overlaySequence.js` (NAT-I-OVL).
   - `findPrivateBlock` and `reservePrivateBlock` in `privateBlockDict.js`
     (NAT-U-PRIV-11). They use `creatorText` and `firstFreeBlock` of
     `privateBlocks.js`. `DicomDict#privateBlock(groupOrKey, creator,
@@ -613,6 +668,50 @@ view of one frame of an enhanced multi-frame dataset (PS3.3 C.7.6.16).
   item as an empty item. `test/core/absentValues.test.js` checks each form
   for each VR, in explicit and implicit VR little endian.
 
+### NAT-I-OVL — overlay groups (NAT-U-OVL)
+
+- **NAT-I-OVL-1.** `packages/core/src/utilities/overlaySequence.js` holds the
+  overlay rules. Both producers, `denaturalizeDataset`, `deepCloneInstance`
+  and the set utilities call it:
+  - `overlayItem(overlays, tag)`: the item of the group of `tag` in a map
+    from group to item, made on first use, or `undefined` for a tag that is
+    not in an overlay group.
+  - `placeOverlayItems(target, overlays)`: sets `group` on each item, sets
+    `OverlaySequence` with `sequenceValue`, and calls
+    `defineOverlayAliases`.
+  - `defineOverlayAliases(target)`: one alias for each element of each
+    item. The keyword maps to its element number through the `6000` range
+    entries of `dictionary.ranges.data.js`.
+  - `copyOverlayAliases(source, copy)`: for `deepCloneInstance`.
+  - `overlayElementTarget(dataset, tag, create)`: the item and keyword of an
+    overlay hex tag, for the set utilities.
+  - `denaturalizeOverlays(dataset, target, denaturalize)`: writes the hex
+    keys, then the items.
+- **NAT-I-OVL-2.** An alias follows NAT-I-ALIAS-1 and NAT-I-ALIAS-2. Its
+  getter finds the item of its group in `this.OverlaySequence` when it is
+  used. `defineOverlayAliases` records each alias with its getter in a
+  non-enumerable `Symbol.for("dcmjs.overlayAliases")` map, as in
+  NAT-I-ALIAS-4. An alias is deleted when its own property is gone, or when
+  its getter is no longer the recorded one. A write through an alias
+  inherited by an `Object.create` child changes the item of the parent.
+- **NAT-I-OVL-3.** `naturalizeDataset` writes an overlay element into its
+  item in place of the dataset, with the same element rules.
+  `NaturalizedListener` keeps the items of each object frame in
+  `overlays`. `endObject` calls `placeOverlayItems` before
+  `placePrivateElements`, so `OverlaySequence` comes before the blocks in
+  key order (NAT-I-PLACE-4).
+- **NAT-I-OVL-4.** `denaturalizeDataset` skips `OverlaySequence` and each
+  overlay hex key in its main loop, and calls `denaturalizeOverlays` with
+  the source dataset after the loop. The view of `expandPrivateBlocks` has
+  no alias record, so the call does not use the view. Each item
+  denaturalizes with the same `nameMap`. The `nameMap` gives group `6000`
+  for an overlay keyword, and `denaturalizeOverlays` puts the group of the
+  item in its place. A deleted alias leaves its item element out. A hex key
+  is a value that the user set, so it is written also after a delete.
+- **NAT-I-OVL-5.** `lookupTagRangeHex` gives no entry for an odd group, so
+  the dictionary proxy gives no curve or overlay keyword to a private group
+  (NAT-U-OVL-7).
+
 ### NAT-I-RT — block number assignment
 
 - **NAT-I-RT-1.** The used block numbers of a group are the `xx` of each
@@ -658,6 +757,7 @@ block form, and they apply to standard attributes too.
 | NAT-U-BIN-6 | `test/sync-async-parser-equivalency.test.js` |
 | NAT-U-BIN-7 | `test/big-endian.test.js` |
 | NAT-U-VAL-5 (PN setter), NAT-U-SET | `test/core/naturalizedAttributes.test.js` |
+| NAT-U-OVL, NAT-U-PROD-1 (overlays) | `test/core/overlaySequence.test.js` |
 | NAT-U-VAL, NAT-U-SQ | `test/core/naturalizeDataset.test.js`, `test/issues/issue218-single-item-sq.test.js` |
 | NAT-U-HIST-9, NAT-I-ALIAS-4 (`Object.create` children) | `test/core/privateBlocks.test.js` |
 | NAT-U-HIST-6, NAT-U-SQ-1 (`deepCloneInstance`) | `packages/core/test/createInstance.test.js` |

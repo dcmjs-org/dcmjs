@@ -16,6 +16,7 @@ import {
 } from "./personNameValue.js";
 import { isVrCode, ownVrMap, vrNeedsRecord } from "./vrMap.js";
 import { checkBinaryAs } from "./binaryFragment.js";
+import { overlayElementTarget } from "./overlaySequence.js";
 
 /**
  * Utilities that add or replace one attribute of a naturalized dataset in
@@ -67,6 +68,11 @@ function entryFor(key) {
  * @param {string} [elementKey] - with a block key: the element, e.g. "x01"
  */
 export function setVr(dataset, key, vr, elementKey) {
+    const overlay =
+        elementKey === undefined && overlayElementTarget(dataset, key, true);
+    if (overlay) {
+        return setVr(overlay.item, overlay.keyword, vr); // NAT-U-OVL-10
+    }
     if (elementKey === undefined) {
         key = naturalKey(dataset, key);
         const alias = privateAliasTarget(dataset, key);
@@ -106,6 +112,10 @@ export function setVr(dataset, key, vr, elementKey) {
  * @returns {*} the stored value
  */
 export function setAttribute(dataset, key, value, options = {}) {
+    const overlay = overlayElementTarget(dataset, key, true);
+    if (overlay) {
+        return setAttribute(overlay.item, overlay.keyword, value, options); // NAT-U-OVL-10
+    }
     key = naturalKey(dataset, key);
     const alias = assertNotCreator(dataset, key);
     const entry = entryFor(key);
@@ -149,6 +159,10 @@ export function setAttribute(dataset, key, value, options = {}) {
  * @returns {Object|Object[]|null} the stored value
  */
 export function setPersonName(dataset, key, value, length) {
+    const overlay = overlayElementTarget(dataset, key, true);
+    if (overlay) {
+        return setPersonName(overlay.item, overlay.keyword, value, length);
+    }
     key = naturalKey(dataset, key);
     assertNotCreator(dataset, key);
     const entry = entryFor(key);
