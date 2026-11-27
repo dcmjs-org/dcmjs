@@ -136,6 +136,24 @@ different path.
 - **REG-I-22.** All callers in `packages/*/src` use the options form.
   `BufferStream.more()` keeps its decoder behaviour. (REG-U-16)
 
+### Tags
+
+- **REG-I-23.** `registerTag()` (dictionary.fast.js) stores the entry
+  with the upper case paren tag of its first argument, after the fields
+  of the entry, and caches it under the four spellings of the tag. Names
+  go in a registry-local index, not in `DicomMetaDictionary.nameMap`.
+  (REG-U-18)
+- **REG-I-24.** `DicomMetaDictionary` injects a lookup of the own entries
+  of `nameMap` with `setKeywordLookup()`. `registerTag()` throws an
+  `Error` when the lookup gives a different tag. (REG-U-19)
+- **REG-I-25.** A duplicate name gives the second entry its upper case
+  hex tag as its name, in the cache and in the name index. A new name for
+  a registered tag removes the old name from the index. (REG-U-20)
+- **REG-I-26.** `DicomMetaDictionary.entryForName(name, nameMap)` is the
+  one lookup by name: an own entry of `nameMap`, then the name index.
+  `denaturalizeDataset()`, `tagAsIntegerFromName()`, `entryFor()` and
+  `cleanTags()` use it. (REG-U-18, REG-U-21)
+
 ## Tests
 
 - `test/core/registries.test.js`: the legacy 3-argument
@@ -145,3 +163,5 @@ different path.
   `DicomMetaDictionary.sopClassUIDsByName` (REG-U-5 to REG-U-8); the
   `ISO_IR 100` write and read (REG-U-10); a registered term round trip
   (REG-U-9); an item-level character set that does not leak (REG-U-11).
+- `test/dictionary-register.test.js`: the tag registry (REG-U-18 to
+  REG-U-21).

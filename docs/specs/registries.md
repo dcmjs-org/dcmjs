@@ -118,6 +118,21 @@ user requirement does not cite an implementation requirement.
   explicit empty byte order (for example `undefined` or `0`). dcmjs logs one warning for each stream class that gets a
   legacy call.
 
+### Tags
+
+- **REG-U-18.** A developer can register a tag with a name, a VR and a VM
+  through `dcmjs.data.registerTag`. The developer can give the tag in upper
+  case or in lower case. A read gives the registered name as the key, and
+  a write of that name gives the registered tag.
+- **REG-U-19.** A registered name that is an existing keyword of a
+  different tag is an error. The registration of a keyword for its own tag
+  is accepted with no warning.
+- **REG-U-20.** When two tags are registered with one name, the first tag
+  keeps the name, and a warning names both tags. A read and a write keep
+  the value of each tag. The second tag has its hex tag as its key.
+- **REG-U-21.** `cleanTags()` and `tagAsIntegerFromName()` find a
+  registered name.
+
 ## Related documents
 
 - [registries-implementation.md](registries-implementation.md): the

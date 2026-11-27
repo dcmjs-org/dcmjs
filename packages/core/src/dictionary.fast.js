@@ -1,4 +1,5 @@
 import { lookupTagHex, lookupTagRangeHex } from "./dicom.lookup.js";
+import log from "./log.js";
 
 /** Set by registerPrivatesModule() at startup (index.js / index.umd). */
 let privateModule = null;
@@ -13,6 +14,19 @@ export function registerPrivatesModule(module) {
 
 const cache = new Map();
 const nameCache = new Map();
+
+/** Set by DicomMetaDictionary at load: the entry of an existing keyword. */
+let keywordLookup = null;
+
+/**
+ * Set the lookup of existing keywords that registerTag() checks. Injected,
+ * because DicomMetaDictionary imports this module.
+ *
+ * @param {(name: string) => { tag: string } | undefined} fn
+ */
+export function setKeywordLookup(fn) {
+    keywordLookup = fn;
+}
 
 function isPrivateTagKey(prop) {
     return (
@@ -33,6 +47,14 @@ function _toParenKeyFromHex8(hex8) {
 /**
  * Register a tag entry in the cache so it is returned by the dictionary for that tag.
  * Use for tags not in the standard or private dictionaries.
+ * The tag is stored in upper case, the case that a reader makes, and lookups
+ * accept both cases. The tag of the first argument wins over `entry.tag`.
+ * Name rules (docs/specs/registries.md, REG-U-18 to REG-U-21):
+ * - A name that is an existing keyword of a different tag throws.
+ * - When two tags use one name, the first tag keeps the name and a warning
+ *   names both tags. The second tag gets its hex tag as its name, and keeps
+ *   its VR and VM.
+ * - A new name for a registered tag replaces the old name.
  *
  * @param {string} tagOrHex - Tag as '(GGGG,EEEE)' or 'GGGGEEEE'
  * @param {{ name: string, vr: string, vm?: string, [key: string]: unknown }} entry - At least name and vr; vm and other fields optional
@@ -63,14 +85,46 @@ export function registerTag(tagOrHex, entry) {
     } else {
         return;
     }
+    const upperHex = hex8.toUpperCase();
+    const lowerHex = hex8.toLowerCase();
+    const tag = _toParenKeyFromHex8(upperHex);
+    const keyword = keywordLookup?.(entry.name);
+    if (keyword && keyword.tag.toUpperCase() !== tag) {
+        throw new Error(
+            `registerTag: name ${entry.name} is the keyword of ${keyword.tag}; ` +
+                `${tag} cannot use it`
+        );
+    }
+    let name = entry.name;
+    const existing = nameCache.get(name);
+    if (existing && existing.tag !== tag) {
+        log.warn(
+            `registerTag: name ${name} already maps to ${existing.tag}; ` +
+                `${tag} uses the name ${upperHex}`
+        );
+        name = upperHex;
+    }
+    const previous = cache.get(upperHex);
+    if (previous && nameCache.get(previous.name) === previous) {
+        nameCache.delete(previous.name);
+    }
     const cached = {
-        tag: parenKey,
         ...entry,
+        name,
+        tag,
         version: entry.version ?? "User"
     };
-    cache.set(parenKey, cached);
-    cache.set(hex8, cached);
-    nameCache.set(cached.name, cached);
+    for (const key of new Set([
+        upperHex,
+        lowerHex,
+        hex8,
+        parenKey,
+        _toParenKeyFromHex8(upperHex),
+        _toParenKeyFromHex8(lowerHex)
+    ])) {
+        cache.set(key, cached);
+    }
+    nameCache.set(name, cached);
 }
 
 /**

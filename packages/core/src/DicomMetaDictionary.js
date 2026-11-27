@@ -1,4 +1,8 @@
-import { dictionary, lookupRegisteredTagByName } from "./dictionary.fast.js";
+import {
+    dictionary,
+    lookupRegisteredTagByName,
+    setKeywordLookup
+} from "./dictionary.fast.js";
 import { getAllStandardTagEntries } from "./dicom.lookup.js";
 import log from "./log.js";
 import { valueLength } from "./utilities/isMultiVM.js";
@@ -64,6 +68,13 @@ function naturalizeElement(data, entry, options) {
     );
 }
 
+/** The own entry of `name`, so `constructor` and other prototype keys miss. */
+function ownEntry(nameMap, name) {
+    return Object.prototype.hasOwnProperty.call(nameMap, name)
+        ? nameMap[name]
+        : undefined;
+}
+
 export class DicomMetaDictionary {
     // intakes a custom dictionary that will be used to parse/denaturalize the dataset
     constructor(customDictionary) {
@@ -105,8 +116,21 @@ export class DicomMetaDictionary {
         return integerValue;
     }
 
+    /**
+     * The dictionary entry of a keyword: a standard keyword from `nameMap`
+     * first, then a registerTag() name. registerTag() names are kept out of
+     * the shared nameMap, so a read never changes global state.
+     *
+     * @param {string} name - A keyword
+     * @param {object} [nameMap] - The name map to search first
+     * @returns {{ tag: string, name: string, vr: string } | undefined}
+     */
+    static entryForName(name, nameMap = DicomMetaDictionary.nameMap) {
+        return ownEntry(nameMap, name) || lookupRegisteredTagByName(name);
+    }
+
     static tagAsIntegerFromName(name) {
-        const item = DicomMetaDictionary.nameMap[name];
+        const item = DicomMetaDictionary.entryForName(name);
         if (item != undefined) {
             return this.parseIntFromTag(item.tag);
         } else {
@@ -285,14 +309,7 @@ export class DicomMetaDictionary {
             }
             // check if it's a sequence
             var name = naturalName;
-            var entry = nameMap[name];
-            if (!entry) {
-                // registerTag() names are kept in a registry-local index
-                // instead of being written into the shared nameMap, so a
-                // registered keyword denaturalizes symmetrically without
-                // naturalizeDataset ever mutating global state
-                entry = lookupRegisteredTagByName(name);
-            }
+            var entry = DicomMetaDictionary.entryForName(name, nameMap);
             if (
                 !entry &&
                 isHexTag(name) &&
@@ -551,3 +568,4 @@ ValueRepresentation.setDicomMetaDictionary(DicomMetaDictionary);
 DicomMetaDictionary.dictionary = dictionary;
 
 DicomMetaDictionary._generateNameMap();
+setKeywordLookup(name => ownEntry(DicomMetaDictionary.nameMap, name));

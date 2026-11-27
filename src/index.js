@@ -16,7 +16,9 @@ import {
     frameDataset,
     findPrivateBlock,
     reservePrivateBlock,
-    privateBlockKey
+    privateBlockKey,
+    dictionary,
+    registerTag
 } from "@dcmjs-org/core";
 import { DICOMWEB } from "./dicomweb.js";
 
@@ -76,6 +78,8 @@ const data = {
     datasetToDict,
     datasetToBuffer,
     datasetToBlob,
+    dictionary,
+    registerTag,
     // naturalized-dataset utilities (docs/specs/naturalized-dataset.md)
     setVr,
     setAttribute,

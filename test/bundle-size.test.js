@@ -16,10 +16,10 @@ const {
     withChunks
 } = require("./helper/build.js");
 
-// dcmjs@0.52.0 from npm; ceiling = measured ratio rounded up (overlay groups as OverlaySequence, port of #672: ×1.10338, ×1.08416).
+// dcmjs@0.52.0 from npm; ceiling = measured ratio rounded up (registerTag and anonymizer fixes, port of #510 and #625: ×1.10650, ×1.08702).
 const BUNDLES = {
-    "dcmjs.js": { baseline: 1384431, ceiling: 1.104 },
-    "dcmjs.es.js": { baseline: 1357418, ceiling: 1.085 }
+    "dcmjs.js": { baseline: 1384431, ceiling: 1.107 },
+    "dcmjs.es.js": { baseline: 1357418, ceiling: 1.088 }
 };
 
 // The public names of build/dcmjs.es.js: the named exports of src/index.js.
