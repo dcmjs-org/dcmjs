@@ -171,7 +171,11 @@ Six things changed relative to 0.x:
    also added its names to `nameMap`. In 1.0 it does not: use
    `DicomMetaDictionary.entryForName()`, which `tagAsIntegerFromName()`
    and `cleanTags()` also use. `dcmjs.data.registerTag` and
-   `dcmjs.data.dictionary` stay available, as in 0.53.3.
+   `dcmjs.data.dictionary` stay available, as in 0.53.3. Two rules
+   differ from 0.53.3: a registered name that is the keyword of a
+   different tag now throws, and when two tags use one name, the second
+   tag keeps its value under its hex tag (REG-U-19, REG-U-20 in
+   [specs/registries.md](specs/registries.md)).
 
 4. **The dictionary VM decides between a single value and a list.** In
    0.x, every one-value list collapsed to its value. Now a VM of "1" or

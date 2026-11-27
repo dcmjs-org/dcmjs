@@ -1,4 +1,8 @@
-import { dictionary, lookupRegisteredTagByName } from "./dictionary.fast.js";
+import {
+    dictionary,
+    lookupRegisteredTagByName,
+    setKeywordLookup
+} from "./dictionary.fast.js";
 import { getAllStandardTagEntries } from "./dicom.lookup.js";
 import log from "./log.js";
 import { valueLength } from "./utilities/isMultiVM.js";
@@ -64,6 +68,13 @@ function naturalizeElement(data, entry, options) {
     );
 }
 
+/** The own entry of `name`, so `constructor` and other prototype keys miss. */
+function ownEntry(nameMap, name) {
+    return Object.prototype.hasOwnProperty.call(nameMap, name)
+        ? nameMap[name]
+        : undefined;
+}
+
 export class DicomMetaDictionary {
     // intakes a custom dictionary that will be used to parse/denaturalize the dataset
     constructor(customDictionary) {
@@ -115,7 +126,7 @@ export class DicomMetaDictionary {
      * @returns {{ tag: string, name: string, vr: string } | undefined}
      */
     static entryForName(name, nameMap = DicomMetaDictionary.nameMap) {
-        return nameMap[name] || lookupRegisteredTagByName(name);
+        return ownEntry(nameMap, name) || lookupRegisteredTagByName(name);
     }
 
     static tagAsIntegerFromName(name) {
@@ -557,3 +568,4 @@ ValueRepresentation.setDicomMetaDictionary(DicomMetaDictionary);
 DicomMetaDictionary.dictionary = dictionary;
 
 DicomMetaDictionary._generateNameMap();
+setKeywordLookup(name => ownEntry(DicomMetaDictionary.nameMap, name));

@@ -3,7 +3,7 @@ import { Tag } from "./Tag.js";
 import { ValueRepresentation } from "./ValueRepresentation.js";
 
 // Every entry below must be a real dictionary keyword
-// (DicomMetaDictionary.nameMap): cleanTags silently skips names that do not
+// (DicomMetaDictionary.entryForName()): cleanTags silently skips names that do not
 // resolve, so a misspelled entry means the data it was meant to scrub is
 // left in place (issue #345). Retired attributes use the dictionary's
 // RETIRED_ keyword prefix. All 103 previously non-resolving names were

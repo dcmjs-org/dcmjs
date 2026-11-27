@@ -36,13 +36,42 @@ describe("registerTag", () => {
         );
     });
 
-    it("keeps the first registration of a name", () => {
+    it("keeps the first registration of a name; the second tag reads by its hex tag", () => {
+        const warn = jest.spyOn(dcmjs.log, "warn");
         registerTag("(4D52,1001)", { name: "TestFirstName", vr: "LO" });
         registerTag("(4D52,1002)", { name: "TestFirstName", vr: "LO" });
-        const dict = DicomMetaDictionary.denaturalizeDataset({
-            TestFirstName: "x"
+        expect(warn).toHaveBeenCalledWith(
+            expect.stringMatching(/\(4D52,1001\).*\(4D52,1002\)/)
+        );
+        warn.mockRestore();
+        const dataset = DicomMetaDictionary.naturalizeDataset({
+            "4D521001": { vr: "LO", Value: ["first"] },
+            "4D521002": { vr: "LO", Value: ["second"] }
         });
-        expect(Object.keys(dict)).toEqual(["4D521001"]);
+        const dict = DicomMetaDictionary.denaturalizeDataset(dataset);
+        expect(dict["4D521001"].Value).toEqual(["first"]);
+        expect(dict["4D521002"].Value).toEqual(["second"]);
+    });
+
+    it("applies the tag and keyword rules", () => {
+        // a name of a standard keyword: the same tag is accepted, a different tag throws
+        registerTag("(0010,0020)", { name: "PatientID", vr: "LO" });
+        expect(() =>
+            registerTag("(4D65,1001)", { name: "PatientID", vr: "LO" })
+        ).toThrow(/PatientID/);
+        // the first argument wins over entry.tag
+        registerTag("(4D61,1001)", {
+            ...dictionary["(0010,0010)"],
+            name: "TestCopied"
+        });
+        expect(DicomMetaDictionary.entryForName("TestCopied").tag).toBe(
+            "(4D61,1001)"
+        );
+        // a new name for a registered tag replaces the old name
+        registerTag("(4D63,1001)", { name: "TestOldName", vr: "LO" });
+        registerTag("(4D63,1001)", { name: "TestNewName", vr: "LO" });
+        expect(DicomMetaDictionary.entryForName("TestOldName")).toBeUndefined();
+        expect(DicomMetaDictionary.entryForName("constructor")).toBeUndefined();
     });
 });
 
