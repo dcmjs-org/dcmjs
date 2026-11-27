@@ -4,6 +4,8 @@
     "description": "The unscoped name of @dcmjs-org/dcmjs: each entry re-exports @dcmjs-org/dcmjs",
     "main": "./index.cjs",
     "module": "./index.mjs",
+    "unpkg": "./dist/dcmjs.js",
+    "jsdelivr": "./dist/dcmjs.js",
     "exports": {
         ".": {
             "import": "./index.mjs",
@@ -28,13 +30,18 @@
         "./dictionary": "./dictionary.mjs",
         "./package.json": "./package.json"
     },
+    "scripts": {
+        "build": "node copy-umd.mjs"
+    },
     "files": [
         "*.mjs",
+        "!copy-umd.mjs",
         "*.cjs",
+        "dist",
         "README.md"
     ],
     "dependencies": {
-        "@dcmjs-org/dcmjs": "workspace:*"
+        "@dcmjs-org/dcmjs": "workspace:^"
     },
     "license": "MIT",
     "repository": {

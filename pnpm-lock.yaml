@@ -333,7 +333,7 @@ importers:
   packages/dcmjs:
     dependencies:
       '@dcmjs-org/dcmjs':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../..
 
   packages/dicomdir:

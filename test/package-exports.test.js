@@ -193,4 +193,33 @@ describe("the unscoped dcmjs package re-exports @dcmjs-org/dcmjs", () => {
             }
         }
     });
+
+    // `export { default } from` fails at link time when the target has none.
+    test("each ESM target that the alias re-exports has a default export", () => {
+        const rootExports = read(ROOT).exports;
+        for (const [subpath, entry] of Object.entries(
+            read(ALIAS_DIR).exports
+        )) {
+            const file = typeof entry === "string" ? entry : entry.import;
+            if (!file?.endsWith(".mjs")) {
+                continue;
+            }
+            const text = fs.readFileSync(path.join(ALIAS_DIR, file), "utf8");
+            if (!text.includes("export { default }")) {
+                continue;
+            }
+            const target = rootExports[subpath];
+            const built = fs.readFileSync(
+                path.join(
+                    ROOT,
+                    typeof target === "string" ? target : target.import
+                ),
+                "utf8"
+            );
+            expect({
+                subpath,
+                hasDefault: /export default|as default\b/.test(built)
+            }).toEqual({ subpath, hasDefault: true });
+        }
+    });
 });

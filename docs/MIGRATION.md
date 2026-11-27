@@ -418,8 +418,11 @@ reproduces the 0.x surface, so a project can try 1.0 by changing only the
 import name (`npm install @dcmjs-org/dcmjs`). The unscoped `dcmjs` package
 publishes 1.x too: each of its entries re-exports the same entry of
 `@dcmjs-org/dcmjs`. A project that keeps the name `dcmjs` gets 1.x when its
-version range allows 1.x (`^1.0.0`). A range such as `^0.54.0` stays on 0.x.
-The 0.x line publishes under the npm dist-tag `0.x`.
+version range allows 1.x (`^1.1.0`). A range such as `^0.54.0` stays on 0.x.
+The 0.x line publishes under the npm dist-tag `release-0.x`, and
+`dcmjs@0.x` installs it as a version range. An unversioned script tag
+(`https://unpkg.com/dcmjs`) loads the 1.x UMD build from 1.1.0, with the
+same global `dcmjs`; use `https://unpkg.com/dcmjs@0.x` to stay on 0.x.
 
 The new engines are subpath entries, and they are ES modules only:
 `@dcmjs-org/dcmjs/eventStream`, `/media`, `/encapsulated` and `/image`.
@@ -432,10 +435,10 @@ in the jest config, so that all of them share one copy of the reader state:
 ```js
 // jest.config.js
 moduleNameMapper: {
-    "^@dcmjs-org/dcmjs$":
+    "^(@dcmjs-org/dcmjs|dcmjs)$":
         "<rootDir>/node_modules/@dcmjs-org/dcmjs/build/dcmjs.es.js",
-    "^@dcmjs-org/dcmjs/(eventStream|media|encapsulated|image)$":
-        "<rootDir>/node_modules/@dcmjs-org/dcmjs/build/$1.es.js"
+    "^(@dcmjs-org/dcmjs|dcmjs)/(eventStream|media|encapsulated|image)$":
+        "<rootDir>/node_modules/@dcmjs-org/dcmjs/build/$2.es.js"
 },
 transformIgnorePatterns: ["/node_modules/(?!@dcmjs-org)"]
 ```
