@@ -463,7 +463,10 @@ releases `1.0.0` to npm `latest` for every public `@dcmjs-org/*` package.
 Later merges into `main` release `1.x` versions. `main` becomes the default
 branch, and `master` is renamed to `0.x`. The `0.x` range is `0.54.x`, so
 that branch releases only `0.54.N` fixes. A `feat:` commit on `0.x` fails
-the publish job. semantic-release cannot use the range `0.x`: it reads the
+the publish job. The 0.x releases go to the npm dist-tag `0.x`, because the
+unscoped `dcmjs` package publishes 1.x from `main` under `latest`
+(`packages/dcmjs`, a re-export of `@dcmjs-org/dcmjs`). semantic-release
+cannot use the range `0.x`: it reads the
 lower bound from `semver.validRange("0.x")`, which is `<1.0.0-0`, and the
 range of the branch becomes empty.
 
@@ -531,7 +534,7 @@ Named here so their absence is a decision, not an oversight:
 ```json
 {
     "branches": [
-        { "name": "0.x", "range": "0.54.x", "channel": false },
+        { "name": "0.x", "range": "0.54.x", "channel": "0.x" },
         "main"
     ],
     "plugins": [

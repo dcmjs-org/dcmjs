@@ -113,7 +113,9 @@ describe("every published workspace package publishes a dual build", () => {
                 )
             )
         }))
-        .filter(({ manifest }) => !manifest.private);
+        .filter(({ manifest }) => !manifest.private)
+        // the unscoped alias has no build; the describe block below checks it
+        .filter(({ dir }) => dir !== "dcmjs");
 
     test("the publishable package list is what we expect", () => {
         expect(published.map(p => p.dir).sort()).toEqual([
@@ -148,4 +150,47 @@ describe("every published workspace package publishes a dual build", () => {
             );
         }
     );
+});
+
+describe("the unscoped dcmjs package re-exports @dcmjs-org/dcmjs", () => {
+    const ALIAS_DIR = path.join(ROOT, "packages", "dcmjs");
+    const read = dir =>
+        JSON.parse(fs.readFileSync(path.join(dir, "package.json"), "utf8"));
+
+    test("it has the same entry points as @dcmjs-org/dcmjs", () => {
+        expect(Object.keys(read(ALIAS_DIR).exports)).toEqual(
+            Object.keys(read(ROOT).exports)
+        );
+    });
+
+    // Static: in the workspace, plain node cannot load the build, because
+    // the workspace packages resolve to their sources until publish.
+    test("each entry file re-exports the same entry of @dcmjs-org/dcmjs", () => {
+        for (const [subpath, entry] of Object.entries(
+            read(ALIAS_DIR).exports
+        )) {
+            if (subpath === "./package.json") {
+                continue;
+            }
+            const target = "@dcmjs-org/dcmjs" + subpath.slice(1);
+            const files =
+                typeof entry === "string" ? [entry] : Object.values(entry);
+            for (const file of files) {
+                const text = fs.readFileSync(
+                    path.join(ALIAS_DIR, file),
+                    "utf8"
+                );
+                expect({
+                    file,
+                    re: text.match(/"(@dcmjs-org\/dcmjs[^"]*)"/g)
+                }).toEqual({
+                    file,
+                    re: expect.arrayContaining([`"${target}"`])
+                });
+                expect(text).not.toMatch(
+                    new RegExp(`"@dcmjs-org/dcmjs(?!${subpath.slice(1)}")`)
+                );
+            }
+        }
+    });
 });

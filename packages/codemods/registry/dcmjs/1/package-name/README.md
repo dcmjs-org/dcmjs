@@ -1,7 +1,9 @@
 # dcmjs 1.0: the package name
 
 `@dcmjs-org/dcmjs` has the export names of dcmjs 0.x, so this codemod changes
-names only. A project that already uses the 1.0 beta does not need it.
+names only. A project that already uses the 1.0 beta does not need it. The
+codemod is optional: the unscoped `dcmjs` package publishes 1.x too, and it
+re-exports `@dcmjs-org/dcmjs`.
 
 ```sh
 npx codemod @dcmjs-org/dcmjs-1-package-name --dry-run

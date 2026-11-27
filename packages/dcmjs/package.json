@@ -1,0 +1,45 @@
+{
+    "name": "dcmjs",
+    "version": "0.0.0",
+    "description": "The unscoped name of @dcmjs-org/dcmjs: each entry re-exports @dcmjs-org/dcmjs",
+    "main": "./index.cjs",
+    "module": "./index.mjs",
+    "exports": {
+        ".": {
+            "import": "./index.mjs",
+            "require": "./index.cjs"
+        },
+        "./eventStream": {
+            "import": "./eventStream.mjs",
+            "require": "./eventStream.cjs"
+        },
+        "./media": {
+            "import": "./media.mjs",
+            "require": "./media.cjs"
+        },
+        "./encapsulated": {
+            "import": "./encapsulated.mjs",
+            "require": "./encapsulated.cjs"
+        },
+        "./image": {
+            "import": "./image.mjs",
+            "require": "./image.cjs"
+        },
+        "./dictionary": "./dictionary.mjs",
+        "./package.json": "./package.json"
+    },
+    "files": [
+        "*.mjs",
+        "*.cjs",
+        "README.md"
+    ],
+    "dependencies": {
+        "@dcmjs-org/dcmjs": "workspace:*"
+    },
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/dcmjs-org/dcmjs.git",
+        "directory": "packages/dcmjs"
+    }
+}

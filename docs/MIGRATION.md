@@ -415,8 +415,11 @@ earlier beta had `fromFhir()` and `toFhir()`). Give the result of
 
 The `dcmjs` package surface is the wrapper `@dcmjs-org/dcmjs`. It
 reproduces the 0.x surface, so a project can try 1.0 by changing only the
-import name (`npm install @dcmjs-org/dcmjs`). The unscoped `dcmjs` name
-stays on 0.x.
+import name (`npm install @dcmjs-org/dcmjs`). The unscoped `dcmjs` package
+publishes 1.x too: each of its entries re-exports the same entry of
+`@dcmjs-org/dcmjs`. A project that keeps the name `dcmjs` gets 1.x when its
+version range allows 1.x (`^1.0.0`). A range such as `^0.54.0` stays on 0.x.
+The 0.x line publishes under the npm dist-tag `0.x`.
 
 The new engines are subpath entries, and they are ES modules only:
 `@dcmjs-org/dcmjs/eventStream`, `/media`, `/encapsulated` and `/image`.
