@@ -1,5 +1,6 @@
-import { SEGImageNormalizer } from "../src/normalizers";
+import { NMImageNormalizer, SEGImageNormalizer } from "../src/normalizers";
 import Segmentation from "../src/derivations/Segmentation";
+import { DicomMetaDictionary } from "../src/DicomMetaDictionary";
 
 const ENHANCED_MR_SOP_CLASS_UID = "1.2.840.10008.5.1.4.1.1.4.1";
 
@@ -40,18 +41,25 @@ it.each([true, false])(
         normalizer.normalize();
         const multiframe = normalizer.dataset;
 
-        // PixelData holds 1 frame, so NumberOfFrames 4 is reduced to 1.
-        expect(multiframe.NumberOfFrames).toBe(1);
+        // PixelData holds 1 frame, but the declared NumberOfFrames stays.
+        expect(multiframe.NumberOfFrames).toBe(4);
         expect(multiframe.SharedFunctionalGroupsSequence).toMatchObject({
             PlaneOrientationSequence: {
                 ImageOrientationPatient: [1, 0, 0, 0, 1, 0]
             },
             PixelMeasuresSequence: { PixelSpacing: [1, 1] }
         });
-        expect(multiframe.PerFrameFunctionalGroupsSequence).toHaveLength(1);
-        expect(
-            multiframe.PerFrameFunctionalGroupsSequence[0].PlanePositionSequence
-        ).toEqual({ ImagePositionPatient: [0, 0, 0] });
+        expect(multiframe.PerFrameFunctionalGroupsSequence).toHaveLength(4);
+        multiframe.PerFrameFunctionalGroupsSequence.forEach((item, i) => {
+            expect(item.PlanePositionSequence).toEqual({
+                ImagePositionPatient: [0, 0, 0]
+            });
+            expect(item.FrameContentSequence.InStackPositionNumber).toBe(i + 1);
+        });
+        const [first, second] = multiframe.PerFrameFunctionalGroupsSequence;
+        expect(first.PlanePositionSequence.ImagePositionPatient).not.toBe(
+            second.PlanePositionSequence.ImagePositionPatient
+        );
 
         const seg = new Segmentation([multiframe], { includeSliceSpacing });
         seg.setNumberOfFrames(1);
@@ -73,6 +81,163 @@ it.each([true, false])(
     }
 );
 
+it.each([2, 10])(
+    "keeps NumberOfFrames 8 for encapsulated PixelData with %s fragments",
+    fragments => {
+        const dataset = buildSingleFrameOfMultiframeInstance();
+        dataset.NumberOfFrames = 8;
+        dataset.PixelData = Array.from(
+            { length: fragments },
+            () => new ArrayBuffer(10)
+        );
+        const normalizer = new NMImageNormalizer([dataset]);
+        normalizer.normalize();
+
+        expect(normalizer.dataset.NumberOfFrames).toBe(8);
+        expect(
+            normalizer.dataset.PerFrameFunctionalGroupsSequence
+        ).toHaveLength(8);
+    }
+);
+
+it("treats an empty per-frame sequence as missing for NumberOfFrames 8", () => {
+    const dataset = buildSingleFrameOfMultiframeInstance();
+    dataset.NumberOfFrames = 8;
+    dataset.PerFrameFunctionalGroupsSequence = [];
+    const normalizer = new NMImageNormalizer([dataset]);
+    normalizer.normalize();
+
+    const perFrame = normalizer.dataset.PerFrameFunctionalGroupsSequence;
+    expect(perFrame).toHaveLength(8);
+    perFrame.forEach(item => {
+        expect(item.PlanePositionSequence).toBeDefined();
+        expect(item.FrameContentSequence).toBeDefined();
+    });
+    expect(perFrame[0].PlanePositionSequence.ImagePositionPatient).not.toBe(
+        perFrame[1].PlanePositionSequence.ImagePositionPatient
+    );
+});
+
+it("treats an empty shared sequence as missing and keeps the shared groups", () => {
+    const dataset = buildSingleFrameOfMultiframeInstance();
+    dataset.SharedFunctionalGroupsSequence = [];
+    const normalizer = new NMImageNormalizer([dataset]);
+    normalizer.normalize();
+
+    expect(normalizer.dataset.SharedFunctionalGroupsSequence).toMatchObject({
+        PlaneOrientationSequence: {
+            ImageOrientationPatient: [1, 0, 0, 0, 1, 0]
+        },
+        PixelMeasuresSequence: { PixelSpacing: [1, 1] },
+        PixelValueTransformationSequence: { RescaleType: "US" }
+    });
+
+    // The shared groups survive a write
+    const written = DicomMetaDictionary.naturalizeDataset(
+        DicomMetaDictionary.denaturalizeDataset(normalizer.dataset)
+    );
+    expect(
+        written.SharedFunctionalGroupsSequence.PixelValueTransformationSequence
+            .RescaleType
+    ).toBe("US");
+    expect(
+        written.SharedFunctionalGroupsSequence.PixelMeasuresSequence.PixelSpacing.map(
+            Number
+        )
+    ).toEqual([1, 1]);
+});
+
+it("keeps the FrameContentSequence of an existing per-frame item", () => {
+    const dataset = buildSingleFrameOfMultiframeInstance();
+    dataset.NumberOfFrames = 3;
+    const content = i => ({ DimensionIndexValues: [7, i], StackID: "S9" });
+    dataset.PerFrameFunctionalGroupsSequence = [1, 2].map(i => ({
+        FrameContentSequence: content(i)
+    }));
+    const normalizer = new NMImageNormalizer([dataset]);
+    normalizer.normalize();
+
+    const perFrame = normalizer.dataset.PerFrameFunctionalGroupsSequence;
+    expect(perFrame[0].FrameContentSequence).toEqual(content(1));
+    expect(perFrame[1].FrameContentSequence).toEqual(content(2));
+    expect(perFrame[2].FrameContentSequence.InStackPositionNumber).toBe(3);
+});
+
+const positionedItems = count =>
+    Array.from({ length: count }, (_, i) => ({
+        PlanePositionSequence: { ImagePositionPatient: [0, 0, i] }
+    }));
+
+it.each([
+    ["3 positioned items", positionedItems(3)],
+    ["8 positioned items", positionedItems(8)],
+    ["[null, {}]", [null, {}]]
+])("completes a per-frame sequence of %s to NumberOfFrames 8", (_, items) => {
+    const dataset = buildSingleFrameOfMultiframeInstance();
+    dataset.NumberOfFrames = 8;
+    dataset.PerFrameFunctionalGroupsSequence = items;
+    const expected = items.map(
+        item => item?.PlanePositionSequence?.ImagePositionPatient
+    );
+    const normalizer = new NMImageNormalizer([dataset]);
+    normalizer.normalize();
+
+    const perFrame = normalizer.dataset.PerFrameFunctionalGroupsSequence;
+    expect(perFrame).toHaveLength(8);
+    perFrame.forEach((item, i) => {
+        expect(item.PlanePositionSequence?.ImagePositionPatient).toEqual(
+            i < expected.length ? expected[i] : [0, 0, 0]
+        );
+        expect(item.FrameContentSequence.InStackPositionNumber).toBe(i + 1);
+    });
+});
+
+it("completes a naturalized one-item per-frame sequence and writes it", () => {
+    const source = buildSingleFrameOfMultiframeInstance();
+    source.NumberOfFrames = 3;
+    source.PerFrameFunctionalGroupsSequence = positionedItems(1);
+    // naturalizeDataset wraps a one-item sequence in the addAccessors Proxy
+    const dataset = DicomMetaDictionary.naturalizeDataset(
+        DicomMetaDictionary.denaturalizeDataset(source)
+    );
+    const normalizer = new NMImageNormalizer([dataset]);
+    normalizer.normalize();
+
+    const perFrame = normalizer.dataset.PerFrameFunctionalGroupsSequence;
+    expect(perFrame).toHaveLength(3);
+    // No pushed item may land in item 0 as a key "1", "2", ...
+    expect(Object.keys(perFrame[0]).filter(key => /^\d+$/.test(key))).toEqual(
+        []
+    );
+    const written = DicomMetaDictionary.denaturalizeDataset(normalizer.dataset);
+    expect(written["52009230"].Value).toHaveLength(3);
+});
+
+it("does not throw for a null per-frame item after NumberOfFrames", () => {
+    const dataset = buildSingleFrameOfMultiframeInstance();
+    dataset.NumberOfFrames = 3;
+    dataset.PerFrameFunctionalGroupsSequence = [{}, {}, {}, null];
+    const normalizer = new NMImageNormalizer([dataset]);
+
+    expect(() => normalizer.normalize()).not.toThrow();
+    expect(normalizer.dataset.PerFrameFunctionalGroupsSequence[3]).toBeNull();
+});
+
+it("keeps the list accessors of a one-item shared sequence", () => {
+    const dataset = buildSingleFrameOfMultiframeInstance();
+    dataset.SharedFunctionalGroupsSequence = [
+        { PixelMeasuresSequence: { PixelSpacing: [1, 1] } }
+    ];
+    const normalizer = new NMImageNormalizer([dataset]);
+    normalizer.normalize();
+
+    const shared = normalizer.dataset.SharedFunctionalGroupsSequence;
+    expect(shared.PixelMeasuresSequence).toEqual({ PixelSpacing: [1, 1] });
+    expect(shared).toHaveLength(1);
+    // The normalizer writes the shared groups into the item
+    expect(shared[0].PixelValueTransformationSequence).toBeDefined();
+});
+
 it("gives an object, not an array, as the per-frame item for NumberOfFrames 1", () => {
     const dataset = buildSingleFrameOfMultiframeInstance();
     dataset.NumberOfFrames = 1;
@@ -87,6 +252,7 @@ it("gives an object, not an array, as the per-frame item for NumberOfFrames 1", 
 
 it("keeps a complete multiframe dataset unchanged", () => {
     const dataset = buildSingleFrameOfMultiframeInstance();
+    dataset.NumberOfFrames = 1;
     dataset.SharedFunctionalGroupsSequence = {
         PixelMeasuresSequence: { PixelSpacing: [1, 1] }
     };
@@ -97,6 +263,7 @@ it("keeps a complete multiframe dataset unchanged", () => {
     normalizer.normalize();
 
     const multiframe = normalizer.dataset;
+    expect(multiframe.PerFrameFunctionalGroupsSequence).toHaveLength(1);
     expect(
         multiframe.SharedFunctionalGroupsSequence.PixelMeasuresSequence
     ).toEqual({ PixelSpacing: [1, 1] });

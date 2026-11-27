@@ -410,7 +410,8 @@ export class AsyncDicomReader {
                 `maxFragmentSize must be a positive number, got ${maxFragmentSize}`
             );
         }
-        const bigEndian = this.syntax === EXPLICIT_BIG_ENDIAN && wordWidth > 1;
+        // The stream byte order: items of a UN sequence are little endian
+        const bigEndian = !stream.isLittleEndian && wordWidth > 1;
         // Fragments have to hold whole words to be byte swapped, so that a word
         // is never split across two of them
         const fragmentSize = bigEndian
@@ -524,7 +525,7 @@ export class AsyncDicomReader {
         const { length } = tagInfo;
         const { listener } = this;
         // The big endian syntax stores OW pixel data big endian, OB as is
-        const wordWidth = tagInfo.vrObj?.wordWidth ?? 1;
+        const wordWidth = this.wordWidth(tagInfo);
 
         const numberOfFrames = this.getNumberOfFrames();
         const frameLength = Math.floor(length / numberOfFrames);
@@ -549,6 +550,22 @@ export class AsyncDicomReader {
                     `Invalid frame length: ${length} for ${numberOfFrames} frames`
                 );
             }
+        }
+
+        if (!this.stream.isLittleEndian && frameLength % wordWidth !== 0) {
+            // A word spans two frames, so swap the whole value before it is cut into frames
+            await this.stream.ensureAvailable(length);
+            const allPixelData = this.stream.readArrayBuffer(length);
+            this.stream.consume();
+            swapBytes(allPixelData, wordWidth);
+            for (let offset = 0; offset < length; offset += frameLength) {
+                listener.startObject([]);
+                listener.value(
+                    allPixelData.slice(offset, offset + frameLength)
+                );
+                listener.pop();
+            }
+            return;
         }
 
         for (let frameNumber = 0; frameNumber < numberOfFrames; frameNumber++) {
@@ -611,9 +628,10 @@ export class AsyncDicomReader {
         await stream.ensureAvailable(length);
         const allPixelData = stream.readArrayBuffer(totalBytes);
         stream.consume();
+        // Top level only (1 frame inside an item), so the file syntax is the stream order
         if (this.syntax === EXPLICIT_BIG_ENDIAN) {
             // the packed bits of OW data are stored as big endian words
-            swapBytes(allPixelData, tagInfo.vrObj?.wordWidth ?? 1);
+            swapBytes(allPixelData, this.wordWidth(tagInfo));
         }
 
         // Extract each frame, unpacking bits so each frame starts at byte 0
@@ -659,11 +677,23 @@ export class AsyncDicomReader {
 
     /**
      * Reads raw binary data in chunks and delivers it to the listener.
-     * This method reads data in 64KB chunks to manage memory efficiently.
+     * Reads the value in fragments of `maxFragmentSize` bytes.
+     * OW/OF/OL/OD/OV words come as little endian, as on the other read paths.
      */
     async readRawBinary(tagInfo) {
         const { length } = tagInfo;
-        await this._emitSplitValues(length);
+        await this._emitSplitValues(length, this.wordWidth(tagInfo));
+    }
+
+    /**
+     * Bytes per word of the value field, from the resolved VR: a UN element
+     * with dictionary VR OW/OF/OD/OL/OV uses that VR, "ox" is OW, and
+     * OB and an unresolved UN are 1 (no Big Endian swap).
+     */
+    wordWidth(tagInfo) {
+        return (
+            ValueRepresentation.createByTypeString(tagInfo.vr).wordWidth ?? 1
+        );
     }
 
     isSequence(tagInfo) {
@@ -752,7 +782,7 @@ export class AsyncDicomReader {
         if (
             !implicit &&
             wireVrType === "UN" &&
-            isUnSequenceValue(stream, length)
+            isUnSequenceValue(stream, length, tagObj)
         ) {
             vr = ValueRepresentation.createByTypeString("SQ");
             sequenceReadSyntax = IMPLICIT_LITTLE_ENDIAN;

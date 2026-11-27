@@ -5,6 +5,7 @@ import {
     EXPLICIT_LITTLE_ENDIAN,
     IMPLICIT_LITTLE_ENDIAN,
     VM_DELIMITER,
+    SEQUENCE_ITEM_TAG,
     TagHex,
     encodingMapping,
     unencapsulatedTransferSyntaxes,
@@ -22,17 +23,25 @@ export const singleVRs = ["SQ", "OF", "OW", "OB", "UN", "LT"];
 /**
  * PS3.5 §6.2.2: a UN value that holds a sequence is Implicit VR LE.
  * dcmjs finds that case by the item tag (FFFE,E000), FE FF 00 E0, at the
- * start of a defined-length value.
+ * start of a defined-length value, with an item length that is undefined or
+ * fits in the value. The tag must have the dictionary VR SQ or no dictionary entry.
  */
-export function isUnSequenceValue(stream, length) {
-    return (
-        length >= 8 &&
-        length !== UNDEFINED_LENGTH &&
-        stream.peekUint8(0) === 0xfe &&
-        stream.peekUint8(1) === 0xff &&
-        stream.peekUint8(2) === 0x00 &&
-        stream.peekUint8(3) === 0xe0
-    );
+export function isUnSequenceValue(stream, length, tag) {
+    const peekUint16LE = offset =>
+        stream.peekUint8(offset) | (stream.peekUint8(offset + 1) << 8);
+    if (
+        length < 8 ||
+        length === UNDEFINED_LENGTH ||
+        ((peekUint16LE(0) << 16) | peekUint16LE(2)) >>> 0 !== SEQUENCE_ITEM_TAG
+    ) {
+        return false;
+    }
+    const dictVr = DicomMessage.lookupTag(tag)?.vr;
+    if (dictVr && dictVr !== "SQ") {
+        return false;
+    }
+    const itemLength = (peekUint16LE(4) | (peekUint16LE(6) << 16)) >>> 0;
+    return itemLength === UNDEFINED_LENGTH || itemLength <= length - 8;
 }
 
 export class DicomMessage {
@@ -361,11 +370,12 @@ export class DicomMessage {
         if (
             !implicit &&
             wireVrType === "UN" &&
-            isUnSequenceValue(stream, length)
+            isUnSequenceValue(stream, length, tag)
         ) {
             vrType = "SQ";
             vr = ValueRepresentation.createByTypeString("SQ");
             readSyntax = IMPLICIT_LITTLE_ENDIAN;
+            stream.setEndian(true); // restored to oldEndian below
         }
 
         var values = [];

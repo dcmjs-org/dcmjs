@@ -72,6 +72,7 @@ var binaryVRs = ["FL", "FD", "SL", "SS", "UL", "US", "AT", "UV"],
         "OW",
         "OF",
         "OL",
+        "OV",
         "SQ",
         "UC",
         "UR",
@@ -80,12 +81,12 @@ var binaryVRs = ["FL", "FD", "SL", "SS", "UL", "US", "AT", "UV"],
         "OD",
         "UV"
     ],
-    singleVRs = ["SQ", "OF", "OL", "OW", "OB", "UN"];
+    singleVRs = ["SQ", "OF", "OL", "OV", "OW", "OB", "UN"];
 
 // Bytes per word of the value field of the binary VRs, used to convert the
 // value field to and from big endian byte order.  OB is a byte stream, and so
 // is UN, which PS3.5 Section 6.2.2 says to interpret as OB.
-var binaryVRWordWidths = { OB: 1, OD: 8, OF: 4, OL: 4, OW: 2, UN: 1 };
+var binaryVRWordWidths = { OB: 1, OD: 8, OF: 4, OL: 4, OV: 8, OW: 2, UN: 1 };
 
 class ValueRepresentation {
     constructor(type) {
@@ -1602,6 +1603,17 @@ class OtherLongString extends BinaryRepresentation {
     }
 }
 
+// OV, Other 64-bit Very Long: a stream of 64 bit words (PS3.5 Table 6.2-1),
+// for example Extended Offset Table (7FE0,0001).
+class OtherVeryLongString extends BinaryRepresentation {
+    constructor() {
+        super("OV");
+        this.maxLength = null;
+        this.padByte = PADDING_NULL;
+        this.noMultiple = true;
+    }
+}
+
 // these VR instances are precreate and are reused for each requested vr/tag
 let VRinstances = {
     AE: new ApplicationEntity(),
@@ -1620,6 +1632,7 @@ let VRinstances = {
     OD: new OtherDoubleString(),
     OF: new OtherFloatString(),
     OL: new OtherLongString(),
+    OV: new OtherVeryLongString(),
     OW: new OtherWordString(),
     PN: new PersonName(),
     SH: new ShortString(),

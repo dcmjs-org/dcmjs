@@ -14,7 +14,7 @@ function paddingLeft(paddingValue, string) {
 
 let DicomMessage;
 
-/** True when every value is an item dataset object, not binary data. */
+/** True when every value is an item dataset: an object with tag-shaped keys. */
 function isItemList(values) {
     return (
         Array.isArray(values) &&
@@ -24,7 +24,8 @@ function isItemList(values) {
                 v !== null &&
                 typeof v === "object" &&
                 !(v instanceof ArrayBuffer) &&
-                !ArrayBuffer.isView(v)
+                !ArrayBuffer.isView(v) &&
+                Object.keys(v).every(key => /^[0-9A-Fa-f]{8}$/.test(key))
         )
     );
 }

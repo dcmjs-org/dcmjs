@@ -67,16 +67,15 @@ export function createPs352UnSequenceDatasetElementBuffer() {
  * (0018,100A) as UN with the PS3.5 6.2.2-shaped value bytes.
  *
  * @param {object} [dict] dataset elements to write
+ * @param {string} [syntax] transfer syntax UID of the dataset
  * @returns {ArrayBuffer}
  */
 export function createPs352UnSequencePart10Buffer(
-    dict = { "0018100A": { vr: "UN", Value: [buildUnSequenceValueBytes()] } }
+    dict = { "0018100A": { vr: "UN", Value: [buildUnSequenceValueBytes()] } },
+    syntax = EXPLICIT_LITTLE_ENDIAN
 ) {
     const dicomDict = new DicomDict({
-        [TagHex.TransferSyntaxUID]: {
-            vr: "UI",
-            Value: [EXPLICIT_LITTLE_ENDIAN]
-        }
+        [TagHex.TransferSyntaxUID]: { vr: "UI", Value: [syntax] }
     });
     dicomDict.dict = dict;
     return dicomDict.write();
