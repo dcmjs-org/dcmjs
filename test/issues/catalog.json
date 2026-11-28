@@ -3153,7 +3153,7 @@
       "area": "sr-utilities",
       "disposition": "unit2CodingValue('cm') maps to UCUM cm, not [arb'U]{cm} (pure function; cheap despite SR area)",
       "testFile": "test/issues/issue505-unit2codingvalue.test.js",
-      "status": "gap",
+      "status": "green",
       "notes": ""
     }
   }
