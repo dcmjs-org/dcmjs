@@ -45,6 +45,11 @@ jobs:
 
       - name: Semantic release
         uses: cycjimmy/semantic-release-action@v6
+        with:
+          # 12.0.10 sends make_latest "false" for a maintenance branch, so a
+          # 0.x release does not become the GitHub "Latest" release.
+          extra_plugins: |
+            @semantic-release/github@12.0.10
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
