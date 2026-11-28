@@ -13,7 +13,7 @@ This is a community effort so please help improve support for a wide range of DI
 
 This is the 0.x maintenance line (branch `0.x`), for fixes only. dcmjs 1.x is on the `main` branch. See [Releases from the 0.x branch](#releases-from-the-0x-branch) before you merge a PR.
 
-See [live examples of 0.x here](https://0x--dcmjs2.netlify.app/). The examples of dcmjs 1.x are at [dcmjs2.netlify.app](https://dcmjs2.netlify.app/).
+See [live examples of 0.x here](https://0-x--dcmjs2.netlify.app/). The examples of dcmjs 1.x are at [dcmjs2.netlify.app](https://dcmjs2.netlify.app/).
 
 # Goals
 
@@ -61,7 +61,7 @@ _Parts of DICOM that dcmjs *will not* focus on:_
 Add **dcmjs** to your application (pnpm):
 
 ```bash
-pnpm add dcmjs@0.x   # the latest 0.x release
+pnpm add dcmjs@0.x   # the latest 0.x release (0.x is a version range)
 ```
 
 The same versions can be installed with `npm install` or Yarn in **your** project; those clients are fine for consuming the published package. **Building this repository** is pnpm-only (see below).
@@ -102,23 +102,31 @@ Use the following "Commit Message Format" when drafting commit messages. If you'
 
 Note: Be wary of `BREAKING_CHANGE` in commit message descriptions, as this can force a major version bump.
 
-Be sure to use lower case for the first letter of your semantic commit message, so use `fix` not `Fix` or `feat` not `Feat`, have a space after the : and make the PR github review title follow the SAME rules.  It is the PR review title that determins the final commit message and will be used for semantic detection.
+Be sure to use lower case for the first letter of your semantic commit message, so use `fix` not `Fix` or `feat` not `Feat`, have a space after the : and make the PR github review title follow the SAME rules. semantic-release reads the commit that lands on the branch. For a PR with one commit, the squash merge uses the commit title, not the PR title, so check the title in the merge dialog.
 
 Note: a new package version will be published only if the commit comes from a PR.
 
 ### Releases from the 0.x branch
 
-The `0.x` branch releases fixes only, as `0.54.N`, under the npm dist-tag `0.x`. `.releaserc.json` limits the branch to the range `0.54.x`.
+The `0.x` branch releases fixes only, as `0.54.N`, under the npm dist-tag `release-0.x` (the semantic-release channel of the branch). `dcmjs@0.x` installs the same release, because npm reads `0.x` as a version range. A dist-tag cannot be `0.x`, because npm does not permit a dist-tag that is a version range. `.releaserc.json` limits the branch to the range `0.54.x`.
 
-- Give each PR into `0.x` a `fix:` title, or a title that releases nothing (`ci:`, `docs:`, `test:`, `chore:`). The squash merge uses the PR title as the commit message.
+- Each commit that lands on `0.x` must have a `fix:` title, or a title that releases nothing (`ci:`, `docs:`, `test:`, `chore:`). The `0.x` branch requires a linear history, so merge a PR with "Squash and merge" (one commit lands) or "Rebase and merge" (each commit of the PR lands). Use "Squash and merge", except for a revert PR. For a PR with one commit, the squash merge uses the commit title, not the PR title. The squash body lists the messages of all commits. Check the title and the body in the merge dialog before you merge.
 - Do not use a `feat:` title. A `feat:` commit makes the next version `0.55.0`, which is outside the range. The publish job then fails with `EINVALIDNEXTVERSION`, and no version goes to npm.
-- Do not use a `BREAKING CHANGE:` footer or a `!` after the type. The next version is then `1.0.0`, and the publish job fails in the same way.
+- Do not use a `BREAKING CHANGE:` footer or a `!` after the type, also not in the body of the squash commit. The next version is then `1.0.0`, and the publish job fails in the same way.
 
-The failure blocks each later release from `0.x`, because each release run reads all commits since the last release. If a `feat:` commit is on `0.x`, a maintainer must fix the range:
+The failure blocks each later release from `0.x`, because each release run reads all commits since the last release. If a `feat:` commit is on `0.x`, a maintainer has two ways to recover.
 
-1. Open a PR into `0.x` that changes `"range": "0.54.x"` to `"range": "0.55.x"` in `.releaserc.json`.
+Revert the commit, if the feature does not belong on the fix-only line (the usual case):
+
+1. Use the GitHub "Revert" button on the merged PR, or run `git revert --no-edit <sha>` and open a PR. Before the merge, check that the PR has one commit, with the title `Revert "<the title of the feat: commit on 0.x>"` and the body `This reverts commit <sha>.`, where `<sha>` is the `feat:` commit on `0.x`. If the commit is different, use `git revert --no-edit <sha>`.
+2. Merge that PR with "Rebase and merge", not with "Squash and merge". semantic-release ignores a `feat:` commit and its revert only when the revert commit has exactly that title and body. A squash merge adds ` (#N)` to the title and a `*` line to the body, and the block stays.
+3. The next `fix:` commit releases `0.54.N` again.
+
+Or release the feature as `0.55.0`, if the maintainers want to keep it on 0.x:
+
+1. Open a PR into `0.x` that changes `"range": "0.54.x"` to `"range": "0.55.x"` in `.releaserc.json`. In the same PR, change `0.54` to `0.55` in this section.
 2. Give that PR a `ci:` title. Do not give it a `feat:` title.
-3. Merge the PR. The publish job releases `0.55.0`, and later fixes release `0.55.N`.
+3. Merge the PR. The publish job releases `0.55.0`, and later fixes release `0.55.N`. A user with the range `~0.54.0` does not get `0.55.0` or later fixes.
 
 ### Optional Tooling
 

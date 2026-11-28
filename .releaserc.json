@@ -1,3 +1,3 @@
 {
-    "branches": [{ "name": "0.x", "range": "0.54.x", "channel": "0.x" }, "main"]
+    "branches": [{ "name": "0.x", "range": "0.54.x", "channel": "release-0.x" }, "main"]
 }
