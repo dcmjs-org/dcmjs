@@ -11,6 +11,12 @@ const knownUnits = [
     {
         CodingSchemeDesignator: "UCUM",
         CodingSchemeVersion: "1.4",
+        CodeValue: "cm",
+        CodeMeaning: "cm"
+    },
+    {
+        CodingSchemeDesignator: "UCUM",
+        CodingSchemeVersion: "1.4",
         CodeValue: "mm2",
         CodeMeaning: "mm2"
     },
@@ -176,6 +182,8 @@ unitCodeMap["mm\xB2"] = {
     CodeValue: "mm2",
     CodeMeaning: "mm2"
 };
+
+unitCodeMap["cm\xB2"] = unitCodeMap.cm2;
 
 /** Converts the given unit into the
  * specified coding values.
