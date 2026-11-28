@@ -178,8 +178,10 @@ A private value is a list (NAT-U-VAL-4). An assigned PN string converts:
 - **NAT-U-BIN-6.** A UN element in an explicit VR file that holds a sequence
   (PS3.5 §6.2.2) reads as a sequence (VR `SQ`, a list of items), with the
   same result from each reader. The rule applies only to a tag that the
-  dictionary does not know, or that the dictionary gives as `SQ`. Any other
-  UN value keeps its bytes (NAT-U-BIN-1). A UN element whose values are all
+  dictionary does not know, or that the dictionary gives as `SQ`. A UN element
+  of undefined length is a sequence in the same way: its value starts with an
+  item, or with the sequence delimiter when it is empty. Any other UN value
+  keeps its bytes (NAT-U-BIN-1). A UN element whose values are all
   item datasets writes as a sequence; a UN element whose values are bytes or
   references (NAT-U-BIN-4) writes as UN.
 - **NAT-U-BIN-7.** The bytes of an OW, OF, OD, OL or OV value are in little

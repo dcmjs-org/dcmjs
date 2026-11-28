@@ -90,6 +90,51 @@ function createPart10WithEmptyItems(syntax, undefinedSequence, undefinedItems) {
     return out.buffer;
 }
 
+/**
+ * Part 10 with a private UN element (0009,1010) of undefined length that holds
+ * one item. PS3.5 6.2.2 encodes the item in Implicit VR Little Endian, also in
+ * a Big Endian file. A top-level element follows the sequence.
+ */
+function createPart10WithUndefinedLengthUn(syntax, itemLength = 0xffffffff) {
+    const le = syntax !== EXPLICIT_BIG_ENDIAN;
+    const head = new DicomDict({ "00020010": { vr: "UI", Value: [syntax] } });
+    const bytes = [];
+    const u16 = (v, little) => [
+        little ? v & 0xff : v >> 8,
+        little ? v >> 8 : v & 0xff
+    ];
+    const u32 = (v, little) => {
+        const b = [v >>> 24, (v >>> 16) & 0xff, (v >>> 8) & 0xff, v & 0xff];
+        return little ? b.reverse() : b;
+    };
+    const tag = (g, e, little) => [...u16(g, little), ...u16(e, little)];
+    const ascii = text => [...text].map(c => c.charCodeAt(0));
+
+    // (0009,0010) LO "X ", the private creator
+    bytes.push(...tag(0x0009, 0x0010, le), ...ascii("LO"), ...u16(2, le));
+    bytes.push(...ascii("X "));
+    // (0009,1010) UN, undefined length
+    bytes.push(...tag(0x0009, 0x1010, le), ...ascii("UN"), 0, 0);
+    bytes.push(...u32(0xffffffff, le));
+    // the item and its content are Implicit VR Little Endian
+    const inner = [...tag(0x0028, 0x1201, true), ...u32(4, true), 1, 2, 3, 4];
+    bytes.push(...tag(0xfffe, 0xe000, true), ...u32(itemLength, true));
+    bytes.push(...inner);
+    if (itemLength === 0xffffffff) {
+        bytes.push(...tag(0xfffe, 0xe00d, true), ...u32(0, true));
+    }
+    bytes.push(...tag(0xfffe, 0xe0dd, true), ...u32(0, true));
+    // (0010,0020) LO "ID1 ", after the sequence
+    bytes.push(...tag(0x0010, 0x0020, le), ...ascii("LO"), ...u16(4, le));
+    bytes.push(...ascii("ID1 "));
+
+    const headBytes = new Uint8Array(head.write());
+    const out = new Uint8Array(headBytes.length + bytes.length);
+    out.set(headBytes);
+    out.set(bytes, headBytes.length);
+    return out.buffer;
+}
+
 const readers = {
     sync: async part10 => DicomMessage.readFile(part10).dict,
     async: async part10 => {
@@ -289,6 +334,31 @@ describe("sync and async parser equivalency tests", () => {
                 expect([...new Uint8Array(dict[tag].Value[0])]).toEqual(bytes);
             }
         });
+
+        // PS3.5 6.2.2 also covers a UN element of undefined length
+        test.each([
+            [EXPLICIT_LITTLE_ENDIAN, 0xffffffff],
+            [EXPLICIT_LITTLE_ENDIAN, 12],
+            [EXPLICIT_BIG_ENDIAN, 0xffffffff],
+            [EXPLICIT_BIG_ENDIAN, 12]
+        ])(
+            "%s: all readers read a UN element of undefined length that holds a sequence (item length %i)",
+            async (syntax, itemLength) => {
+                const dicts = await readAll(
+                    createPart10WithUndefinedLengthUn(syntax, itemLength)
+                );
+                for (const dict of dicts) {
+                    expect(dict["00091010"].vr).toBe("SQ");
+                    expect(dict["00091010"].Value.length).toBe(1);
+                    expect([
+                        ...new Uint8Array(
+                            dict["00091010"].Value[0]["00281201"].Value[0]
+                        )
+                    ]).toEqual([1, 2, 3, 4]);
+                    expect(dict["00100020"].Value).toEqual(["ID1"]);
+                }
+            }
+        );
 
         test.each([
             [{ InlineBinary: "AAECAw==" }],
