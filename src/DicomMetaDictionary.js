@@ -1,8 +1,39 @@
-import { dictionary } from "./dictionary.fast.js";
+import {
+    dictionary,
+    registeredTagEntries,
+    setNameMapRegistrar
+} from "./dictionary.fast.js";
 import { getAllStandardTagEntries } from "./dicom.lookup.js";
 import log from "./log.js";
 import addAccessors from "./utilities/addAccessors";
+import {
+    overlayGroupOfTag,
+    isOverlayKey,
+    placeOverlayItems,
+    denaturalizeOverlays
+} from "./utilities/overlaySequence.js";
 import { ValueRepresentation } from "./ValueRepresentation";
+
+/**
+ * Add a registerTag() entry to a name map. A registration never replaces a
+ * name that the map already has for a different tag (a standard keyword or an
+ * earlier registration): the existing entry wins, and a warning names both
+ * tags. Entries with version "PrivateTag" are skipped.
+ */
+function addRegisteredToNameMap(nameMap, dict) {
+    if (!dict || dict.version === "PrivateTag") {
+        return;
+    }
+    const existing = nameMap[dict.name];
+    if (existing && existing.tag.toUpperCase() !== dict.tag.toUpperCase()) {
+        log.warn(
+            `registerTag: name ${dict.name} already maps to ${existing.tag}; ` +
+                `${dict.tag} is not writable by that name`
+        );
+        return;
+    }
+    nameMap[dict.name] = dict;
+}
 
 export class DicomMetaDictionary {
     // intakes a custom dictionary that will be used to parse/denaturalize the dataset
@@ -109,13 +140,45 @@ export class DicomMetaDictionary {
      *     with single element lists remaining lists, but being a
      *     proxy for the child values, see addAccessors for examples
      * - object member names are dictionary, not group/element tag
+     * - each overlay group (60xx, xx even) becomes one item of
+     *     `OverlaySequence`, with its group as `group` ("6000") and its
+     *     attributes by keyword (`OverlayRows`, `OverlayData`, ...).
+     *     All overlay groups share the same keywords, so a flat keyword
+     *     can hold only one group. The hex tag of each element
+     *     ("60023000") is a non-enumerable alias of the item value.
+     *     See README "Overlay planes".
      */
     static naturalizeDataset(dataset) {
+        const overlayGroups = {};
+        const naturalDataset = DicomMetaDictionary._naturalizeElements(
+            dataset,
+            overlayGroups
+        );
+        Object.keys(overlayGroups).forEach(group => {
+            overlayGroups[group] = DicomMetaDictionary._naturalizeElements(
+                overlayGroups[group]
+            );
+        });
+        placeOverlayItems(naturalDataset, overlayGroups);
+        return naturalDataset;
+    }
+
+    /**
+     * Naturalizes the elements of one dataset level. When `overlayGroups` is
+     * given, the overlay elements go into it by group, not into the result.
+     */
+    static _naturalizeElements(dataset, overlayGroups) {
         const naturalDataset = ValueRepresentation.addTagAccessors({
             _vrMap: {}
         });
 
         Object.keys(dataset).forEach(tag => {
+            const overlayGroup = overlayGroups && overlayGroupOfTag(tag);
+            if (overlayGroup) {
+                overlayGroups[overlayGroup] = overlayGroups[overlayGroup] || {};
+                overlayGroups[overlayGroup][tag] = dataset[tag];
+                return;
+            }
             const data = dataset[tag];
             const punctuatedTag = DicomMetaDictionary.punctuateTag(tag);
             const entry = DicomMetaDictionary.dictionary[punctuatedTag];
@@ -212,6 +275,9 @@ export class DicomMetaDictionary {
     static denaturalizeDataset(dataset, nameMap = DicomMetaDictionary.nameMap) {
         var unnaturalDataset = {};
         Object.keys(dataset).forEach(naturalName => {
+            if (isOverlayKey(naturalName)) {
+                return; // denaturalizeOverlays below
+            }
             // check if it's a sequence
             var name = naturalName;
             var entry = nameMap[name];
@@ -247,6 +313,15 @@ export class DicomMetaDictionary {
                     let vr = ValueRepresentation.createByTypeString(
                         dataItem.vr
                     );
+
+                    if (dataItem.vr === "DS" && Array.isArray(dataItem.Value)) {
+                        // Format numbers to fit 16 characters instead of truncating String(number) below
+                        dataItem.Value = dataItem.Value.map(value =>
+                            typeof value === "number"
+                                ? vr.convertToString(value)
+                                : value
+                        );
+                    }
 
                     dataItem.Value = DicomMetaDictionary.denaturalizeValue(
                         dataItem.Value
@@ -303,6 +378,10 @@ export class DicomMetaDictionary {
                 }
             }
         });
+        // After the flat attributes, so an item wins over a flat overlay keyword.
+        denaturalizeOverlays(dataset, unnaturalDataset, item =>
+            DicomMetaDictionary.denaturalizeDataset(item, nameMap)
+        );
         return unnaturalDataset;
     }
 
@@ -345,12 +424,19 @@ export class DicomMetaDictionary {
             };
             DicomMetaDictionary.nameMap[e.name] = dict;
         }
+        // Entries assigned straight onto the dictionary. It is a Proxy with no
+        // set or ownKeys trap, so an assignment lands on its target and
+        // Object.keys() sees it - this is the custom dictionary pattern of #215.
         Object.keys(DicomMetaDictionary.dictionary).forEach(tag => {
             const dict = DicomMetaDictionary.dictionary[tag];
             if (dict && dict.version !== "PrivateTag") {
                 DicomMetaDictionary.nameMap[dict.name] = dict;
             }
         });
+        // registerTag() entries are in their own map, not in Object.keys() above.
+        registeredTagEntries().forEach(dict =>
+            addRegisteredToNameMap(DicomMetaDictionary.nameMap, dict)
+        );
     }
 
     static _generateCustomNameMap(dictionary) {
@@ -373,6 +459,9 @@ export class DicomMetaDictionary {
                     nameMap[dict.name] = dict;
                 }
             });
+            registeredTagEntries().forEach(dict =>
+                addRegisteredToNameMap(nameMap, dict)
+            );
             return nameMap;
         }
         Object.keys(dictionary).forEach(tag => {
@@ -442,4 +531,9 @@ ValueRepresentation.setDicomMetaDictionary(DicomMetaDictionary);
 DicomMetaDictionary.dictionary = dictionary;
 
 DicomMetaDictionary._generateNameMap();
+// From here on, registerTag() adds straight to nameMap, so a tag registered at
+// any point can be written by name.
+setNameMapRegistrar(entry =>
+    addRegisteredToNameMap(DicomMetaDictionary.nameMap, entry)
+);
 DicomMetaDictionary._generateUIDMap();

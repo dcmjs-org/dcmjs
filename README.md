@@ -11,7 +11,9 @@
 
 This is a community effort so please help improve support for a wide range of DICOM data and use cases.
 
-See [live examples here](https://master--dcmjs2.netlify.app/)
+This is the 0.x maintenance line (branch `0.x`), for fixes only. dcmjs 1.x is on the `main` branch. See [Releases from the 0.x branch](#releases-from-the-0x-branch) before you merge a PR.
+
+See [live examples of 0.x here](https://0x--dcmjs2.netlify.app/). The examples of dcmjs 1.x are at [dcmjs2.netlify.app](https://dcmjs2.netlify.app/).
 
 # Goals
 
@@ -51,7 +53,7 @@ _Parts of DICOM that dcmjs *will not* focus on:_
 ## In Browser
 
 ```html
-<script type="text/javascript" src="https://unpkg.com/dcmjs"></script>
+<script type="text/javascript" src="https://unpkg.com/dcmjs@0.x"></script>
 ```
 
 ## In Node
@@ -59,8 +61,7 @@ _Parts of DICOM that dcmjs *will not* focus on:_
 Add **dcmjs** to your application (pnpm):
 
 ```bash
-pnpm add dcmjs       # latest stable release
-pnpm add dcmjs@dev   # latest code merged to master
+pnpm add dcmjs@0.x   # the latest 0.x release
 ```
 
 The same versions can be installed with `npm install` or Yarn in **your** project; those clients are fine for consuming the published package. **Building this repository** is pnpm-only (see below).
@@ -104,6 +105,20 @@ Note: Be wary of `BREAKING_CHANGE` in commit message descriptions, as this can f
 Be sure to use lower case for the first letter of your semantic commit message, so use `fix` not `Fix` or `feat` not `Feat`, have a space after the : and make the PR github review title follow the SAME rules.  It is the PR review title that determins the final commit message and will be used for semantic detection.
 
 Note: a new package version will be published only if the commit comes from a PR.
+
+### Releases from the 0.x branch
+
+The `0.x` branch releases fixes only, as `0.54.N`, under the npm dist-tag `0.x`. `.releaserc.json` limits the branch to the range `0.54.x`.
+
+- Give each PR into `0.x` a `fix:` title, or a title that releases nothing (`ci:`, `docs:`, `test:`, `chore:`). The squash merge uses the PR title as the commit message.
+- Do not use a `feat:` title. A `feat:` commit makes the next version `0.55.0`, which is outside the range. The publish job then fails with `EINVALIDNEXTVERSION`, and no version goes to npm.
+- Do not use a `BREAKING CHANGE:` footer or a `!` after the type. The next version is then `1.0.0`, and the publish job fails in the same way.
+
+The failure blocks each later release from `0.x`, because each release run reads all commits since the last release. If a `feat:` commit is on `0.x`, a maintainer must fix the range:
+
+1. Open a PR into `0.x` that changes `"range": "0.54.x"` to `"range": "0.55.x"` in `.releaserc.json`.
+2. Give that PR a `ci:` title. Do not give it a `feat:` title.
+3. Merge the PR. The publish job releases `0.55.0`, and later fixes release `0.55.N`.
 
 ### Optional Tooling
 
@@ -173,6 +188,95 @@ The fast dictionary reduces initial load time by over 9x, making it especially b
 - Build tools and bundlers
 - Applications with frequent module reloading during development
 - Environments where startup time is critical
+
+## Overlay planes in the naturalized dataset
+
+DICOM stores each overlay plane in its own repeating group: (6000,xxxx),
+(6002,xxxx), up to (601E,xxxx). All the groups use the same keywords, for
+example `OverlayRows` and `OverlayData`. A flat keyword can hold the value of
+one group only. So `naturalizeDataset` puts the overlay groups in the
+`OverlaySequence` list, one item for each group, as if the overlays were a
+sequence.
+
+The item has the same form as a private block in the dcmjs 1.0 naturalized
+form, with a keyword in place of each element key:
+
+-   `group` is the 4-digit hex group of the source, for example `"6002"`. It
+    is not an attribute, as `creator` and `reservedBlock` of a private block
+    are not attributes.
+-   Each attribute of the group has its keyword as its key, for example
+    `OverlayRows` for (6002,0010).
+-   The item has its own `_vrMap`, for example `_vrMap.OverlayData` is `"OW"`.
+
+The DICOM JSON dict
+
+```js
+{
+  "60000010": { vr: "US", Value: [512] },
+  "60003000": { vr: "OW", BulkDataURI: "https://host/overlay0" },
+  "60020010": { vr: "US", Value: [256] },
+  "60023000": { vr: "OW", BulkDataURI: "https://host/overlay2" }
+}
+```
+
+naturalizes to
+
+```js
+{
+  _vrMap: {},
+  OverlaySequence: [
+    {
+      _vrMap: { OverlayData: "OW" },
+      group: "6000",
+      OverlayRows: 512,
+      OverlayData: { BulkDataURI: "https://host/overlay0" }
+    },
+    {
+      _vrMap: { OverlayData: "OW" },
+      group: "6002",
+      OverlayRows: 256,
+      OverlayData: { BulkDataURI: "https://host/overlay2" }
+    }
+  ]
+}
+```
+
+The rules:
+
+-   The items are in the order of their groups.
+-   One overlay group gives a list of one item, with the accessors of a
+    sequence of one item: `ds.OverlaySequence.OverlayRows` and
+    `ds.OverlaySequence[0].OverlayRows` give the same value.
+-   The dataset has no flat overlay keyword, for example no `ds.OverlayRows`.
+-   The 8-digit hex tag of each element of an item is a non-enumerable alias
+    on the dataset, as in dcmjs 0.49 and earlier: `ds["60020010"]` reads
+    `OverlayRows` of the item of group 6002, and a write to it changes the
+    item. `Object.keys(ds)` and `JSON.stringify(ds)` do not show the hex tags.
+    When the dataset no longer has an item for that group, a write makes a
+    plain hex key.
+-   A `delete` of a hex-tag alias, for example `delete ds["60003000"]`,
+    removes that element from the output of `denaturalizeDataset`. To add the
+    element again, set a value on the deleted name.
+-   An odd group in the range 6001 to 60FF is a private group, not an
+    overlay. Its elements keep their hex tags.
+-   `denaturalizeDataset` writes each item into the group that `group` gives.
+    `group` can also be a number, for example `0x6002`. An item with no
+    `group` uses group 6000 + 2 × its index. An item attribute that is not an
+    overlay attribute is skipped with a warning.
+-   `denaturalizeDataset` also writes a plain overlay hex key, for example
+    `ds["60043000"]`, into its group, with the VR of `ds._vrMap["60043000"]`
+    or of the dictionary. An item value wins over a hex key.
+-   A flat overlay keyword that you set, for example `ds.OverlayRows`, writes
+    to group 6000. When an item or a hex key gives the same element of group
+    6000, the item or the hex key wins.
+
+To read the overlays:
+
+```js
+for (const overlay of ds.OverlaySequence || []) {
+    console.log(overlay.group, overlay.OverlayRows, overlay.OverlayColumns);
+}
+```
 
 ## Community Participation
 
