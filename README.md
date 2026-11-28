@@ -110,7 +110,7 @@ Note: a new package version will be published only if the commit comes from a PR
 
 The `0.x` branch releases fixes only, as `0.54.N`, under the npm dist-tag `release-0.x` (the semantic-release channel of the branch). `dcmjs@0.x` installs the same release, because npm reads `0.x` as a version range. A dist-tag cannot be `0.x`, because npm does not permit a dist-tag that is a version range. `.releaserc.json` limits the branch to the range `0.54.x`.
 
-- The commit that lands on `0.x` must have a `fix:` title, or a title that releases nothing (`ci:`, `docs:`, `test:`, `chore:`). For a PR with one commit, the squash merge uses the commit title, not the PR title. The squash body lists the messages of all commits. Check the title and the body in the merge dialog before you merge.
+- Each commit that lands on `0.x` must have a `fix:` title, or a title that releases nothing (`ci:`, `docs:`, `test:`, `chore:`). The `0.x` branch requires a linear history, so merge a PR with "Squash and merge" (one commit lands) or "Rebase and merge" (each commit of the PR lands). Use "Squash and merge", except for a revert PR. For a PR with one commit, the squash merge uses the commit title, not the PR title. The squash body lists the messages of all commits. Check the title and the body in the merge dialog before you merge.
 - Do not use a `feat:` title. A `feat:` commit makes the next version `0.55.0`, which is outside the range. The publish job then fails with `EINVALIDNEXTVERSION`, and no version goes to npm.
 - Do not use a `BREAKING CHANGE:` footer or a `!` after the type, also not in the body of the squash commit. The next version is then `1.0.0`, and the publish job fails in the same way.
 
@@ -118,7 +118,7 @@ The failure blocks each later release from `0.x`, because each release run reads
 
 Revert the commit, if the feature does not belong on the fix-only line (the usual case):
 
-1. Use the GitHub "Revert" button on the merged PR, or run `git revert --no-edit <sha>` and open a PR. Either way, the PR has one commit with the title `Revert "feat: ..."` and the body `This reverts commit <sha>.`.
+1. Use the GitHub "Revert" button on the merged PR, or run `git revert --no-edit <sha>` and open a PR. Before the merge, check that the PR has one commit, with the title `Revert "<the title of the feat: commit on 0.x>"` and the body `This reverts commit <sha>.`, where `<sha>` is the `feat:` commit on `0.x`. If the commit is different, use `git revert --no-edit <sha>`.
 2. Merge that PR with "Rebase and merge", not with "Squash and merge". semantic-release ignores a `feat:` commit and its revert only when the revert commit has exactly that title and body. A squash merge adds ` (#N)` to the title and a `*` line to the body, and the block stays.
 3. The next `fix:` commit releases `0.54.N` again.
 
