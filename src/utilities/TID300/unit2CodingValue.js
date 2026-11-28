@@ -11,6 +11,12 @@ const knownUnits = [
     {
         CodingSchemeDesignator: "UCUM",
         CodingSchemeVersion: "1.4",
+        CodeValue: "cm",
+        CodeMeaning: "cm"
+    },
+    {
+        CodingSchemeDesignator: "UCUM",
+        CodingSchemeVersion: "1.4",
         CodeValue: "mm2",
         CodeMeaning: "mm2"
     },
