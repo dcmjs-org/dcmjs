@@ -78,9 +78,8 @@ describe("shapeReadValues", () => {
         expect(rawValues).toBe(buf);
     });
 
-    // singleVRs (from DicomMessage) = ["SQ","OF","OW","OB","UN","LT"].
     // Elements falling to the `else` branch are those that ARE in singleVRs
-    // but are NOT SQ, OW, or OB: UN, OF, LT.
+    // but are NOT SQ, OW, or OB: UN, OF, LT, ST, UT, UR.
     // For VRs whose storeRaw()===false (BinaryRepresentation: UN, OF),
     // vr.read() returns rawValue===undefined, giving _rawValue:[undefined].
     test("UN (singleVR, storeRaw=false): rawValues wraps undefined into array", () => {

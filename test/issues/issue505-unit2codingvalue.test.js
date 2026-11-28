@@ -2,7 +2,7 @@
  * Issue-derived regression tests — TID300 unit2CodingValue.
  *
  * #505 (A — synthetic): https://github.com/dcmjs-org/dcmjs/issues/505
- *   Symptom: `unit2CodingValue("cm")` has no map entry for plain "cm"
+ *   Symptom (fixed): `unit2CodingValue("cm")` had no map entry for plain "cm"
  *   (the knownUnits list has "mm", "mm2", "cm2", "cm2/ml", "/cm" — but not
  *   "cm"), so centimetre measurements (e.g. ultrasound regions with
  *   PhysicalUnitsXDirection = 3) fall through to the arbitrary-unit branch
@@ -34,15 +34,24 @@ describe("issue #505 — unit2CodingValue mapping table", () => {
         expect(coding.CodeValue).toBe("[hnsf'U]");
     });
 
-    // KNOWN GAP: observed unit2CodingValue("cm") ===
-    //   { CodeValue: "[arb'U]{cm}", CodingSchemeDesignator: "UCUM",
-    //     CodeMeaning: "arbitrary cm" }
-    // (the arbitrary-unit fallback, because "cm" is missing from
-    // knownUnits/unitCodeMap); expected the regular UCUM code
-    // CodeValue === "cm".
-    it.skip("KNOWN GAP #505: 'cm' falls through to [arb'U]{cm} instead of UCUM 'cm'", () => {
+    it("maps 'cm' to UCUM CodeValue 'cm' (#505)", () => {
         const coding = unit2CodingValue("cm");
         expect(coding.CodingSchemeDesignator).toBe("UCUM");
         expect(coding.CodeValue).toBe("cm");
+    });
+
+    // Cornerstone3D labels a calibrated ultrasound unit "cm US Region" or
+    // "cm² US Region"; the part before the first space is looked up.
+    it.each([
+        ["cm US Region", "cm"],
+        ["cm²", "cm2"],
+        ["cm² US Region", "cm2"]
+    ])("maps '%s' to UCUM CodeValue '%s'", (unit, codeValue) => {
+        expect(unit2CodingValue(unit)).toEqual(
+            expect.objectContaining({
+                CodingSchemeDesignator: "UCUM",
+                CodeValue: codeValue
+            })
+        );
     });
 });
