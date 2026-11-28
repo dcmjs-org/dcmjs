@@ -59,14 +59,15 @@ _Parts of DICOM that dcmjs *will not* focus on:_
 Add **dcmjs** to your application (pnpm):
 
 ```bash
-pnpm add dcmjs       # the 0.x release line (branch 0.x); for 1.0 see below
+pnpm add dcmjs       # dcmjs 1.x, the same code as @dcmjs-org/dcmjs
+pnpm add dcmjs@0.x   # the 0.x maintenance line (branch 0.x, fixes only)
 ```
 
 The same versions can be installed with `npm install` or Yarn in **your** project; those clients are fine for consuming the published package. **Building this repository** is pnpm-only (see below).
 
 ## dcmjs 1.0 (`@dcmjs-org/dcmjs`)
 
-dcmjs 1.0 publishes as `@dcmjs-org/dcmjs`. The unscoped `dcmjs` name stays on 0.x.
+dcmjs 1.0 publishes as `@dcmjs-org/dcmjs`. From 1.1.0, the unscoped `dcmjs` package publishes the same versions: each of its entries re-exports the same entry of `@dcmjs-org/dcmjs`, so an application that uses both names gets one copy of the code when one version of `@dcmjs-org/dcmjs` satisfies both. `https://unpkg.com/dcmjs` serves the 1.x UMD build. The 0.x line moves to the npm dist-tag `release-0.x`; install it with the version range `dcmjs@0.x`.
 
 ```bash
 npm install @dcmjs-org/dcmjs
