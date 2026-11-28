@@ -706,7 +706,6 @@ async function fromPart10StreamImpl(input, listener, options, parseState) {
         // The one data-peek promotion to SQ (PS3.5 §6.2.2), see the JSDoc.
         if (
             vrStr === "UN" &&
-            !undef &&
             (await ensureAbs(valueStartAbs + 8)) &&
             isUnSequenceValue(
                 bsrc.view,
@@ -715,6 +714,7 @@ async function fromPart10StreamImpl(input, listener, options, parseState) {
                 vrInstance.type
             )
         ) {
+            // An undefined length reaches emitSequence as UNDEFINED_LEN.
             await withImplicitLE(() =>
                 emitSequence(
                     target,
