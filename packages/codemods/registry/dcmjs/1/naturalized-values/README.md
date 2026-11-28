@@ -3,7 +3,7 @@
 `naturalizeDataset` and `denaturalizeDataset` keep their names in 1.0, but
 some values have a different shape. This codemod rewrites the code where the
 new shape is certain, and reports the other sites.
-[specs/naturalized-dataset.md](https://github.com/dcmjs-org/dcmjs/blob/master/docs/specs/naturalized-dataset.md)
+[specs/naturalized-dataset.md](https://github.com/dcmjs-org/dcmjs/blob/main/docs/specs/naturalized-dataset.md)
 gives the rules (`NAT-U-*`).
 
 ```sh

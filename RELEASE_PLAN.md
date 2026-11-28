@@ -122,7 +122,7 @@ scope later; until then every name in this document reads `@dcmjs-org/`.
 | Branch                       | Role                                                                                                                                                             |
 | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `main`                       | The default branch from 1.0.0. Publishes the `@dcmjs-org/*` packages to npm `latest`. Created from `1.0-beta` at general availability.                           |
-| `0.x`                        | The old `master`, renamed at general availability. Maintenance line of the unscoped `dcmjs` package (`>=0.54.1 <1.0.0`) for critical fixes.                      |
+| `0.x`                        | The old `master`, renamed at general availability. Maintenance line of the unscoped `dcmjs` package (`0.54.x`, fixes only) for critical fixes.                        |
 | `1.0-beta`                   | The release branch for 1.0 before general availability. It published `1.0.0-beta.N` prereleases under the npm `beta` tag. Retired when `main` exists.            |
 | `release/1.0-beta-<package>` | One staging branch per package — `release/1.0-beta-core`, `release/1.0-beta-fhir`, and so on. Work accumulates here in small steps.                              |
 
@@ -461,8 +461,11 @@ A PR on `1.0-beta` sets the release branches to `0.x` and `main` in
 `main` only (Appendix B). A push of `1.0-beta` to a new `main` branch then
 releases `1.0.0` to npm `latest` for every public `@dcmjs-org/*` package.
 Later merges into `main` release `1.x` versions. `main` becomes the default
-branch, and `master` is renamed to `0.x`. The `0.x` range keeps that branch
-below `1.0.0`.
+branch, and `master` is renamed to `0.x`. The `0.x` range is `0.54.x`, so
+that branch releases only `0.54.N` fixes. A `feat:` commit on `0.x` fails
+the publish job. semantic-release cannot use the range `0.x`: it reads the
+lower bound from `semver.validRange("0.x")`, which is `<1.0.0-0`, and the
+range of the branch becomes empty.
 
 After GA, the 0.x line winds down on the schedule from the earlier plan:
 the `0.x` branch for critical fixes, a deprecation notice in the
@@ -528,7 +531,7 @@ Named here so their absence is a decision, not an oversight:
 ```json
 {
     "branches": [
-        { "name": "0.x", "range": "0.x", "channel": false },
+        { "name": "0.x", "range": "0.54.x", "channel": false },
         "main"
     ],
     "plugins": [
@@ -542,14 +545,10 @@ Named here so their absence is a decision, not an oversight:
                 "publishCmd": "pnpm -r publish --tag ${nextRelease.channel || 'latest'} --access public --no-git-checks"
             }
         ],
-        ["@semantic-release/github", { "successComment": false }]
+        "@semantic-release/github"
     ]
 }
 ```
-
-`successComment: false` stops the "included in version" comments for the
-`1.0.0` release only, because that release covers more than 100 PRs. A
-follow-up PR on `main` removes the option.
 
 ## Appendix B — publish workflow trigger
 

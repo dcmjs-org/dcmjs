@@ -3,7 +3,7 @@
 Runs the dcmjs 1.0 migration codemods in the recommended order. They do the
 mechanical part of the upgrade from dcmjs 0.x, and they report each site that
 needs a person. They write no comment into your code.
-[MIGRATION.md](https://github.com/dcmjs-org/dcmjs/blob/master/docs/MIGRATION.md)
+[MIGRATION.md](https://github.com/dcmjs-org/dcmjs/blob/main/docs/MIGRATION.md)
 explains each change.
 
 ## Usage
