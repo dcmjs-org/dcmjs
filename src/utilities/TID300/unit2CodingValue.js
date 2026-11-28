@@ -183,6 +183,8 @@ unitCodeMap["mm\xB2"] = {
     CodeMeaning: "mm2"
 };
 
+unitCodeMap["cm\xB2"] = unitCodeMap.cm2;
+
 /** Converts the given unit into the
  * specified coding values.
  * Has .measurementMap on the function specifying global units for measurements.

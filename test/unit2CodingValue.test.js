@@ -35,6 +35,16 @@ describe("unit2CodingValue", () => {
         );
     });
 
+    // Cornerstone3D labels a calibrated ultrasound area "cm² US Region".
+    it.each(["cm²", "cm² US Region"])("maps '%s' to UCUM cm2", unit => {
+        expect(unit2CodingValue(unit)).toEqual(
+            expect.objectContaining({
+                CodeValue: "cm2",
+                CodingSchemeDesignator: "UCUM"
+            })
+        );
+    });
+
     it("still falls back to an arbitrary unit for something unknown", () => {
         expect(unit2CodingValue("bananas").CodeValue).toBe("[arb'U]{bananas}");
     });
